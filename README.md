@@ -91,7 +91,44 @@ The monorepo separates mission-specific business domains from generic utility lo
 
 ---
 
-## 2. Configuration Management & Quality Gate Workflow
+## 2. 🛠️ Local Workspace Initialization (IaC Onboarding)
+
+This repository utilizes an idempotent, self-healing **Infrastructure as Code (IaC)** environment gateway script to ensure 100% deterministic developer environment synchronization across different workstations. 
+
+The script dynamically audits your host operating system (Linux/WSL, macOS), verifies/upgrades your Node.js engine range to **`>=v26.7.0`**, installs **`pnpm@11.22.0`** using native manager boundaries, verifies your Docker daemon status, injects low-level systems prerequisites (like `libatomic1` for Node 25+ Linux compatibility), and compiles your local workspace dependency tree.
+
+### Prerequisites
+Because the system infrastructure automates all runtime and package managers, the absolute only host-level prerequisite is a clean installation of Git:
+* `git` (Core Source Control Engine)
+
+### Automated System Standup
+To clone the repository and completely configure your local machine's development environment in one shot, execute this single pipelined command string in your terminal:
+
+```bash
+git clone <repository-url> && cd distributed-systems-architecture-portfolio && chmod +x setup.sh && ./setup.sh
+```
+
+### Manual Operational Steps
+If executing the pipeline step-by-step from an existing workspace or on machines requiring explicit permission overrides:
+
+1. **Elevate Script Permissions:** Mark the bootstrap script as an executable binary within your OS kernel:
+   ```bash
+   chmod +x setup.sh
+   ```
+2. **Execute the Gateway:** Launch the self-healing installation loop:
+   ```bash
+   ./setup.sh
+   ```
+3. **Refresh Your Shell Profile:** Once the script successfully completes and appends the native pnpm path exports to your environment, reload your active terminal session:
+   ```bash
+   source ~/.bashrc
+   ```
+
+### Troubleshooting Benign Tool Warnings
+When executing the initialization loop inside WSL or specific minimal Linux environments, the global `pnpm setup` engine may emit soft, non-blocking `ENOENT` directory warnings during multi-threaded symlink indexing. These are completely benign and safely bypassed by the script's internal fallback logic, which writes the primary export statements directly into your user's shell profile. No manual intervention is required.
+
+
+## 3. Configuration Management & Quality Gate Workflow
 
 To maintain strict configuration control, absolute traceability, and compliance with our **Strict-Main-Gate Ruleset**, direct pushes to the `master` branch are blocked by repository protection rules. Every change must pass through the integration workflow below.
 
