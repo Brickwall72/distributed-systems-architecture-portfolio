@@ -1,0 +1,20 @@
+networks:
+  platform-mesh:
+    # If run in isolation, Docker will create a local "pdf-viewer_platform-mesh" bridge.
+    # When called by the root include:, the global platform-mesh completely overrides it.
+    name: platform-mesh 
+
+
+services:
+  pdf-viewer:
+    build:
+      context: ../../../
+      dockerfile: ./services/platform/pdf-viewer/Dockerfile
+    container_name: pdf-viewer
+    ports:
+      - "${PORT:-8084}:${PORT:-8084}" 
+    networks:
+      - platform-mesh
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-8084}
