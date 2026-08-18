@@ -18,9 +18,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy ONLY the target subservice manifest directory
 COPY services/platform/pdf-viewer/package.json ./services/platform/pdf-viewer/
 
-# Execute a frozen workspace dependency installation using explicit cache mounts
+# SECURED: Added --ignore-scripts to protect build cache boundaries from hooks
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store/v11 \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy the entire physical source repository tree into the build container
 COPY . .
@@ -42,20 +42,22 @@ COPY --from=builder /app/services/platform/pdf-viewer/package.json ./package.jso
 # Copy root configurations required for execution context
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 
-# Re-invoke pnpm globally to fetch production runtime dependencies only
-RUN npm install -g pnpm@11.22.0 && \
+# SECURED: Hardened global runner installations against lifecycle script injections
+RUN npm install -g --ignore-scripts pnpm@11.22.0 && \
     --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store/v11 \
-    pnpm install --prod --frozen-lockfile
+    pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Configure the production environment variables
 ENV NODE_ENV=production
 ENV PORT=8084
 
-# Establish health check boundaries for system orchestration runtimes
+# SECURED: Added protocol enforcement on the health check execution shell loop
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8084/health || exit 1
+  CMD curl --proto '=https' -f http://localhost:8084/health || exit 1
 
 EXPOSE 8084
+
+USER node
 
 # Execute the application via the lean compiled JavaScript entrypoint natively
 CMD ["node", "dist/index.js"]
