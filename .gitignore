@@ -1,0 +1,21 @@
+# Local Dependencies & Builds
+node_modules/
+dist/
+build/
+
+# Environmental Profiles & Secrets
+.env
+.env.local
+.env.*.local
+
+# Docker Infrastructure Cache Storage
+.pnpm-store/
+
+# Diagnostic Logs & OS Clutter
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Exclude sub-directory local lockfile artifacts (Only track the main root lockfile)
+services/**/pnpm-lock.yaml
