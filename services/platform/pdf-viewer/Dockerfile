@@ -4,7 +4,7 @@
 FROM node:26.7.0-alpine AS builder
 
 # Install global pnpm engine inside the container base
-RUN npm install -g pnpm@11.22.0
+RUN npm install -g --ignore-scripts pnpm@11.22.0
 
 WORKDIR /app
 
