@@ -105,7 +105,7 @@ Because the system infrastructure automates all runtime and package managers, th
 To clone the repository and completely configure your local machine's development environment in one shot, execute this single pipelined command string in your terminal:
 
 ```bash
-git clone <repository-url> && cd distributed-systems-architecture-portfolio && chmod +x setup.sh && ./setup.sh
+git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && chmod +x setup.sh && ./setup.sh
 ```
 
 ### Manual Operational Steps
@@ -119,11 +119,15 @@ If executing the pipeline step-by-step from an existing workspace or on machines
    ```bash
    ./setup.sh
    ```
-3. **Refresh Your Shell Profile:** Once the script successfully completes and appends the native pnpm path exports to your environment, reload your active terminal session:
+3. **Refresh Your Shell Profile:** Once the script successfully completes and appends the native pnpm path exports to your environment, reload your active terminal session:<br>
+- Linux/WSL:
    ```bash
    source ~/.bashrc
    ```
-
+- MacOS:
+   ```bash
+   source ~/.zshrc
+   ```
 ### Troubleshooting Benign Tool Warnings
 When executing the initialization loop inside WSL or specific minimal Linux environments, the global `pnpm setup` engine may emit soft, non-blocking `ENOENT` directory warnings during multi-threaded symlink indexing. These are completely benign and safely bypassed by the script's internal fallback logic, which writes the primary export statements directly into your user's shell profile. No manual intervention is required.
 

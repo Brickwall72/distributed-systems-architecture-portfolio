@@ -62,8 +62,7 @@ else
             sudo apt-get update -o Acquire::RaiseOnError=false -y || true
             sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
             # FIXED: Added --proto '=https' security gate to prevent malicious network protocol degradation
-            curl --proto '=https' -fsSL https://docker.com | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg || true
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+            curl --proto '=https' -fsSL https://get.docker.com | sudo sh
             sudo systemctl start docker
             sudo systemctl enable docker
             sudo usermod -aG docker "${USER}"
@@ -74,8 +73,7 @@ else
     elif [[ "${OS_TYPE}" == "Darwin" ]]; then
         echo "Executing macOS Homebrew Docker Desktop installation..."
         if ! command -v brew &> /dev/null; then
-            # FIXED: Hardened protocol boundaries targeting Homebrew installation domains
-            /bin/bash -c "$(curl --proto '=https' -fsSL https://githubusercontent.com)"
+            /bin/bash -c "$(curl --proto '=https' -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
         brew install --cask docker
         open /Applications/Docker.app
@@ -103,7 +101,7 @@ fi
 if [[ "${NODE_INSTALLED}" = false ]]; then
     echo "Bootstrapping Node.js runtime manager (nvm)..."
     # FIXED: Hardened raw github protocol connections against downgrade injection redirects
-    curl --proto '=https' -fsSL https://githubusercontent.com | bash
+    curl --proto '=https' -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash
     
     export NVM_DIR="${HOME}/.nvm"
     # shellcheck disable=SC1090
@@ -116,13 +114,32 @@ fi
 
 # --- STEP 4: NATIVE PACKAGE MANAGER PROXY SETUP ---
 echo "Configuring native pnpm package manager boundaries..."
+
+# 1. Global Tool Installation Step
 if ! command -v pnpm &> /dev/null; then
     echo "Global pnpm runner missing. Bootstrapping standalone pnpm wrapper..."
     # FIXED: Restored security protection flag blocking third-party package script hooks
     npm install -g --ignore-scripts pnpm@11.22.0
 fi
 
-pnpm setup
+# 2. Automated Cross-Platform Path Alignment (The Mac Self-Healing Loop)
+if [[ "${OS_TYPE}" == "Darwin" ]]; then
+    # Dynamically locate the exact binary location where npm dropped the pnpm engine
+    if command -v npm &> /dev/null; then
+        GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
+        SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
+        
+        # Verify the binary physically exists but isn't visible to the active $PATH
+        if [[ -f "${GLOBAL_NVM_BIN}" && ! -f "${SYSTEM_LINK_TARGET}" ]]; then
+            echo "Injecting cross-platform system symlink wrapper for macOS shell mapping..."
+            # Creates an authorized system path redirection so the shell can always resolve the tool
+            sudo ln -s "${GLOBAL_NVM_BIN}" "${SYSTEM_LINK_TARGET}"
+        fi
+    fi
+fi
+
+# 3. Suppress pre-existing shell config conflicts natively
+pnpm setup --force
 
 # --- STEP 5: WORKSPACE DEPENDENCY LINKING EXECUTION ---
 echo "Executing pnpm workspace package compilation loops..."

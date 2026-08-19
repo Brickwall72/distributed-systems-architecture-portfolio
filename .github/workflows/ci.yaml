@@ -1,0 +1,42 @@
+name: Continuous Integration Quality Gate
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# CENTRALIZED CONFIGURATION: Single source of truth for tool versions
+env:
+  NODE_TARGET_VERSION: '26.7.0'
+  PNPM_TARGET_VERSION: '11.22.0'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-test:
+    name: Execute Workspace Unit Verification Matrix
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pinned to official v7.0.1 release commit
+      - name: Harden Runner Security Boundaries (Checkout Repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #git ls-remote https://github.com/actions/checkout refs/ags/v7.0.1
+
+      # Pinned to official pnpm/setup v2.0.2 release commit
+      # Handles pnpm binary initialization and Node runtime caching in one pass
+      - name: Initialize Unified Package Manager and Node Runtime
+        uses: pnpm/setup@bf5bfae7d43e2b2b1191383f5005cd3fb69b848d #git ls-remote https://github.com/pnpm/setup refs/ags/v2.0.2
+        with:
+          version: ${{ env.PNPM_TARGET_VERSION }}
+          node-version: ${{ env.NODE_TARGET_VERSION }}
+
+      - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Authorize Scoped Compiler Core Binaries
+        run: pnpm approve-builds esbuild
+
+      - name: Execute Automated Unit Testing Suites
+        run: pnpm test
