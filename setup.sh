@@ -123,18 +123,15 @@ if ! command -v pnpm &> /dev/null; then
 fi
 
 # 2. Automated Cross-Platform Path Alignment (The Mac Self-Healing Loop)
-if [[ "${OS_TYPE}" == "Darwin" ]]; then
-    # Dynamically locate the exact binary location where npm dropped the pnpm engine
-    if command -v npm &> /dev/null; then
-        GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
-        SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
-        
-        # Verify the binary physically exists but isn't visible to the active $PATH
-        if [[ -f "${GLOBAL_NVM_BIN}" && ! -f "${SYSTEM_LINK_TARGET}" ]]; then
-            echo "Injecting cross-platform system symlink wrapper for macOS shell mapping..."
-            # Creates an authorized system path redirection so the shell can always resolve the tool
-            sudo ln -s "${GLOBAL_NVM_BIN}" "${SYSTEM_LINK_TARGET}"
-        fi
+if [[ "${OS_TYPE}" == "Darwin" ]] && command -v npm &> /dev/null; then
+    GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
+    SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
+    
+    # Verify the binary physically exists but isn't visible to the active $PATH
+    if [[ -f "${GLOBAL_NVM_BIN}" && ! -f "${SYSTEM_LINK_TARGET}" ]]; then
+        echo "Injecting cross-platform system symlink wrapper for macOS shell mapping..."
+        # Creates an authorized system path redirection so the shell can always resolve the tool
+        sudo ln -s "${GLOBAL_NVM_BIN}" "${SYSTEM_LINK_TARGET}"
     fi
 fi
 
