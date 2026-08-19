@@ -11,61 +11,61 @@ The primary mission of this platform is to demonstrate an automated, hands-free 
 
 ```mermaid
 graph TD
-    %% Define Styles for Aerospace theme
-    classDef ui fill:#2b3a4a,stroke:#3b82f6,stroke-width:2px,color:#fff;
-    classDef core fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#fff;
-    classDef platform fill:#0f172a,stroke:#a855f7,stroke-width:1px,color:#fff;
-    classDef database fill:#020617,stroke:#10b981,stroke-width:1px,color:#fff;
-    classDef broker fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
+	%% Define Styles for Aerospace theme
+	classDef ui fill:#2b3a4a,stroke:#3b82f6,stroke-width:2px,color:#fff;
+	classDef core fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#fff;
+	classDef platform fill:#0f172a,stroke:#a855f7,stroke-width:1px,color:#fff;
+	classDef database fill:#020617,stroke:#10b981,stroke-width:1px,color:#fff;
+	classDef broker fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
 
-    %% Elements
-    UI[ui-shell <br> Micro-Frontend Host]:::ui
-    
-    subgraph Core Domain Services [Core Domain Services]
-        COMP[compliance-service <br> Workflow Coordinator]:::core
-        TOPO[topology-service <br> Graph Rules Engine]:::core
-        CACHE[resource-cache <br> Telemetry Store]:::core
-        LEDGER[audit-ledger <br> Event Consumer]:::core
-    end
+	%% Elements
+	UI[ui-shell <br> Micro-Frontend Host]:::ui
+	
+	subgraph Core Domain Services [Core Domain Services]
+		COMP[compliance-service <br> Workflow Coordinator]:::core
+		TOPO[topology-service <br> Graph Rules Engine]:::core
+		CACHE[resource-cache <br> Telemetry Store]:::core
+		LEDGER[audit-ledger <br> Event Consumer]:::core
+	end
 
-    subgraph Platform Utilities [Platform Utility Services]
-        PDF[pdf-generator]:::platform
-        VIEW[pdf-viewer]:::platform
-        SIGN[esign-service]:::platform
-    end
+	subgraph Platform Utilities [Platform Utility Services]
+		PDF[pdf-generator]:::platform
+		VIEW[pdf-viewer]:::platform
+		SIGN[esign-service]:::platform
+	end
 
-    subgraph Storage Layer [Isolated Data Stores]
-        DB_C[(Compliance Relational DB)]:::database
-        DB_G[(Graph NoSQL)]:::database
-        DB_M[(Mutable Cache)]:::database
-        DB_I[(Immutable Ledger)]:::database
-    end
+	subgraph Storage Layer [Isolated Data Stores]
+		DB_C[(Compliance Relational DB)]:::database
+		DB_G[(Graph NoSQL)]:::database
+		DB_M[(Mutable Cache)]:::database
+		DB_I[(Immutable Ledger)]:::database
+	end
 
-    MB[[Message Broker Topic <br> Pub/Sub Channels]]:::broker
+	MB[[Message Broker Topic <br> Pub/Sub Channels]]:::broker
 
-    %% Parallel Validation Interactions
-    UI -->|1. Request Flight Clearance| COMP
-    UI -.->|Embeds Widgets| VIEW
-    
-    COMP -->|2a. Validate Structure via HTTP | TOPO
-    COMP -->|2b. Check Telemetry via HTTP | CACHE
-    
-    TOPO ===> DB_G
-    CACHE ===> DB_M
-    
-    %% Document Execution Loop
-    COMP -->|3. Post Hydrated Template Data| PDF
-    PDF -->|Return Compiled PDF File| COMP
-    COMP -->|Present Document| SIGN
-    SIGN -->|4. Return Signed Document File| COMP
-    COMP ===> DB_C
-    
-    %% Async Pub/Sub Broadcast Loop
-    COMP -->|5. Publish: FlightClearanceFinalized| MB
-    MB -.->|Asynchronous Fan-out Link| CACHE
-    MB -.->|Asynchronous Fan-out Link| LEDGER
-    
-    LEDGER ===> DB_I
+	%% Parallel Validation Interactions
+	UI -->|1. Request Flight Clearance| COMP
+	UI -.->|Embeds Widgets| VIEW
+	
+	COMP -->|2a. Validate Structure via HTTP | TOPO
+	COMP -->|2b. Check Telemetry via HTTP | CACHE
+	
+	TOPO ===> DB_G
+	CACHE ===> DB_M
+	
+	%% Document Execution Loop
+	COMP -->|3. Post Hydrated Template Data| PDF
+	PDF -->|Return Compiled PDF File| COMP
+	COMP -->|Present Document| SIGN
+	SIGN -->|4. Return Signed Document File| COMP
+	COMP ===> DB_C
+	
+	%% Async Pub/Sub Broadcast Loop
+	COMP -->|5. Publish: FlightClearanceFinalized| MB
+	MB -.->|Asynchronous Fan-out Link| CACHE
+	MB -.->|Asynchronous Fan-out Link| LEDGER
+	
+	LEDGER ===> DB_I
 ```
 
 ### Subsystem Architecture Breakdown
@@ -105,29 +105,36 @@ Because the system infrastructure automates all runtime and package managers, th
 To clone the repository and completely configure your local machine's development environment in one shot, execute this single pipelined command string in your terminal:
 
 ```bash
-git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && chmod +x setup.sh && ./setup.sh
+git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && ./setup.sh && source ~/.bashrc && source ~/.zshrc
 ```
+
+
 
 ### Manual Operational Steps
 If executing the pipeline step-by-step from an existing workspace or on machines requiring explicit permission overrides:
 
+0. **Dynamically Create .env Files:** Create .env files from .env.example files (manual implementation of tokens/keys may be required):
+	```bash
+	find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \;
+	```
+
 1. **Elevate Script Permissions:** Mark the bootstrap script as an executable binary within your OS kernel:
-   ```bash
-   chmod +x setup.sh
-   ```
+	```bash
+	chmod +x setup.sh
+	```
 2. **Execute the Gateway:** Launch the self-healing installation loop:
-   ```bash
-   ./setup.sh
-   ```
+	```bash
+	./setup.sh
+	```
 3. **Refresh Your Shell Profile:** Once the script successfully completes and appends the native pnpm path exports to your environment, reload your active terminal session:<br>
 - Linux/WSL:
-   ```bash
-   source ~/.bashrc
-   ```
+	```bash
+	source ~/.bashrc
+	```
 - MacOS:
-   ```bash
-   source ~/.zshrc
-   ```
+	```bash
+	source ~/.zshrc
+	```
 ### Troubleshooting Benign Tool Warnings
 When executing the initialization loop inside WSL or specific minimal Linux environments, the global `pnpm setup` engine may emit soft, non-blocking `ENOENT` directory warnings during multi-threaded symlink indexing. These are completely benign and safely bypassed by the script's internal fallback logic, which writes the primary export statements directly into your user's shell profile. No manual intervention is required.
 

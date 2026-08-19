@@ -22,65 +22,65 @@ echo "Host Operating System Detected: ${OS_TYPE}"
 
 # --- STEP 1: SELF-HEALING LINUX SYSTEM PREREQUISITES (libatomic Gate) ---
 if [[ "${OS_TYPE}" == "Linux" ]]; then
-    echo "Auditing shared system libraries for Node 25+ compatibility..."
-    if ldconfig -p | grep -q "libatomic.so.1"; then
-        echo "✓ Shared C-library dependency verified (libatomic.so.1)"
-    else
-        echo "libatomic.so.1 missing. Injecting required system package..."
-        if command -v apt-get &> /dev/null; then
-            sudo apt-get update -o Acquire::RaiseOnError=false -y || true
-            sudo apt-get install -y libatomic1
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y libatomic
-        elif command -v yum &> /dev/null; then
-            sudo yum install -y libatomic
-        else
-            echo "ERROR: Unsupported package manager. Please install libatomic1 manually." >&2
-            exit 1
-        fi
-        
-        # FIXED: Enforced double brackets and combined the fallback file checks cleanly
-        if ldconfig -p | grep -q "libatomic.so.1" || [[ -f /usr/lib/x86_64-linux-gnu/libatomic.so.1 ]] || [[ -f /usr/lib/libatomic.so.1 ]]; then
-            echo "✓ System library package injected successfully."
-        else
-            echo "ERROR: libatomic1 package installation failed to populate system linker paths." >&2
-            exit 1
-        fi
-    fi
+	echo "Auditing shared system libraries for Node 25+ compatibility..."
+	if ldconfig -p | grep -q "libatomic.so.1"; then
+		echo "✓ Shared C-library dependency verified (libatomic.so.1)"
+	else
+		echo "libatomic.so.1 missing. Injecting required system package..."
+		if command -v apt-get &> /dev/null; then
+			sudo apt-get update -o Acquire::RaiseOnError=false -y || true
+			sudo apt-get install -y libatomic1
+		elif command -v dnf &> /dev/null; then
+			sudo dnf install -y libatomic
+		elif command -v yum &> /dev/null; then
+			sudo yum install -y libatomic
+		else
+			echo "ERROR: Unsupported package manager. Please install libatomic1 manually." >&2
+			exit 1
+		fi
+		
+		# FIXED: Enforced double brackets and combined the fallback file checks cleanly
+		if ldconfig -p | grep -q "libatomic.so.1" || [[ -f /usr/lib/x86_64-linux-gnu/libatomic.so.1 ]] || [[ -f /usr/lib/libatomic.so.1 ]]; then
+			echo "✓ System library package injected successfully."
+		else
+			echo "ERROR: libatomic1 package installation failed to populate system linker paths." >&2
+			exit 1
+		fi
+	fi
 fi
 
 # --- STEP 2: SELF-HEALING DOCKER ENGINE GATE ---
 echo "Verifying local container engine status..."
 if command -v docker &> /dev/null; then
-    DOCKER_VER=$(docker --version | awk '{print $3}' | sed 's/,//')
-    echo "✓ Docker Engine is already active on this host machine (v${DOCKER_VER})"
+	DOCKER_VER=$(docker --version | awk '{print $3}' | sed 's/,//')
+	echo "✓ Docker Engine is already active on this host machine (v${DOCKER_VER})"
 else
-    echo "Docker Engine missing. Initiating platform-specific installation..."
-    if [[ "${OS_TYPE}" == "Linux" ]]; then
-        if command -v apt-get &> /dev/null; then
-            echo "Executing Ubuntu/Debian native Docker Engine compilation..."
-            sudo apt-get update -o Acquire::RaiseOnError=false -y || true
-            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-            # FIXED: Added --proto '=https' security gate to prevent malicious network protocol degradation
-            curl --proto '=https' -fsSL https://get.docker.com | sudo sh
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker "${USER}"
-        else
-            echo "ERROR: Unsupported Linux distribution." >&2
-            exit 1
-        fi
-    elif [[ "${OS_TYPE}" == "Darwin" ]]; then
-        echo "Executing macOS Homebrew Docker Desktop installation..."
-        if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl --proto '=https' -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        fi
-        brew install --cask docker
-        open /Applications/Docker.app
-    else
-        echo "ERROR: Automated Docker setup requires manual execution." >&2
-        exit 1
-    fi
+	echo "Docker Engine missing. Initiating platform-specific installation..."
+	if [[ "${OS_TYPE}" == "Linux" ]]; then
+		if command -v apt-get &> /dev/null; then
+			echo "Executing Ubuntu/Debian native Docker Engine compilation..."
+			sudo apt-get update -o Acquire::RaiseOnError=false -y || true
+			sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+			# FIXED: Added --proto '=https' security gate to prevent malicious network protocol degradation
+			curl --proto '=https' -fsSL https://get.docker.com | sudo sh
+			sudo systemctl start docker
+			sudo systemctl enable docker
+			sudo usermod -aG docker "${USER}"
+		else
+			echo "ERROR: Unsupported Linux distribution." >&2
+			exit 1
+		fi
+	elif [[ "${OS_TYPE}" == "Darwin" ]]; then
+		echo "Executing macOS Homebrew Docker Desktop installation..."
+		if ! command -v brew &> /dev/null; then
+			/bin/bash -c "$(curl --proto '=https' -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+		fi
+		brew install --cask docker
+		open /Applications/Docker.app
+	else
+		echo "ERROR: Automated Docker setup requires manual execution." >&2
+		exit 1
+	fi
 fi
 
 # --- STEP 3: SELF-HEALING NODE.JS RUNTIME GATE ---
@@ -90,26 +90,42 @@ NODE_INSTALLED=false
 
 # FIXED: Nested conditionals merged into a single execution stream using the short-circuit operator
 if command -v node &> /dev/null && CURRENT_NODE_VER=$(node -v 2>/dev/null | sed 's/v//'); then
-    if [[ "$(printf '%s\n' "${REQUIRED_NODE_VER}" "${CURRENT_NODE_VER}" | sort -V | head -n1)" == "${REQUIRED_NODE_VER}" ]]; then
-        echo "✓ Host Node.js runtime environment verified (v${CURRENT_NODE_VER})"
-        NODE_INSTALLED=true
-    else
-        echo "Outdated Node.js version detected (v${CURRENT_NODE_VER}). Upgrading environment..."
-    fi
+	if [[ "$(printf '%s\n' "${REQUIRED_NODE_VER}" "${CURRENT_NODE_VER}" | sort -V | head -n1)" == "${REQUIRED_NODE_VER}" ]]; then
+		echo "✓ Host Node.js runtime environment verified (v${CURRENT_NODE_VER})"
+		NODE_INSTALLED=true
+	else
+		echo "Outdated Node.js version detected (v${CURRENT_NODE_VER}). Upgrading environment..."
+	fi
 fi
 
 if [[ "${NODE_INSTALLED}" = false ]]; then
-    echo "Bootstrapping Node.js runtime manager (nvm)..."
-    # FIXED: Hardened raw github protocol connections against downgrade injection redirects
-    curl --proto '=https' -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash
-    
-    export NVM_DIR="${HOME}/.nvm"
-    # shellcheck disable=SC1090
-    [[ -s "${NVM_DIR}/nvm.sh" ]] && \. "${NVM_DIR}/nvm.sh"
-    echo "Compiling Node.js target baseline v${REQUIRED_NODE_VER}..."
-    nvm install "${REQUIRED_NODE_VER}"
-    nvm use "${REQUIRED_NODE_VER}"
-    nvm alias default "${REQUIRED_NODE_VER}"
+	export NVM_DIR="${HOME}/.nvm"
+	# shellcheck disable=SC1090
+	if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+		source "$NVM_DIR/nvm.sh"
+	else
+		echo "Bootstrapping Node.js runtime manager (nvm)..."
+		# Hardened raw github protocol connections against downgrade injection redirects
+		curl --proto '=https' -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.6/install.sh | bash
+		source "$NVM_DIR/nvm.sh"
+	fi
+	[[ -s "${NVM_DIR}/nvm.sh" ]] && \. "${NVM_DIR}/nvm.sh"
+	echo "Compiling Node.js target baseline v${REQUIRED_NODE_VER}..."
+	nvm install "${REQUIRED_NODE_VER}"
+	nvm alias default "${REQUIRED_NODE_VER}"
+	nvm use default
+
+	# AUTOMATED PROFILE REMEDIATION: Write configuration rules to disk natively
+	ZSH_PROFILE="$HOME/.zshrc"
+	if [[ -f "${ZSH_PROFILE}" ]]; then
+		# Check if the shell alignment rule is already present to maintain idempotency
+		if ! grep -q "nvm use default" "${ZSH_PROFILE}"; then
+			echo "Injecting automated NVM runtime shell alignment hooks into user profile..."
+			echo "" >> "${ZSH_PROFILE}"
+			echo "# Automated Microservice Runtime Alignment Hook" >> "${ZSH_PROFILE}"
+			echo "nvm use default --silent" >> "${ZSH_PROFILE}"
+		fi
+	fi
 fi
 
 # --- STEP 4: NATIVE PACKAGE MANAGER PROXY SETUP ---
@@ -117,22 +133,22 @@ echo "Configuring native pnpm package manager boundaries..."
 
 # 1. Global Tool Installation Step
 if ! command -v pnpm &> /dev/null; then
-    echo "Global pnpm runner missing. Bootstrapping standalone pnpm wrapper..."
-    # FIXED: Restored security protection flag blocking third-party package script hooks
-    npm install -g --ignore-scripts pnpm@11.22.0
+	echo "Global pnpm runner missing. Bootstrapping standalone pnpm wrapper..."
+	# FIXED: Restored security protection flag blocking third-party package script hooks
+	npm install -g --ignore-scripts pnpm@11.22.0
 fi
 
 # 2. Automated Cross-Platform Path Alignment (The Mac Self-Healing Loop)
 if [[ "${OS_TYPE}" == "Darwin" ]] && command -v npm &> /dev/null; then
-    GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
-    SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
-    
-    # Verify the binary physically exists but isn't visible to the active $PATH
-    if [[ -f "${GLOBAL_NVM_BIN}" && ! -f "${SYSTEM_LINK_TARGET}" ]]; then
-        echo "Injecting cross-platform system symlink wrapper for macOS shell mapping..."
-        # Creates an authorized system path redirection so the shell can always resolve the tool
-        sudo ln -s "${GLOBAL_NVM_BIN}" "${SYSTEM_LINK_TARGET}"
-    fi
+	GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
+	SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
+	
+	# Verify the binary physically exists but isn't visible to the active $PATH
+	if [[ -f "${GLOBAL_NVM_BIN}" && ! -f "${SYSTEM_LINK_TARGET}" ]]; then
+		echo "Injecting cross-platform system symlink wrapper for macOS shell mapping..."
+		# Creates an authorized system path redirection so the shell can always resolve the tool
+		sudo ln -s "${GLOBAL_NVM_BIN}" "${SYSTEM_LINK_TARGET}"
+	fi
 fi
 
 # 3. Suppress pre-existing shell config conflicts natively
