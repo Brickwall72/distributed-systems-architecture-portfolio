@@ -1,0 +1,22 @@
+# Exclude Package Dependencies & Build Artifacts
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+
+# Exclude Local Environmental Configurations
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Exclude IDE Caches & Version Control System Records
+.git
+.gitignore
+.vscode/
+.idea/
+.problems/
+*.log
+.DS_Store

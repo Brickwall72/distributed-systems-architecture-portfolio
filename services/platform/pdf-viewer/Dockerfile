@@ -35,16 +35,16 @@ FROM node:26.7.0-alpine AS runner
 
 WORKDIR /app
 
-# Copy ONLY the compiled JavaScript output from the compilation stage
-COPY --from=builder /app/services/platform/pdf-viewer/dist ./dist
-COPY --from=builder /app/services/platform/pdf-viewer/package.json ./package.json
+# Force target file assets to be owned by the non-privileged node user
+COPY --from=builder --chown=node:node /app/services/platform/pdf-viewer/dist ./dist
+COPY --from=builder --chown=node:node /app/services/platform/pdf-viewer/package.json ./package.json
+COPY --from=builder --chown=node:node /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 
-# Copy root configurations required for execution context
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+# REMEDIATION STEP A: Install global package manager runner in isolation
+RUN npm install -g --ignore-scripts pnpm@11.22.0
 
-# SECURED: Hardened global runner installations against lifecycle script injections
-RUN npm install -g --ignore-scripts pnpm@11.22.0 && \
-    --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store/v11 \
+# REMEDIATION STEP B: Mount the target cache separately at the absolute start of the command line
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store/v11 \
     pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Configure the production environment variables
