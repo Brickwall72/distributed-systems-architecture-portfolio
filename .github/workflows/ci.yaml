@@ -31,12 +31,16 @@ jobs:
         with:
           version: ${{ env.PNPM_TARGET_VERSION }}
           node-version: ${{ env.NODE_TARGET_VERSION }}
-
-      - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+          # Disable automated installation pass to prevent out-of-order execution crashes
+          install: false
 
       - name: Authorize Scoped Compiler Core Binaries
+        # Run before installing dependencies to satisfy modern pnpm package isolation gates
         run: pnpm approve-builds esbuild
+
+      - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
+        # Explicitly run the installation using your script-suppressing parameters
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Execute Automated Unit Testing Suites
         run: pnpm test
