@@ -12,5 +12,8 @@ onlyBuiltDependencies:
 # Disable release age caching gates to ensure pristine multi-machine installations
 minimumReleaseAge: 0
 
+# Suppress non-TTY interactive prompts inside automated CI/CD and Docker environments
+confirmModulesPurge: false
+
 allowBuilds:
   esbuild: true
