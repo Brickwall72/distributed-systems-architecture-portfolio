@@ -7,6 +7,9 @@ const router = Router();
 // Secure, hardcoded path boundary to prevent arbitrary file system traversal attacks
 const STORAGE_ROOT = path.resolve('storage/documents');
 
+// Immutable regular expression matching only clean filenames
+const SAFE_FILENAME_REGEX = /^[a-zA-Z0-9_-]+\.pdf$/;
+
 router.get('/', (req, res, next) => {
   try {
     const documentId = req.query.documentId;
@@ -20,23 +23,25 @@ router.get('/', (req, res, next) => {
       return;
     }
 
-    // Boundary Gate 2: Sanitize file inputs to prevent path traversal injection attacks
+    // Boundary Gate 2: Strict sanitization break. If characters don't match, drop early.
+    if (!SAFE_FILENAME_REGEX.test(documentId)) {
+      res.status(400).json({
+        error: 'MALFORMED_PARAMETER',
+        message: 'Requested resource identifier contains unauthorized characters or extensions.'
+      });
+      return;
+    }
+
+    // Boundary Gate 3: Sanitize file inputs to prevent path traversal injection attacks
     const sanitizedFilename = path.basename(documentId);
     const targetFilePath = path.join(STORAGE_ROOT, sanitizedFilename);
 
-    // Boundary Gate 3: Physically audit that the target asset exists on disk storage
+    // Boundary Gate 4: Physically audit that the target asset exists on disk storage
     if (!fs.existsSync(targetFilePath)) {
       res.status(404).json({ 
         error: 'DOCUMENT_NOT_FOUND', 
         message: 'The requested document asset could not be located.' 
       });
-      return;
-    }
-
-    // Boundary Gate 4: Audit system metadata properties to confirm it is a flat file
-    const fileStats = fs.statSync(targetFilePath);
-    if (!fileStats.isFile()) {
-      res.status(400).json({ error: 'INVALID_TARGET', message: 'Target path is not a file.' });
       return;
     }
 

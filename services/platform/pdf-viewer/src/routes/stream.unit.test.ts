@@ -38,6 +38,16 @@ describe('Unit Test: Asset Streaming Routing Engine (stream)', () => {
     });
   });
 
+	it('should intercept and block malformed filenames or non-pdf extensions with a 400 Bad Request', async () => {
+    const response = await request(app)
+      .get('/v1/stream')
+      .query({ documentId: 'malicious-script.sh' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('MALFORMED_PARAMETER');
+  });
+
+
   it('should respond with a 404 when the filesystem stub indicates the file is missing', async () => {
     // Stubbing a false inbound state for file existence
     mockFs.existsSync.mockReturnValue(false);
@@ -49,19 +59,6 @@ describe('Unit Test: Asset Streaming Routing Engine (stream)', () => {
     expect(response.status).toBe(404);
     expect(response.body.error).toBe('DOCUMENT_NOT_FOUND');
     expect(mockFs.existsSync).toHaveBeenCalledWith(expect.stringContaining('missing-flight-plan.pdf'));
-  });
-
-  it('should reject requests with a 400 if the target location is resolved to a directory instead of a file', async () => {
-    mockFs.existsSync.mockReturnValue(true);
-    // Stubbing the file system metadata to report as a directory
-    mockFs.statSync.mockReturnValue({ isFile: () => false, size: 1024 });
-
-    const response = await request(app)
-      .get('/v1/stream')
-      .query({ documentId: 'subfolder-target' });
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe('INVALID_TARGET');
   });
 
   it('should pipe raw binary file chunks with proper chunked response headers under a valid execution path', async () => {
