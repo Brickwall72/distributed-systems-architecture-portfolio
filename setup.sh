@@ -115,16 +115,18 @@ if [[ "${NODE_INSTALLED}" = false ]]; then
 	nvm alias default "${REQUIRED_NODE_VER}"
 	nvm use default
 
-	# AUTOMATED PROFILE REMEDIATION: Write configuration rules to disk natively
-	ZSH_PROFILE="$HOME/.zshrc"
-	if [[ -f "${ZSH_PROFILE}" ]]; then
-		# Check if the shell alignment rule is already present to maintain idempotency
-		if ! grep -q "nvm use default" "${ZSH_PROFILE}"; then
-			echo "Injecting automated NVM runtime shell alignment hooks into user profile..."
-			echo "" >> "${ZSH_PROFILE}"
-			echo "# Automated Microservice Runtime Alignment Hook" >> "${ZSH_PROFILE}"
-			echo "nvm use default --silent" >> "${ZSH_PROFILE}"
-		fi
+	# AUTOMATED PROFILE REMEDIATION: Lock system aliases dynamically based on OS type
+	if [[ "${OS_TYPE}" == "Darwin" ]]; then
+		TARGET_PROFILE="$HOME/.zshrc"
+	else
+		TARGET_PROFILE="$HOME/.bashrc"
+	fi
+	# Maintain idempotency by checking if the hook is already present before appending
+	if [[ -f "${TARGET_PROFILE}" ]] && ! grep -q "nvm use default" "${TARGET_PROFILE}"; then
+		echo "Injecting automated NVM runtime shell alignment hooks into user profile..."
+		echo "" >> "${TARGET_PROFILE}"
+		echo "# Automated Microservice Runtime Alignment Hook" >> "${TARGET_PROFILE}"
+		echo "nvm use default --silent" >> "${TARGET_PROFILE}"
 	fi
 fi
 
@@ -162,3 +164,15 @@ pnpm install --frozen-lockfile --ignore-scripts
 echo "${DEPLOYMENT_BANNER}"
 echo "✓ ENVIRONMENT SETUP COMPLETE: System is completely compilation-ready."
 echo "${DEPLOYMENT_BANNER}"
+
+# SELF-HEALING AUTOMATION: If running as a child process, prompt the user for the parent injection
+if [[ "$0" == *"setup.sh"* ]]; then
+	echo ""
+	echo "💡 ACTION REQUIRED: To apply Node v26.7.0 to this active terminal window instantly, run:"
+	if [[ "${OS_TYPE}" == "Darwin" ]]; then
+		echo "   source ~/.zshrc"
+	else
+		echo "   source ~/.bashrc"
+	fi
+	echo "${DEPLOYMENT_BANNER}"
+fi
