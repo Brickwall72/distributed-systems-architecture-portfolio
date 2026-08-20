@@ -11,7 +11,7 @@
     "infra:down": "docker compose down",
     "services:build": "pnpm --filter \"./services/**\" build",
     "services:test": "pnpm --filter \"./services/**\" test",
-    "build": "pnpm --recursive filter \"@portfolio/*\" build",
+    "build": "pnpm --recursive --filter \"@portfolio/*\" build",
     "test": "pnpm --recursive test"
   }
 }
