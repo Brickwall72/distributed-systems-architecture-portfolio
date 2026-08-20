@@ -11,6 +11,8 @@ set -euo pipefail
 
 # CONSTANT DEFINITION: Centralized string literal to satisfy duplication gates
 readonly DEPLOYMENT_BANNER="================================================================="
+# System OS Target Constants
+readonly OS_DARWIN="Darwin"
 
 echo "${DEPLOYMENT_BANNER}"
 echo "Initializing Distributed Systems Architecture Environment Mesh..."
@@ -70,7 +72,7 @@ else
 			echo "ERROR: Unsupported Linux distribution." >&2
 			exit 1
 		fi
-	elif [[ "${OS_TYPE}" == "Darwin" ]]; then
+	elif [[ "${OS_TYPE}" == "${OS_DARWIN}" ]]; then
 		echo "Executing macOS Homebrew Docker Desktop installation..."
 		if ! command -v brew &> /dev/null; then
 			/bin/bash -c "$(curl --proto '=https' -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -116,7 +118,7 @@ if [[ "${NODE_INSTALLED}" = false ]]; then
 	nvm use default
 
 	# AUTOMATED PROFILE REMEDIATION: Lock system aliases dynamically based on OS type
-	if [[ "${OS_TYPE}" == "Darwin" ]]; then
+	if [[ "${OS_TYPE}" == "${OS_DARWIN}" ]]; then
 		TARGET_PROFILE="$HOME/.zshrc"
 	else
 		TARGET_PROFILE="$HOME/.bashrc"
@@ -141,7 +143,7 @@ if ! command -v pnpm &> /dev/null; then
 fi
 
 # 2. Automated Cross-Platform Path Alignment (The Mac Self-Healing Loop)
-if [[ "${OS_TYPE}" == "Darwin" ]] && command -v npm &> /dev/null; then
+if [[ "${OS_TYPE}" == "${OS_DARWIN}" ]] && command -v npm &> /dev/null; then
 	GLOBAL_NVM_BIN="$(npm config get prefix)/bin/pnpm"
 	SYSTEM_LINK_TARGET="/usr/local/bin/pnpm"
 	
@@ -169,7 +171,7 @@ echo "${DEPLOYMENT_BANNER}"
 if [[ "$0" == *"setup.sh"* ]]; then
 	echo ""
 	echo "💡 ACTION REQUIRED: To apply Node v26.7.0 to this active terminal window instantly, run:"
-	if [[ "${OS_TYPE}" == "Darwin" ]]; then
+	if [[ "${OS_TYPE}" == "${OS_DARWIN}" ]]; then
 		echo "   source ~/.zshrc"
 	else
 		echo "   source ~/.bashrc"
