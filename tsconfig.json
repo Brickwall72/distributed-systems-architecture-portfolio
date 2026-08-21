@@ -17,8 +17,7 @@
   },
   "include": [
     "services/core/**/*",
-    "services/platform/**/*",
-    "packages/**/*"
+    "services/platform/**/*"
   ],
   "exclude": [
     "node_modules",
