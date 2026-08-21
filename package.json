@@ -7,11 +7,16 @@
     "node": ">=26.7.0"
   },
   "scripts": {
-    "infra:up": "docker compose up -d",
-    "infra:down": "docker compose down",
     "services:build": "pnpm --filter \"./services/**\" build",
     "services:test": "pnpm --filter \"./services/**\" test",
     "build": "pnpm --recursive --filter \"@portfolio/*\" build",
-    "test": "pnpm --recursive test"
+    "test": "pnpm --recursive test",
+    "storybook": "storybook dev -p 6006"
+  },
+    "devDependencies": {
+    "@storybook/react": "^10.5.10",
+    "@storybook/react-vite": "^10.5.10",
+    "storybook": "^10.5.10",
+    "vite": "^8.2.2"
   }
 }
