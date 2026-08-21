@@ -1,6 +1,7 @@
 packages:
   - 'services/core/*'
   - 'services/platform/*'
+  - 'packages/*'
 
 # Enforces that local pnpm execution forces itself to match the package.json target version
 manage-package-manager: true

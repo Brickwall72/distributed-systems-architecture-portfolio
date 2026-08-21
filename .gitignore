@@ -20,3 +20,6 @@ build/
 
 # Exclude sub-directory local lockfile artifacts (Only track the main root lockfile)
 services/**/pnpm-lock.yaml
+
+# Storybook build output artifacts
+storybook-static/
