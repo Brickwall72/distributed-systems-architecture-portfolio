@@ -5,4 +5,4 @@ networks:
     name: platform-mesh
 
 include:
-  - services/platform/pdf-viewer/compose.yaml
+
