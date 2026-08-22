@@ -1,6 +1,6 @@
 # Distributed Systems Architecture Portfolio
 
-Aerospace distributed systems portfolio. Features a Kubernetes monorepo orchestrating 5 core microservices—UI Shell, Compliance coordinator, Graph topology, Resource cache, and an event-driven Immutable ledger—supported by 3 platform utility services for automated flight readiness document engineering.
+Aerospace distributed systems portfolio. Features a Kubernetes monorepo orchestrating 5 core microservices—UI Shell, Compliance coordinator, Graph topology, Resource cache, and an event-driven Immutable ledger—supported by 2 platform utility services for automated flight readiness document engineering.
 
 ## 1. System Vision & Architecture Map
 
@@ -30,7 +30,6 @@ graph TD
 
 	subgraph Platform Utilities [Platform Utility Services]
 		PDF[pdf-generator]:::platform
-		VIEW[pdf-viewer]:::platform
 		SIGN[esign-service]:::platform
 	end
 
@@ -56,7 +55,7 @@ graph TD
 	%% Document Execution Loop
 	COMP -->|3. Post Hydrated Template Data| PDF
 	PDF -->|Return Compiled PDF File| COMP
-	COMP -->|Present Document| SIGN
+	COMP -->|Sign Document| SIGN
 	SIGN -->|4. Return Signed Document File| COMP
 	COMP ===> DB_C
 	
@@ -79,7 +78,6 @@ The monorepo separates mission-specific business domains from generic utility lo
   * `audit-ledger`: Append-only, event-driven database acting as the immutable "black box" flight log.
 * **Platform Services (The Utility Layer):**
   * `pdf-generator`: Stateless utility wrapper converting structured verification payloads into PDF templates.
-  * `pdf-viewer`: Client-facing web component rendering isolated document previews.
   * `esign-service`: Cryptographic signing utility to securely authorize generated clearance files.
 
 ### Architectural Standards
