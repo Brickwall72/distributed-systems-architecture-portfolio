@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -15,9 +16,13 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
+  "files": [
+    "./types/ambient.d.ts" 
+  ],
   "include": [
     "services/core/**/*",
-    "services/platform/**/*"
+    "services/platform/**/*",
+    "packages/**/*",
   ],
   "exclude": [
     "node_modules",
