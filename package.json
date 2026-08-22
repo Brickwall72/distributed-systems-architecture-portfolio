@@ -14,16 +14,22 @@
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@storybook/react": "^10.5.10",
     "@storybook/react-vite": "^10.5.10",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@types/supertest": "^6.0.2",
     "storybook": "^10.5.10",
     "supertest": "^7.2.2",
+    "tailwindcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
   }
