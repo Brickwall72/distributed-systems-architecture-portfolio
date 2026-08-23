@@ -1,0 +1,16 @@
+{
+  "name": "@portfolio/topology-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/topologyServer.js",
+  "types": "./dist/topologyServer.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@portfolio/telemetry": "workspace:*",
+    "neo4j-driver": "^6.2.0"
+  }
+}

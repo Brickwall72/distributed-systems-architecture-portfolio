@@ -1,0 +1,25 @@
+# File: services/core/topology-service/compose.yaml
+# This service keeps its database definition local to the topology module, as recommended by
+# ADR-006. The root compose file then includes this definition and joins the shared network
+# fabric without creating a monolithic infrastructure manifest.
+
+services:
+  topology-db:
+    image: neo4j:5.26.0
+    container_name: portfolio-topology-db
+    environment:
+      - NEO4J_AUTH=${DB_USER}/${DB_PASSWORD}
+    ports:
+      - "${DB_EXTERNAL_PORT}:7474"
+      - "7687:7687"
+    volumes:
+      - topology_db_data:/data
+    networks:
+      - platform-mesh
+
+volumes:
+  topology_db_data:
+
+networks:
+  platform-mesh:
+    name: platform-mesh

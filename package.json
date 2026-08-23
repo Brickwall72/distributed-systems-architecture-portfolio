@@ -30,6 +30,7 @@
     "supertest": "^7.2.2",
     "tailwindcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
+    "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
   }
