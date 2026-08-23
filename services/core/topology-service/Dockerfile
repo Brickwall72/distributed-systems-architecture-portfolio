@@ -7,7 +7,6 @@
 FROM docker.io/library/node:26.7.0-alpine AS build-engine
 WORKDIR /usr/src/app
 
-# CORRECTED: Added the missing script guard parameter to enforce strict container build-time isolation
 RUN npm install -g pnpm@11.22.0 --ignore-scripts
 
 # Copy the repo manifests first so pnpm can resolve workspace packages and the root TypeScript
@@ -28,19 +27,20 @@ FROM docker.io/library/node:26.7.0-alpine AS production-runtime
 WORKDIR /usr/app
 ENV NODE_ENV=production
 
-# CORRECTED: Hardened the global package manager installation inside the production execution layer
 RUN npm install -g pnpm@11.22.0 --ignore-scripts
 
 # Copy only the compiled output and the runtime metadata required to run the service; this keeps
-# the final image small and avoids baking the entire source tree into production.
+# the final image small and avoids baking the entire source tree into production. The workspace
+# files are preserved so pnpm can resolve local package links without including the entire repo.
 COPY --from=build-engine /usr/src/app/services/core/topology-service/dist ./dist
-COPY --from=build-engine /usr/src/app/services/core/topology-service/package.json ./package.json
 COPY --from=build-engine /usr/src/app/packages/ ./packages/
-COPY --from=build-engine /usr/src/app/pnpm-workspace.yaml /usr/src/app/pnpm-lock.yaml ./
+COPY --from=build-engine /usr/src/app/package.json /usr/src/app/pnpm-workspace.yaml /usr/src/app/pnpm-lock.yaml ./
+
+COPY services/core/topology-service/package.json ./services/core/topology-service/package.json
 
 # Install only the production dependency subset, which matches the service's runtime contract and
 # avoids local dev tooling leaking into the final container image.
-RUN pnpm install --prod --no-frozen-lockfile --ignore-scripts
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 USER node
 EXPOSE 8081
