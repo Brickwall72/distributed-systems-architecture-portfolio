@@ -7,7 +7,8 @@
 FROM docker.io/library/node:26.7.0-alpine AS build-engine
 WORKDIR /usr/src/app
 
-RUN npm install -g pnpm@11.22.0
+# CORRECTED: Added the missing script guard parameter to enforce strict container build-time isolation
+RUN npm install -g pnpm@11.22.0 --ignore-scripts
 
 # Copy the repo manifests first so pnpm can resolve workspace packages and the root TypeScript
 # configuration before compiling the service module in isolation.
@@ -27,7 +28,8 @@ FROM docker.io/library/node:26.7.0-alpine AS production-runtime
 WORKDIR /usr/app
 ENV NODE_ENV=production
 
-RUN npm install -g pnpm@11.22.0
+# CORRECTED: Hardened the global package manager installation inside the production execution layer
+RUN npm install -g pnpm@11.22.0 --ignore-scripts
 
 # Copy only the compiled output and the runtime metadata required to run the service; this keeps
 # the final image small and avoids baking the entire source tree into production.
