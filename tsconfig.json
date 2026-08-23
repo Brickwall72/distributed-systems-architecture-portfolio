@@ -17,12 +17,13 @@
     "noFallthroughCasesInSwitch": true
   },
   "files": [
-    "./types/ambient.d.ts" 
+    "./types/ambient.d.ts"
   ],
   "include": [
     "services/core/**/*",
     "services/platform/**/*",
     "packages/**/*",
+    ".storybook/**/*"
   ],
   "exclude": [
     "node_modules",

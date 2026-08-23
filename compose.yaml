@@ -1,8 +1,13 @@
+# File: compose.yaml
+# This root manifest intentionally stays thin. Per ADR-006, each service owns its local compose
+# definition and the top-level file only includes those modules and declares the shared mesh
+# network used for intra-platform communication.
+
+include:
+  - path: services/core/topology-service/compose.yaml
+
 networks:
   platform-mesh:
     driver: bridge
-    internal: true
     name: platform-mesh
-
-include:
-
+    attachable: true
