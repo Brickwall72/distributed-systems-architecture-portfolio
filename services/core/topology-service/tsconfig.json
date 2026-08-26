@@ -1,15 +1,10 @@
 {
-  "extends": "../../../tsconfig.json",
+  "extends": "@shared/tsconfig/base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src"
   },
   "include": [
     "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/**/*.unit.test.ts"
   ]
 }

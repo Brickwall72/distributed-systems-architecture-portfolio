@@ -101,10 +101,14 @@ Because the system infrastructure automates all runtime and package managers, th
 * A Unix-like host with `sudo`
 
 ### Automated System Standup
-To clone the repository and completely configure your local machine's development environment in one shot, execute this single pipelined command string in your terminal:
+To clone the repository, execute the following command string in your terminal:
 
 ```bash
-git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && BUILD_DOCKER_BASE=true ./setup.sh && if [ -n "${ZSH_VERSION:-}" ]; then source ~/.zshrc; else source ~/.bashrc; fi
+git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio
+```
+And run the following pipelined command string in your terminal to completely configure your local machine's development environment in one go:
+```bash
+find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && BUILD_DOCKER_BASE=true ./setup.sh && if [ -n "${ZSH_VERSION:-}" ]; then source ~/.zshrc; else source ~/.bashrc; fi
 ```
 
 
