@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/src/index.ts
 import express from 'express';
 import { complianceGateway } from './gateway.js';
-import { createHealthCheck, createLogger } from '@portfolio/telemetry';
+import { createHealthCheck, createLogger } from '@shared/telemetry';
 
 const app = express();
 const PORT = process.env.PORT || 8080;

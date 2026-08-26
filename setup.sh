@@ -2,7 +2,7 @@
 
 # =========================================================================
 # SYSTEM INFRASTRUCTURE BOOTSTRAP SCRIPT (Self-Healing IaC Environment Gate)
-# Target Environment: Node >=26.7.0 | pnpm 11.22.0 | Docker Engine Active
+# Target Environment: Node >=26.7.0 | pnpm 11.24.0 | Docker Engine Active
 # Prerequisites: Git | SonarQube Audit Class: Clean A-Rating Compliance
 # =========================================================================
 
@@ -139,7 +139,7 @@ echo "Configuring native pnpm package manager boundaries..."
 if ! command -v pnpm &> /dev/null; then
 	echo "Global pnpm runner missing. Bootstrapping standalone pnpm wrapper..."
 	# FIXED: Restored security protection flag blocking third-party package script hooks
-	npm install -g --ignore-scripts pnpm@11.22.0
+	npm install -g --ignore-scripts pnpm@11.24.0
 fi
 
 # 2. Automated Cross-Platform Path Alignment (The Mac Self-Healing Loop)
@@ -162,6 +162,12 @@ pnpm setup --force
 echo "Executing pnpm workspace package compilation loops..."
 # FIXED: Enforced absolute supply chain validation alongside script injection blocks
 pnpm install --frozen-lockfile --ignore-scripts
+pnpm build
+
+if [[ "${BUILD_DOCKER_BASE:-false}" == "true" ]]; then
+    echo "Building shared Docker base image..."
+    docker build -f Dockerfile.base -t base-image:local .
+fi
 
 echo "${DEPLOYMENT_BANNER}"
 echo "✓ ENVIRONMENT SETUP COMPLETE: System is completely compilation-ready."

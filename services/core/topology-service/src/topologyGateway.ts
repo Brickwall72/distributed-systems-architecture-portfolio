@@ -2,7 +2,7 @@
 
 import { Router, Request, Response } from 'express';
 import neo4j from 'neo4j-driver';
-import { createLogger } from '@portfolio/telemetry';
+import { createLogger } from '@shared/telemetry';
 import { getDatabaseClient } from './topologyDatabase.js';
 import {
   AuthorizationRequestPayload,

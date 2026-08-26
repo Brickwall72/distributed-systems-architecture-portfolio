@@ -1,0 +1,11 @@
+# File: Dockerfile.base
+FROM node:26.7.0-alpine 
+WORKDIR /app
+
+RUN npm install -g pnpm@11.24.0 --ignore-scripts
+
+COPY tsconfig.json pnpm-workspace.yaml package.json ./
+COPY types/ ./types/
+COPY packages/ ./packages
+COPY pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm build
