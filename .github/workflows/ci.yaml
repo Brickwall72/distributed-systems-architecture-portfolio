@@ -42,5 +42,8 @@ jobs:
         # Explicitly run the installation using your script-suppressing parameters
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Compile Workspace Packages
+        run: pnpm build
+
       - name: Execute Automated Unit Testing Suites
         run: pnpm test

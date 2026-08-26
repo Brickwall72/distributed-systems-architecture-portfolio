@@ -2,7 +2,7 @@
 FROM base-image:local
 ARG SERVICE_PATH=./services/core/topology-service
 WORKDIR /app
-RUN mkdir -p ${SERVICE_PATH}/src
+RUN mkdir -p "${SERVICE_PATH}/src"
 
 
 COPY tsconfig.json package.json ${SERVICE_PATH}
