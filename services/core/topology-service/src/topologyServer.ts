@@ -1,6 +1,6 @@
 // File: services/core/topology-service/src/topologyServer.ts
 import express from 'express';
-import { createHealthCheck, createLogger } from '@portfolio/telemetry';
+import { createHealthCheck, createLogger } from '@shared/telemetry';
 import { topologyGateway } from './topologyGateway.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 

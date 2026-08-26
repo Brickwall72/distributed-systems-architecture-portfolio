@@ -1,5 +1,5 @@
 {
-  "name": "@portfolio/topology-service",
+  "name": "@core/topology-service",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@portfolio/telemetry": "workspace:*",
-    "neo4j-driver": "^6.2.0"
+    "@shared/telemetry": "workspace:*",
+    "neo4j-driver": "~6.2.0",
+    "express": "~5.2.1"
   }
 }

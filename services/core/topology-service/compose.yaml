@@ -1,12 +1,8 @@
 # File: services/core/topology-service/compose.yaml
-# This service keeps its database definition local to the topology module, as recommended by
-# ADR-006. The root compose file then includes this definition and joins the shared network
-# fabric without creating a monolithic infrastructure manifest.
-
 services:
   topology-db:
     image: neo4j:5.26.0
-    container_name: portfolio-topology-db
+    container_name: topology-db
     environment:
       - NEO4J_AUTH=${DB_USER}/${DB_PASSWORD}
     ports:
@@ -16,6 +12,38 @@ services:
       - topology_db_data:/data
     networks:
       - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "cypher-shell -a bolt://localhost:7687 -u \"$${DB_USER}\" -p \"$${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  topology-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: topology-app:local
+    container_name: topology-app
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      PORT: ${PORT}
+      DB_URI: bolt://topology-db:7687
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      topology-db:
+        condition: service_healthy
+    volumes:
+      - .:/app/services/core/topology-service 
+    networks:
+      - platform-mesh
+    
 
 volumes:
   topology_db_data:

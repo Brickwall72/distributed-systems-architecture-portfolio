@@ -93,17 +93,18 @@ The monorepo separates mission-specific business domains from generic utility lo
 
 This repository utilizes an idempotent, self-healing **Infrastructure as Code (IaC)** environment gateway script to ensure 100% deterministic developer environment synchronization across different workstations. 
 
-The script dynamically audits your host operating system (Linux/WSL, macOS), verifies/upgrades your Node.js engine range to **`>=v26.7.0`**, installs **`pnpm@11.22.0`** using native manager boundaries, verifies your Docker daemon status, injects low-level systems prerequisites (like `libatomic1` for Node 25+ Linux compatibility), and compiles your local workspace dependency tree.
+The script dynamically audits your host operating system (Linux/WSL, macOS), verifies/upgrades your Node.js engine range to **`>=v26.7.0`**, installs **`pnpm@11.24.0`** using native manager boundaries, verifies your Docker daemon status, injects low-level systems prerequisites (like `libatomic1` for Node 25+ Linux compatibility), and compiles your local workspace dependency tree.
 
 ### Prerequisites
 Because the system infrastructure automates all runtime and package managers, the absolute only host-level prerequisite is a clean installation of Git:
 * `git` (Core Source Control Engine)
+* A Unix-like host with `sudo`
 
 ### Automated System Standup
 To clone the repository and completely configure your local machine's development environment in one shot, execute this single pipelined command string in your terminal:
 
 ```bash
-git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && ./setup.sh && source ~/.bashrc && source ~/.zshrc
+git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio && find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && BUILD_DOCKER_BASE=true ./setup.sh && if [ -n "${ZSH_VERSION:-}" ]; then source ~/.zshrc; else source ~/.bashrc; fi
 ```
 
 
@@ -121,6 +122,11 @@ If executing the pipeline step-by-step from an existing workspace or on machines
 	chmod +x setup.sh
 	```
 2. **Execute the Gateway:** Launch the self-healing installation loop:
+- Docker base-image:local build included in setup:
+	```bash
+	BUILD_DOCKER_BASE=true ./setup.sh
+	```
+- Basic setup:
 	```bash
 	./setup.sh
 	```

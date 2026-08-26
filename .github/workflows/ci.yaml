@@ -9,7 +9,7 @@ on:
 # CENTRALIZED CONFIGURATION: Single source of truth for tool versions
 env:
   NODE_TARGET_VERSION: 'node@26.7.0'
-  PNPM_TARGET_VERSION: '11.22.0'
+  PNPM_TARGET_VERSION: '11.24.0'
 
 permissions:
   contents: read
@@ -41,6 +41,9 @@ jobs:
       - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
         # Explicitly run the installation using your script-suppressing parameters
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Compile Workspace Packages
+        run: pnpm build
 
       - name: Execute Automated Unit Testing Suites
         run: pnpm test
