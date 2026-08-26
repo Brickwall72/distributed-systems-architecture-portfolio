@@ -6,7 +6,8 @@
   "main": "./dist/topologyServer.js",
   "types": "./dist/topologyServer.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@portfolio/telemetry": "workspace:*",

@@ -20,3 +20,8 @@ build/
 .problems/
 *.log
 .DS_Store
+
+# Storybook build output artifacts
+.storybook/
+storybook-static/
+debug-storybook.log

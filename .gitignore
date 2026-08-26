@@ -23,3 +23,4 @@ services/**/pnpm-lock.yaml
 
 # Storybook build output artifacts
 storybook-static/
+debug-storybook.log
