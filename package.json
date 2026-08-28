@@ -11,7 +11,8 @@
     "services:test": "pnpm --filter \"./services/**\" --filter \"./packages/**\" test",
     "build": "pnpm --recursive build",
     "test": "pnpm --recursive test",
-    "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006"
+    "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006",
+    "docker:base": "docker build -f Dockerfile.base -t base-image:local ."
   },
   "devDependencies": {
     "@storybook/react": "~10.5.10",

@@ -1,17 +1,16 @@
 {
-  "name": "@topology/client",
+  "name": "@portfolio/compliance-service",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "vite",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
     "react": "~19.2.8",
-    "react-dom": "~19.2.8",
-    "vis-network": "~10.1.2",
-    "vis-data": "~8.0.5"
+    "react-dom": "~19.2.8"
   }
 }

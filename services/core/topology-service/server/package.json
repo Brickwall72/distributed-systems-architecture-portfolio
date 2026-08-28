@@ -1,5 +1,5 @@
 {
-  "name": "@core/topology-server",
+  "name": "@topology/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",

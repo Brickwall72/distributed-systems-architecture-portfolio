@@ -74,20 +74,23 @@ importers:
 
   packages/tsconfig: {}
 
-  services/core/compliance-service:
+  services/core/compliance-service/client:
     dependencies:
-      '@shared/telemetry':
-        specifier: workspace:*
-        version: link:../../../packages/telemetry
-      express:
-        specifier: ~5.2.1
-        version: 5.2.1
       react:
         specifier: ~19.2.8
         version: 19.2.8
       react-dom:
         specifier: ~19.2.8
         version: 19.2.8(react@19.2.8)
+
+  services/core/compliance-service/server:
+    dependencies:
+      '@shared/telemetry':
+        specifier: workspace:*
+        version: link:../../../../packages/telemetry
+      express:
+        specifier: ~5.2.1
+        version: 5.2.1
 
   services/core/topology-service/client:
     dependencies:
