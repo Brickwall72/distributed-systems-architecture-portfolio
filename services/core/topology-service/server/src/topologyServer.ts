@@ -51,9 +51,9 @@ async function bootstrapApplicationServer() {
     }
 
     // Begin serving business requests on the designated port for the validation workflow.
-    app.listen(PORT, () => {
-      logger.info(`Subsystem actively listening on port ${PORT}`);
-    });
+    app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`[topology-server] Safe isolated execution thread pool listening on port ${PORT}`);
+});
   } catch (error_: any) {
     logger.error(`Subsystem container failed to boot cleanly: ${error_.message}`);
     process.exit(1);

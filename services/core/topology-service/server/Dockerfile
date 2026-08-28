@@ -1,6 +1,6 @@
-# File: services/core/topology-service/Dockerfile
+# File: services/core/topology-service/server/Dockerfile
 FROM base-image:local
-ARG SERVICE_PATH=./services/core/topology-service
+ARG SERVICE_PATH=/app/services/core/topology-service/server
 WORKDIR /app
 RUN mkdir -p "${SERVICE_PATH}/src"
 
@@ -10,7 +10,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
+WORKDIR ${SERVICE_PATH}
 USER node
 EXPOSE 8081
 
-CMD ["node", "./services/core/topology-service/dist/topologyServer.js"]
+CMD ["node", "./dist/topologyServer.js"]

@@ -16,19 +16,18 @@ services:
       test:
         [
           "CMD-SHELL",
-          "cypher-shell -a bolt://localhost:7687 -u \"$${DB_USER}\" -p \"$${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"
+          "cypher-shell -a bolt://localhost:7687 -u \"${DB_USER}\" -p \"${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"
         ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-
-  topology-app:
+  topology-server:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: topology-app:local
-    container_name: topology-app
+      context: ./server
+      dockerfile: ./Dockerfile
+    image: topology-server:local
+    container_name: topology-server
     ports:
       - "${PORT}:${PORT}"
     environment:
@@ -40,7 +39,21 @@ services:
       topology-db:
         condition: service_healthy
     volumes:
-      - .:/app/services/core/topology-service 
+      - ./server:/app/services/core/topology-service/server
+    networks:
+      - platform-mesh
+  topology-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+    image: topology-client:local
+    container_name: topology-client
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+    volumes:
+      - ./client:/app/services/core/topology-service/client
     networks:
       - platform-mesh
     
