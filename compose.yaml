@@ -4,6 +4,7 @@
 # network used for intra-platform communication.
 
 include:
+  - path: services/core/compliance-service/compose.yaml
   - path: services/core/topology-service/compose.yaml
 
 networks:
