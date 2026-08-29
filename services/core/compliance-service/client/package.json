@@ -1,5 +1,5 @@
 {
-  "name": "@portfolio/compliance-service",
+  "name": "compliance-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",

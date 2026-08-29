@@ -26,6 +26,8 @@
     "@types/react-dom": "~19.2.5",
     "@types/supertest": "~6.0.3",
     "@shared/tsconfig": "workspace:*",
+    "@vitejs/plugin-react": "~6.1.1",
+    "@module-federation/vite": "~1.21.0",
     "happy-dom": "~20.11.12",
     "msw": "~2.15.0",
     "storybook": "~10.5.10",

@@ -1,7 +1,7 @@
 # ADR-002: Implementation of Unified Monorepo Framework and Software Quality Gates
 
 ## Status
-Accepted
+Amended (2026-08-29) — Original decision accepted on 2026-08-14; updated to reflect reduction to a 6-service topology and map the explicit extraction of the `/ui-shells/` and `/packages/` directory blocks.
 
 * **Date:** 2026-08-14
 * **Author:** Sam Brickett
@@ -11,11 +11,11 @@ Accepted
 ---
 
 ## Context and Problem Statement
-Operating an 8-service distributed architecture (5 core domain services and 3 platform utilities) requires precise interface boundaries. Distributing these components across 8 individual source control repositories introduces heavy configuration drift, complicates synchronized version patching, and obscures architectural traceability during technical verification audits.
+Operating a 6-service distributed architecture (4 core domain services and 2 platform utilities) requires precise interface boundaries. Distributing these components across individual source control repositories introduces heavy configuration drift, complicates synchronized version patching, and obscures architectural traceability during technical verification audits.
 
 ## Decision Drivers
 * **Architectural Traceability:** Code integration must be highly audit-ready, allowing cross-service changes to be tracked together.
-* **Release Synchronization:** Modifying a core protocol or shared network interface must not require managing 8 distinct repository release pipelines.
+* **Release Synchronization:** Modifying a core protocol or shared network interface must not require managing multiple distinct repository release pipelines.
 * **Local Workspace Velocity:** The development workspace must allow rapid, localized multi-service compilation and cluster container orchestrations.
 
 ## Decision
@@ -24,6 +24,8 @@ All software subsystems, deployment infrastructure manifests, and systems engine
 The physical directory hierarchy is managed as follows:
 * `/services/core/` – Houses isolated, domain-specific business logic microservices.
 * `/services/platform/` – Houses stateless, reusable utility wrappers.
+* `/ui-shells/` – Houses decoupled user interface orchestration wrappers and dynamic entry dashboards.
+* `/packages/` – Houses path-agnostic shared libraries, utility configurations, and cross-service compiler types.
 * `/docs/` – Houses system blueprints, Interface Control Documents (ICDs), and chronological ADR logs.
 
 To prevent baseline pollution within this single tree, a strict branch protection quality gate ("Strict-Main-Gate") is enforced at the remote server level. Direct pushes to the `master` branch are blocked. All integrations require sandboxed feature branches, Conventional Commit syntax, and formalized Pull Request reviews.

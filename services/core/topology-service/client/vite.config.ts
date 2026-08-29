@@ -1,26 +1,29 @@
 // File: services/core/topology-service/client/vite.config.ts
-// CORRECTED: Import defineConfig directly from vitest/config to safely expose the 'test' schema layout properties
-import { defineConfig } from 'vitest/config';
+
+/**
+ * Development-time Vite configuration for the topology client.
+ *
+ * It exposes the service on a predictable client port and proxies topology
+ * requests through the local topology server during local development.
+ */
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+const clientPort = process.env.CLIENT_PORT ? Number.parseInt(process.env.CLIENT_PORT, 10) : 3002;
+const serverPort = process.env.SERVER_PORT ? Number.parseInt(process.env.SERVER_PORT, 10) : 8081;
 
 export default defineConfig({
-  root: '.',
   server: {
-    port: 3000,
+    port: clientPort,
     host: '0.0.0.0',
     strictPort: true,
     proxy: {
       '/api/v1': {
-        // nosonar: Internal private Docker bridge communication
-        target: 'http://topology-server:8081', 
+        target: `http://localhost:${serverPort}`,
         changeOrigin: true,
-        secure: false
-      }
-    }
+        secure: false,
+      },
+    },
   },
-  test: {
-    globals: true,
-    environment: 'happy-dom',
-    setupFiles: ['./src/test-setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}']
-  }
+  plugins: [react()],
 });

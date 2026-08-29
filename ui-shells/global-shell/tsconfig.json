@@ -1,0 +1,13 @@
+{
+  "extends": "@shared/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "topology_service/*": ["./@mf-types/topology_service/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

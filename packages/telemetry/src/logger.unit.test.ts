@@ -1,6 +1,6 @@
 // File: shared/telemetry/logger.unit.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createLogger } from './logger.js';
+import { createLogger } from './logger';
 
 describe('Unit Test: Structured Telemetry JSON Logging Engine (logger)', () => {
   let logSpy: any;
