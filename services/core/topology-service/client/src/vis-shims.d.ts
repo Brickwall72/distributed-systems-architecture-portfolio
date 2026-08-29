@@ -1,5 +1,10 @@
 // File: services/core/topology-service/client/src/vis-shims.d.ts
 
+/*
+ * Local TypeScript shims for the vis.js libraries used by the topology canvas.
+ * These declarations keep the browser graph integration typed without pulling in
+ * the full library definitions for the project.
+ */
 declare module 'vis-data' {
   export class DataSet<T> {
     constructor(data?: T[]);

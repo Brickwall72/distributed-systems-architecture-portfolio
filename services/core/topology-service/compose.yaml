@@ -29,9 +29,9 @@ services:
     image: topology-server:local
     container_name: topology-server
     ports:
-      - "${PORT}:${PORT}"
+      - "${SERVER_PORT}:${SERVER_PORT}"
     environment:
-      PORT: ${PORT}
+      SERVER_PORT: ${SERVER_PORT}
       DB_URI: bolt://topology-db:7687
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -49,9 +49,9 @@ services:
     image: topology-client:local
     container_name: topology-client
     ports:
-      - "3000:3000"
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      PORT: 3000
+      CLIENT_PORT: ${CLIENT_PORT}
     volumes:
       - ./client:/app/services/core/topology-service/client
     networks:

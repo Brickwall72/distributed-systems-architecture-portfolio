@@ -1,0 +1,9 @@
+services:
+  ui-shell-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app/ui-shells/global-shell
+    ports:
+      - "3000:3000"

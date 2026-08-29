@@ -1,7 +1,7 @@
 # ADR-005: Test-Driven Isolation and Unit Component Double Taxonomies
 
 ## Status
-Proposed
+Accepted (2026-08-29)
 
 * **Date:** 2026-08-18
 * **Author:** Sam Brickett

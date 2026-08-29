@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { TopologyCanvas } from './TopologyCanvas.js';
+import TopologyCanvas from './TopologyCanvas';
 
 const server = setupServer(
   http.get('/api/v1/topology/entities', () => {
@@ -26,18 +26,19 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('TopologyCanvas Component Lifecycle View', () => {
-  // CORRECTED: Updated string matcher targets to reflect your exact UI component text patterns
   it('should manage the asynchronous loading state and transition cleanly to the dashboard', async () => {
     render(<TopologyCanvas />);
-    
-    // 1. Target your actual running loading string element inside the canvas overlay panel
+
+    /*
+     * The loading indicator is the first stable UI state before the topology data
+     * has finished hydrating from the API.
+     */
     const loadingScreen = screen.getByText(/Traversing Graph Network Threads.../i);
     expect(loadingScreen).toBeInTheDocument();
 
-    // 2. Wait for the asynchronous data hydration loop to finish and clear the overlay
+    // Wait for the async hydration flow to finish and clear the overlay.
     await waitForElementToBeRemoved(loadingScreen);
 
-    // 3. Confirm the underlying control panel layout persists cleanly
     expect(screen.getByText(/Mission Control: Fleet Topology Graph/i)).toBeInTheDocument();
   });
 

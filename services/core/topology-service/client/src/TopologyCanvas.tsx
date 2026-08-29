@@ -1,9 +1,11 @@
 // File: services/core/topology-service/client/src/TopologyCanvas.tsx
-// CORRECTED: Explicitly import FormEvent as a top-level type member to remove the deprecation warning
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { DataSet } from 'vis-data';
 import * as vis from 'vis-network';
 
+/**
+ * Represents a directional connection between two topology assets.
+ */
 interface TopologyEntityLink {
   sourceAssetId: string;
   sourceLabel: string;
@@ -12,22 +14,33 @@ interface TopologyEntityLink {
   actionContext: string;
 }
 
-export function TopologyCanvas() {
+/**
+ * Renders the live topology graph, supports manual connection creation, and
+ * refreshes the visualization from the backend topology service.
+ */
+export default function TopologyCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [networkInstance, setNetworkInstance] = useState<vis.Network | null>(null);
   const [nodesDataSet, setNodesDataSet] = useState<DataSet<any> | null>(null);
   const [edgesDataSet, setEdgesDataSet] = useState<DataSet<any> | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorBoundary, setErrorBoundary] = useState<string | null>(null);
 
-  // Form State Collections
+  /*
+   * The form state is kept separate from the visualization state so the user can
+   * build a connection without mutating the network until submission.
+   */
   const [sourceId, setSourceId] = useState('');
   const [sourceLabel, setSourceLabel] = useState('');
   const [targetId, setTargetId] = useState('');
   const [targetLabel, setTargetLabel] = useState('');
   const [actionContext, setActionContext] = useState('SQUADRON_HANDOVER');
 
+  /**
+   * Fetches the current topology graph from the API and rehydrates the vis.js
+   * network with the latest node and edge metadata.
+   */
   const fetchAndHydrateGraphView = async () => {
     try {
       setIsLoading(true);
@@ -86,7 +99,11 @@ export function TopologyCanvas() {
     return () => { if (networkInstance) networkInstance.destroy(); };
   }, []);
 
-  // CORRECTED: Swapped signature parameter line type to use the explicit imported FormEvent token
+  /**
+   * Submits a user-defined asset link to the in-memory graph model.
+   *
+   * @param e - Browser submit event for the connection form.
+   */
   const handleGraphMutationSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     if (!sourceId.trim() || !targetId.trim()) return;
@@ -117,7 +134,7 @@ export function TopologyCanvas() {
       {errorBoundary && <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm">{errorBoundary}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT COLUMN: Data Entry Control Console Form */}
+        {/* The left column holds the form used to create or extend topology edges. */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm h-fit">
           <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Deploy Asset Connection</h2>
           <form onSubmit={handleGraphMutationSubmit} className="space-y-4">
@@ -157,7 +174,7 @@ export function TopologyCanvas() {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: Interactive Network Graph Canvas Viewport Container */}
+        {/* The right column renders the live graph canvas and refresh controls. */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
           <div className="absolute top-6 right-6 z-10 flex gap-2">
             <button type="button" onClick={fetchAndHydrateGraphView} className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 shadow-sm text-xs font-semibold flex items-center gap-1.5 transition active:scale-95">

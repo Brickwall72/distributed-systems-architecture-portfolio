@@ -1,12 +1,13 @@
 {
-  "name": "@topology/client",
+  "name": "topology-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "dev:federation": "vite --config vite.federation.config.ts",
+    "build": "vite build --config vite.federation.config.ts",
+    "test": "vitest --config vitest.config.ts"
   },
   "dependencies": {
     "react": "~19.2.8",

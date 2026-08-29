@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createHealthCheck } from './health.js';
+import { createHealthCheck } from './health';
 
 describe('Unit Test: Shared Telemetry Probe Middleware (health)', () => {
   it('should dynamically inject the designated service name parameter into the structured JSON payload', async () => {

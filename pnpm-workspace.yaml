@@ -1,6 +1,7 @@
 packages:
   - 'services/**'
-  - 'packages/*'
+  - 'packages/**'
+  - 'ui-shells/**'
 
 # Disable release age caching gates to ensure pristine multi-machine installations
 minimumReleaseAge: 0

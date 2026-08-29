@@ -25,3 +25,7 @@ build/
 .storybook/
 storybook-static/
 debug-storybook.log
+
+# Vite build artifacts
+@mf-types/
+.mf/
