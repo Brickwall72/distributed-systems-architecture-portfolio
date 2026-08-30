@@ -1,9 +1,21 @@
+# File: ui-shells/global-shell/compose.yaml
 services:
-  ui-shell-dev:
+  global-shell:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    image: global-shell:local
+    container_name: global-shell
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      VITE_RUNTIME: docker
+      VITE_REMOTE_ENTRY: http://localhost:3002/remoteEntry.js
     volumes:
       - .:/app/ui-shells/global-shell
-    ports:
-      - "3000:3000"
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

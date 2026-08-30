@@ -11,14 +11,16 @@ import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
 import mfConfig from './module-federation.config.ts';
 
+const isDockerRuntime = process.env.VITE_RUNTIME === 'docker';
+
 export default defineConfig({
   server: {
     port: 3000,
-    host: 'localhost', // Keep the dev server bound to the local IPv4 loopback.
+    host: '0.0.0.0',
     origin: 'http://localhost:3000',
     proxy: {
       '/api/v1': {
-        target: 'http://localhost:8081', // Local topology service port exposed by Docker.
+        target: isDockerRuntime ? 'http://topology-server:8081' : 'http://localhost:8081',
         changeOrigin: true,
         secure: false,
       },

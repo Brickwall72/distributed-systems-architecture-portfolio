@@ -19,7 +19,7 @@ graph TD
 	classDef broker fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
 
 	%% Elements
-	UI[ui-shell <br> Micro-Frontend Host]:::ui
+	UI[global-shell <br> Micro-Frontend Host]:::ui
 	
 	subgraph Core Domain Services [Core Domain Services]
 		COMP[compliance-service <br> Workflow Coordinator]:::core
@@ -44,7 +44,6 @@ graph TD
 
 	%% Parallel Validation Interactions
 	UI -->|1. Request Flight Clearance| COMP
-	UI -.->|Embeds Widgets| VIEW
 	
 	COMP -->|2a. Validate Structure via HTTP | TOPO
 	COMP -->|2b. Check Telemetry via HTTP | CACHE
@@ -67,18 +66,21 @@ graph TD
 	LEDGER ===> DB_I
 ```
 
-### Subsystem Architecture Breakdown
-The monorepo separates mission-specific business domains from generic utility logic:
 
+### Subsystem Architecture Breakdown
+The monorepo separates presentation layout orchestration and mission-specific business domains from generic utility logic:
+
+* **Presentation Layer (Orchestration Shells):**
+  * `global-shell`: Top-level micro-frontend host container dynamically composing page-based layouts.
 * **Core Services (The Domain Layer):**
-  * `ui-shell`: Micro-frontend host container orchestrating the user portal interface.
-  * `compliance-service`: The central process coordinator managing background network checks.
+  * `compliance-service`: The central process coordinator managing background network validation loops.
   * `topology-service`: Graph NoSQL-backed engine mapping asset dependencies and structural boundaries.
   * `resource-cache`: Volatile, fast-access memory store tracking real-time asset capacity and metrics.
   * `audit-ledger`: Append-only, event-driven database acting as the immutable "black box" flight log.
 * **Platform Services (The Utility Layer):**
   * `pdf-generator`: Stateless utility wrapper converting structured verification payloads into PDF templates.
   * `esign-service`: Cryptographic signing utility to securely authorize generated clearance files.
+
 
 ### Architectural Standards
 * **Isolation Pattern:** True Database-per-Service model ensuring zero cross-domain leakage over the cluster network.
