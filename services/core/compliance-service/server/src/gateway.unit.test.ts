@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/src/gateway.unit.test.ts
+// File: services/core/compliance-service/server/src/gateway.unit.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';

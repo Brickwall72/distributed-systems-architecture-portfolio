@@ -1,0 +1,22 @@
+# File: ui-shells/domain-shells/compliance-shell/compose.dev.yaml
+services:
+  compliance-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: compliance-shell:local
+    container_name: compliance-shell
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      VITE_REMOTE_ENTRY: http://localhost:3021/remoteEntry.js
+    depends_on:
+      - compliance-client
+    volumes:
+      - .:/app/ui-shells/domain-shells/compliance-shell
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

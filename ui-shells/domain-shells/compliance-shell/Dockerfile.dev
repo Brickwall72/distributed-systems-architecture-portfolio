@@ -1,19 +1,18 @@
-# File: ui-shells/global-shell/Dockerfile
+# File: ui-shells/domain-shells/compliance-shell/Dockerfile.dev
 FROM base-image:local
-ARG SERVICE_PATH=/app/ui-shells/global-shell
+ARG SERVICE_PATH=/app/ui-shells/domain-shells/compliance-shell
 WORKDIR /app
 RUN mkdir -p "${SERVICE_PATH}/src"
 
 
 COPY package.json tsconfig.json ${SERVICE_PATH}
 RUN pnpm install --frozen-lockfile --ignore-scripts
-COPY vite.config.ts module-federation.config.ts index.html ${SERVICE_PATH}
-COPY public/ ${SERVICE_PATH}/public/
+COPY vite.config.ts index.html ${SERVICE_PATH}
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
 WORKDIR ${SERVICE_PATH}
 USER node
-EXPOSE 3000
+EXPOSE 3020
 
 CMD ["pnpm", "dev"]

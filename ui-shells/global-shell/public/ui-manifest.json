@@ -1,0 +1,21 @@
+{
+  "version": "0.0.0",
+  "remotes": [
+    {
+      "domainId": "topology",
+      "navLabel": "Fleet Topology",
+      "path": "/topology",
+      "remoteEntry": "http://localhost:3002/remoteEntry.js",
+      "scope": "topology_service",
+      "module": "./App"
+    },
+    {
+      "domainId": "compliance",
+      "navLabel": "Flight Compliance",
+      "path": "/compliance",
+      "remoteEntry": "http://localhost:3020/remoteEntry.js",
+      "scope": "compliance_shell",
+      "module": "./App"
+    }
+  ]
+}

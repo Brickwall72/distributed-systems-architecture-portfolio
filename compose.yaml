@@ -5,7 +5,8 @@
 
 include:
   - path: ui-shells/global-shell/compose.dev.yaml
-  # - path: services/core/compliance-service/compose.yaml
+  - path: ui-shells/domain-shells/compliance-shell/compose.dev.yaml
+  - path: services/core/compliance-service/compose.yaml
   - path: services/core/topology-service/compose.yaml
 
 networks:

@@ -72,6 +72,8 @@ importers:
         specifier: ~4.1.11
         version: 4.1.11(@types/node@26.2.0)(happy-dom@20.11.12)(msw@2.15.0(@types/node@26.2.0)(typescript@7.0.2))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
+  packages/shell-contracts: {}
+
   packages/telemetry:
     dependencies:
       express:
@@ -100,6 +102,9 @@ importers:
 
   services/core/topology-service/client:
     dependencies:
+      '@shared/telemetry':
+        specifier: workspace:*
+        version: link:../../../../packages/telemetry
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -125,8 +130,20 @@ importers:
         specifier: ~6.2.0
         version: 6.2.0
 
+  ui-shells/domain-shells/compliance-shell:
+    dependencies:
+      react:
+        specifier: ~19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.8
+        version: 19.2.8(react@19.2.8)
+
   ui-shells/global-shell:
     dependencies:
+      '@shared/shell-contracts':
+        specifier: workspace:*
+        version: link:../../packages/shell-contracts
       react:
         specifier: ~19.2.8
         version: 19.2.8

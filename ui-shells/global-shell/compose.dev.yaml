@@ -1,4 +1,4 @@
-# File: ui-shells/global-shell/compose.yaml
+# File: ui-shells/global-shell/compose.dev.yaml
 services:
   global-shell:
     build:
@@ -11,6 +11,7 @@ services:
     environment:
       VITE_RUNTIME: docker
       VITE_REMOTE_ENTRY: http://localhost:3002/remoteEntry.js
+      VITE_TOPOLOGY_API_URL: http://topology-server:8081
     volumes:
       - .:/app/ui-shells/global-shell
     networks:
