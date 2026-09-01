@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/src/index.ts
+// File: services/core/compliance-service/server/src/index.ts
 import express from 'express';
 import { complianceGateway } from './gateway.js';
 import { createHealthCheck, createLogger } from '@shared/telemetry';

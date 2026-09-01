@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/src/frontend/complianceTracking.ts
+// File: services/core/compliance-service/client/src/complianceTracking.ts
 
 /**
  * Client-Side Transaction Token Factory (REQ-003a Blueprint)

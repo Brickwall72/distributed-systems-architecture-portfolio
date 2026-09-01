@@ -1,6 +1,6 @@
-// File: services/core/compliance-service/src/frontend/ComplianceWidget.stories.tsx
+// File: services/core/compliance-service/client/src/ComplianceWidget.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
-import { ComplianceWidget } from './ComplianceWidget.js';
+import ComplianceWidget from './ComplianceWidget.js';
 
 const meta: Meta<typeof ComplianceWidget> = {
   title: 'Compliance/ComplianceWidget',

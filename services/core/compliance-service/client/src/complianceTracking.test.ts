@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/src/frontend/complianceTracking.test.ts
+// File: services/core/compliance-service/client/src/complianceTracking.test.ts
 import { describe, it, expect } from 'vitest';
 import { mintTransactionToken } from './complianceTracking.js';
 

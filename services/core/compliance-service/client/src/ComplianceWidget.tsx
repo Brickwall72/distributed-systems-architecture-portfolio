@@ -1,10 +1,10 @@
-// File: services/core/compliance-service/src/frontend/ComplianceWidget.tsx
-import React, { useState } from 'react';
+// File: services/core/compliance-service/client/src/ComplianceWidget.tsx
+import { useState } from 'react';
 import { mintTransactionToken } from './complianceTracking.js';
 
-import localTestPdfUrl from './__fixtures__/test.pdf';
+const localTestPdfUrl = new URL('./__fixtures__/test.pdf', import.meta.url).href;
 
-export const ComplianceWidget: React.FC = () => {
+export default function ComplianceWidget() {
   const [activeCorrelationId, setActiveCorrelationId] = useState<string | null>(null);
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);

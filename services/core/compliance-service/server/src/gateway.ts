@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/src/gateway.ts
+// File: services/core/compliance-service/server/src/gateway.ts
 import { Router, Request, Response } from 'express';
 
 const router = Router();
