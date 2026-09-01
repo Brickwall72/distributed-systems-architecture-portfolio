@@ -1,4 +1,4 @@
-// File: ui-shells/domain-shells/compliance-shell/src/main.tsx
+// File: ui-shells/domain-shells/topology-shell/src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

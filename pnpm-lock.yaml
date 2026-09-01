@@ -102,9 +102,6 @@ importers:
 
   services/core/topology-service/client:
     dependencies:
-      '@shared/telemetry':
-        specifier: workspace:*
-        version: link:../../../../packages/telemetry
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -131,6 +128,15 @@ importers:
         version: 6.2.0
 
   ui-shells/domain-shells/compliance-shell:
+    dependencies:
+      react:
+        specifier: ~19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.8
+        version: 19.2.8(react@19.2.8)
+
+  ui-shells/domain-shells/topology-shell:
     dependencies:
       react:
         specifier: ~19.2.8
