@@ -5,8 +5,8 @@
       "domainId": "topology",
       "navLabel": "Fleet Topology",
       "path": "/topology",
-      "remoteEntry": "http://localhost:3002/remoteEntry.js",
-      "scope": "topology_service",
+      "remoteEntry": "http://localhost:3010/remoteEntry.js",
+      "scope": "topology_shell",
       "module": "./App"
     },
     {

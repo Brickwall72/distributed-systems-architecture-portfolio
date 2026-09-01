@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
 
+const clientPort = Number.parseInt(process.env.CLIENT_PORT || '3021');
+
 export default defineConfig({
   plugins: [
     react(),
@@ -16,11 +18,11 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: Number.parseInt(process.env.CLIENT_PORT || '3021'),
+    port: clientPort,
 		host: '0.0.0.0',
     strictPort: true,
     cors: true,
-		origin: `http://localhost:${process.env.CLIENT_PORT || '3021'}`,
+		origin: `http://localhost:${clientPort}`,
   },
   build: {
     target: 'esnext',

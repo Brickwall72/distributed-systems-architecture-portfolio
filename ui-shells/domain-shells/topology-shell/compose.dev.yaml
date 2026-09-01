@@ -1,0 +1,23 @@
+# File: ui-shells/domain-shells/topology-shell/compose.dev.yaml
+services:
+  topology-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: topology-shell:local
+    container_name: topology-shell
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      VITE_REMOTE_ENTRY: http://localhost:3011/remoteEntry.js
+      VITE_TOPOLOGY_API_URL: http://topology-server:8081
+    depends_on:
+      - topology-client
+    volumes:
+      - .:/app/ui-shells/domain-shells/topology-shell
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

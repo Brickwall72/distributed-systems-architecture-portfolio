@@ -1,7 +1,7 @@
 // File: ui-shells/global-shell/module-federation.config.ts
 import { createModuleFederationConfig } from '@module-federation/vite';
 
-const remoteEntryUrl = process.env.VITE_REMOTE_ENTRY ?? 'http://localhost:3002/remoteEntry.js';
+const remoteEntryUrl = process.env.VITE_REMOTE_ENTRY ?? 'http://localhost:3010/remoteEntry.js';
 
 /*
  * Host shell configuration for dynamically loading the topology remote.
