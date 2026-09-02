@@ -1,4 +1,4 @@
-// File: services/core/topology-service/client/src/TopologyCanvas.unit.test.tsx
+// File: services/core/topology-service/client/src/widgets/TopologyCanvas.unit.test.tsx
 import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-library/react';
 import { setupServer } from 'msw/node';

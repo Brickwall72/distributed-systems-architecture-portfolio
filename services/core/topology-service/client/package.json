@@ -7,11 +7,12 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "vite",
-    "dev:federation": "vite --config vite.federation.config.ts",
-    "build": "vite build --config vite.federation.config.ts",
+    "build": "vite build",
     "test": "vitest --config vitest.config.ts"
   },
   "dependencies": {
+    "@shared/vite-config": "workspace:*",
+    "@shared/styles": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "vis-network": "~10.1.2",

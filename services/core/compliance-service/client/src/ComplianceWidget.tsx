@@ -1,6 +1,7 @@
 // File: services/core/compliance-service/client/src/ComplianceWidget.tsx
 import { useState } from 'react';
 import { mintTransactionToken } from './complianceTracking.js';
+import '@shared/styles';
 
 const localTestPdfUrl = new URL('./__fixtures__/test.pdf', import.meta.url).href;
 
