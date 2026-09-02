@@ -7,7 +7,7 @@ RUN mkdir -p "${SERVICE_PATH}/src"
 
 COPY package.json tsconfig.json ${SERVICE_PATH}
 RUN pnpm install --frozen-lockfile --ignore-scripts
-COPY vite.federation.config.ts index.html ${SERVICE_PATH}
+COPY vite.config.ts index.html ${SERVICE_PATH}
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
@@ -15,4 +15,4 @@ WORKDIR ${SERVICE_PATH}
 USER node
 EXPOSE 3011
 
-CMD ["pnpm", "dev:federation"]
+CMD ["pnpm", "dev"]

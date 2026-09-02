@@ -1,7 +1,8 @@
-// File: services/core/topology-service/client/src/TopologyCanvas.tsx
+// File: services/core/topology-service/client/src/widgets/TopologyCanvas.tsx
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { DataSet } from 'vis-data';
 import * as vis from 'vis-network';
+import '@shared/styles';
 
 /**
  * Represents a directional connection between two topology assets.
