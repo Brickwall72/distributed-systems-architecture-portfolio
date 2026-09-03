@@ -1,0 +1,20 @@
+{
+  "name": "pdf-generator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./dist/index.js",
+    "build": "tsc -p tsconfig.json && cp -r src/templates dist/templates && chmod +x ./src/test.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test.sh": "./src/test.sh"
+  },
+  "dependencies": {
+    "@shared/telemetry": "workspace:*",
+    "express": "~5.2.1",
+    "puppeteer": "~25.10.0",
+    "handlebars": "~4.7.9",
+    "cors":"~2.8.6"
+  }
+}

@@ -1,0 +1,31 @@
+# File: services/platform/pdf-generator/server/Dockerfile.dev
+FROM base-image:local
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server/
+
+# Install Chromium and dependencies using Alpine's apk package manager
+RUN apk add --no-cache \
+    ca-certificates \
+    chromium \
+    freetype \
+    harfbuzz \
+    nss \
+    ttf-freefont
+
+# Tell Puppeteer to use Alpine's Chromium path
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+WORKDIR /app
+RUN mkdir -p "${SERVICE_PATH}/src"
+
+
+COPY package.json tsconfig.json ${SERVICE_PATH}
+RUN pnpm install --frozen-lockfile
+COPY src/ ${SERVICE_PATH}/src/
+RUN pnpm build
+
+WORKDIR ${SERVICE_PATH}
+USER node
+EXPOSE 4001
+
+CMD ["pnpm", "start"]
