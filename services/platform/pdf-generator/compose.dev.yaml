@@ -1,0 +1,30 @@
+# File: services/platform/pdf-generator/compose.dev.yaml
+services:
+  pdf-generator:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile.dev
+    image: pdf-generator:local
+    container_name: pdf-generator
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+    volumes:
+      - ./server:/app/services/platform/pdf-generator/server
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-40011}/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  platform-mesh:
+    name: platform-mesh
