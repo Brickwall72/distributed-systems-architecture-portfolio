@@ -1,8 +1,6 @@
 // File: ui-shells/domain-shells/topology-shell/src/App.tsx
-import { Suspense, lazy } from 'react';
-
-// Dynamically consume the Tier 1 widget from the topology-client remote
-const TopologyWidget = lazy(() => import('topology_service/Widget'));
+import { Suspense } from 'react';
+import TopologyDashboard from './pages/TopologyDashboard';
 
 export default function App() {
   return (
@@ -13,7 +11,7 @@ export default function App() {
       </div>
 
       <Suspense fallback={<div className="text-slate-500 font-mono">Loading Topology Widget...</div>}>
-        <TopologyWidget />
+        <TopologyDashboard />
       </Suspense>
     </div>
   );
