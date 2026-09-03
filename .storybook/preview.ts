@@ -1,6 +1,7 @@
 // File: .storybook/preview.ts
 import type { Preview } from '@storybook/react';
-import './global.css'; // Registers the master Tailwind layers globally into the preview container
+import { mswLoader } from 'msw-storybook-addon/csf3';
+import '../packages/styles/src/global.css'; // Registers the master Tailwind layers globally into the preview container
 
 const preview: Preview = {
   parameters: {
@@ -11,6 +12,9 @@ const preview: Preview = {
       },
     },
   },
+  loaders: [
+    mswLoader()
+  ],
 };
 
 export default preview;

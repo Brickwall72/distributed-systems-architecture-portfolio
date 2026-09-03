@@ -17,6 +17,7 @@
   "devDependencies": {
     "@storybook/react": "~10.5.10",
     "@storybook/react-vite": "~10.5.10",
+    "@storybook/addon-links": "~10.6.0",
     "@tailwindcss/vite": "~4.3.3",
     "@types/express": "~5.0.6",
     "@types/node": "~26.2.0",
@@ -31,10 +32,16 @@
     "happy-dom": "~20.11.12",
     "msw": "~2.15.0",
     "storybook": "~10.5.10",
+    "msw-storybook-addon": "~3.0.0",
     "supertest": "~7.2.2",
     "tailwindcss": "~4.3.3",
     "typescript": "~7.0.2",
     "vite": "~8.2.2",
     "vitest": "~4.1.11"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
