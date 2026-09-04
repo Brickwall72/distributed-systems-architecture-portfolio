@@ -28,3 +28,6 @@ debug-storybook.log
 # Vite build artifacts
 @mf-types/
 .mf/
+
+# Testfile outputs
+test-output.pdf
