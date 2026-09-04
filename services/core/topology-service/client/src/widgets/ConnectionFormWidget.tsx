@@ -1,5 +1,6 @@
 // File: src/widgets/ConnectionFormWidget.tsx
 import { useState, type SyntheticEvent } from 'react';
+import '@shared/styles';
 
 // Define a standardized event name so typos don't break the sync
 export const TOPOLOGY_MUTATION_EVENT = 'topology:graph-mutated';

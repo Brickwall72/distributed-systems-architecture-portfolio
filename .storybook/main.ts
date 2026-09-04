@@ -3,7 +3,7 @@ import { StorybookConfig } from '@storybook/react-vite';
 import tailwindVite from '@tailwindcss/vite';
 
 const config: StorybookConfig = {
-  stories: ['../services/**/src/**/*.stories.@(ts|tsx|js|jsx)'],
+  stories: ['../services/**/src/**/*.stories.@(ts|tsx|js|jsx)', '../packages/**/src/**/*.stories.@(ts|tsx|js|jsx)'],
   staticDirs: ['../public'],
   addons: [
     '@storybook/addon-links',

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { mintTransactionToken } from './complianceTracking.js';
 import '@shared/styles';
+import { DocumentViewer } from '@shared/ui-components';
 
 const localTestPdfUrl = new URL('./__fixtures__/test.pdf', import.meta.url).href;
 
@@ -53,21 +54,20 @@ export default function ComplianceWidget() {
       )}
 
       {/* Foundational HTML5 Iframe PDF Viewport Enclosure Panel */}
-      <div className="w-full bg-slate-900 rounded-lg border border-slate-800 overflow-hidden flex flex-col items-center justify-center min-h-[500px] relative shadow-inner">
-        {pdfViewerUrl ? (
-          <iframe
-            src={pdfViewerUrl}
-            className="w-full h-[650px] bg-slate-900 border-none"
-            title="Aviation System Document Viewer Portal"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 font-mono">
-            <div className="text-[11px] tracking-wide text-slate-400 uppercase font-bold">Awaiting Operational Command Execution</div>
-            <p className="text-[10px] text-slate-600 max-w-xs mt-2 leading-relaxed">
-              Click the clearance button above to initialize backend structural validation loops and hydrate the compliance artifact PDF byte stream.
-            </p>
-          </div>
-        )}
+      <div className="w-full bg-slate-900 rounded-lg border border-slate-800 overflow-hidden flex flex-col min-h-[500px] relative shadow-inner">
+        <DocumentViewer 
+          content={pdfViewerUrl}
+          contentType='pdf'
+          className="w-full h-[650px] bg-slate-900 rounded-lg border border-slate-800 shadow-inner"
+          placeholder={
+            <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 font-mono my-auto">
+              <div className="text-[11px] tracking-wide text-slate-400 uppercase font-bold">Awaiting Operational Command Execution</div>
+              <p className="text-[10px] text-slate-600 max-w-xs mt-2 leading-relaxed">
+                Click the clearance button above to initialize backend structural validation loops and hydrate the compliance artifact PDF byte stream.
+              </p>
+            </div>
+          }
+        />
       </div>
 
     </div>

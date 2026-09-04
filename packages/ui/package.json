@@ -1,0 +1,29 @@
+{
+  "name": "@shared/ui-components",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
+    "dev": "vite build --watch",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "peerDependencies": {
+    "@shared/vite-config": "workspace:*",
+    "@shared/styles": "workspace:*",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8"
+  },
+  "dependencies": {
+    "tailwind-merge": "~3.6.0",
+    "clsx": "~2.1.1"
+  }
+}
