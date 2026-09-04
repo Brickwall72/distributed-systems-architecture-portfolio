@@ -42,6 +42,11 @@ jobs:
         # Explicitly run the installation using your script-suppressing parameters
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Install System Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+
       - name: Compile Workspace Packages
         run: pnpm build
 
