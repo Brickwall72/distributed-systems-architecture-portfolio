@@ -24,6 +24,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+  pdf-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile.dev
+    image: pdf-client:local
+    container_name: pdf-client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      CLIENT_PORT: ${CLIENT_PORT}
+    volumes:
+      - ./client:/app/services/platform/pdf-generator/client
+    networks:
+      - platform-mesh
 
 networks:
   platform-mesh:

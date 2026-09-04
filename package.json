@@ -11,6 +11,7 @@
     "services:test": "pnpm --filter \"./services/**\" --filter \"./packages/**\" test",
     "build": "pnpm --recursive build",
     "test": "pnpm --recursive test",
+    "test:integration": "pnpm --recursive test:integration",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006",
     "docker:base": "docker build -f Dockerfile.base -t base-image:local .",
     "env:copy": "find . -name \".env.example\" -exec sh -c 'cp \"$1\" \"${1%.example}\"' _ {} \\;"
