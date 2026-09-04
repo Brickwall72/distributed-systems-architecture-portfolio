@@ -22,27 +22,35 @@ jobs:
     steps:
       # Pinned to official v7.0.1 release commit
       - name: Harden Runner Security Boundaries (Checkout Repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #git ls-remote https://github.com/actions/checkout refs/ags/v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #git ls-remote https://github.com/actions/checkout refs/tags/v7.0.1
+
+      # Detect if pdf-generator or root lockfile changed
+      - name: Evaluate Workspace Changeset Boundaries
+        id: changes
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 #git ls-remote https://github.com/dorny/paths-filter refs/tags/v3.0.3
+        with:
+          filters: |
+            pdf-generator:
+              - 'services/platform/pdf-generator/**'
+              - 'pnpm-lock.yaml'
 
       # Pinned to official pnpm/setup v2.0.2 release commit
-      # Handles pnpm binary initialization and Node runtime caching in one pass
       - name: Initialize Unified Package Manager and Node Runtime
-        uses: pnpm/setup@bf5bfae7d43e2b2b1191383f5005cd3fb69b848d #git ls-remote https://github.com/pnpm/setup refs/ags/v2.0.2
+        uses: pnpm/setup@bf5bfae7d43e2b2b1191383f5005cd3fb69b848d  #git ls-remote https://github.com/pnpm/setup refs/tags/v2.0.2
         with:
           version: ${{ env.PNPM_TARGET_VERSION }}
           runtime: ${{ env.NODE_TARGET_VERSION }}
-          # Disable automated installation pass to prevent out-of-order execution crashes
           install: false
 
       - name: Authorize Scoped Compiler Core Binaries
-        # Run before installing dependencies to satisfy modern pnpm package isolation gates
         run: pnpm approve-builds esbuild
 
       - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
-        # Explicitly run the installation using your script-suppressing parameters
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # ONLY install system Chromium if pdf-generator or lockfile changed
       - name: Install System Chromium
+        if: steps.changes.outputs.pdf-generator == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser
@@ -50,5 +58,13 @@ jobs:
       - name: Compile Workspace Packages
         run: pnpm build
 
+      # Run ALL tests if pdf-generator changed, otherwise exclude pdf-generator
       - name: Execute Automated Unit Testing Suites
-        run: pnpm test
+        run: |
+          if [ "${{ steps.changes.outputs.pdf-generator }}" = "true" ]; then
+            echo "PDF Generator changes detected. Executing full workspace test matrix..."
+            pnpm test
+          else
+            echo "PDF Generator unchanged. Skipping Chromium tests and running remaining matrix..."
+            pnpm --filter "!pdf-generator" test
+          fi
