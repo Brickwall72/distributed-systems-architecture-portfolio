@@ -42,9 +42,6 @@ jobs:
         # Explicitly run the installation using your script-suppressing parameters
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Install Puppeteer Chrome Binary
-        run: pnpm dlx puppeteer browsers install chrome
-
       - name: Compile Workspace Packages
         run: pnpm build
 

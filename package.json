@@ -12,7 +12,8 @@
     "build": "pnpm --recursive build",
     "test": "pnpm --recursive test",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006",
-    "docker:base": "docker build -f Dockerfile.base -t base-image:local ."
+    "docker:base": "docker build -f Dockerfile.base -t base-image:local .",
+    "env:copy": "find . -name \".env.example\" -exec sh -c 'cp \"$1\" \"${1%.example}\"' _ {} \\;"
   },
   "devDependencies": {
     "@module-federation/vite": "~1.21.2",

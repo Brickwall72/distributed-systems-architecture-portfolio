@@ -4,12 +4,12 @@ ARG SERVICE_PATH=/app/services/platform/pdf-generator/server/
 
 # Install Chromium and dependencies using Alpine's apk package manager
 RUN apk add --no-cache \
-    ca-certificates \
-    chromium \
-    freetype \
-    harfbuzz \
-    nss \
-    ttf-freefont
+	ca-certificates \
+	chromium \
+	freetype \
+	harfbuzz \
+	nss \
+	ttf-freefont
 
 # Tell Puppeteer to use Alpine's Chromium path
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
