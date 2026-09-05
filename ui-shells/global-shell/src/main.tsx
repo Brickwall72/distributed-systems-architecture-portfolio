@@ -5,5 +5,4 @@
  * The bootstrap is loaded asynchronously to keep the initial startup sequence
  * simple and predictable for Vite's runtime bundling.
  */
-import '@shared/styles';
 import('./bootstrap');

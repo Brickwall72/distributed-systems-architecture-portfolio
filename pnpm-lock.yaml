@@ -81,6 +81,8 @@ importers:
         specifier: ~4.1.11
         version: 4.1.11(@types/node@26.2.0)(happy-dom@20.11.15)(msw@2.15.0(@types/node@26.2.0)(typescript@7.0.2))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
+  packages/interfaces: {}
+
   packages/shell-contracts: {}
 
   packages/styles: {}
@@ -161,6 +163,9 @@ importers:
 
   services/core/topology-service/client:
     dependencies:
+      '@shared/interfaces':
+        specifier: workspace:*
+        version: link:../../../../packages/interfaces
       '@shared/styles':
         specifier: workspace:*
         version: link:../../../../packages/styles
@@ -182,6 +187,9 @@ importers:
 
   services/core/topology-service/server:
     dependencies:
+      '@shared/interfaces':
+        specifier: workspace:*
+        version: link:../../../../packages/interfaces
       '@shared/telemetry':
         specifier: workspace:*
         version: link:../../../../packages/telemetry
@@ -227,6 +235,9 @@ importers:
       '@shared/styles':
         specifier: workspace:*
         version: link:../../../packages/styles
+      '@shared/ui-components':
+        specifier: workspace:*
+        version: link:../../../packages/ui
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../packages/vite-config

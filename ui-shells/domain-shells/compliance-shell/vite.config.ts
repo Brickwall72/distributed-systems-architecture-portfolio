@@ -7,11 +7,18 @@ export default createRemoteConfig({
   exposes: {
     './App': './src/App.tsx',
   },
+  proxy: {
+    '/api/v1/pdf': {
+      target: process.env.VITE_PDF_API_URL || 'http://localhost:4001',
+      changeOrigin: true,
+      secure: false,
+    },
+  },
   remotes: {
-    compliance_service: {
+    pdf_client: {
         type: 'module',
-        name: 'compliance-service',
-        entry: `${process.env.VITE_REMOTE_ENTRY || 'http://localhost:3021/remoteEntry.js'}`,
+        name: 'pdf-client',
+        entry: `${process.env.VITE_REMOTE_ENTRY || 'http://localhost:4011/remoteEntry.js'}`,
     },
   },
   preview: {

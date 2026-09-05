@@ -31,7 +31,7 @@ jobs:
         with:
           filters: |
             pdf-generator:
-              - 'services/platform/pdf-generator/**'
+              - 'services/platform/pdf-generator/server/**'
               - 'pnpm-lock.yaml'
 
       # Pinned to official pnpm/setup v2.0.2 release commit
