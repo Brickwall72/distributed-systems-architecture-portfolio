@@ -1,5 +1,4 @@
 // File: services/core/topology-service/src/topologyGateway.unit.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { topologyGateway } from './topologyGateway.js';
@@ -38,9 +37,10 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
       const response = await request(app)
         .post('/api/v1/topology/authorizations')
         .send({
-          sourceAssetId: 'a3b48270-1283-4a11-bca9-593ef2718902',
-          targetAssetId: 'f3b48270-1283-4a11-bca9-593ef2718902',
-          actionContext: 'SQUADRON_HANDOVER'
+          senderOrgId: 'org-1111-lockheed',
+          receiverOrgId: 'org-2222-ussf',
+          assetId: 'asset-3333-gps3',
+          actionContext: 'CUSTODY_TRANSFER'
         });
 
       expect(response.status).toBe(400);
@@ -52,8 +52,9 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
         .post('/api/v1/topology/authorizations')
         .set('X-Correlation-ID', 'TRACING_TOKEN_ALPHA')
         .send({
-          sourceAssetId: 12345, // Violates explicit string contract mapping
-          targetAssetId: 'f3b48270-1283-4a11-bca9-593ef2718902',
+          senderOrgId: 12345, // Violates explicit string contract mapping
+          receiverOrgId: 'org-2222-ussf',
+          assetId: 'asset-3333-gps3',
           actionContext: 'ILLEGAL_CONTEXT'
         });
 
@@ -61,12 +62,12 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
       expect(response.body.errorCode).toBe('SCHEMA_VALIDATION_FAILURE');
     });
 
-    it('should authorize traffic and yield status AUTHORIZED when a valid database match line exists', async () => {
+    it('should authorize traffic and yield status AUTHORIZED when valid custody relationship exists', async () => {
       // Mock the record array wrapper parsing matrix
       const mockResultRecords = {
         records: [
           {
-            get: vi.fn().mockReturnValue(1) // Mock authorizedCount return metric as 1 path link
+            get: vi.fn().mockReturnValue(1) // Mock authorizedCount return metric as 1 custody link
           }
         ]
       };
@@ -78,23 +79,24 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
 
       const response = await request(app)
         .post('/api/v1/topology/authorizations')
-        .set('X-Correlation-ID', 'TRACE-AIRCRAFT-77')
+        .set('X-Correlation-ID', 'TRACE-CUSTODY-77')
         .send({
-          sourceAssetId: 'a3b48270-1283-4a11-bca9-593ef2718902',
-          targetAssetId: 'f3b48270-1283-4a11-bca9-593ef2718902',
-          actionContext: 'SQUADRON_HANDOVER'
+          senderOrgId: 'org-1111-lockheed',
+          receiverOrgId: 'org-2222-ussf',
+          assetId: 'asset-3333-gps3',
+          actionContext: 'CUSTODY_TRANSFER'
         });
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('AUTHORIZED');
-      expect(response.body.correlationId).toBe('TRACE-AIRCRAFT-77');
+      expect(response.body.correlationId).toBe('TRACE-CUSTODY-77');
     });
 
-    it('should drop query outcomes to status DENIED when graph traversal counts yield zero links', async () => {
+    it('should drop query outcomes to status DENIED when graph traversal counts yield zero custody records', async () => {
       const mockResultRecords = {
         records: [
           {
-            get: vi.fn().mockReturnValue(0) // 0 valid relational links found inside database rows
+            get: vi.fn().mockReturnValue(0) // 0 valid relational custody links found
           }
         ]
       };
@@ -106,11 +108,12 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
 
       const response = await request(app)
         .post('/api/v1/topology/authorizations')
-        .set('X-Correlation-ID', 'TRACE-AIRCRAFT-88')
+        .set('X-Correlation-ID', 'TRACE-CUSTODY-88')
         .send({
-          sourceAssetId: 'a3b48270-1283-4a11-bca9-593ef2718902',
-          targetAssetId: 'f3b48270-1283-4a11-bca9-593ef2718902',
-          actionContext: 'CARGO_TRANSFER'
+          senderOrgId: 'org-1111-lockheed',
+          receiverOrgId: 'org-2222-ussf',
+          assetId: 'asset-3333-gps3',
+          actionContext: 'PROPERTY_HANDOVER'
         });
 
       expect(response.status).toBe(200);
@@ -119,15 +122,19 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
   });
 
   describe('GET /api/v1/topology/entities', () => {
-    it('should safely iterate across Cypher query outputs and return mapped connection arrays', async () => {
+    it('should safely iterate across Cypher query outputs and return mapped transfer records', async () => {
       const mockRecordA = {
         get: (key: string) => {
           const data: Record<string, string> = {
-            sourceAssetId: 'src-1',
-            sourceLabel: 'Eagle 1',
-            targetAssetId: 'tgt-1',
-            targetLabel: 'Base 1',
-            actionContext: 'SQUADRON_HANDOVER'
+            requisitionNumber: 'REQ-2026-SSC-0092',
+            transferDate: '20260904',
+            senderOrgId: 'org-1111-lockheed',
+            senderName: 'Lockheed Martin Space',
+            receiverOrgId: 'org-2222-ussf',
+            receiverName: 'Space Systems Command (USSF)',
+            assetId: 'asset-3333-gps3',
+            assetNomenclature: 'GPS III Space Vehicle 11',
+            serialNumber: 'GPS-III-SV11-001'
           };
           return data[key];
         }
@@ -145,9 +152,10 @@ describe('Unit/Integration Test Matrix: Topology Routing Engine (topologyGateway
         .set('X-Correlation-ID', 'TRACE-ENTITIES-99');
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body.connections)).toBe(true);
-      expect(response.body.connections).toHaveLength(1);
-      expect(response.body.connections[0].sourceLabel).toBe('Eagle 1');
+      expect(Array.isArray(response.body.transfers)).toBe(true);
+      expect(response.body.transfers).toHaveLength(1);
+      expect(response.body.transfers[0].requisitionNumber).toBe('REQ-2026-SSC-0092');
+      expect(response.body.transfers[0].senderName).toBe('Lockheed Martin Space');
     });
   });
 });

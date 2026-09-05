@@ -22,6 +22,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/api/v1/pdf': {
+      target: process.env.VITE_PDF_API_URL || 'http://localhost:4001',
+      changeOrigin: true,
+      secure: false,
+      },
     },
   },
   base: 'http://localhost',

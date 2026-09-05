@@ -8,11 +8,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest --config vitest.config.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
+    "@shared/interfaces": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "vis-network": "~10.1.2",

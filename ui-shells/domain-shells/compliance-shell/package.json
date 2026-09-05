@@ -11,6 +11,7 @@
   "dependencies": {
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
+    "@shared/ui-components": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8"
   }

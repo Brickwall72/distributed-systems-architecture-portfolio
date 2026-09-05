@@ -1,22 +1,23 @@
 // File: ui-shells/global-shell/module-federation.config.ts
 import { createModuleFederationConfig } from '@module-federation/vite';
 
-const remoteEntryUrl = process.env.VITE_REMOTE_ENTRY ?? 'http://localhost:3010/remoteEntry.js';
+const topologyEntryUrl = process.env.VITE_TOPOLOGY_REMOTE_ENTRY ?? 'http://localhost:3010/remoteEntry.js';
+const complianceEntryUrl = process.env.VITE_COMPLIANCE_REMOTE_ENTRY ?? 'http://localhost:3020/remoteEntry.js';
 
-/*
- * Host shell configuration for dynamically loading the topology remote.
- * The remote is consumed by name and points to the browser-resolvable host for
- * the topology client. The actual proxy target remains environment-specific.
- */
 export default createModuleFederationConfig({
   name: 'ui_shell',
   manifest: true,
   dts: true,
   remotes: {
-    topology_service: {
+    topology_shell: {
       type: 'module',
-      name: 'topology_service',
-      entry: remoteEntryUrl,
+      name: 'topology_shell',
+      entry: topologyEntryUrl,
+    },
+    compliance_shell: {
+      type: 'module',
+      name: 'compliance_shell',
+      entry: complianceEntryUrl,
     },
   },
   shared: {

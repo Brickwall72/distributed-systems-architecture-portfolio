@@ -2,7 +2,7 @@
 
 /* The graph database is the authoritative source for relationship validation in the compliance
 gate described by ADR-003 and Section 3.1 of the ICD. The service boots a single Neo4j driver,
-verifies connectivity, and seeds a minimal aviation relationship map so validation can operate
+verifies connectivity, and seeds a minimal space custody relationship map so validation can operate
 against a stable, testable topology during local development and container startup. */
 import neo4j, { Driver } from 'neo4j-driver';
 import { createLogger } from '@shared/telemetry';
@@ -42,7 +42,7 @@ export async function initializeDatabaseConnection(retries = 5, delayMs = 3000):
 
       /* Seed the minimal graph used by the authorization gate before the service starts handling
       real validation traffic. */
-      await seedDefaultAviationGraphTopology();
+      await seedSpaceCustodyGraphTopology();
       return driverInstance;
     } catch (caughtError: any) {
       logger.warn(`Database connection handshake failed (Attempt ${attempt}/${retries}): ${caughtError.message}`);
@@ -90,69 +90,104 @@ export async function terminateDatabaseClient(): Promise<void> {
 }
 
 /**
- * Seeds a minimal, deterministic aviation network that mirrors the initial compliance contract.
- * The structure is intentionally small: a small set of Asset nodes and AUTHORIZED_PATH edges that
- * allow the service to validate a known-safe clearance under local development conditions.
- *
- * In production this pattern is replaced by a richer, actual operational graph, but the seed is
- * valuable for one reason: it keeps the authorization flow testable and reviewable without a
- * complex data migration sequence.
+ * Seeds a minimal, deterministic space custody network that mirrors the initial compliance contract.
+ * The structure maps Organizations, TransferEvents (DD-1149), and Assets.
  */
-async function seedDefaultAviationGraphTopology(): Promise<void> {
+async function seedSpaceCustodyGraphTopology(): Promise<void> {
   if (!driverInstance) return;
 
   const session = driverInstance.session();
 
   try {
-    logger.info('Executing programmatic structural aviation node schema seeding checks...');
+    logger.info('Executing programmatic space custody node schema seeding checks...');
 
-    /* The Asset.id property is treated as the canonical identity key for authorization decisions.
-    Enforcing uniqueness here prevents duplicate graph nodes from creating ambiguous clearance
-    checks during concurrent validation requests. */
+    // 1. Enforce constraints for reliable lookups and performance
     await session.executeWrite((tx) =>
       tx.run('CREATE CONSTRAINT idx_asset_id IF NOT EXISTS FOR (a:Asset) REQUIRE a.id IS UNIQUE')
     );
+    await session.executeWrite((tx) =>
+      tx.run('CREATE CONSTRAINT idx_org_id IF NOT EXISTS FOR (o:Organization) REQUIRE o.id IS UNIQUE')
+    );
+    await session.executeWrite((tx) =>
+      tx.run('CREATE CONSTRAINT idx_transfer_req IF NOT EXISTS FOR (e:TransferEvent) REQUIRE e.requisitionNumber IS UNIQUE')
+    );
 
-    /* The seed data model intentionally mirrors the operating assumptions documented in the ICD:
-    an aircraft can be linked to a destination airfield using a policy-specific context string. */
-    const seedQueries = [
-      {
-        srcId: 'a3b48270-1283-4a11-bca9-593ef2718902',
-        srcLabel: 'F-16 Eagle Flight Alpha',
-        tgtId: 'f3b48270-1283-4a11-bca9-593ef2718902',
-        tgtLabel: 'Forward Operating Base Alpha',
-        context: 'SQUADRON_HANDOVER'
+    // 2. Define the seed data matching all expected query parameters ($fromOrg, $toOrg, $asset, $transferData)
+    const seedData = {
+      fromOrg: {
+        id: 'org-1111-lockheed',
+        name: 'Lockheed Martin Space',
+        address1: '1111 Lockheed Martin Way',
+        address2: 'Sunnyvale, CA 94089'
       },
-      {
-        srcId: 'b5c19381-2394-5b22-cdba-604fa3829013',
-        srcLabel: 'C-17 Cargo Transporter',
-        tgtId: 'e4c19381-2394-5b22-cdba-604fa3829013',
-        tgtLabel: 'Logistics Airfield Bravo',
-        context: 'CARGO_TRANSFER'
+      toOrg: {
+        id: 'org-2222-ussf',
+        name: 'Space Systems Command (USSF)',
+        address1: 'Los Angeles Air Force Base',
+        address2: 'El Segundo, CA 90245'
+      },
+      asset: {
+        id: 'asset-3333-gps3',
+        nomenclature: 'GPS III Space Vehicle 11',
+        serialNumber: 'GPS-III-SV11-001'
+      },
+      transferData: {
+        requisitionNumber: 'REQ-2026-SSC-0092',
+        date: '20260904'
       }
-    ];
+    };
 
-    for (const data of seedQueries) {
-      await session.executeWrite((tx) =>
-        tx.run(
-          `MERGE (src:Asset { id: $srcId })
-           ON CREATE SET src.label = $srcLabel, src.type = 'AIRCRAFT'
-           MERGE (tgt:Asset { id: $tgtId })
-           ON CREATE SET tgt.label = $tgtLabel, tgt.type = 'AIRFIELD'
-           MERGE (src)-[rel:AUTHORIZED_PATH { context: $context }]->(tgt)
-           RETURN src, tgt, rel`,
-          data
-        )
-      );
-    }
+    const query: string = `
+      // 1. Create Organizations with types
+      MERGE (sender:Organization { id: $fromOrg.id })
+        ON CREATE SET 
+          sender.name = $fromOrg.name, 
+          sender.type = 'CONTRACTOR',
+          sender.address1 = $fromOrg.address1, 
+          sender.address2 = $fromOrg.address2
+      
+      MERGE (receiver:Organization { id: $toOrg.id })
+        ON CREATE SET 
+          receiver.name = $toOrg.name, 
+          receiver.type = 'MILITARY_BRANCH',
+          receiver.address1 = $toOrg.address1, 
+          receiver.address2 = $toOrg.address2
+      
+      // 2. Create Asset with nomenclature properties
+      MERGE (a:Asset { id: $asset.id })
+        ON CREATE SET 
+          a.name = $asset.nomenclature, 
+          a.nomenclature = $asset.nomenclature, 
+          a.serialNumber = $asset.serialNumber, 
+          a.type = 'SATELLITE'
+      
+      // 3. Create the Transfer Event with explicit requisitionNumber property for gateway matching
+      MERGE (event:TransferEvent { requisitionNumber: $transferData.requisitionNumber })
+        ON CREATE SET 
+          event.id = $transferData.requisitionNumber,
+          event.date = $transferData.date
+      
+      // 4. Link organizations and assets to the transfer event
+      MERGE (sender)-[:INITIATED]->(event)
+      MERGE (event)-[:DELIVERED_TO]->(receiver)
+      
+      // Store line-item specific data on the INVOLVES edge
+      MERGE (event)-[inv:INVOLVES { assetId: a.id }]->(a)
+        ON CREATE SET inv.quantity = 1, inv.unit = 'EA', inv.itemNumber = '0001'
+      
+      // 5. Update current operational custody state
+      MERGE (sender)-[:HAS_CUSTODY]->(a)
+    `;
 
-    logger.info('Programmatic aviation graph seeding verification passed successfully.');
+    await session.executeWrite((tx) => tx.run(query, seedData));
+
+    logger.info('Programmatic space custody graph seeding verification passed successfully.');
   } catch (error: any) {
     logger.error(`Critical failure encountered during programmatic graph seeding: ${error.message}`);
     throw error;
   } finally {
-    /* Always close the session back to the driver pool. This keeps the service aligned with the
-    connection lifecycle recommended by the FMEA and avoids leaking idle sessions. */
     await session.close();
   }
 }
+
+export { seedSpaceCustodyGraphTopology };

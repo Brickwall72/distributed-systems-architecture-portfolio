@@ -1,5 +1,4 @@
 // File: services/core/topology-service/client/src/widgets/NetworkCanvasWidget.unit.test.tsx
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
@@ -8,13 +7,18 @@ import NetworkCanvasWidget from './NetworkCanvasWidget';
 const server = setupServer(
   http.get('/api/v1/topology/entities', () => {
     return HttpResponse.json({
-      connections: [
+      timestamp: new Date().toISOString(),
+      transfers: [
         {
-          sourceAssetId: 'ac-f16-alpha',
-          sourceLabel: 'F-16 Flight Alpha',
-          targetAssetId: 'fob-bastion',
-          targetLabel: 'FOB Bastion Outpost',
-          actionContext: 'SQUADRON_HANDOVER'
+          requisitionNumber: 'REQ-2026-SSC-0092',
+          transferDate: '20260904',
+          senderOrgId: 'org-1111-lockheed',
+          senderName: 'Lockheed Martin Space',
+          receiverOrgId: 'org-2222-ussf',
+          receiverName: 'Space Systems Command (USSF)',
+          assetId: 'asset-3333-gps3',
+          assetNomenclature: 'GPS III Space Vehicle 11',
+          serialNumber: 'GPS-III-SV11-001'
         }
       ]
     });
@@ -29,7 +33,7 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
   it('should manage the asynchronous loading state and hydrate the canvas container', async () => {
     render(<NetworkCanvasWidget />);
 
-    const loadingScreen = screen.getByText(/Traversing Graph Network Threads.../i);
+    const loadingScreen = screen.getByText(/Traversing Space Custody Network Threads.../i);
     expect(loadingScreen).toBeInTheDocument();
 
     await waitForElementToBeRemoved(loadingScreen);

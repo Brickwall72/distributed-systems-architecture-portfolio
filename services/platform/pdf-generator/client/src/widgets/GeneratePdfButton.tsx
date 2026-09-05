@@ -37,15 +37,19 @@ export default function GeneratePdfButton ({
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
 
-      // Trigger automatic download
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      if (onSuccess) onSuccess(blobUrl);
+      if (onSuccess) {
+        // If the host shell provides an onSuccess handler (like DocumentViewer),
+        // pass the blobUrl to it and skip the automatic download.
+        onSuccess(blobUrl);
+      } else {
+        // Fallback: Trigger automatic download only if no shell handler is attached
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
     } catch (err) {
       if (onError && err instanceof Error) onError(err);
     } finally {

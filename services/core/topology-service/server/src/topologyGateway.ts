@@ -8,8 +8,8 @@ import {
   AuthorizationRequestPayload,
   AuthorizationResponsePayload,
   EntityDirectoryResponsePayload,
-  TopologyEntityLink
-} from './topologySchemas.js';
+  CustodyTransferRecord
+} from '@shared/interfaces';
 
 const router = Router();
 const logger = createLogger('topology-service');
@@ -17,9 +17,9 @@ const logger = createLogger('topology-service');
 const correlationHeader = 'X-Correlation-ID';
 
 /**
- * Core Graph Authorization Check (ICD Section 3.1 Mapping)
- * Evaluates whether a requested flight connection pair satisfies graph logic.
- * Uses strict explicit compiler generic typing to prevent payload parsing layout drift.
+ * Core Graph Authorization Check (Space Custody Transfer Gate)
+ * Evaluates whether a transferring organization holds valid custody of an asset 
+ * prior to executing a formal transfer to a receiving entity.
  */
 router.post(
   '/authorizations',
@@ -30,7 +30,7 @@ router.post(
     const correlationId = req.header(correlationHeader);
     const timestamp = new Date().toISOString();
 
-    // 1. REQ-003a Priority Traceability Guard Validation Pass
+    // 1. Priority Traceability Guard Validation Pass
     if (!correlationId || correlationId.trim().length === 0) {
       res.status(400).json({
         errorCode: 'MISSING_CORRELATION_TOKEN',
@@ -44,15 +44,16 @@ router.post(
     const payload = req.body;
     const isPayloadValid =
       payload &&
-      typeof payload.sourceAssetId === 'string' &&
-      typeof payload.targetAssetId === 'string' &&
-      (payload.actionContext === 'SQUADRON_HANDOVER' || payload.actionContext === 'CARGO_TRANSFER');
+      typeof payload.senderOrgId === 'string' &&
+      typeof payload.receiverOrgId === 'string' &&
+      typeof payload.assetId === 'string' &&
+      (payload.actionContext === 'CUSTODY_TRANSFER' || payload.actionContext === 'PROPERTY_HANDOVER');
 
-    // 2. Strict Boundary Schema Schema Compliance Checker Pass
+    // 2. Strict Boundary Schema Compliance Checker Pass
     if (!isPayloadValid) {
       res.status(400).json({
         errorCode: 'SCHEMA_VALIDATION_FAILURE',
-        message: 'The request body does not match the topology authorization contract.',
+        message: 'The request body does not match the space custody authorization contract.',
         correlationId,
         timestamp
       });
@@ -62,22 +63,24 @@ router.post(
     const session = getDatabaseClient().session();
 
     try {
+      // Cypher query validating that the sender organization currently holds custody of the asset
       const query = `
-        MATCH (src:Asset { id: $sourceAssetId })
-        MATCH (tgt:Asset { id: $targetAssetId })
-        MATCH (src)-[rel:AUTHORIZED_PATH { context: $actionContext }]->(tgt)
-        RETURN count(rel) AS authorizedCount
+        MATCH (sender:Organization { id: $senderOrgId })
+        MATCH (receiver:Organization { id: $receiverOrgId })
+        MATCH (asset:Asset { id: $assetId })
+        MATCH (sender)-[custody:HAS_CUSTODY]->(asset)
+        RETURN count(custody) AS authorizedCount
       `;
 
       const result = await session.executeRead((tx) =>
         tx.run(query, {
-          sourceAssetId: payload.sourceAssetId,
-          targetAssetId: payload.targetAssetId,
+          senderOrgId: payload.senderOrgId,
+          receiverOrgId: payload.receiverOrgId,
+          assetId: payload.assetId,
           actionContext: payload.actionContext
         })
       );
 
-      // CORRECTED: Safe structural conversion utilizing neo4j's native low-level Integer casting objects
       const rawCount = result.records[0]?.get('authorizedCount');
       const authorizedCount = neo4j.int(rawCount ?? 0).toNumber();
       const isAuthorized = authorizedCount > 0;
@@ -87,12 +90,12 @@ router.post(
         correlationId,
         timestamp,
         message: isAuthorized
-          ? 'Route is valid under the current policy graph.'
-          : 'No matching authorized path exists for the specified asset pair and action context.'
+          ? 'Custody transfer authorization granted under current graph state.'
+          : 'Authorization denied: Transferring organization does not possess current custody of the specified asset.'
       };
 
       logger.info(
-        `Structural relationship verification evaluated to [${responsePayload.status}] for Context [${payload.actionContext}]`,
+        `Structural custody verification evaluated to [${responsePayload.status}] for Context [${payload.actionContext}]`,
         correlationId
       );
 
@@ -104,7 +107,7 @@ router.post(
       );
       res.status(500).json({
         errorCode: 'TOPOLOGY_VALIDATION_FAILURE',
-        message: 'The topology graph engine could not evaluate the authorization request.',
+        message: 'The topology graph engine could not evaluate the custody authorization request.',
         correlationId,
         timestamp
       });
@@ -115,47 +118,56 @@ router.post(
 );
 
 /**
- * Returns a flattened inventory of graph links to support UI dropdowns and lightweight topology
- * listings without exposing the raw Neo4j object model to the browser.
+ * Returns a detailed directory of historical custody transfers and active asset linkages 
+ * matching the DD-1149 event model structure.
  */
 router.get('/entities', async (req: Request, res: Response): Promise<void> => {
-  // CORRECTED: Added X-Correlation-ID trace mapping to prevent ledger fragmentation during UI dropdown hydration calls
   const correlationId = req.header(correlationHeader) || 'UNKNOWN';
   const session = getDatabaseClient().session();
 
   try {
     const query = `
-      MATCH (src:Asset)-[rel:AUTHORIZED_PATH]->(tgt:Asset)
-      RETURN src.id AS sourceAssetId,
-             src.label AS sourceLabel,
-             tgt.id AS targetAssetId,
-             tgt.label AS targetLabel,
-             rel.context AS actionContext
-      ORDER BY src.label, tgt.label
+      MATCH (sender:Organization)-[:INITIATED]->(event:TransferEvent)-[:DELIVERED_TO]->(receiver:Organization)
+      MATCH (event)-[inv:INVOLVES]->(asset:Asset)
+      RETURN 
+        event.requisitionNumber AS requisitionNumber,
+        event.date AS transferDate,
+        sender.id AS senderOrgId,
+        sender.name AS senderName,
+        receiver.id AS receiverOrgId,
+        receiver.name AS receiverName,
+        asset.id AS assetId,
+        asset.nomenclature AS assetNomenclature,
+        asset.serialNumber AS serialNumber
+      ORDER BY event.date DESC, requisitionNumber
     `;
 
     const result = await session.executeRead((tx) => tx.run(query));
     
-    const connections: TopologyEntityLink[] = result.records.map((record) => ({
-      sourceAssetId: record.get('sourceAssetId'),
-      sourceLabel: record.get('sourceLabel'),
-      targetAssetId: record.get('targetAssetId'),
-      targetLabel: record.get('targetLabel'),
-      actionContext: record.get('actionContext')
+    const transfers: CustodyTransferRecord[] = result.records.map((record) => ({
+      requisitionNumber: record.get('requisitionNumber'),
+      transferDate: record.get('transferDate'),
+      senderOrgId: record.get('senderOrgId'),
+      senderName: record.get('senderName'),
+      receiverOrgId: record.get('receiverOrgId'),
+      receiverName: record.get('receiverName'),
+      assetId: record.get('assetId'),
+      assetNomenclature: record.get('assetNomenclature'),
+      serialNumber: record.get('serialNumber')
     }));
 
     const responsePayload: EntityDirectoryResponsePayload = {
       timestamp: new Date().toISOString(),
-      connections
+      transfers
     };
 
-    logger.debug(`Directory inventory data enumerated across [${connections.length}] paths.`, correlationId);
+    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer records.`, correlationId);
     res.status(200).json(responsePayload);
   } catch (caughtError: unknown) {
     logger.error(`Topology entity catalog extraction loop failed: ${String(caughtError)}`, correlationId);
     res.status(500).json({
       errorCode: 'TOPOLOGY_ENTITY_QUERY_FAILURE',
-      message: 'The topology graph engine could not cleanly enumerate asset relationships.',
+      message: 'The topology graph engine could not cleanly enumerate asset custody records.',
       timestamp: new Date().toISOString()
     });
   } finally {

@@ -10,8 +10,10 @@ services:
       - "${PORT}:${PORT}"
     environment:
       VITE_RUNTIME: docker
-      VITE_REMOTE_ENTRY: http://localhost:3020/remoteEntry.js
+      VITE_TOPOLOGY_REMOTE_ENTRY: http://localhost:3010/remoteEntry.js
+      VITE_COMPLIANCE_REMOTE_ENTRY: http://localhost:3020/remoteEntry.js
       VITE_TOPOLOGY_API_URL: http://topology-server:8081
+      VITE_PDF_API_URL: http://pdf-generator:4001
     volumes:
       - .:/app/ui-shells/global-shell
     networks:

@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense, ComponentType } from 'react';
 import { ShellManifest, RemoteDomainModule } from '@shared/shell-contracts';
 import { importDynamicRemote } from './utils/dynamicRemoteLoader';
+import '@shared/styles';
 
 interface LoadedRemote {
   config: RemoteDomainModule;

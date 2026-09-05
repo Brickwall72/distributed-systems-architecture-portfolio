@@ -3,15 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import * as vis from 'vis-network';
 import { DataSet } from 'vis-data';
 import { TOPOLOGY_MUTATION_EVENT } from './ConnectionFormWidget';
+import { CustodyTransferRecord, EntityDirectoryResponsePayload } from '@shared/interfaces'; // Import from shared package
 import '@shared/styles';
-
-interface TopologyEntityLink {
-  sourceAssetId: string;
-  sourceLabel: string;
-  targetAssetId: string;
-  targetLabel: string;
-  actionContext: string;
-}
 
 export default function NetworkCanvasWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,23 +20,68 @@ export default function NetworkCanvasWidget() {
       });
 
       if (!response.ok) throw new Error(`Server returned error status: ${response.status}`);
-      const payload = await response.json();
-      const links: TopologyEntityLink[] = payload.connections || [];
+      const payload: EntityDirectoryResponsePayload = await response.json();
+      const transfers: CustodyTransferRecord[] = payload.transfers || [];
 
       const rawNodes: any[] = [];
       const rawEdges: any[] = [];
       const trackedNodeIds = new Set<string>();
 
-      links.forEach((link) => {
-        if (!trackedNodeIds.has(link.sourceAssetId)) {
-          trackedNodeIds.add(link.sourceAssetId);
-          rawNodes.push({ id: link.sourceAssetId, label: link.sourceLabel, shape: 'dot', color: '#3b82f6' });
+      // Transform Event Node model into Vis.js nodes and edges
+      transfers.forEach((transfer) => {
+        // 1. Sender Organization Node
+        if (!trackedNodeIds.has(transfer.senderOrgId)) {
+          trackedNodeIds.add(transfer.senderOrgId);
+          rawNodes.push({ 
+            id: transfer.senderOrgId, 
+            label: transfer.senderName, 
+            shape: 'box', 
+            color: '#3b82f6', 
+            font: { color: '#ffffff' } 
+          });
         }
-        if (!trackedNodeIds.has(link.targetAssetId)) {
-          trackedNodeIds.add(link.targetAssetId);
-          rawNodes.push({ id: link.targetAssetId, label: link.targetLabel, shape: 'square', color: '#10b981' });
+
+        // 2. Transfer Event Node (DD-1149 Requisition)
+        if (!trackedNodeIds.has(transfer.requisitionNumber)) {
+          trackedNodeIds.add(transfer.requisitionNumber);
+          rawNodes.push({ 
+            id: transfer.requisitionNumber, 
+            label: `DD-1149: ${transfer.requisitionNumber}\n(${transfer.transferDate})`, 
+            shape: 'diamond', 
+            color: '#f59e0b',
+            font: { size: 10 }
+          });
         }
-        rawEdges.push({ from: link.sourceAssetId, to: link.targetAssetId, label: link.actionContext, arrows: 'to' });
+
+        // 3. Receiver Organization Node
+        if (!trackedNodeIds.has(transfer.receiverOrgId)) {
+          trackedNodeIds.add(transfer.receiverOrgId);
+          rawNodes.push({ 
+            id: transfer.receiverOrgId, 
+            label: transfer.receiverName, 
+            shape: 'box', 
+            color: '#10b981', 
+            font: { color: '#ffffff' } 
+          });
+        }
+
+        // 4. Asset Node
+        if (!trackedNodeIds.has(transfer.assetId)) {
+          trackedNodeIds.add(transfer.assetId);
+          rawNodes.push({ 
+            id: transfer.assetId, 
+            label: `${transfer.assetNomenclature}\nS/N: ${transfer.serialNumber}`, 
+            shape: 'dot', 
+            color: '#6366f1' 
+          });
+        }
+
+        // Build Event-Based Edges
+        rawEdges.push(
+          { from: transfer.senderOrgId, to: transfer.requisitionNumber, label: 'INITIATED', arrows: 'to' },
+          { from: transfer.requisitionNumber, to: transfer.receiverOrgId, label: 'DELIVERED_TO', arrows: 'to' },
+          { from: transfer.requisitionNumber, to: transfer.assetId, label: 'INVOLVES', arrows: 'to' }
+        );
       });
 
       const visNodes = new DataSet(rawNodes);
@@ -56,7 +94,7 @@ export default function NetworkCanvasWidget() {
           containerRef.current, 
           { nodes: visNodes, edges: visEdges }, 
           {
-            physics: { barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 } },
+            physics: { barnesHut: { gravitationalConstant: -3000, centralGravity: 0.4, springLength: 180 } },
             interaction: { hover: true, dragNodes: true, zoomView: true, dragView: true }
           }
         );
@@ -87,7 +125,6 @@ export default function NetworkCanvasWidget() {
         </button>
       </div>
 
-      {/* ERROR BANNER RESTORED HERE */}
       {errorBoundary && (
         <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-sm">
           {errorBoundary}
@@ -96,7 +133,7 @@ export default function NetworkCanvasWidget() {
       
       {isLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20 font-semibold text-gray-500 rounded-xl">
-          Traversing Graph Network Threads...
+          Traversing Space Custody Network Threads...
         </div>
       )}
       

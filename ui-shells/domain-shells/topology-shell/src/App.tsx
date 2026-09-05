@@ -1,6 +1,7 @@
 // File: ui-shells/domain-shells/topology-shell/src/App.tsx
 import { Suspense } from 'react';
 import TopologyDashboard from './pages/TopologyDashboard';
+import '@shared/styles';
 
 export default function App() {
   return (
