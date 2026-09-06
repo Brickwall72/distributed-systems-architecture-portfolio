@@ -1,7 +1,7 @@
-// File: services/core/topology-service/src/topologyServer.ts
+// File: services/core/topology-service/src/index.ts
 import express from 'express';
 import { createHealthCheck, createLogger } from '@shared/telemetry';
-import { topologyGateway } from './topologyGateway.js';
+import { topologyGateway } from './routes/index.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 
 const app = express();

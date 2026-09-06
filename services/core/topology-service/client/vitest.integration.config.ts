@@ -1,4 +1,4 @@
-// File: services/core/topology-service/client/vitest.config.ts
+// File: services/core/topology-service/client/vitest.integration.config.ts (or vite.config.ts)
 /**
  * Vitest configuration for the topology client test suite.
  */
@@ -9,6 +9,6 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
-    include: ['src/**/*.unit.test.{ts,tsx}'],
+    include: ['src/**/*.integration.test.{ts,tsx}'],
   },
 });

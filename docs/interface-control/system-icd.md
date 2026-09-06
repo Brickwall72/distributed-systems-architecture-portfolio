@@ -1,9 +1,9 @@
 # Interface Control Document (ICD): Distributed Mission Operations Baseline
 
 ## 1. Document Control & Purpose
-* **System Baseline:** Version 1.0.0 (Skeleton Protocol Architecture)
-* **Status:** Initial Draft Configuration
-* **Description:** This document serves as the master interface contract between all core nodes and platform utilities within the repository. It freezes network paths, content expectations, and error codes to allow decoupled subsystem development.
+* **System Baseline:** Version 1.1.0 (Runtime Federation & Domain Graph Architecture)
+* **Status:** Active Configuration
+* **Description:** This document serves as the master interface contract between all core nodes, platform utilities, and micro-frontend shells within the repository. It freezes network paths, schema contracts, and error codes to allow decoupled subsystem development.
 
 ---
 
@@ -15,34 +15,53 @@
 * **Zero Trust Access Control (Token Propagation):** Every inter-service HTTP request must include a cryptographically signed **JSON Web Token (JWT)** in the standard `Authorization: Bearer <JWT>` header. Services must independently verify this token at runtime over the network interface rather than trusting the traffic implicitly.
 * **Service-to-Service Cryptographic Identity:** Every core and platform service container operates under an explicit identity provider (e.g., SPIFFE/SPIRE, Kubernetes ServiceAccounts, or mutual TLS certs via an Istio/Linkerd service mesh). Network pathways that are not explicitly authorized by an Ingress or network policy will be strictly blocked.
 
-
 ---
 
 ## 3. Synchronous HTTP API Contracts (Core Verification Gate)
 
 ### 3.1. Topology Service (`topology-service`)
-Used by the process coordinator to validate if an asset relationship satisfies operational structural constraints over the graph.
+Used by shells and process coordinators to retrieve organizational hierarchies, resolve asset custody projections from graph edges, and validate structural constraints.
 
-* **Endpoint:** `POST /api/v1/topology/authorizations`
+* **Endpoints:**
+  1. `GET /api/v1/topology/organizations`
+  2. `GET /api/v1/topology/assets` (Supports query parameters: `?ownerId=string&excludeOwnerId=string`)
+  3. `POST /api/v1/topology/authorizations`
+
 * **Mandatory Headers:**
   * `X-Correlation-ID`: `string (UUIDv4)`
   * `Authorization`: `Bearer <Service-To-Service-JWT>`
-* **Request Schema:**
-  ```json
-  {
-    "sourceAssetId": "string (UUIDv4)",
-    "targetAssetId": "string (UUIDv4)",
-    "actionContext": "string (e.g., SQUADRON_HANDOVER)"
-  }
-  ```
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "authorized": "boolean",
-    "timestamp": "string (ISO 8601 UTC)",
-    "clearanceToken": "string (Cryptographic Hash Validation Signature)"
-  }
-  ```
+
+* **Response Schemas (200 OK):**
+  * **Organizations (`GET /api/v1/topology/organizations`)**:
+    ```json
+    [
+      {
+        "id": "string (UUIDv4)",
+        "name": "string",
+        "addressLine1": "string (optional)",
+        "addressLine2": "string (optional)"
+      }
+    ]
+    ```
+  * **Assets (`GET /api/v1/topology/assets`)**:
+    ```json
+    [
+      {
+        "id": "string (UUIDv4)",
+        "nomenclature": "string",
+        "serialNumber": "string",
+        "currentOwnerId": "string (UUIDv4, projected from [:HAS_CUSTODY] graph edge)"
+      }
+    ]
+    ```
+  * **Authorizations (`POST /api/v1/topology/authorizations`)**:
+    ```json
+    {
+      "authorized": "boolean",
+      "timestamp": "string (ISO 8601 UTC)",
+      "clearanceToken": "string (Cryptographic Hash Validation Signature)"
+    }
+    ```
 
 ### 3.2. Resource Cache Service (`resource-cache`)
 Used by the process coordinator to instantly verify the volatile telemetry status of an asset before compilation.
@@ -59,23 +78,35 @@ Used by the process coordinator to instantly verify the volatile telemetry statu
     "fuelLevelPct": "number (0.00 to 100.00)",
     "hardwareFaults": "array of strings"
   }
-  ```
 
 ### 3.3. Platform PDF Generator (`platform/pdf-generator`)
-A stateless platform utility wrapper that accepts a fully compiled, pre-hydrated HTML string and outputs raw file binary data.
+A stateless platform utility wrapper that accepts a structured compliance data payload conforming to the DD-1149 template specification and outputs raw file binary data.
 
 * **Endpoint:** `POST /api/v1/render/pdf`
 * **Mandatory Headers:**
   * `X-Correlation-ID`: `string (UUIDv4)`
   * `Authorization`: `Bearer <Service-To-Service-JWT>`
-* **Request Schema:**
+* **Request Schema (`DD1149TemplateDataSchema`):**
   ```json
   {
-    "metadata": {
-      "documentIdentifier": "string (UUIDv4)",
-      "timestamp": "string (ISO 8601 UTC)"
-    },
-    "htmlContent": "string (Valid HTML5 string containing fully hydrated inline CSS and values)"
+    "fromEntityName": "string",
+    "fromAddressLine1": "string",
+    "fromAddressLine2": "string",
+    "toEntityName": "string",
+    "toAddressLine1": "string",
+    "toAddressLine2": "string",
+    "requisitionNumber": "string",
+    "transferDate": "string (YYYYMMDD)",
+    "items": [
+      {
+        "itemNumber": "number",
+        "nomenclature": "string",
+        "serialNumber": "string",
+        "additionalNotes": "string (optional)",
+        "unit": "string (default: EA)",
+        "quantity": "number (default: 1)"
+      }
+    ]
   }
   ```
 * **Response Schema (200 OK):**

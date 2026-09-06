@@ -12,7 +12,9 @@
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
     "@shared/ui-components": "workspace:*",
+    "@contracts/domain": "workspace:*",
     "react": "~19.2.8",
-    "react-dom": "~19.2.8"
+    "react-dom": "~19.2.8",
+    "react-router-dom": "~7.18.3"
   }
 }

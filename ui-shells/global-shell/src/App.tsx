@@ -1,7 +1,7 @@
 // File: ui-shells/global-shell/src/App.tsx
 
 import { useEffect, useState, Suspense, ComponentType } from 'react';
-import { ShellManifest, RemoteDomainModule } from '@shared/shell-contracts';
+import { ShellManifest, RemoteDomainModule } from '@contracts/shell';
 import { importDynamicRemote } from './utils/dynamicRemoteLoader';
 import '@shared/styles';
 
