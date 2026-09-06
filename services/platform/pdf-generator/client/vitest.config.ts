@@ -1,6 +1,6 @@
 // services/platform/pdf-generator/client/vitest.config.ts (or vite.config.ts)
 /**
- * Vitest configuration for the topology client test suite.
+ * Vitest configuration for the pdf-generator client test suite.
  */
 import { defineConfig } from 'vitest/config';
 

@@ -1,7 +1,7 @@
 // ui-shells/global-shell/src/utils/dynamicRemoteLoader.ts
 
 import { ComponentType, lazy } from 'react';
-import { RemoteDomainModule } from '@shared/shell-contracts';
+import { RemoteDomainModule } from '@contracts/shell';
 
 const loadedScripts = new Set<string>();
 // Track state externally to avoid mutating read-only ES Module objects

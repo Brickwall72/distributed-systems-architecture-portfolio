@@ -9,8 +9,10 @@ services:
     ports:
       - "${PORT}:${PORT}"
     environment:
-      VITE_PDF_API_URL: http://pdf-generator:4001
-      VITE_REMOTE_ENTRY: http://localhost:4011/remoteEntry.js
+      PDF_API_URL: http://pdf-generator:4001
+      PDF_REMOTE_ENTRY: http://localhost:4011/remoteEntry.js
+      TOPOLOGY_API_URL: http://topology-server:8081
+      TOPOLOGY_REMOTE_ENTRY: http://localhost:3011/remoteEntry.js
     # depends_on:
     #   - compliance-client
     volumes:

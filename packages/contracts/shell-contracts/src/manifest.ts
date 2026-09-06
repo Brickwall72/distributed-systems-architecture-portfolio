@@ -1,4 +1,4 @@
-// File: packages/shell-contracts/src/manifest.ts
+// File: packages/contracts/shell-contracts/src/manifest.ts
 
 export interface RemoteDomainModule {
   /** Unique domain key (e.g., 'topology') */

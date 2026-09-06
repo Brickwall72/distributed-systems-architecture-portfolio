@@ -6,13 +6,16 @@
   "main": "./dist/topologyServer.js",
   "types": "./dist/topologyServer.d.ts",
   "scripts": {
+    "start": "node ./dist/index.js",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
     "@shared/telemetry": "workspace:*",
     "@shared/interfaces": "workspace:*",
+    "@contracts/domain": "workspace:*",
     "neo4j-driver": "~6.2.0",
+    "zod": "~4.5.4",
     "express": "~5.2.1"
   }
 }

@@ -27,15 +27,6 @@ export interface CustodyItem {
   additionalNotes?: string;
 }
 
-export interface CustodyItem {
-  itemNumber: string;
-  nomenclature: string;
-  serialNumber: string;
-  unit: string;
-  quantity: number;
-}
-
-
 /**
  * Represents a custody transfer record mapping organizations, 
  * the formal transfer event (DD-1149 equivalent), and the asset.

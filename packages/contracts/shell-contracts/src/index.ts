@@ -1,4 +1,4 @@
-// File: packages/shell-contracts/src/index.ts
+// File: packages/contracts/shell-contracts/src/index.ts
 
 export type {
   RemoteDomainModule,
