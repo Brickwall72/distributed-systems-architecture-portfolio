@@ -31,3 +31,4 @@ debug-storybook.log
 
 # Testfile outputs
 test-output.pdf
+pacts/

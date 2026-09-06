@@ -3,7 +3,7 @@
 ## 1. Document Control & Purpose
 * **System Baseline:** Version 1.1.0 (Runtime Federation & Domain Graph Architecture)
 * **Status:** Active Configuration
-* **Description:** This document serves as the master interface contract between all core nodes, platform utilities, and micro-frontend shells within the repository. It freezes network paths, schema contracts, and error codes to allow decoupled subsystem development.
+* **Description:** This document serves as the master interface contract between all core nodes, platform utilities, and micro-frontend shells within the repository. It freezes network paths, schema contracts, and error codes to allow decoupled subsystem development. Compliance with these schemas is automatically enforced at runtime boundaries via Consumer-Driven Contract (Pact) tests.
 
 ---
 
@@ -26,6 +26,7 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
   1. `GET /api/v1/topology/organizations`
   2. `GET /api/v1/topology/assets` (Supports query parameters: `?ownerId=string&excludeOwnerId=string`)
   3. `POST /api/v1/topology/authorizations`
+  4. `GET /api/v1/topology/entities` (Returns full network graph projection of custody transfers)
 
 * **Mandatory Headers:**
   * `X-Correlation-ID`: `string (UUIDv4)`
@@ -38,8 +39,9 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
       {
         "id": "string (UUIDv4)",
         "name": "string",
-        "addressLine1": "string (optional)",
-        "addressLine2": "string (optional)"
+        "type": "string (e.g., CONTRACTOR, MILITARY_BRANCH)",
+        "address1": "string (optional)",
+        "address2": "string (optional)"
       }
     ]
     ```
@@ -60,6 +62,25 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
       "authorized": "boolean",
       "timestamp": "string (ISO 8601 UTC)",
       "clearanceToken": "string (Cryptographic Hash Validation Signature)"
+    }
+    ```
+  * **Entity Directory Graph (`GET /api/v1/topology/entities`)**:
+    ```json
+    {
+      "timestamp": "string (ISO 8601 UTC)",
+      "transfers": [
+        {
+          "requisitionNumber": "string",
+          "transferDate": "string (YYYYMMDD)",
+          "senderOrgId": "string (UUIDv4)",
+          "senderName": "string",
+          "receiverOrgId": "string (UUIDv4)",
+          "receiverName": "string",
+          "assetId": "string (UUIDv4)",
+          "assetNomenclature": "string",
+          "serialNumber": "string"
+        }
+      ]
     }
     ```
 

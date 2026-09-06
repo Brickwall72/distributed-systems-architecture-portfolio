@@ -8,7 +8,7 @@ import {
 } from '@shared/interfaces';
 
 const router = Router();
-const logger = createLogger('topology-service');
+const logger = createLogger('topology/entities');
 const correlationHeader = 'X-Correlation-ID';
 
 router.get('/', async (req: Request, res: Response): Promise<void> => {
@@ -24,8 +24,14 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         event.date AS transferDate,
         sender.id AS senderOrgId,
         sender.name AS senderName,
+        sender.type AS senderType,
+        sender.address1 AS senderAddress1,
+        sender.address2 AS senderAddress2,
         receiver.id AS receiverOrgId,
         receiver.name AS receiverName,
+        receiver.type AS receiverType,
+        receiver.address1 AS receiverAddress1,
+        receiver.address2 AS receiverAddress2,
         asset.id AS assetId,
         asset.nomenclature AS assetNomenclature,
         asset.serialNumber AS serialNumber
@@ -39,8 +45,14 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       transferDate: record.get('transferDate'),
       senderOrgId: record.get('senderOrgId'),
       senderName: record.get('senderName'),
+      senderType: record.get('senderType'),
+      senderAddress1: record.get('senderAddress1'),
+      senderAddress2: record.get('senderAddress2'),
       receiverOrgId: record.get('receiverOrgId'),
       receiverName: record.get('receiverName'),
+      receiverType: record.get('receiverType'),
+      receiverAddress1: record.get('senderName'),
+      receiverAddress2: record.get('receiverAddress2'),
       assetId: record.get('assetId'),
       assetNomenclature: record.get('assetNomenclature'),
       serialNumber: record.get('serialNumber')

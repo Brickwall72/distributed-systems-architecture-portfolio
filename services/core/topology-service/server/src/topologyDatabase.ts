@@ -117,12 +117,14 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
       fromOrg: {
         id: 'org-1111-lockheed',
         name: 'Lockheed Martin Space',
+        type: 'CONTRACTOR',
         address1: '1111 Lockheed Martin Way',
         address2: 'Sunnyvale, CA 94089'
       },
       toOrg: {
         id: 'org-2222-ussf',
         name: 'Space Systems Command (USSF)',
+        type: 'GOV',
         address1: 'Los Angeles Air Force Base',
         address2: 'El Segundo, CA 90245'
       },

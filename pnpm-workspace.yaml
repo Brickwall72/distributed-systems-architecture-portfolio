@@ -10,6 +10,7 @@ minimumReleaseAge: 0
 confirmModulesPurge: false
 
 allowBuilds:
+  '@scarf/scarf': false
   esbuild: true
   msw: true
   puppeteer: true

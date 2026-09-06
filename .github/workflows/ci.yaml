@@ -1,4 +1,4 @@
-# .github/workflows/ci.yaml
+# File: .github/workflows/ci.yaml
 name: Continuous Integration Quality Gate
 
 on:
@@ -34,7 +34,7 @@ jobs:
         uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
         with:
           filters: |
-            pdf-generator:
+            pdf-server:
               - 'services/platform/pdf-generator/server/**'
 
       # Pinned to official pnpm/setup v2.0.2 release commit
@@ -53,7 +53,7 @@ jobs:
 
       # ONLY install system Chromium if the pdf-generator server directory changed
       - name: Install System Chromium
-        if: steps.changes.outputs.pdf-generator == 'true'
+        if: steps.changes.outputs.pdf-server == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser
@@ -64,10 +64,10 @@ jobs:
       # Run ALL tests if pdf-generator changed, otherwise exclude pdf-generator
       - name: Execute Automated Unit Testing Suites
         run: |
-          if [ "${{ steps.changes.outputs.pdf-generator }}" = "true" ]; then
+          if [ "${{ steps.changes.outputs.pdf-server }}" = "true" ]; then
             echo "PDF Generator changes detected. Executing full workspace test matrix..."
             pnpm test
           else
             echo "PDF Generator unchanged. Skipping Chromium tests and running remaining matrix..."
-            pnpm --filter "!pdf-generator" test
+            pnpm --filter "!pdf-server" test
           fi

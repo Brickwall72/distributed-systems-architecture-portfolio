@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run" 
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run .unit.test"
   },
   "peerDependencies": {
     "express": "~5.2.1"

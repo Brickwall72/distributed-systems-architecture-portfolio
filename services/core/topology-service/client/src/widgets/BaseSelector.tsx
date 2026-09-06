@@ -67,7 +67,7 @@ export default function BaseSelector<T>({
         value={selectedId || ''}
         onChange={(e) => {
           const found = items.find((item) => getItemId(item) === e.target.value);
-          onChange(found || null);
+          onChange(found ?? null);
         }}
         className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-gray-800"
       >

@@ -1,9 +1,14 @@
-// File: services/platform/pdf-generator/server/vitest.config.ts
+// services/platform/pdf-generator/server/vitest.config.ts
+/**
+ * Vitest configuration for the pdf-generator server test suite.
+ */
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Prevent vitest from scanning compiled output in dist/
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    globals: true,
+    environment: 'happy-dom',
+    // setupFiles: ['./src/test-setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

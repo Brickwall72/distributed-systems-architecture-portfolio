@@ -2,7 +2,7 @@
 import puppeteer, { Browser } from 'puppeteer';
 import { createLogger } from '@shared/telemetry';
 
-const logger = createLogger('pdf-generator-engine');
+const logger = createLogger('pdf-server-engine');
 let browserInstance: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {

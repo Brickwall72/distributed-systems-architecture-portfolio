@@ -8,10 +8,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest run",
-    "test:unit": "vitest run",
-    "test:unit:watch": "vitest",
-    "test:integration": "vitest run --config ./vitest.integration.config.ts"
+    "test": "pnpm test:unit && pnpm test:contract",
+    "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.test",
+    "test:integration": "vitest run .integration.test"
   },
   "dependencies": {
     "@shared/vite-config": "workspace:*",

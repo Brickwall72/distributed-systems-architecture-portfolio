@@ -9,7 +9,7 @@ import {
 } from '@shared/interfaces';
 
 const router = Router();
-const logger = createLogger('topology-service');
+const logger = createLogger('topology/authorizations');
 const correlationHeader = 'X-Correlation-ID';
 
 router.post(

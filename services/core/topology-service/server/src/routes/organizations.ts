@@ -6,7 +6,7 @@ import { getDatabaseClient } from '../topologyDatabase.js';
 import { Organization } from '@contracts/domain';
 
 const router = Router();
-const logger = createLogger('topology-service');
+const logger = createLogger('topology/organizations');
 
 const OrgQuerySchema = z.object({
   excludeId: z.string().optional(),
@@ -30,7 +30,11 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const cypher = `
       MATCH (o:Organization)
       WHERE $excludeId IS NULL OR o.id <> $excludeId
-      RETURN o.id AS id, o.name AS name
+      RETURN  o.id AS id, 
+              o.name AS name,
+              o.type AS type,
+              o.address1 AS address1,
+              o.address2 AS address2
     `;
 
     const result = await session.executeRead((tx) => 
@@ -40,6 +44,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const organizations: Organization[] = result.records.map((record) => ({
       id: record.get('id'),
       name: record.get('name'),
+      type: record.get('type'),
+      address1: record.get('address1'),
+      address2: record.get('address2'),
     }));
 
     res.status(200).json(organizations);
