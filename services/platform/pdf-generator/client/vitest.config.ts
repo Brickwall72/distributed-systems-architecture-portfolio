@@ -1,4 +1,4 @@
-// services/platform/pdf-generator/client/vitest.config.ts (or vite.config.ts)
+// services/platform/pdf-generator/client/vitest.config.ts
 /**
  * Vitest configuration for the pdf-generator client test suite.
  */
@@ -9,6 +9,6 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
-    include: ['src/**/*.unit.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

@@ -1,4 +1,4 @@
-// File: services/core/topology-service/src/index.ts
+// File: services/core/topology-service/server/src/server.ts
 import express from 'express';
 import { createHealthCheck, createLogger } from '@shared/telemetry';
 import { topologyGateway } from './routes/index.js';
@@ -6,7 +6,7 @@ import { initializeDatabaseConnection, terminateDatabaseClient } from './topolog
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 8081;
-const logger = createLogger('topology-service');
+const logger = createLogger('topology/');
 
 /* Disable the default Express fingerprint header. This is a small but useful hardening step for
 the platform because the service sits on a validation boundary and should not reveal framework

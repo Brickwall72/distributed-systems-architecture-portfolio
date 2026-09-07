@@ -6,7 +6,7 @@ import { getDatabaseClient } from '../topologyDatabase.js';
 import { Asset } from '@contracts/domain';
 
 const router = Router();
-const logger = createLogger('topology-service');
+const logger = createLogger('topology/assets');
 
 const AssetQuerySchema = z.object({
   ownerId: z.string().optional(),

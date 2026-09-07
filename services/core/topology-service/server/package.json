@@ -6,9 +6,11 @@
   "main": "./dist/topologyServer.js",
   "types": "./dist/topologyServer.d.ts",
   "scripts": {
-    "start": "node ./dist/index.js",
+    "start": "node ./dist/server.js",
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "pnpm test:unit && pnpm test:verify",
+    "test:unit": "vitest run .unit.test",
+    "test:verify": "vitest run .contract.verify.test"
   },
   "dependencies": {
     "@shared/telemetry": "workspace:*",

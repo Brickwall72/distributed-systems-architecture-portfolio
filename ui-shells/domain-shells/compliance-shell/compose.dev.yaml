@@ -9,7 +9,7 @@ services:
     ports:
       - "${PORT}:${PORT}"
     environment:
-      PDF_API_URL: http://pdf-generator:4001
+      PDF_API_URL: http://pdf-server:4001
       PDF_REMOTE_ENTRY: http://localhost:4011/remoteEntry.js
       TOPOLOGY_API_URL: http://topology-server:8081
       TOPOLOGY_REMOTE_ENTRY: http://localhost:3011/remoteEntry.js

@@ -1,7 +1,7 @@
-// File: services/platform/pdf-generator/server/src/index.unit.test.ts
+// File: services/platform/pdf-generator/server/src/server.unit.test.ts
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app } from './index.js';
+import app from './server.js';
 
 describe('PDF Generator Server Bootstrap (Integration)', () => {
   it('should return 200 HEALTHY from the shared telemetry health endpoint', async () => {
@@ -10,7 +10,7 @@ describe('PDF Generator Server Bootstrap (Integration)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       status: 'HEALTHY',
-      service: 'pdf-generator',
+      service: 'pdf-server',
       timestamp: expect.any(String),
     });
   });

@@ -4,7 +4,7 @@ import { generatePdfFromHtml } from '../services/pdfService.js';
 import { createLogger } from '@shared/telemetry';
 
 const router = Router();
-const logger = createLogger('pdf-generator-router');
+const logger = createLogger('pdf-server-router');
 
 router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   const correlationId = (req.headers['x-correlation-id'] as string) || null;

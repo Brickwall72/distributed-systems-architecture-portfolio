@@ -14,4 +14,4 @@ WORKDIR ${SERVICE_PATH}
 USER node
 EXPOSE 8081
 
-CMD ["node", "./dist/topologyServer.js"]
+CMD ["node", "./dist/server.js"]

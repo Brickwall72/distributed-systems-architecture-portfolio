@@ -14,7 +14,8 @@
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
     "dev": "vite build --watch",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run .unit.test"
   },
   "peerDependencies": {
     "@shared/vite-config": "workspace:*",

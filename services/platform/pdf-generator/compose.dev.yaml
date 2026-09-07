@@ -1,11 +1,11 @@
 # File: services/platform/pdf-generator/compose.dev.yaml
 services:
-  pdf-generator:
+  pdf-server:
     build:
       context: ./server
       dockerfile: ./Dockerfile.dev
-    image: pdf-generator:local
-    container_name: pdf-generator
+    image: pdf-server:local
+    container_name: pdf-server
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     environment:

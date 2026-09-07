@@ -1,4 +1,4 @@
-// File: services/core/topology-service/client/src/test-setup.ts
+// File: services/core/topology-service/client/src/utils/test-setup.ts
 
 /*
  * Shared test bootstrap for the client suite.

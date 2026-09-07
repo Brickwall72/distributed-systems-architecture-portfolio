@@ -1,11 +1,11 @@
-// File: services/platform/pdf-generator/server/src/index.ts
+// File: services/platform/pdf-generator/server/src/server.ts
 import express from 'express';
 import cors from 'cors';
 import { pdfRouter } from './routes/pdf.routes.js';
 import { createHealthCheck, createLogger } from '@shared/telemetry';
 
-export const app = express();
-const logger = createLogger('pdf-generator-api');
+const app = express();
+const logger = createLogger('pdf-server-api');
 
 app.disable('x-powered-by');
 
@@ -30,7 +30,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 // Mount infrastructure endpoints
-app.get('/health', createHealthCheck('pdf-generator'));
+app.get('/health', createHealthCheck('pdf-server'));
 
 // Mount domain routers under a versioned prefix
 app.use('/api/v1/pdf', pdfRouter);
@@ -41,3 +41,5 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`PDF Generator Microservice running on port ${PORT}`);
   });
 }
+
+export default app
