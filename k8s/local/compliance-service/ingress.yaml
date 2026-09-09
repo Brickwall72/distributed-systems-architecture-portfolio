@@ -1,0 +1,34 @@
+# File: k8s/local/compliance-service/ingress.yaml
+# apiVersion: traefik.io/v1alpha1
+# kind: Middleware
+# metadata:
+#   name: strip-compliance-remote
+# spec:
+#   stripPrefix:
+#     prefixes:
+#       - /compliance/remote
+# ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: compliance-ingress
+  namespace: default
+spec:
+  ingressClassName: traefik
+  rules:
+  - http:
+      paths:
+      # - path: /api/v1/compliance
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: compliance-server
+      #       port:
+      #         number: 8082
+      - path: /compliance/client
+        pathType: Prefix
+        backend:
+          service:
+            name: compliance-client
+            port:
+              number: 3021

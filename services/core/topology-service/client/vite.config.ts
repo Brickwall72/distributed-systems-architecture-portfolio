@@ -2,7 +2,8 @@
 import { createRemoteConfig } from '@shared/vite-config';
 
 export default createRemoteConfig({
-  name: 'topology_service',
+  domain: 'topology',
+  concern: 'client',
   port: Number.parseInt(process.env.CLIENT_PORT || '3011'),
   exposes: {
     './ConnectionFormWidget': './src/widgets/ConnectionFormWidget.tsx',

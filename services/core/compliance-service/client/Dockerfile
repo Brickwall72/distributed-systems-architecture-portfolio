@@ -5,13 +5,14 @@ WORKDIR /app
 RUN mkdir -p "${SERVICE_PATH}/src"
 
 
-COPY package.json tsconfig.json ${SERVICE_PATH}
+COPY package.json tsconfig.json ${SERVICE_PATH}/
 RUN pnpm install --frozen-lockfile --ignore-scripts
-COPY vite.config.ts index.html ${SERVICE_PATH}
+COPY vite.config.ts index.html ${SERVICE_PATH}/
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
 WORKDIR ${SERVICE_PATH}
+RUN chown -R node:node /app
 USER node
 EXPOSE 3021
 

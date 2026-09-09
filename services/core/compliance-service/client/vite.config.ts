@@ -2,7 +2,8 @@
 import { createRemoteConfig } from '@shared/vite-config';
 
 export default createRemoteConfig({
-  name: 'compliance_service',
+  domain: 'compliance',
+  concern: 'client',
   port: Number.parseInt(process.env.CLIENT_PORT || '3021'),
   exposes: {
     './CustodyTransferForm': './src/widgets/CustodyTransferForm.tsx',

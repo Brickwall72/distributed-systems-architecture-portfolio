@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as vis from 'vis-network';
 import { DataSet } from 'vis-data';
-import { TOPOLOGY_MUTATION_EVENT } from './ConnectionFormWidget';
+import { TOPOLOGY_MUTATION_EVENT } from './ConnectionFormWidget.jsx';
 import { CustodyTransferRecord, EntityDirectoryResponsePayload } from '@shared/interfaces'; // Import from shared package
 import '@shared/styles';
 

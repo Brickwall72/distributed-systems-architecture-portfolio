@@ -1,45 +1,23 @@
 // File: services/platform/pdf-generator/server/src/server.ts
 import express from 'express';
-import cors from 'cors';
 import { pdfRouter } from './routes/pdf.routes.js';
-import { createHealthCheck, createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/telemetry';
 
 const app = express();
 const logger = createLogger('pdf-server-api');
 
 app.disable('x-powered-by');
 
-const allowedOrigins = new Set<string>([
-  'http://localhost:3000',
-  'http://localhost:3020',
-  'http://localhost:6006',
-]);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS policy: Origin not allowed.'));
-    }
-  },
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id'],
-}));
-
 app.use(express.json({ limit: '10mb' }));
-
-// Mount infrastructure endpoints
-app.get('/health', createHealthCheck('pdf-server'));
 
 // Mount domain routers under a versioned prefix
 app.use('/api/v1/pdf', pdfRouter);
 
 if (process.env.NODE_ENV !== 'test') {
-  const PORT = process.env.PORT || 4001;
-  app.listen(PORT, () => {
+  const PORT = Number(process.env.PORT) || 4001;
+  app.listen(PORT, '0.0.0.0', () => {
     logger.info(`PDF Generator Microservice running on port ${PORT}`);
   });
 }
 
-export default app
+export default app;

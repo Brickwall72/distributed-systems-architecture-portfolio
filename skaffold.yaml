@@ -1,0 +1,104 @@
+# File: skaffold.yaml
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: distributed-platform
+build:
+  artifacts:
+    - image: topology-server
+      context: services/core/topology-service/server
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        infer:
+          - "**/*.ts"
+          - "**/*.json"
+    - image: topology-client
+      context: services/core/topology-service/client
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: pdf-server
+      context: services/platform/pdf-generator/server
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        infer:
+          - "**/*.ts"
+          - "**/*.json"
+    - image: pdf-client
+      context: services/platform/pdf-generator/client
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: topology-shell
+      context: ui-shells/domain-shells/topology-shell
+      docker:
+        dockerfile: Dockerfile.dev
+        buildArgs:
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: compliance-client
+      context: services/core/compliance-service/client
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: compliance-shell
+      context: ui-shells/domain-shells/compliance-shell
+      docker:
+        dockerfile: Dockerfile.dev
+        buildArgs:
+          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/client/remoteEntry.js"
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
+          PDF_REMOTE_ENTRY: "http://localhost:8080/pdf/client/remoteEntry.js"
+          TOPOLOGY_API_URL: "http://localhost:8080/api/v1/topology"
+          PDF_API_URL: "http://localhost:8080/api/v1/pdf"
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: global-shell
+      context: ui-shells/global-shell
+      docker:
+        dockerfile: Dockerfile.dev
+        buildArgs:
+          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/remoteEntry.js"
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/remoteEntry.js"
+          TOPOLOGY_API_URL: "http://localhost:8080/api/v1/topology"
+          PDF_API_URL: "http://localhost:8080/api/v1/pdf"
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+manifests:
+  rawYaml:
+    - k8s/local/topology-service/db.yaml
+    - k8s/local/topology-service/server.yaml
+    - k8s/local/topology-service/client.yaml
+    - k8s/local/topology-service/ingress.yaml
+    - k8s/local/pdf-generator/server.yaml
+    - k8s/local/pdf-generator/client.yaml
+    - k8s/local/pdf-generator/ingress.yaml
+    - k8s/local/shells/topology.yaml
+    - k8s/local/compliance-service/client.yaml
+    - k8s/local/compliance-service/ingress.yaml
+    - k8s/local/shells/compliance.yaml
+    - k8s/local/shells/global.yaml

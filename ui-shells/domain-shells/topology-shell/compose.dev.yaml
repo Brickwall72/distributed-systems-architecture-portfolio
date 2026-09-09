@@ -9,8 +9,9 @@ services:
     ports:
       - "${PORT}:${PORT}"
     environment:
-      VITE_REMOTE_ENTRY: http://localhost:3011/remoteEntry.js
-      VITE_TOPOLOGY_API_URL: http://topology-server:8081
+      TOPOLOGY_REMOTE_ENTRY: http://localhost:3011/remoteEntry.js
+      TOPOLOGY_API_URL: http://topology-server:8082
+      VITE_ORIGIN: http://localhost:3010
     depends_on:
       - topology-client
     volumes:

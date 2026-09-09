@@ -3,9 +3,12 @@ import { defineConfig, UserConfig, ServerOptions, PreviewOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { federation } from '@module-federation/vite';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 interface RemoteConfigOptions {
-  name: string;
+  domain: string; // example: topology
+  concern: string; // example: server
   port: number;
   exposes?: Record<string, string>; // Optional: not needed for global-shell
   remotes?: Record<string, any>;    // Optional: other remotes this app consumes
@@ -14,13 +17,16 @@ interface RemoteConfigOptions {
 }
 
 export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
+  const basePath = (options.domain === "global" ? '' : '/' + options.domain) + '/' + (options.concern === 'shell' ? '' : options.concern + '/');
+
   return defineConfig({
+    base: basePath,
     server: {
       port: options.port,
       host: '0.0.0.0',
       strictPort: true,
       cors: true,
-      origin: `http://localhost:${options.port}`,
+      origin: 'http://localhost:8080',//process.env.VITE_ORIGIN || 'http://localhost:8080',
       // Conditionally inject proxy rules if provided
       ...(options.proxy && { proxy: options.proxy }),
     },
@@ -30,8 +36,10 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
       react(),
       tailwindcss(), // Tailwind v4 plugin built-in globally
       federation({
-        name: options.name,
-        filename: 'remoteEntry.js',
+        name: `${options.domain}_${options.concern}`,
+        ...(options.domain !== 'global' && {filename: `remoteEntry.js`}),
+        dts: false,
+        // manifest: true, // for advanced runtime loaders that dynamically discover assets/versions in production
         ...(options.exposes && { exposes: options.exposes }),
         ...(options.remotes && { remotes: options.remotes }),
         shared: {
@@ -58,5 +66,7 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
       minify: false,
       cssCodeSplit: false, // Keeps federated CSS cleanly bundled
     },
+    // Avoid using a predictable directory in the world-writable system temp directory.
+    cacheDir: join(tmpdir(), `vite-cache-${options.domain}-${options.concern}`),
   });
 }
