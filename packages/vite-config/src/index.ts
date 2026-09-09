@@ -26,7 +26,7 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
       host: '0.0.0.0',
       strictPort: true,
       cors: true,
-      origin: 'http://localhost:8080',//process.env.VITE_ORIGIN || 'http://localhost:8080',
+      origin: process.env.VITE_ORIGIN || 'http://localhost:8080',
       // Conditionally inject proxy rules if provided
       ...(options.proxy && { proxy: options.proxy }),
     },

@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: topology-db
+  namespace: platform-local
 spec:
   selector:
     matchLabels:
@@ -12,21 +13,64 @@ spec:
       labels:
         app: topology-db
     spec:
+      serviceAccountName: topology-db
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: neo4j
         image: neo4j:5.26.0
         imagePullPolicy: IfNotPresent
         env:
         - name: NEO4J_AUTH
-          value: "neo4j/SecureAviationToken71"
+          valueFrom:
+            secretKeyRef:
+              name: topology-db-credentials
+              key: NEO4J_AUTH
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: topology-db-credentials
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: topology-db-credentials
+              key: DB_PASSWORD
         ports:
         - containerPort: 7687
         - containerPort: 7474
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 256Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+            ephemeral-storage: 1Gi
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - cypher-shell -a bolt://127.0.0.1:7687 -u "$DB_USER" -p "$DB_PASSWORD" 'RETURN 1' >/dev/null 2>&1
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 30
+        livenessProbe:
+          tcpSocket:
+            port: 7687
+          initialDelaySeconds: 30
+          periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: topology-db
+  namespace: platform-local
 spec:
   selector:
     app: topology-db

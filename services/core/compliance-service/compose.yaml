@@ -1,19 +1,5 @@
-# File: services/core/topology-service/compose.yaml
+# File: services/core/compliance-service/compose.yaml
 services:
-  # compliance-server:
-  #   build:
-  #     context: ./server
-  #     dockerfile: ./Dockerfile
-  #   image: compliance-server:local
-  #   container_name: compliance-server
-  #   ports:
-  #     - "${SERVER_PORT}:${SERVER_PORT}"
-  #   environment:
-  #     PORT: ${SERVER_PORT}
-  #   volumes:
-  #     - ./server:/app/services/core/compliance-service/server
-  #   networks:
-  #     - platform-mesh
   compliance-client:
     build:
       context: ./client

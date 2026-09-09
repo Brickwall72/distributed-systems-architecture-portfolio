@@ -4,6 +4,8 @@ kind: Config
 metadata:
   name: distributed-platform
 build:
+  local:
+    useBuildkit: true
   artifacts:
     - image: topology-server
       context: services/core/topology-service/server
@@ -44,6 +46,7 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
+          VITE_ORIGIN: "http://localhost:8080"
           TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
       sync:
         infer:
@@ -64,6 +67,7 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
+          VITE_ORIGIN: "http://localhost:8080"
           COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/client/remoteEntry.js"
           TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
           PDF_REMOTE_ENTRY: "http://localhost:8080/pdf/client/remoteEntry.js"
@@ -79,6 +83,7 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
+          VITE_ORIGIN: "http://localhost:8080"
           COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/remoteEntry.js"
           TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/remoteEntry.js"
           TOPOLOGY_API_URL: "http://localhost:8080/api/v1/topology"
@@ -90,6 +95,8 @@ build:
           - "**/*.json"
 manifests:
   rawYaml:
+    - k8s/local/service-accounts.yaml
+    - k8s/local/network-policy.yaml
     - k8s/local/topology-service/db.yaml
     - k8s/local/topology-service/server.yaml
     - k8s/local/topology-service/client.yaml

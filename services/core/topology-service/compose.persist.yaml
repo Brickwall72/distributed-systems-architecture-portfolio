@@ -1,0 +1,7 @@
+services:
+  topology-db:
+    volumes:
+      - topology_db_data:/data
+
+volumes:
+  topology_db_data:

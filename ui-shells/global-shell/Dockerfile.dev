@@ -1,20 +1,28 @@
 # File: ui-shells/global-shell/Dockerfile.dev
+# syntax=docker/dockerfile:1.7
 FROM base-image:local
 ARG SERVICE_PATH=/app/ui-shells/global-shell
+ARG VITE_ORIGIN=http://localhost:8080
+ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8080/topology/remoteEntry.js
+ARG COMPLIANCE_REMOTE_ENTRY=http://localhost:8080/compliance/remoteEntry.js
+ENV VITE_ORIGIN=${VITE_ORIGIN} \
+	TOPOLOGY_REMOTE_ENTRY=${TOPOLOGY_REMOTE_ENTRY} \
+	COMPLIANCE_REMOTE_ENTRY=${COMPLIANCE_REMOTE_ENTRY}
 WORKDIR /app
 RUN mkdir -p "${SERVICE_PATH}/src" && apk add --no-cache gettext
 # Install gettext for envsubst support (assuming an Alpine-based base image)
 
 
 COPY package.json tsconfig.json ${SERVICE_PATH}/
-RUN pnpm install --frozen-lockfile --ignore-scripts
-COPY vite.config.ts module-federation.config.ts index.html ${SERVICE_PATH}/
+RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
+	pnpm install --frozen-lockfile --ignore-scripts
+COPY vite.config.ts index.html ${SERVICE_PATH}/
 COPY public/ ${SERVICE_PATH}/public/
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
 WORKDIR ${SERVICE_PATH}
-RUN chown -R node:node /app
+RUN chown -R node:node "${SERVICE_PATH}"
 USER node
 EXPOSE 3000
 
