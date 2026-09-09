@@ -1,0 +1,58 @@
+# File: k8s/local/shells/global.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: global-shell
+spec:
+  selector:
+    matchLabels:
+      app: global-shell
+  template:
+    metadata:
+      labels:
+        app: global-shell
+    spec:
+      containers:
+      - name: global-shell
+        image: global-shell:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TOPOLOGY_REMOTE_ENTRY
+          value: "http://localhost:8080/topology/remoteEntry.js"
+        - name: COMPLIANCE_REMOTE_ENTRY
+          value: "http://localhost:8080/compliance/remoteEntry.js"
+        - name: TOPOLOGY_API_URL
+          value: "http://localhost:8080/api/v1/topology"
+        - name: PDF_API_URL
+          value: "http://localhost:8080/api/v1/pdf"
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: global-shell
+spec:
+  selector:
+    app: global-shell
+  ports:
+  - port: 3000
+    targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: global-shell-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: global-shell
+            port:
+              number: 3000

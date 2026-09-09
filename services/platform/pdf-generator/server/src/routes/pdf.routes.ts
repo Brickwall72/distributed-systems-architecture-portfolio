@@ -1,10 +1,12 @@
 // File: services/platform/pdf-generator/server/src/routes/pdf.routes.ts
 import { Router, Request, Response } from 'express';
 import { generatePdfFromHtml } from '../services/pdfService.js';
-import { createLogger } from '@shared/telemetry';
+import { createHealthCheck, createLogger } from '@shared/telemetry';
 
 const router = Router();
 const logger = createLogger('pdf-server-router');
+
+router.get('/health', createHealthCheck('pdf-server'));
 
 router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   const correlationId = (req.headers['x-correlation-id'] as string) || null;

@@ -5,7 +5,7 @@
       "domainId": "topology",
       "navLabel": "Fleet Topology",
       "path": "/topology",
-      "remoteEntry": "http://localhost:3010/remoteEntry.js",
+      "remoteEntry": "${TOPOLOGY_REMOTE_ENTRY}",
       "scope": "topology_shell",
       "module": "./App"
     },
@@ -13,7 +13,7 @@
       "domainId": "compliance",
       "navLabel": "Flight Compliance",
       "path": "/compliance",
-      "remoteEntry": "http://localhost:3020/remoteEntry.js",
+      "remoteEntry": "${COMPLIANCE_REMOTE_ENTRY}",
       "scope": "compliance_shell",
       "module": "./App"
     }

@@ -1,0 +1,40 @@
+# File: k8s/local/topology-service/server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topology-server
+spec:
+  selector:
+    matchLabels:
+      app: topology-server
+  template:
+    metadata:
+      labels:
+        app: topology-server
+    spec:
+      containers:
+      - name: topology-server
+        image: topology-server:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SERVER_PORT
+          value: "8082"
+        - name: DB_URI
+          value: "bolt://topology-db:7687"
+        - name: DB_USER
+          value: "neo4j"
+        - name: DB_PASSWORD
+          value: "SecureAviationToken71"
+        ports:
+        - containerPort: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: topology-server
+spec:
+  selector:
+    app: topology-server
+  ports:
+  - port: 8082
+    targetPort: 8082

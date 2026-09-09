@@ -1,6 +1,6 @@
 // File: services/platform/pdf-generator/client/src/widgets/PdfGeneratorWidgets.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
-import GeneratePdfButton from './GeneratePdfButton';
+import GeneratePdfButton from './GeneratePdfButton.jsx';
 
 const meta: Meta<typeof GeneratePdfButton> = {
   title: 'Widgets/GeneratePdfButton',

@@ -4,7 +4,7 @@ import { complianceGateway } from './gateway.js';
 import { createHealthCheck, createLogger } from '@shared/telemetry';
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 const logger = createLogger('compliance-service');
 
 app.disable('x-powered-by'); //reducing attack surface

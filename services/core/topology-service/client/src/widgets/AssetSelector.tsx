@@ -1,6 +1,6 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector.tsx
 import { Asset } from '@contracts/domain';
-import BaseSelector from './BaseSelector.js';
+import BaseSelector from './BaseSelector.jsx';
 
 interface AssetSelectorProps {
   readonly label: string;

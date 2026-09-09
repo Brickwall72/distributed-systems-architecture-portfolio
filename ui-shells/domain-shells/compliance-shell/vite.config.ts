@@ -2,7 +2,8 @@
 import { createRemoteConfig } from '@shared/vite-config';
 
 export default createRemoteConfig({
-  name: 'compliance_shell',
+  domain: 'compliance',
+  concern: 'shell',
   port: Number.parseInt(process.env.PORT || '3020'),
   exposes: {
     './App': './src/App.tsx',
@@ -14,7 +15,7 @@ export default createRemoteConfig({
       secure: false,
     },
     '/api/v1/topology': {
-      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8081',
+      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8082',
       changeOrigin: true,
       secure: false,
     }

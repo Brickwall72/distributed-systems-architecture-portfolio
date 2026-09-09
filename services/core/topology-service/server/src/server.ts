@@ -1,11 +1,11 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
-import { createHealthCheck, createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/telemetry';
 import { topologyGateway } from './routes/index.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 8081;
+const PORT = process.env.SERVER_PORT || 8082;
 const logger = createLogger('topology/');
 
 /* Disable the default Express fingerprint header. This is a small but useful hardening step for
@@ -16,10 +16,6 @@ app.disable('x-powered-by');
 /* The topology service accepts strict JSON bodies when validating relationships, consistent with
 ADR-004 and the ICD contract that keeps sensitive identifiers out of URL query strings. */
 app.use(express.json());
-
-/* Container health endpoint used by orchestrators and deployment monitors to verify that the
- * service is alive before routing real business traffic through the validation gate. */
-app.get('/health', createHealthCheck('topology-service'));
 
 // Mount the actual business API under the versioned topology namespace defined in the ICD.
 app.use('/api/v1/topology', topologyGateway);

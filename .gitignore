@@ -28,6 +28,7 @@ debug-storybook.log
 # Vite build artifacts
 @mf-types/
 .mf/
+ui-shells/global-shell/public/ui-manifest.json
 
 # Testfile outputs
 test-output.pdf

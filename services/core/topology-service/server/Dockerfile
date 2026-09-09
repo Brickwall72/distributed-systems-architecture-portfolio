@@ -5,13 +5,14 @@ WORKDIR /app
 RUN mkdir -p "${SERVICE_PATH}/src"
 
 
-COPY tsconfig.json package.json ${SERVICE_PATH}
+COPY tsconfig.json package.json ${SERVICE_PATH}/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
 WORKDIR ${SERVICE_PATH}
+RUN chown -R node:node /app
 USER node
-EXPOSE 8081
+EXPOSE 8082
 
-CMD ["node", "./dist/server.js"]
+CMD ["pnpm", "start"]

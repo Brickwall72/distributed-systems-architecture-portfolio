@@ -10,6 +10,7 @@ services:
       - "${SERVER_PORT}:${SERVER_PORT}"
     environment:
       SERVER_PORT: ${SERVER_PORT}
+    command: pnpm run dev
     volumes:
       - ./server:/app/services/platform/pdf-generator/server
     networks:
@@ -18,7 +19,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:${SERVER_PORT:-40011}/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-401}/api/v1/pdf/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
         ]
       interval: 10s
       timeout: 5s

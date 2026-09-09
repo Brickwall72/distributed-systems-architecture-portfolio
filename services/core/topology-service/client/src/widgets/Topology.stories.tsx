@@ -8,7 +8,7 @@ import {
   NetworkCanvasWidget, 
   AssetSelector, 
   OrganizationSelector 
-} from './index';
+} from './index.js';
 
 const meta: Meta = {
   title: 'Widgets/Autonomous Topology',
@@ -26,8 +26,8 @@ type Story = StoryObj<typeof meta>;
 
 // Mock Dataset
 const MOCK_ORGANIZATIONS: Organization[] = [
-  { id: 'org-1', name: 'Alpha Command', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
-  { id: 'org-2', name: 'Bravo Logistics', addressLine1: '456 Depot Way', addressLine2: '' },
+  { id: 'org-1', name: 'Alpha Command', type: 'COMMAND', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
+  { id: 'org-2', name: 'Bravo Logistics', type: 'LOGISTICS', addressLine1: '456 Depot Way', addressLine2: '' },
 ];
 
 const MOCK_ASSETS: Asset[] = [

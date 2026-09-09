@@ -1,0 +1,38 @@
+# File: k8s/local/topology-service/client.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topology-client
+  namespace: default
+  labels:
+    app: topology-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: topology-client
+  template:
+    metadata:
+      labels:
+        app: topology-client
+    spec:
+      containers:
+        - name: topology-client
+          image: topology-client:local
+          ports:
+            - containerPort: 3011
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: topology-client
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: topology-client
+  ports:
+    - port: 3011
+      targetPort: 3011
+      protocol: TCP

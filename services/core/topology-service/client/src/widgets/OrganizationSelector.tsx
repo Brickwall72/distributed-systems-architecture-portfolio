@@ -1,6 +1,6 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector.tsx
 import { Organization } from '@contracts/domain';
-import BaseSelector from './BaseSelector.js';
+import BaseSelector from './BaseSelector.jsx';
 
 interface OrganizationSelectorProps {
   readonly label: string;

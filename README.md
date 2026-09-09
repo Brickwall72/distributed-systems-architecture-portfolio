@@ -91,62 +91,142 @@ The monorepo separates presentation layout orchestration and mission-specific bu
 
 ---
 
-## 2. 🛠️ Local Workspace Initialization (IaC Onboarding)
+## 2. Local Development
 
-This repository utilizes an idempotent, self-healing **Infrastructure as Code (IaC)** environment gateway script to ensure 100% deterministic developer environment synchronization across different workstations. 
+The integrated development workflow uses Docker, k3d, Kubernetes, Helm-managed Traefik, and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8080`; no manual `kubectl port-forward` is required.
 
-The script dynamically audits your host operating system (Linux/WSL, macOS), verifies/upgrades your Node.js engine range to **`>=v26.7.0`**, installs **`pnpm@11.24.0`** using native manager boundaries, verifies your Docker daemon status, injects low-level systems prerequisites (like `libatomic1` for Node 25+ Linux compatibility), and compiles your local workspace dependency tree.
+### Fresh Environment
 
-### Prerequisites
-Because the system infrastructure automates all runtime and package managers, the absolute only host-level prerequisite is a clean installation of Git:
-* `git` (Core Source Control Engine)
-* A Unix-like host with `sudo`
+Install Git and Docker Desktop or Docker Engine first. On Linux or WSL, the current user must be able to run Docker commands. Docker must be running before `setup.sh` starts.
 
-### Automated System Standup
-To clone the repository, execute the following command string in your terminal:
+Clone the repository and enter the workspace:
 
 ```bash
-git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git && cd distributed-systems-architecture-portfolio
+git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.git
+cd distributed-systems-architecture-portfolio
 ```
-And run the following pipelined command string in your terminal to completely configure your local machine's development environment in one go:
+
+Make the bootstrap executable and run it. Do not use pnpm before this step; the script installs pnpm when it is missing:
+
 ```bash
-find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \; && chmod +x setup.sh && BUILD_DOCKER_BASE=true ./setup.sh && if [ -n "${ZSH_VERSION:-}" ]; then source ~/.zshrc; else source ~/.bashrc; fi
+chmod +x setup.sh
+BUILD_DOCKER_BASE=true ./setup.sh
 ```
 
+`setup.sh` installs or verifies Node.js, pnpm, kubectl, Helm, k3d, and Skaffold; installs workspace dependencies; builds the workspace; builds `base-image:local`; creates or selects the `platform-cluster` k3d cluster; and installs or upgrades Traefik. The k3d cluster maps host ports `8080` and `8443` to the Traefik load balancer.
 
+If the script updates your shell profile, reload it before using pnpm in a new shell:
 
-### Manual Operational Steps
-If executing the pipeline step-by-step from an existing workspace or on machines requiring explicit permission overrides:
+```bash
+source ~/.bashrc  # Linux/WSL
+# or: source ~/.zshrc  # macOS
+```
 
-0. **Dynamically Create .env Files:** Create .env files from .env.example files (manual implementation of tokens/keys may be required):
-	```bash
-	find . -name ".env.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \;
-	```
+Create local environment files after pnpm is available:
 
-1. **Elevate Script Permissions:** Mark the bootstrap script as an executable binary within your OS kernel:
-	```bash
-	chmod +x setup.sh
-	```
-2. **Execute the Gateway:** Launch the self-healing installation loop:
-- Docker base-image:local build included in setup:
-	```bash
-	BUILD_DOCKER_BASE=true ./setup.sh
-	```
-- Basic setup:
-	```bash
-	./setup.sh
-	```
-3. **Refresh Your Shell Profile:** Once the script successfully completes and appends the native pnpm path exports to your environment, reload your active terminal session:<br>
-- Linux/WSL:
-	```bash
-	source ~/.bashrc
-	```
-- MacOS:
-	```bash
-	source ~/.zshrc
-	```
-### Troubleshooting Benign Tool Warnings
-When executing the initialization loop inside WSL or specific minimal Linux environments, the global `pnpm setup` engine may emit soft, non-blocking `ENOENT` directory warnings during multi-threaded symlink indexing. These are completely benign and safely bypassed by the script's internal fallback logic, which writes the primary export statements directly into your user's shell profile. No manual intervention is required.
+```bash
+pnpm env:copy
+```
+
+### Integrated Kubernetes Development
+
+From the repository root, start Skaffold in a terminal and leave it running:
+
+```bash
+pnpm skaffold
+```
+
+For a complete rebuild without cached artifacts:
+
+```bash
+pnpm skaffold:reset
+```
+
+Open the application at [http://localhost:8080](http://localhost:8080). Useful checks are:
+
+```bash
+kubectl config current-context
+kubectl get pods,svc,ingress -A
+curl -i http://localhost:8080/
+curl -i http://localhost:8080/topology/client/remoteEntry.js
+curl -i http://localhost:8080/compliance/client/remoteEntry.js
+curl -i http://localhost:8080/pdf/client/remoteEntry.js
+curl -i http://localhost:8080/api/v1/topology/health
+curl -i http://localhost:8080/api/v1/pdf/health
+```
+
+The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8080`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
+
+### Service-Level Compose Development
+
+Use Compose when working on individual containers without the Kubernetes stack. The root Compose file includes the service-owned definitions and does not bind port `8080`:
+
+```bash
+docker compose up --build
+```
+
+The direct development ports are:
+
+| Component | Port |
+| --- | ---: |
+| Global shell | `3000` |
+| Topology shell | `3010` |
+| Topology client | `3011` |
+| Compliance shell | `3020` |
+| Compliance client | `3021` |
+| Topology API | `8082` |
+| PDF client | `4011` |
+| PDF API | `4001` |
+| Neo4j browser | `7474` |
+| Neo4j Bolt | `7687` |
+
+Stop Compose with `Ctrl+C`, or remove its containers with:
+
+```bash
+docker compose down
+```
+
+Do not run the Compose and Skaffold workflows on the same service ports at the same time.
+
+### Cleanup and Storage
+
+Stop Skaffold with `Ctrl+C`. To remove the local Kubernetes cluster and its containers:
+
+```bash
+pnpm k3d:down
+```
+
+Inspect storage before deleting anything:
+
+```bash
+docker system df
+docker images
+```
+
+The PDF server image includes Chromium and is intentionally large. Prefer targeted cleanup first:
+
+```bash
+docker image prune -f
+docker builder prune -f
+```
+
+Use `docker builder prune -a` only when you are comfortable rebuilding all cached layers. Avoid routine `docker volume prune` because it can remove data used by unrelated projects.
+
+### Troubleshooting
+
+**Docker daemon unavailable:** Run `docker info`. Start Docker Desktop or the Docker Engine and rerun `./setup.sh`.
+
+**Port `8080` is already in use:** Find the owning process with `ss -ltnp | grep ':8080'` on Linux/WSL. Stop the conflicting process or container before running `pnpm k3d:up`.
+
+**Wrong Kubernetes context:** Run `pnpm k3d:up`; it creates the named cluster when absent and selects `k3d-platform-cluster`.
+
+**Traefik returns `404`:** A `404` from `localhost:8080` before Skaffold deploys application Ingress resources confirms that Traefik is reachable. Start `pnpm skaffold` and inspect `kubectl get ingress -A`.
+
+**Skaffold appears stuck loading images:** The PDF server image contains Chromium and can take a while to import into k3d. Check `docker ps`, wait for the import to finish, and avoid interrupting it unless the process is genuinely stalled.
+
+**Skaffold cannot find `base-image:local`:** Re-run `BUILD_DOCKER_BASE=true ./setup.sh`, or run `pnpm docker:base` before starting Skaffold.
+
+**Benign pnpm `ENOENT` warnings:** `pnpm setup` can emit symlink warnings in WSL or minimal Linux environments. Confirm that `pnpm --version` works in a new shell; rerun setup only if pnpm is unavailable.
 
 
 ## 3. Configuration Management & Quality Gate Workflow

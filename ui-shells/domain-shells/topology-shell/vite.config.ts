@@ -2,14 +2,15 @@
 import { createRemoteConfig } from '@shared/vite-config';
 
 export default createRemoteConfig({
-  name: 'topology_shell',
+  domain: 'topology',
+  concern: 'shell',
   port: Number.parseInt(process.env.PORT || '3010'),
   exposes: {
     './App': './src/App.tsx',
   },
   proxy: {
     '/api/v1/topology': {
-      target: process.env.VITE_TOPOLOGY_API_URL || 'http://localhost:8081',
+      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8082',
       changeOrigin: true,
       secure: false,
     },
@@ -18,7 +19,7 @@ export default createRemoteConfig({
     topology_service: {
         type: 'module',
         name: 'topology-service',
-        entry: `${process.env.VITE_REMOTE_ENTRY || 'http://localhost:3011/remoteEntry.js'}`,
+        entry: `${process.env.TOPOLOGY_REMOTE_ENTRY || 'http://localhost:8080/topology/client/remoteEntry.js'}`,
     },
   },
   preview: {

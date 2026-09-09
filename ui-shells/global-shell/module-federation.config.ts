@@ -1,11 +1,11 @@
 // File: ui-shells/global-shell/module-federation.config.ts
 import { createModuleFederationConfig } from '@module-federation/vite';
 
-const topologyEntryUrl = process.env.VITE_TOPOLOGY_REMOTE_ENTRY ?? 'http://localhost:3010/remoteEntry.js';
-const complianceEntryUrl = process.env.VITE_COMPLIANCE_REMOTE_ENTRY ?? 'http://localhost:3020/remoteEntry.js';
+const topologyEntryUrl = process.env.TOPOLOGY_REMOTE_ENTRY ?? 'http://localhost:3010/remoteEntry.js';
+const complianceEntryUrl = process.env.COMPLIANCE_REMOTE_ENTRY ?? 'http://localhost:3020/remoteEntry.js';
 
 export default createModuleFederationConfig({
-  name: 'ui_shell',
+  name: 'global_shell',
   manifest: true,
   dts: true,
   remotes: {
