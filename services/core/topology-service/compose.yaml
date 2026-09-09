@@ -8,8 +8,6 @@ services:
     ports:
       - "${DB_EXTERNAL_PORT}:7474"
       - "7687:7687"
-    volumes:
-      - topology_db_data:/data
     networks:
       - platform-mesh
     healthcheck:
@@ -68,9 +66,6 @@ services:
     networks:
       - platform-mesh
     
-
-volumes:
-  topology_db_data:
 
 networks:
   platform-mesh:

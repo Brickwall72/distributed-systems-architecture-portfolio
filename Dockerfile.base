@@ -1,5 +1,6 @@
 # File: Dockerfile.base
-FROM node:26.7.0-alpine 
+# syntax=docker/dockerfile:1.7
+FROM node:26.7.0-alpine
 WORKDIR /app
 
 RUN npm install -g pnpm@11.24.0 --ignore-scripts
@@ -7,4 +8,5 @@ RUN npm install -g pnpm@11.24.0 --ignore-scripts
 COPY tsconfig.json pnpm-workspace.yaml package.json ./
 COPY packages/ ./packages
 COPY pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm build
+RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
+	pnpm install --frozen-lockfile --ignore-scripts && pnpm build

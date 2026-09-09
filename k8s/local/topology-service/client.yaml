@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: topology-client
-  namespace: default
+  namespace: platform-local
   labels:
     app: topology-client
 spec:
@@ -16,18 +16,48 @@ spec:
       labels:
         app: topology-client
     spec:
+      serviceAccountName: topology-client
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: topology-client
           image: topology-client:local
           ports:
             - containerPort: 3011
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+              ephemeral-storage: 128Mi
+            limits:
+              cpu: 250m
+              memory: 512Mi
+              ephemeral-storage: 512Mi
+          readinessProbe:
+            tcpSocket:
+              port: 3011
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3011
+            initialDelaySeconds: 15
+            periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: topology-client
-  namespace: default
+  namespace: platform-local
 spec:
   type: ClusterIP
   selector:

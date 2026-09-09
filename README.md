@@ -128,21 +128,51 @@ Create local environment files after pnpm is available:
 pnpm env:copy
 ```
 
-### Integrated Kubernetes Development
+### Start the Local Platform
 
-From the repository root, start Skaffold in a terminal and leave it running:
+Run these steps in order from a freshly bootstrapped workspace. `setup.sh`
+already creates the cluster and installs Traefik; the explicit commands below
+are idempotent checks that also recover a stopped local cluster.
+
+Select or create the k3d cluster:
+
+```bash
+pnpm k3d:up
+```
+
+Ensure Traefik is installed:
+
+```bash
+pnpm helm
+```
+
+Create the Kubernetes database credentials while the cluster API is available:
+
+```bash
+DB_PASSWORD='your-local-value' pnpm k8s:secrets
+```
+
+If `DB_PASSWORD` is omitted, the helper generates a local value. The command is
+idempotent when the Secret already exists, so restarting Skaffold does not
+silently rotate credentials used by running pods.
+
+Start the integrated development deployment and leave it running:
 
 ```bash
 pnpm skaffold
 ```
 
-For a complete rebuild without cached artifacts:
+### Integrated Kubernetes Development
+
+After the ordered startup steps above, open the application at
+[http://localhost:8080](http://localhost:8080). Useful checks are:
+
+For a complete rebuild without cached artifacts, stop the current Skaffold
+process first, then run:
 
 ```bash
 pnpm skaffold:reset
 ```
-
-Open the application at [http://localhost:8080](http://localhost:8080). Useful checks are:
 
 ```bash
 kubectl config current-context
@@ -188,20 +218,68 @@ docker compose down
 
 Do not run the Compose and Skaffold workflows on the same service ports at the same time.
 
+To preserve Compose Neo4j graph data intentionally, start the topology project
+with its persistence override. Use the same project name and files when stopping
+it:
+
+```bash
+docker compose -p topology-service \
+	-f services/core/topology-service/compose.yaml \
+	-f services/core/topology-service/compose.persist.yaml up --build
+```
+
+```bash
+docker compose -p topology-service \
+	-f services/core/topology-service/compose.yaml \
+	-f services/core/topology-service/compose.persist.yaml down
+```
+
 ### Cleanup and Storage
 
-Stop Skaffold with `Ctrl+C`. To remove the local Kubernetes cluster and its containers:
+Tear down the integrated Kubernetes workflow in this order:
+
+1. Stop the running Skaffold process with `Ctrl+C`. Skaffold removes its
+	managed workloads while leaving the local namespace and generated Secret
+	available for the next run.
+2. Delete the local k3d cluster and its containers:
 
 ```bash
 pnpm k3d:down
 ```
 
-Inspect storage before deleting anything:
+The cluster deletion also removes the `platform-local` namespace and its
+Kubernetes Secret. Do not run `pnpm k8s:secrets` after this step unless you have
+started the cluster again with `pnpm k3d:up`.
+
+If you used the ordinary root Compose workflow separately, stop it before
+cleaning Docker resources:
 
 ```bash
-docker system df
-docker images
+docker compose down
 ```
+
+Only after the workloads and cluster are stopped should you inspect or clean
+Docker storage:
+
+```bash
+pnpm docker:df
+```
+
+Kubernetes and default Compose Neo4j deployments are ephemeral. If you used the
+persistent topology Compose workflow, stop that exact project before resetting
+its graph data. The following intentionally removes the Neo4j volume and all
+data stored in it:
+
+```bash
+docker compose -p topology-service \
+  -f services/core/topology-service/compose.yaml \
+  -f services/core/topology-service/compose.persist.yaml down -v
+```
+
+Use `pnpm docker:df` for a detailed Docker storage report. `pnpm docker:prune`
+removes dangling images and unused builder cache without pruning volumes or all
+images. Use broader Docker cleanup commands only when you intend to rebuild
+unrelated projects as well.
 
 The PDF server image includes Chromium and is intentionally large. Prefer targeted cleanup first:
 
@@ -224,7 +302,10 @@ Use `docker builder prune -a` only when you are comfortable rebuilding all cache
 
 **Skaffold appears stuck loading images:** The PDF server image contains Chromium and can take a while to import into k3d. Check `docker ps`, wait for the import to finish, and avoid interrupting it unless the process is genuinely stalled.
 
-**Skaffold cannot find `base-image:local`:** Re-run `BUILD_DOCKER_BASE=true ./setup.sh`, or run `pnpm docker:base` before starting Skaffold.
+**Skaffold cannot find `base-image:local`:** Run `pnpm docker:base`; `pnpm skaffold`
+and `pnpm skaffold:reset` perform this base build automatically.
+
+The Docker and Skaffold scripts verify Docker BuildKit/buildx before building.
 
 **Benign pnpm `ENOENT` warnings:** `pnpm setup` can emit symlink warnings in WSL or minimal Linux environments. Confirm that `pnpm --version` works in a new shell; rerun setup only if pnpm is unavailable.
 

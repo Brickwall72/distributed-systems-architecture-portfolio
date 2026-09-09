@@ -23,7 +23,10 @@ let driverInstance: Driver | null = null;
  * still booting. This protects startup from transient networking races without masking a real
  * failure once the retry budget is exhausted.
  */
-export async function initializeDatabaseConnection(retries = 5, delayMs = 3000): Promise<Driver> {
+export async function initializeDatabaseConnection(
+  retries = Number.parseInt(process.env.DB_CONNECT_RETRIES || '30', 10),
+  delayMs = Number.parseInt(process.env.DB_CONNECT_RETRY_DELAY_MS || '3000', 10)
+): Promise<Driver> {
   logger.info(`Attempting secure connection to graph infrastructure node at URI: [${DB_URI}]`);
 
   for (let attempt = 1; attempt <= retries; attempt++) {

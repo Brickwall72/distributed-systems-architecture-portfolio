@@ -1,4 +1,5 @@
 # File: services/core/topology-service/client/Dockerfile
+# syntax=docker/dockerfile:1.7
 FROM base-image:local
 ARG SERVICE_PATH=/app/services/core/topology-service/client
 WORKDIR /app
@@ -6,13 +7,14 @@ RUN mkdir -p "${SERVICE_PATH}/src"
 
 
 COPY package.json tsconfig.json ${SERVICE_PATH}/
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
+	pnpm install --frozen-lockfile --ignore-scripts
 COPY vite.config.ts index.html ${SERVICE_PATH}/
 COPY src/ ${SERVICE_PATH}/src/
 RUN pnpm build
 
 WORKDIR ${SERVICE_PATH}
-RUN chown -R node:node /app
+RUN chown -R node:node "${SERVICE_PATH}"
 USER node
 EXPOSE 3011
 
