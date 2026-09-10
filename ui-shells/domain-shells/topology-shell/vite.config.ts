@@ -10,7 +10,7 @@ export default createRemoteConfig({
   },
   proxy: {
     '/api/v1/topology': {
-      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8082',
+      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8083',
       changeOrigin: true,
       secure: false,
     },
@@ -19,7 +19,7 @@ export default createRemoteConfig({
     topology_service: {
         type: 'module',
         name: 'topology-service',
-        entry: `${process.env.TOPOLOGY_REMOTE_ENTRY || 'http://localhost:8080/topology/client/remoteEntry.js'}`,
+        entry: `${process.env.TOPOLOGY_REMOTE_ENTRY || 'http://localhost:8081/topology/client/remoteEntry.js'}`,
     },
   },
   preview: {

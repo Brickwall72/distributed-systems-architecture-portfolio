@@ -6,7 +6,7 @@ import app from './server';
 
 describe('Pact Provider Verification', () => {
   let server: any;
-  const port = 8082;
+  const port = 8083;
 
   beforeAll(() => {
     server = app.listen(port);

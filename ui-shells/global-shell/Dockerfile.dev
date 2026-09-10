@@ -2,9 +2,9 @@
 # syntax=docker/dockerfile:1.7
 FROM base-image:local
 ARG SERVICE_PATH=/app/ui-shells/global-shell
-ARG VITE_ORIGIN=http://localhost:8080
-ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8080/topology/remoteEntry.js
-ARG COMPLIANCE_REMOTE_ENTRY=http://localhost:8080/compliance/remoteEntry.js
+ARG VITE_ORIGIN=http://localhost:8081
+ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8081/topology/remoteEntry.js
+ARG COMPLIANCE_REMOTE_ENTRY=http://localhost:8081/compliance/remoteEntry.js
 ENV VITE_ORIGIN=${VITE_ORIGIN} \
 	TOPOLOGY_REMOTE_ENTRY=${TOPOLOGY_REMOTE_ENTRY} \
 	COMPLIANCE_REMOTE_ENTRY=${COMPLIANCE_REMOTE_ENTRY}
@@ -27,4 +27,4 @@ USER node
 EXPOSE 3000
 
 # Dynamically substitute environment variables into the template at container startup, then launch
-CMD ["sh", "-c", ": \"${TOPOLOGY_REMOTE_ENTRY:=http://localhost:8080/topology/remoteEntry.js}\"; : \"${COMPLIANCE_REMOTE_ENTRY:=http://localhost:8080/compliance/remoteEntry.js}\"; export TOPOLOGY_REMOTE_ENTRY COMPLIANCE_REMOTE_ENTRY; envsubst '${TOPOLOGY_REMOTE_ENTRY} ${COMPLIANCE_REMOTE_ENTRY}' < public/ui-manifest.template.json > public/ui-manifest.json && exec pnpm start"]
+CMD ["sh", "-c", ": \"${TOPOLOGY_REMOTE_ENTRY:=http://localhost:8081/topology/remoteEntry.js}\"; : \"${COMPLIANCE_REMOTE_ENTRY:=http://localhost:8081/compliance/remoteEntry.js}\"; export TOPOLOGY_REMOTE_ENTRY COMPLIANCE_REMOTE_ENTRY; envsubst '${TOPOLOGY_REMOTE_ENTRY} ${COMPLIANCE_REMOTE_ENTRY}' < public/ui-manifest.template.json > public/ui-manifest.json && exec pnpm start"]

@@ -24,7 +24,7 @@ spec:
           service:
             name: topology-server
             port:
-              number: 8082
+              number: 8083
       - path: /topology/client
         pathType: Prefix
         backend:

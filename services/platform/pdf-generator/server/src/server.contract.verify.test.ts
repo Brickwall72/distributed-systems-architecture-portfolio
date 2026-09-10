@@ -15,7 +15,7 @@ import app from './server'; // Adjust import to your main server export file
 
 describe('Pact Provider Verification', () => {
   let server: any;
-  const port = 8083; // Use a unique port for this service
+  const port = 8089; // Use a unique port for this service
 
   beforeAll(() => {
     server = app.listen(port);

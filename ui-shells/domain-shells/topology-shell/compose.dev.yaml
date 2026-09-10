@@ -13,7 +13,7 @@ services:
       - "${PORT}:${PORT}"
     environment:
       TOPOLOGY_REMOTE_ENTRY: ${TOPOLOGY_REMOTE_ENTRY:-http://localhost:3011/topology/client/remoteEntry.js}
-      TOPOLOGY_API_URL: http://topology-server:8082
+      TOPOLOGY_API_URL: http://topology-server:8083
       VITE_ORIGIN: ${VITE_ORIGIN:-http://localhost:3010}
     depends_on:
       - topology-client

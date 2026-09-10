@@ -93,7 +93,7 @@ The monorepo separates presentation layout orchestration and mission-specific bu
 
 ## 2. Local Development
 
-The integrated development workflow uses Docker, k3d, Kubernetes, Helm-managed Traefik, and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8080`; no manual `kubectl port-forward` is required.
+The integrated development workflow uses Docker, k3d, Kubernetes, Helm-managed Traefik, and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8081`; no manual `kubectl port-forward` is required.
 
 ### Fresh Environment
 
@@ -113,7 +113,7 @@ chmod +x setup.sh
 BUILD_DOCKER_BASE=true ./setup.sh
 ```
 
-`setup.sh` installs or verifies Node.js, pnpm, kubectl, Helm, k3d, and Skaffold; installs workspace dependencies; builds the workspace; builds `base-image:local`; creates or selects the `platform-cluster` k3d cluster; and installs or upgrades Traefik. The k3d cluster maps host ports `8080` and `8443` to the Traefik load balancer.
+`setup.sh` installs or verifies Node.js, pnpm, kubectl, Helm, k3d, and Skaffold; installs workspace dependencies; builds the workspace; builds `base-image:local`; creates or selects the `platform-cluster` k3d cluster; and installs or upgrades Traefik. The k3d cluster maps host ports `8081` and `8443` to the Traefik load balancer.
 
 If the script updates your shell profile, reload it before using pnpm in a new shell:
 
@@ -149,7 +149,7 @@ pnpm helm
 Create the Kubernetes database credentials while the cluster API is available:
 
 ```bash
-DB_PASSWORD='your-local-value' pnpm k8s:secrets
+(export $(grep "^DB_PASSWORD=" services/core/topology-service/.env) && pnpm k8s:secrets)
 ```
 
 If `DB_PASSWORD` is omitted, the helper generates a local value. The command is
@@ -165,7 +165,7 @@ pnpm skaffold
 ### Integrated Kubernetes Development
 
 After the ordered startup steps above, open the application at
-[http://localhost:8080](http://localhost:8080). Useful checks are:
+[http://localhost:8081](http://localhost:8081). Useful checks are:
 
 For a complete rebuild without cached artifacts, stop the current Skaffold
 process first, then run:
@@ -177,19 +177,19 @@ pnpm skaffold:reset
 ```bash
 kubectl config current-context
 kubectl get pods,svc,ingress -A
-curl -i http://localhost:8080/
-curl -i http://localhost:8080/topology/client/remoteEntry.js
-curl -i http://localhost:8080/compliance/client/remoteEntry.js
-curl -i http://localhost:8080/pdf/client/remoteEntry.js
-curl -i http://localhost:8080/api/v1/topology/health
-curl -i http://localhost:8080/api/v1/pdf/health
+curl -i http://localhost:8081/
+curl -i http://localhost:8081/topology/client/remoteEntry.js
+curl -i http://localhost:8081/compliance/client/remoteEntry.js
+curl -i http://localhost:8081/pdf/client/remoteEntry.js
+curl -i http://localhost:8081/api/v1/topology/health
+curl -i http://localhost:8081/api/v1/pdf/health
 ```
 
-The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8080`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
+The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8081`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
 
 ### Service-Level Compose Development
 
-Use Compose when working on individual containers without the Kubernetes stack. The root Compose file includes the service-owned definitions and does not bind port `8080`:
+Use Compose when working on individual containers without the Kubernetes stack. The root Compose file includes the service-owned definitions and does not bind port `8081`:
 
 ```bash
 docker compose up --build
@@ -204,7 +204,7 @@ The direct development ports are:
 | Topology client | `3011` |
 | Compliance shell | `3020` |
 | Compliance client | `3021` |
-| Topology API | `8082` |
+| Topology API | `8083` |
 | PDF client | `4011` |
 | PDF API | `4001` |
 | Neo4j browser | `7474` |
@@ -294,11 +294,11 @@ Use `docker builder prune -a` only when you are comfortable rebuilding all cache
 
 **Docker daemon unavailable:** Run `docker info`. Start Docker Desktop or the Docker Engine and rerun `./setup.sh`.
 
-**Port `8080` is already in use:** Find the owning process with `ss -ltnp | grep ':8080'` on Linux/WSL. Stop the conflicting process or container before running `pnpm k3d:up`.
+**Port `8081` is already in use:** Find the owning process with `ss -ltnp | grep ':8081'` on Linux/WSL. Stop the conflicting process or container before running `pnpm k3d:up`.
 
 **Wrong Kubernetes context:** Run `pnpm k3d:up`; it creates the named cluster when absent and selects `k3d-platform-cluster`.
 
-**Traefik returns `404`:** A `404` from `localhost:8080` before Skaffold deploys application Ingress resources confirms that Traefik is reachable. Start `pnpm skaffold` and inspect `kubectl get ingress -A`.
+**Traefik returns `404`:** A `404` from `localhost:8081` before Skaffold deploys application Ingress resources confirms that Traefik is reachable. Start `pnpm skaffold` and inspect `kubectl get ingress -A`.
 
 **Skaffold appears stuck loading images:** The PDF server image contains Chromium and can take a while to import into k3d. Check `docker ps`, wait for the import to finish, and avoid interrupting it unless the process is genuinely stalled.
 

@@ -2,8 +2,8 @@
 # syntax=docker/dockerfile:1.7
 FROM base-image:local
 ARG SERVICE_PATH=/app/ui-shells/domain-shells/topology-shell
-ARG VITE_ORIGIN=http://localhost:8080
-ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8080/topology/client/remoteEntry.js
+ARG VITE_ORIGIN=http://localhost:8081
+ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8081/topology/client/remoteEntry.js
 ENV VITE_ORIGIN=${VITE_ORIGIN} \
 	TOPOLOGY_REMOTE_ENTRY=${TOPOLOGY_REMOTE_ENTRY}
 WORKDIR /app

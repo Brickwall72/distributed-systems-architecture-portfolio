@@ -15,7 +15,7 @@ export default createRemoteConfig({
       secure: false,
     },
     '/api/v1/topology': {
-      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8082',
+      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8083',
       changeOrigin: true,
       secure: false,
     }

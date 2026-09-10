@@ -2,10 +2,10 @@
 # syntax=docker/dockerfile:1.7
 FROM base-image:local
 ARG SERVICE_PATH=/app/ui-shells/domain-shells/compliance-shell
-ARG VITE_ORIGIN=http://localhost:8080
-ARG COMPLIANCE_REMOTE_ENTRY=http://localhost:8080/compliance/client/remoteEntry.js
-ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8080/topology/client/remoteEntry.js
-ARG PDF_REMOTE_ENTRY=http://localhost:8080/pdf/client/remoteEntry.js
+ARG VITE_ORIGIN=http://localhost:8081
+ARG COMPLIANCE_REMOTE_ENTRY=http://localhost:8081/compliance/client/remoteEntry.js
+ARG TOPOLOGY_REMOTE_ENTRY=http://localhost:8081/topology/client/remoteEntry.js
+ARG PDF_REMOTE_ENTRY=http://localhost:8081/pdf/client/remoteEntry.js
 ENV VITE_ORIGIN=${VITE_ORIGIN} \
 	COMPLIANCE_REMOTE_ENTRY=${COMPLIANCE_REMOTE_ENTRY} \
 	TOPOLOGY_REMOTE_ENTRY=${TOPOLOGY_REMOTE_ENTRY} \

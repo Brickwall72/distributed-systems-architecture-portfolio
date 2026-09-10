@@ -26,15 +26,15 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: COMPLIANCE_REMOTE_ENTRY
-          value: "http://localhost:8080/compliance/client/remoteEntry.js"
+          value: "http://localhost:8081/compliance/client/remoteEntry.js"
         - name: TOPOLOGY_REMOTE_ENTRY
-          value: "http://localhost:8080/topology/client/remoteEntry.js"
+          value: "http://localhost:8081/topology/client/remoteEntry.js"
         - name: PDF_REMOTE_ENTRY
-          value: "http://localhost:8080/pdf/client/remoteEntry.js"
+          value: "http://localhost:8081/pdf/client/remoteEntry.js"
         - name: TOPOLOGY_API_URL
-          value: "http://localhost:8080/api/v1/topology"
+          value: "http://localhost:8081/api/v1/topology"
         - name: PDF_API_URL
-          value: "http://localhost:8080/api/v1/pdf"
+          value: "http://localhost:8081/api/v1/pdf"
         ports:
         - containerPort: 3020
         securityContext:
@@ -44,11 +44,11 @@ spec:
             - ALL
         resources:
           requests:
-            cpu: 10m
+            cpu: 100m
             memory: 128Mi
             ephemeral-storage: 128Mi
           limits:
-            cpu: 250m
+            cpu: 750m
             memory: 512Mi
             ephemeral-storage: 512Mi
         readinessProbe:

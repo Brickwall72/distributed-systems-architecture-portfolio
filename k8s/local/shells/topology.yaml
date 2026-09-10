@@ -26,7 +26,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: TOPOLOGY_REMOTE_ENTRY
-          value: "http://localhost:8080/topology/client/remoteEntry.js"
+          value: "http://localhost:8081/topology/client/remoteEntry.js"
         ports:
         - containerPort: 3010
         securityContext:
@@ -36,11 +36,11 @@ spec:
             - ALL
         resources:
           requests:
-            cpu: 10m
+            cpu: 100m
             memory: 128Mi
             ephemeral-storage: 128Mi
           limits:
-            cpu: 250m
+            cpu: 750m
             memory: 512Mi
             ephemeral-storage: 512Mi
         readinessProbe:

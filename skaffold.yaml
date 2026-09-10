@@ -46,8 +46,8 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
-          VITE_ORIGIN: "http://localhost:8080"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
+          VITE_ORIGIN: "http://localhost:8081"
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/client/remoteEntry.js"
       sync:
         infer:
           - "**/*.tsx"
@@ -67,12 +67,12 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
-          VITE_ORIGIN: "http://localhost:8080"
-          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/client/remoteEntry.js"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/client/remoteEntry.js"
-          PDF_REMOTE_ENTRY: "http://localhost:8080/pdf/client/remoteEntry.js"
-          TOPOLOGY_API_URL: "http://localhost:8080/api/v1/topology"
-          PDF_API_URL: "http://localhost:8080/api/v1/pdf"
+          VITE_ORIGIN: "http://localhost:8081"
+          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8081/compliance/client/remoteEntry.js"
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/client/remoteEntry.js"
+          PDF_REMOTE_ENTRY: "http://localhost:8081/pdf/client/remoteEntry.js"
+          TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
+          PDF_API_URL: "http://localhost:8081/api/v1/pdf"
       sync:
         infer:
           - "**/*.tsx"
@@ -83,11 +83,11 @@ build:
       docker:
         dockerfile: Dockerfile.dev
         buildArgs:
-          VITE_ORIGIN: "http://localhost:8080"
-          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8080/compliance/remoteEntry.js"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8080/topology/remoteEntry.js"
-          TOPOLOGY_API_URL: "http://localhost:8080/api/v1/topology"
-          PDF_API_URL: "http://localhost:8080/api/v1/pdf"
+          VITE_ORIGIN: "http://localhost:8081"
+          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8081/compliance/remoteEntry.js"
+          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/remoteEntry.js"
+          TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
+          PDF_API_URL: "http://localhost:8081/api/v1/pdf"
       sync:
         infer:
           - "**/*.tsx"
