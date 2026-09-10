@@ -24,7 +24,7 @@ spec:
       #     service:
       #       name: compliance-server
       #       port:
-      #         number: 8082
+      #         number: 8083
       - path: /compliance/client
         pathType: Prefix
         backend:

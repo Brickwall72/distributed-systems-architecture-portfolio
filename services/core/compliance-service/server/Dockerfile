@@ -15,6 +15,6 @@ RUN pnpm build
 WORKDIR ${SERVICE_PATH}
 RUN chown -R node:node "${SERVICE_PATH}"
 USER node
-EXPOSE 8081
+EXPOSE 8082
 
 CMD ["pnpm", "start"]

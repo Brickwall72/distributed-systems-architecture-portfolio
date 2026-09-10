@@ -5,7 +5,7 @@ import { topologyGateway } from './routes/index.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 8082;
+const PORT = process.env.SERVER_PORT || 8083;
 const logger = createLogger('topology/');
 
 /* Disable the default Express fingerprint header. This is a small but useful hardening step for
