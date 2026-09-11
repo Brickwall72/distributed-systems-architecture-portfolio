@@ -18,7 +18,12 @@ export default createRemoteConfig({
       target: process.env.TOPOLOGY_API_URL || 'http://localhost:8083',
       changeOrigin: true,
       secure: false,
-    }
+    },
+    '/api/v1/compliance': {
+      target: process.env.COMPLIANCE_API_URL || 'http://localhost:8082',
+      changeOrigin: true,
+      secure: false,
+    },
   },
   remotes: {
     pdf_client: {

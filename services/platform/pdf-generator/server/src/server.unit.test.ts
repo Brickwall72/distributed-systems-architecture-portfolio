@@ -1,5 +1,4 @@
 // File: services/platform/pdf-generator/server/src/server.unit.test.ts
-import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from './server.js';
 

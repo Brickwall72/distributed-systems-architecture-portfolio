@@ -1,10 +1,11 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector.contract.test.tsx
 import { render, screen, waitFor } from '@testing-library/react';
 import { MatchersV3 } from '@pact-foundation/pact';
-import { runConsumerContractTest } from '../utils/test-helpers';
+import { createPactTestHelper } from '@shared/testing';
 import OrganizationSelector from './OrganizationSelector';
 
 const { like, eachLike } = MatchersV3;
+const runConsumerContractTest = createPactTestHelper({consumer:'topology-client', provider:'topology-server'})
 
 describe('OrganizationSelector Consumer Contract', () => {
   it('generates a valid contract for fetching organizations', async () => {

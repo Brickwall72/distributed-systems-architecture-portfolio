@@ -37,6 +37,9 @@ services:
       CLIENT_PORT: ${CLIENT_PORT}
     volumes:
       - ./client:/app/services/platform/pdf-generator/client
+    depends_on:
+      pdf-server:
+        condition: service_healthy
     networks:
       - platform-mesh
 

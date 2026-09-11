@@ -1,6 +1,4 @@
 // File: services/platform/pdf-generator/client/src/widgets/GeneratePdfButton.test.tsx
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import GeneratePdfButton from './GeneratePdfButton';
 

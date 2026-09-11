@@ -1,0 +1,75 @@
+# File: k8s/local/compliance-service/server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: compliance-server
+  namespace: platform-local
+spec:
+  selector:
+    matchLabels:
+      app: compliance-server
+  template:
+    metadata:
+      labels:
+        app: compliance-server
+    spec:
+      serviceAccountName: compliance-server
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: compliance-server
+        image: compliance-server:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SERVER_PORT
+          value: "8082"
+        ports:
+        - containerPort: 8082
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+            ephemeral-storage: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /api/v1/compliance/health
+            port: 8082
+          periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /api/v1/compliance/health
+            port: 8082
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /api/v1/compliance/health
+            port: 8082
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: compliance-server
+  namespace: platform-local
+spec:
+  selector:
+    app: compliance-server
+  ports:
+  - port: 8082
+    targetPort: 8082

@@ -6,11 +6,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "vite",
+    "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "pnpm test:unit",
-    "test:unit": "vitest run .unit.test"
+    "test": "pnpm test:unit && pnpm test:contract",
+    "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.test"
   },
   "dependencies": {
     "@shared/vite-config": "workspace:*",

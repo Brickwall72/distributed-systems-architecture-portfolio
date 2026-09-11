@@ -1,5 +1,6 @@
 // File: services/core/topology-service/client/src/widgets/BaseSelector.tsx
 import React, { useEffect, useState } from 'react';
+import '@shared/styles';
 
 
 interface BaseSelectorProps<T> {

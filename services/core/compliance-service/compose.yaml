@@ -1,5 +1,30 @@
 # File: services/core/compliance-service/compose.yaml
 services:
+  compliance-server:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile.dev
+    image: compliance-server:local
+    container_name: compliance-server
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+    command: pnpm start
+    volumes:
+      - ./server:/app/services/core/compliance-service/server
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-8083}/api/v1/compliance/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   compliance-client:
     build:
       context: ./client
@@ -12,6 +37,9 @@ services:
       PORT: ${CLIENT_PORT}
     volumes:
       - ./client:/app/services/core/compliance-service/client
+    depends_on:
+      compliance-server:
+        condition: service_healthy
     networks:
       - platform-mesh
 

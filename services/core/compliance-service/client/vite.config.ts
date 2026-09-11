@@ -6,6 +6,6 @@ export default createRemoteConfig({
   concern: 'client',
   port: Number.parseInt(process.env.CLIENT_PORT || '3021'),
   exposes: {
-    './CustodyTransferForm': './src/widgets/CustodyTransferForm.tsx',
+    './TemplateSelector': './src/widgets/TemplateSelector.tsx',
   },
 });

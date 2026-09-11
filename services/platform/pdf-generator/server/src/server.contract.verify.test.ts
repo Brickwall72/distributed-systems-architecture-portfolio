@@ -1,7 +1,6 @@
 // File: services/platform/pdf-generator/server/src/server.contract.verify.test.ts
 import { Verifier } from '@pact-foundation/pact';
 import path from 'path';
-import { vi } from 'vitest';
 
 // 1. Mock the heavy PDF generation service so the test stays lightweight and fast
 vi.mock('./services/pdfService.js', () => ({

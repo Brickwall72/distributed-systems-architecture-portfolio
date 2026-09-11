@@ -2,8 +2,8 @@
   "name": "@shared/vite-config",
   "version": "0.0.0",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"
   },

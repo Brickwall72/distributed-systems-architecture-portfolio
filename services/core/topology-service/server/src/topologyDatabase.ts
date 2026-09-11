@@ -121,15 +121,15 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
         id: 'org-1111-lockheed',
         name: 'Lockheed Martin Space',
         type: 'CONTRACTOR',
-        address1: '1111 Lockheed Martin Way',
-        address2: 'Sunnyvale, CA 94089'
+        addressLine1: '1111 Lockheed Martin Way',
+        addressLine2: 'Sunnyvale, CA 94089'
       },
       toOrg: {
         id: 'org-2222-ussf',
         name: 'Space Systems Command (USSF)',
         type: 'GOV',
-        address1: 'Los Angeles Air Force Base',
-        address2: 'El Segundo, CA 90245'
+        addressLine1: 'Los Angeles Air Force Base',
+        addressLine2: 'El Segundo, CA 90245'
       },
       asset: {
         id: 'asset-3333-gps3',
@@ -148,15 +148,15 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
         ON CREATE SET 
           sender.name = $fromOrg.name, 
           sender.type = 'CONTRACTOR',
-          sender.address1 = $fromOrg.address1, 
-          sender.address2 = $fromOrg.address2
+          sender.addressLine1 = $fromOrg.addressLine1, 
+          sender.addressLine2 = $fromOrg.addressLine2
       
       MERGE (receiver:Organization { id: $toOrg.id })
         ON CREATE SET 
           receiver.name = $toOrg.name, 
           receiver.type = 'MILITARY_BRANCH',
-          receiver.address1 = $toOrg.address1, 
-          receiver.address2 = $toOrg.address2
+          receiver.addressLine1 = $toOrg.addressLine1, 
+          receiver.addressLine2 = $toOrg.addressLine2
       
       // 2. Create Asset with nomenclature properties
       MERGE (a:Asset { id: $asset.id })
