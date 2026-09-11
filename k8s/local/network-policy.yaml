@@ -63,6 +63,10 @@ spec:
     - protocol: TCP
       port: 4011
     - protocol: TCP
+      port: 4002
+    - protocol: TCP
+      port: 4012
+    - protocol: TCP
       port: 8083
     - protocol: TCP
       port: 8082

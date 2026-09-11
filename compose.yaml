@@ -10,6 +10,7 @@ include:
   - path: services/core/compliance-service/compose.yaml
   - path: services/core/topology-service/compose.yaml
   - path: services/platform/pdf-generator/compose.dev.yaml
+  - path: services/platform/esign-service/compose.dev.yaml
 
 networks:
   platform-mesh:

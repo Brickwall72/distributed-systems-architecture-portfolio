@@ -41,6 +41,23 @@ build:
           - "**/*.tsx"
           - "**/*.ts"
           - "**/*.json"
+    - image: esign-server
+      context: services/platform/esign-service/server
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        infer:
+          - "**/*.ts"
+          - "**/*.json"
+    - image: esign-client
+      context: services/platform/esign-service/client
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
     - image: topology-shell
       context: ui-shells/domain-shells/topology-shell
       docker:
@@ -81,6 +98,8 @@ build:
           PDF_REMOTE_ENTRY: "http://localhost:8081/pdf/client/remoteEntry.js"
           TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
           PDF_API_URL: "http://localhost:8081/api/v1/pdf"
+          ESIGN_REMOTE_ENTRY: "http://localhost:8081/esign/client/remoteEntry.js"
+          ESIGN_API_URL: "http://localhost:8081/api/v1/esign"
       sync:
         infer:
           - "**/*.tsx"
@@ -96,6 +115,7 @@ build:
           TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/remoteEntry.js"
           TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
           PDF_API_URL: "http://localhost:8081/api/v1/pdf"
+          ESIGN_API_URL: "http://localhost:8081/api/v1/esign"
       sync:
         infer:
           - "**/*.tsx"
@@ -112,6 +132,9 @@ manifests:
     - k8s/local/pdf-generator/server.yaml
     - k8s/local/pdf-generator/client.yaml
     - k8s/local/pdf-generator/ingress.yaml
+    - k8s/local/esign-service/server.yaml
+    - k8s/local/esign-service/client.yaml
+    - k8s/local/esign-service/ingress.yaml
     - k8s/local/shells/topology.yaml
     - k8s/local/compliance-service/client.yaml
     - k8s/local/compliance-service/ingress.yaml

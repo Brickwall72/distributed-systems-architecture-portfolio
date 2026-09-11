@@ -24,6 +24,11 @@ export default createRemoteConfig({
       changeOrigin: true,
       secure: false,
     },
+    '/api/v1/esign': {
+      target: process.env.ESIGN_API_URL || 'http://localhost:4002',
+      changeOrigin: true,
+      secure: false,
+    },
   },
   remotes: {
     pdf_client: {
@@ -40,7 +45,12 @@ export default createRemoteConfig({
       type: 'module',
       name: 'compliance-client',
       entry: `${process.env.COMPLIANCE_REMOTE_ENTRY || 'http://localhost:3021/remoteEntry.js'}`
-    }
+    },
+    esign_client: {
+      type: 'module',
+      name: 'esign-client',
+      entry: `${process.env.ESIGN_REMOTE_ENTRY || 'http://localhost:4012/remoteEntry.js'}`,
+    },
   },
   preview: {
     port: 3020,

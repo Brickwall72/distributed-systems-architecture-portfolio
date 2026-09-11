@@ -1,0 +1,25 @@
+{
+  "name": "esign-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "test": "pnpm test:unit && pnpm test:contract",
+    "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.test",
+    "test:integration": "vitest run .integration.test"
+  },
+  "dependencies": {
+    "@shared/vite-config": "workspace:*",
+    "@shared/styles": "workspace:*",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8"
+  },
+  "devDependencies": {
+    "@shared/ui-components": "workspace:*"
+  }
+}

@@ -145,12 +145,18 @@ const TEMPLATES_DB: Record<string, ComplianceTemplate> = {
 					<div class="signature-block">
 						<span class="label">Receipt Certification</span>
 						<p>I certify that the assets listed above have been received and custody has been formally transferred.</p>
-						<div style="margin-top: 30px; display: flex; justify-content: space-between;">
+						<div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
 							<div>
-								<strong>Authorized Receiver:</strong> <span class="sig-line"></span>
+								<strong>Authorized Receiver:</strong> 
+								{{#if signatureImage}}
+									<img src="{{signatureImage}}" alt="Digital Signature" style="height: 40px; display: inline-block; vertical-align: middle; margin-left: 10px;" />
+								{{else}}
+									<span class="sig-line"></span>
+								{{/if}}
 							</div>
 							<div>
-								<strong>Date:</strong> <span class="sig-line" style="width: 150px;"></span>
+								<!-- Left blank so pdf-lib can stamp the execution timestamp securely -->
+								<strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
 							</div>
 						</div>
 					</div>
