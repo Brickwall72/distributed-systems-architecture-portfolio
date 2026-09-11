@@ -10,7 +10,7 @@ build:
     - image: topology-server
       context: services/core/topology-service/server
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.dev
       sync:
         infer:
           - "**/*.ts"
@@ -51,6 +51,14 @@ build:
       sync:
         infer:
           - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
+    - image: compliance-server
+      context: services/core/compliance-service/server
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        infer:
           - "**/*.ts"
           - "**/*.json"
     - image: compliance-client
@@ -107,5 +115,6 @@ manifests:
     - k8s/local/shells/topology.yaml
     - k8s/local/compliance-service/client.yaml
     - k8s/local/compliance-service/ingress.yaml
+    - k8s/local/compliance-service/server.yaml
     - k8s/local/shells/compliance.yaml
     - k8s/local/shells/global.yaml

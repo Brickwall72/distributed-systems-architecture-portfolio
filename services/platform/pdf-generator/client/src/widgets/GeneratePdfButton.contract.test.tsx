@@ -2,7 +2,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import path from 'path';
-import { vi } from 'vitest';
 import GeneratePdfButton from './GeneratePdfButton';
 
 const { like } = MatchersV3;

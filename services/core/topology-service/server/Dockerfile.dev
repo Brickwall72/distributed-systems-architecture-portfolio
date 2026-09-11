@@ -17,4 +17,4 @@ RUN chown -R node:node "${SERVICE_PATH}"
 USER node
 EXPOSE 8083
 
-CMD ["pnpm", "start"]
+CMD ["pnpm", "dev"]

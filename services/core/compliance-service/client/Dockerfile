@@ -18,4 +18,4 @@ RUN chown -R node:node "${SERVICE_PATH}"
 USER node
 EXPOSE 3021
 
-CMD ["pnpm", "dev"]
+CMD ["pnpm", "start"]

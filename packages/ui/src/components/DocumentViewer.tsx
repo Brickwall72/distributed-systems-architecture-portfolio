@@ -1,7 +1,7 @@
 // File: packages/ui/src/components/DocumentViewer.tsx
 import React from 'react';
 import '@shared/styles';
-import { cn } from '../lib/utils';
+import { cn } from '..';
 
 interface DocumentViewerProps {
   /** Can be raw HTML string (for preview) or a Blob URL (for final PDF) */

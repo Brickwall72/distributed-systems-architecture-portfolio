@@ -1,3 +1,4 @@
+# File: k8s/local/network-policy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -63,6 +64,8 @@ spec:
       port: 4011
     - protocol: TCP
       port: 8083
+    - protocol: TCP
+      port: 8082
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

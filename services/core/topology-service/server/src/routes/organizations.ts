@@ -33,8 +33,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       RETURN  o.id AS id, 
               o.name AS name,
               o.type AS type,
-              o.address1 AS address1,
-              o.address2 AS address2
+              o.addressLine1 AS addressLine1,
+              o.addressLine2 AS addressLine2
     `;
 
     const result = await session.executeRead((tx) => 
@@ -45,8 +45,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       id: record.get('id'),
       name: record.get('name'),
       type: record.get('type'),
-      address1: record.get('address1'),
-      address2: record.get('address2'),
+      addressLine1: record.get('addressLine1'),
+      addressLine2: record.get('addressLine2'),
     }));
 
     res.status(200).json(organizations);

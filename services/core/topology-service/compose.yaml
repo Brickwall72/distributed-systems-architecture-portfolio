@@ -23,7 +23,7 @@ services:
   topology-server:
     build:
       context: ./server
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.dev
     image: topology-server:local
     container_name: topology-server
     ports:
@@ -36,7 +36,6 @@ services:
     depends_on:
       topology-db:
         condition: service_healthy
-    command: pnpm run dev
     volumes:
       - ./server:/app/services/core/topology-service/server
     networks:
@@ -45,7 +44,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://127.0.0.1:${SERVER_PORT:-8083}/api/v1/topology/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-8083}/api/v1/topology/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
         ]
       interval: 10s
       timeout: 5s
@@ -63,6 +62,9 @@ services:
       CLIENT_PORT: ${CLIENT_PORT}
     volumes:
       - ./client:/app/services/core/topology-service/client
+    depends_on:
+      topology-server:
+        condition: service_healthy
     networks:
       - platform-mesh
     

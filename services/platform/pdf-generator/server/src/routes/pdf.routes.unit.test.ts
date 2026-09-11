@@ -1,5 +1,4 @@
 // File: services/platform/pdf-generator/server/src/routes/pdf.routes.unit.test.ts
-import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { pdfRouter } from './pdf.routes.js';

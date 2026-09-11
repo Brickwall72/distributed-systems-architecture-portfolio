@@ -1,5 +1,4 @@
 // File: services/core/compliance-service/client/src/complianceTracking.test.ts
-import { describe, it, expect } from 'vitest';
 import { mintTransactionToken } from './complianceTracking.js';
 
 describe('Unit Test: Client-Side Transaction Token Generator (complianceTracking)', () => {

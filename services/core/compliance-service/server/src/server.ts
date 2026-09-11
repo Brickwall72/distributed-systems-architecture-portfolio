@@ -1,7 +1,7 @@
-// File: services/core/compliance-service/server/src/index.ts
+// File: services/core/compliance-service/server/src/server.ts
 import express from 'express';
-import { complianceGateway } from './gateway.js';
-import { createHealthCheck, createLogger } from '@shared/telemetry';
+import { complianceGateway } from './routes/index.js';
+import { createLogger } from '@shared/telemetry';
 
 const app = express();
 const PORT = process.env.PORT || 8082;
@@ -9,10 +9,6 @@ const logger = createLogger('compliance-service');
 
 app.disable('x-powered-by'); //reducing attack surface
 app.use(express.json());
-
-
-app.get('/health', createHealthCheck('compliance-service')); //Service life-sign for Kubernetes
-
 app.use('/api/v1/compliance', complianceGateway);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

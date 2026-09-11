@@ -1,5 +1,4 @@
 // File: src/__tests__/pdfService.test.ts
-import { describe, it, expect } from 'vitest';
 import { generatePdfFromHtml } from '../services/pdfService.js';
 
 const mockHtml = `
