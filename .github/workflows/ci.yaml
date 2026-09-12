@@ -61,15 +61,49 @@ jobs:
       - name: Compile Workspace Packages
         run: pnpm build
 
-      # Run ALL tests if pdf-generator changed, otherwise exclude pdf-generator
-      - name: Execute Automated Unit Testing Suites
+      # Dynamically run tests for services that have had changes.
+      - name: Execute Dynamic Workspace Contract & Test Matrix
         run: |
-          if [ "${{ steps.changes.outputs.pdf-server }}" = "true" ]; then
-            echo "PDF Generator changes detected. Executing full workspace test matrix..."
-            pnpm test
-          else
-            echo "PDF Generator unchanged. Skipping Chromium tests and running remaining matrix..."
-            pnpm --filter "!pdf-server" run test:unit
-            pnpm --filter "!pdf-server" run test:contract
-            pnpm --filter "!pdf-server" run test:verify
-          fi
+          # Determine the git comparison range (handles PR base branch or standard pushes)
+          GIT_RANGE="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+          
+          # Automatically traverse two levels deep under services/ (e.g., services/core/topology-service)
+          for service_dir in services/*/*/; do
+            # Ensure both client and server subdirectories exist with package.json files
+            [ -d "${service_dir}client" ] && [ -d "${service_dir}server" ] || continue
+            
+            service_name=$(basename "$service_dir")
+            
+            # Check for independent changes in client or server paths
+            client_changed=false
+            server_changed=false
+            
+            if ! git diff --quiet "$GIT_RANGE" -- "${service_dir}client"; then
+              client_changed=true
+            fi
+            
+            if ! git diff --quiet "$GIT_RANGE" -- "${service_dir}server"; then
+              server_changed=true
+            fi
+            
+            # If either side changed, execute the pipeline for this service
+            if [ "$client_changed" = "true" ] || [ "$server_changed" = "true" ]; then
+              echo "------------------------------------------------------------------"
+              echo "⚡ Changes detected in ${service_name} (Client: ${client_changed} | Server: ${server_changed})"
+              echo "------------------------------------------------------------------"
+              
+              # 1. Run Client Suites (Generates Pact JSON artifacts if contract tests exist)
+              if [ -f "${service_dir}client/package.json" ]; then
+                echo "▶ Running client test suites for ${service_name}..."
+                pnpm --filter "./${service_dir}client" run test
+              fi
+              
+              # 2. Run Server Suites (Consumes Pact JSON artifacts for verification)
+              if [ -f "${service_dir}server/package.json" ]; then
+                echo "▶ Running server test suites for ${service_name}..."
+                pnpm --filter "./${service_dir}server" run test
+              fi
+            else
+              echo "💤 ${service_name} unchanged. Skipping..."
+            fi
+          done
