@@ -69,5 +69,7 @@ jobs:
             pnpm test
           else
             echo "PDF Generator unchanged. Skipping Chromium tests and running remaining matrix..."
-            pnpm --filter "!pdf-server" test
+            pnpm --filter "!pdf-server" run test:unit
+            pnpm --filter "!pdf-server" run test:contract
+            pnpm --filter "!pdf-server" run test:verify
           fi

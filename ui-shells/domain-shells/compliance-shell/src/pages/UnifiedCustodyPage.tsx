@@ -8,6 +8,7 @@ const OrganizationSelector = lazy(() => import('topology_client/OrganizationSele
 const AssetSelector = lazy(() => import('topology_client/AssetSelectorWidget'));
 const GeneratePdfButton = lazy(() => import('pdf_client/GeneratePdfButton'));
 const TemplateSelector = lazy(() => import('compliance_client/TemplateSelector'));
+const SignatureOverlay = lazy(() => import('esign_client/SignatureOverlay'));
 
 export default function UnifiedCustodyPage() {
   // 1. Selector States
@@ -19,18 +20,22 @@ export default function UnifiedCustodyPage() {
   const [requisitionNumber] = useState('REQ-2026-001');
   const [transferDate] = useState(new Date().toDateString());
 
-  // 3. Template Selection & Content (Managed via TemplateSelector widget)
+  // 3. Template Selection & Content
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [rawTemplateHtml, setRawTemplateHtml] = useState<string>('');
   
-  // 4. PDF Blob State
+  // 4. PDF Blob & E-Signature States
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
+
+  const [isSigned, setIsSigned] = useState(false);
 
   // Callback triggered when TemplateSelector mounts or user selects a template
   const handleTemplateLoad = (templateId: string, rawHtml: string) => {
     setSelectedTemplateId(templateId);
     setRawTemplateHtml(rawHtml);
     setPdfBlobUrl(null); // Reset PDF view when template changes
+    setIsSigning(false);
   };
 
   // Construct typed data payload matching DD1149TemplateDataSchema
@@ -94,7 +99,8 @@ export default function UnifiedCustodyPage() {
 
           <Suspense fallback={<div className="text-sm text-slate-400">Loading PDF generator...</div>}>
             <GeneratePdfButton
-              htmlPayload={isReadyForPdf && hydratedHtml}
+              disabled={!isReadyForPdf}
+              htmlPayload={isReadyForPdf ? hydratedHtml : ''}
               fileName={`${selectedTemplateId || 'document'}-${requisitionNumber}.pdf`}
               onSuccess={(blobUrl: string) => setPdfBlobUrl(blobUrl)}
             />
@@ -132,14 +138,40 @@ export default function UnifiedCustodyPage() {
         </Suspense>
       </div>
 
-      {/* Dynamic Document Viewer Workspace */}
-      <main className="flex-1 bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
+      {/* Dynamic Document Viewer Workspace with Signature Overlay Slot */}
+      <main className="flex-1 bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative">
         <DocumentViewer
           content={pdfBlobUrl ?? hydratedHtml}
           contentType={pdfBlobUrl ? 'pdf' : 'html'}
           title="Live Compliance Document"
           className="w-full h-full"
-        />
+          isSigningActive={isSigning}
+        >
+          <div className="absolute bottom-4 right-4 z-10">
+          {/* E-Signature Trigger Button */}
+            <button
+              onClick={() => setIsSigning(true)}
+              disabled={!pdfBlobUrl || isSigned || isSigning}
+              className="px-3 py-1.5 w-40 justify-endtext-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-blue-600 rounded-md transition shadow"
+            >
+              Sign Document
+            </button>
+          </div>
+          {/* Inside UnifiedCustodyPage's DocumentViewer children */}
+          {isSigning && pdfBlobUrl && (
+            <Suspense fallback={<div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-30 flex items-center justify-center text-slate-300 text-sm">Loading signature pad...</div>}>
+              <SignatureOverlay
+                pdfBlobUrl={pdfBlobUrl}
+                onCancel={() => setIsSigning(false)}
+                onSuccess={(signedPdfUrl: string) => {
+                  setPdfBlobUrl(signedPdfUrl); // Replace the unsigned PDF with the signed one
+                  setIsSigned(true);
+                  setIsSigning(false);         // Close the overlay
+                }}
+              />
+            </Suspense>
+          )}
+        </DocumentViewer>
       </main>
     </div>
   );

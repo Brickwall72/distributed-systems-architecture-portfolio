@@ -10,6 +10,10 @@ interface DocumentViewerProps {
   title?: string;
   className?: string;
   placeholder?: React.ReactNode;
+  /** Locks iframe mouse interactions when drawing a signature overlay */
+  isSigningActive?: boolean;
+  /** Slot for overlay widgets like SignatureOverlayWidget */
+  children?: React.ReactNode;
 }
 
 export default function DocumentViewer({
@@ -18,6 +22,8 @@ export default function DocumentViewer({
   title = 'Document Viewer',
   className = '',
   placeholder,
+  isSigningActive = false,
+  children,
 }: Readonly<DocumentViewerProps>): React.ReactElement {
   // If no content is provided, render the placeholder inside the frame container
   if (!content) {
@@ -26,17 +32,22 @@ export default function DocumentViewer({
         {placeholder || (
           <div className="text-slate-500 font-mono text-sm">No document loaded</div>
         )}
+        {children}
       </div>
     );
   }
+
   return (
-    <div className={cn("w-full h-full flex flex-col", className)}>
+    <div className={cn("w-full h-full flex flex-col relative overflow-hidden", className)}>
       {contentType === 'html' ? (
         // Renders raw HTML securely isolated from the parent app's CSS
         <iframe
           title={title}
           srcDoc={content}
-          className="w-full h-full border-0 flex-1"
+          className={cn(
+            "w-full h-full border-0 flex-1 transition-all",
+            isSigningActive && "pointer-events-none select-none"
+          )}
           sandbox="allow-same-origin"
         />
       ) : (
@@ -44,9 +55,15 @@ export default function DocumentViewer({
         <iframe
           title={title}
           src={content}
-          className="w-full h-full border-0 flex-1"
+          className={cn(
+            "w-full h-full border-0 flex-1 transition-all",
+            isSigningActive && "pointer-events-none select-none"
+          )}
         />
       )}
+
+      {/* Slot for overlay widgets (e.g., SignatureOverlayWidget) */}
+      {children}
     </div>
   );
 }

@@ -23,6 +23,11 @@ export default createRemoteConfig({
     changeOrigin: true,
     secure: false,
     },
+    '/api/v1/esign': {
+    target: process.env.ESIGN_API_URL || 'http://localhost:4002',
+    changeOrigin: true,
+    secure: false,
+    },
     '/api/v1/compliance': {
     target: process.env.COMPLIANCE_API_URL || 'http://localhost:8082',
     changeOrigin: true,

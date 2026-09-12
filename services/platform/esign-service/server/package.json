@@ -1,0 +1,21 @@
+{
+  "name": "esign-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm test:unit pnpm test:verify",
+    "test:unit": "vitest run .unit.test",
+    "test:verify": "vitest run .contract.verify.test"
+  },
+  "dependencies": {
+    "@shared/telemetry": "workspace:*",
+    "@signpdf/signpdf": "~3.3.0",
+    "@signpdf/signer-p12": "~3.3.0",
+    "pdf-lib": "~1.17.1",
+    "express": "~5.2.1"
+  }
+}

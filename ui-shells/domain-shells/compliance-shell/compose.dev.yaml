@@ -14,18 +14,19 @@ services:
     ports:
       - "${PORT}:${PORT}"
     environment:
-      PDF_API_URL: http://pdf-server:4001
       PDF_REMOTE_ENTRY: ${PDF_REMOTE_ENTRY:-http://localhost:4011/pdf/client/remoteEntry.js}
-      TOPOLOGY_API_URL: http://topology-server:8083
+      PDF_API_URL: ${PDF_API_URL:-http://pdf-server:4001}
+      ESIGN_REMOTE_ENTRY: ${ESIGN_REMOTE_ENTRY:-http://localhost:4012/esign/client/remoteEntry.js}
+      ESIGN_API_URL: ${ESIGN_API_URL:-http://esign-server:4002}
       TOPOLOGY_REMOTE_ENTRY: ${TOPOLOGY_REMOTE_ENTRY:-http://localhost:3011/topology/client/remoteEntry.js}
-      COMPLIANCE_API_URL: http://compliance-server:8082
+      TOPOLOGY_API_URL: ${TOPOLOGY_API_URL:-http://topology-server:8083}
       COMPLIANCE_REMOTE_ENTRY: ${COMPLIANCE_REMOTE_ENTRY:-http://localhost:3021/compliance/client/remoteEntry.js}
-    # depends_on:
-    #   - compliance-client
+      COMPLIANCE_API_URL: ${COMPLIANCE_API_URL:-http://compliance-server:8082}
     volumes:
       - .:/app/ui-shells/domain-shells/compliance-shell
     depends_on:
       - pdf-client
+      - esign-client
       - compliance-client
       - topology-client
     networks:
