@@ -20,6 +20,10 @@ declare module 'topology_client/*' {
   export default Component;
 }
 
+declare module 'compliance_client/api' {
+  export function saveDocument(documentUrl: string): Promise<void>;
+}
+
 declare module 'compliance_client/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;

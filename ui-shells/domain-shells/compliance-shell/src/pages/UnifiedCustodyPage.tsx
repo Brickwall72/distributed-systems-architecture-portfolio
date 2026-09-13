@@ -2,6 +2,7 @@
 import { useState, useMemo, Suspense, lazy } from 'react';
 import { Organization, Asset, DD1149TemplateData } from '@contracts/domain';
 import { DocumentViewer, hydrateTemplate } from '@shared/ui-components';
+import { saveDocument } from 'compliance_client/api'
 
 // Micro-Frontend Federated Remote Imports
 const OrganizationSelector = lazy(() => import('topology_client/OrganizationSelectorWidget'));
@@ -37,6 +38,10 @@ export default function UnifiedCustodyPage() {
     setPdfBlobUrl(null); // Reset PDF view when template changes
     setIsSigning(false);
   };
+
+  const handleSave = async (signedPdfUrl: string) => {
+    await saveDocument(signedPdfUrl);
+  }
 
   // Construct typed data payload matching DD1149TemplateDataSchema
   const templatePayload: DD1149TemplateData | null = useMemo(() => {
@@ -164,6 +169,7 @@ export default function UnifiedCustodyPage() {
                 pdfBlobUrl={pdfBlobUrl}
                 onCancel={() => setIsSigning(false)}
                 onSuccess={(signedPdfUrl: string) => {
+                  handleSave(signedPdfUrl);
                   setPdfBlobUrl(signedPdfUrl); // Replace the unsigned PDF with the signed one
                   setIsSigned(true);
                   setIsSigning(false);         // Close the overlay

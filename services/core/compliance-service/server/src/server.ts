@@ -1,14 +1,14 @@
 // File: services/core/compliance-service/server/src/server.ts
 import express from 'express';
-import { complianceGateway } from './routes/index.js';
+import complianceGateway from './routes/index.js';
+import { initDatabase } from './db/database.js';
 import { createLogger } from '@shared/telemetry';
 
 const app = express();
-const PORT = process.env.PORT || 8082;
 const logger = createLogger('compliance-service');
 
 app.disable('x-powered-by'); //reducing attack surface
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use('/api/v1/compliance', complianceGateway);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -21,10 +21,11 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    logger.info(`Subsystem actively listening on port ${PORT}`);
-  });
-}
+// Initialize DB and start server
+const PORT = Number(process.env.PORT) || 8082;
+await initDatabase();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Compliance Server running on port ${PORT}`);
+});
 
 export default app;

@@ -43,4 +43,4 @@ router.get('/:id', (req: Request, res: Response): void => {
   res.send(templateRecord.html);
 });
 
-export { router as templateRoutes };
+export default router;
