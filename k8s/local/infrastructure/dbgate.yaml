@@ -1,0 +1,102 @@
+# File: k8s/local/infrastructure/dbgate.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dbgate-pvc
+  namespace: platform-local
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbgate
+  namespace: platform-local
+spec:
+  selector:
+    matchLabels:
+      app: dbgate
+  template:
+    metadata:
+      labels:
+        app: dbgate
+    spec:
+      containers:
+      - name: dbgate
+        image: dbgate/dbgate:7.2.6
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CONNECTIONS
+          value: "compliance"
+        - name: LABEL_compliance
+          value: "Compliance DB"
+        - name: SERVER_compliance
+          value: "compliance-db"
+        - name: PORT_compliance
+          value: "5432"
+        - name: USER_compliance
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: POSTGRES_USER
+        - name: PASSWORD_compliance
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: POSTGRES_PASSWORD
+        - name: ENGINE_compliance
+          value: "postgres@dbgate-plugin-postgres"
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: dbgate-data
+          mountPath: /root/.dbgate
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: dbgate-data
+        persistentVolumeClaim:
+          claimName: dbgate-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbgate
+  namespace: platform-local
+spec:
+  selector:
+    app: dbgate
+  ports:
+  - name: http
+    port: 3040
+    targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dbgate-ingress
+  namespace: platform-local
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+  - host: dbgate.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dbgate
+            port:
+              number: 3040

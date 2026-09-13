@@ -70,6 +70,10 @@ spec:
       port: 8083
     - protocol: TCP
       port: 8082
+    - protocol: TCP
+      port: 9001
+    - protocol: TCP
+      port: 3040
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -110,3 +114,106 @@ spec:
     ports:
     - protocol: TCP
       port: 7687
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-compliance-database-from-dbgate
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: compliance-db
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: dbgate
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dbgate-compliance-database-egress
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: dbgate
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: compliance-db
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-minio-storage
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: compliance-server
+    - podSelector:
+        matchLabels:
+          app: minio-setup
+    ports:
+    - port: 9000
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-minio-setup-egress
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: minio-setup
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: minio
+    ports:
+    - protocol: TCP
+      port: 9000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-compliance-server-minio-egress
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: compliance-server
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: minio
+    ports:
+    - protocol: TCP
+      port: 9000

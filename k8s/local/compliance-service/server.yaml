@@ -20,6 +20,11 @@ spec:
         runAsUser: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-compliance-db
+        image: postgres:18.6-alpine
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until pg_isready -h compliance-db -p 5432 -U postgres; do echo waiting for database...; sleep 2; done']
       containers:
       - name: compliance-server
         image: compliance-server:local
@@ -27,6 +32,53 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8082"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DATABASE_URL
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_USER
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_USER
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_PASSWORD
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_PASSWORD
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: compliance-db-credentials
+              key: DB_PASSWORD
+        - name: DB_HOST
+          value: "compliance-db"
+        - name: PGHOST
+          value: "compliance-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: PGPORT
+          value: "5432"
+        - name: DB_NAME
+          value: "compliance"
+        - name: PGDATABASE
+          value: "compliance"
         ports:
         - containerPort: 8082
         securityContext:

@@ -12,6 +12,60 @@ include:
   - path: services/platform/pdf-generator/compose.dev.yaml
   - path: services/platform/esign-service/compose.dev.yaml
 
+services:
+  dbgate:
+    image: dbgate/dbgate:7.2.6
+    ports:
+      - "3040:3000"
+    environment:
+      - CONNECTIONS=compliance
+      - LABEL_compliance=Compliance DB
+      - SERVER_compliance=compliance-db
+      - PORT_compliance=5432
+      - USER_compliance=admin
+      - PASSWORD_compliance=password
+      - ENGINE_compliance=postgres@dbgate-plugin-postgres
+    volumes:
+      - dbgate-data:/root/.dbgate  # <-- Persists queries, history, and settings
+    networks:
+      - platform-mesh
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - platform-mesh
+    volumes:
+      - minio-data:/data
+
+  minio-setup:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: minio-setup
+    depends_on:
+      - minio
+    networks:
+      - platform-mesh
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO...';
+      sleep 5;
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/compliance-documents --ignore-existing;
+      mc anonymous set download myminio/compliance-documents;
+      exit 0;
+      "
+
+volumes:
+  dbgate-data:
+  minio-data:
+
 networks:
   platform-mesh:
     driver: bridge

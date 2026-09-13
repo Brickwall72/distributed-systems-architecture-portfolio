@@ -1,0 +1,49 @@
+# ADR-011: Cloud-Parity Local Object Persistence via MinIO and Localized Database Observability
+
+## Status
+Accepted
+
+* **Date:** 2026-09-13
+* **Author:** Sam Brickett
+* **Deciders:** Sam Brickett
+* **Consulted:** N/A (Solo Project)
+
+---
+
+## Context and Problem Statement
+Storing heavy, immutable binary artifacts (like compiled and signed PDF flight records) directly inside a relational database like PostgreSQL introduces severe database bloat, decreases table scan efficiency, and complicates backup procedures. A scalable distributed topology requires an S3-compatible cloud object store to handle file persistence while utilizing a fast relational ledger to track file metadata, hashes, and lookups.
+
+For local development on a workstation or inside a WSL container mesh, relying on real cloud providers (like AWS S3) introduces external dependency costs, network latency, credential leakage risks, and offline development barriers. Additionally, verifying data mutations across PostgreSQL and object layers requires a lightweight, integrated database client to monitor system state transformations without running heavy host-level management applications.
+
+## Decision Drivers
+* **Local Cloud-Parity:** Replicate production S3 object-storage APIs locally without external cloud dependencies or credentials.
+* **Storage Optimization:** Maintain a strict separation between flat binary blobs and indexed relational metadata schemas.
+* **Workspace Tooling Parity:** Integrate database monitoring tools natively within the local infrastructure grid using lightweight, containerized footprints.
+
+---
+
+## Decision
+Establish a localized dual-tier persistence and observability layer across the local container mesh:
+
+1. **Object Storage Tier (MinIO Dual-Node Footprint):**
+   - Deploy MinIO utilizing two distinct container nodes to separate data traffic from administration:
+     - **MinIO Server API Node:** Manages direct, headless S3 programmatic object interactions, streaming signed PDF buffers to private buckets via port `9000`.
+     - **MinIO Console Web UI Node:** Serves the browser-facing management console interface via port `9001` for bucket orchestration and access audits.
+
+2. **Metadata Ledger Tier (PostgreSQL):**
+   - PostgreSQL serves strictly as the structured audit ledger, tracking filenames, object hashes, MinIO URIs, and creation timestamps.
+
+3. **Observability Tooling (DbGate):**
+   - Integrate DbGate as the authoritative, containerized database viewer tool inside the development composition sheets. This provides immediate, web-accessible database inspection loops across the PostgreSQL instances without requiring external host desktop installations.
+
+---
+
+## Consequences
+* **Positive (Benefits):** Replicates cloud production behavior 100% offline with zero cloud runtime costs. Keeps the database thin, fast, and optimized for metadata indexing. DbGate offers an instant, zero-configuration database dashboard built directly into the local stack.
+* **Negative (Risks):** Appending MinIO Server, MinIO Console, PostgreSQL, and DbGate raises the local container infrastructure footprint to four total storage/observability nodes, increasing baseline memory utilization during full cluster runs.
+
+---
+
+## Validation and Compliance Plan
+* **Storage Parity Probe:** Initiating a document execution pass must successfully stream binary bytes to the MinIO Server container node and return a valid object URI to be logged in the PostgreSQL ledger.
+* **Console Accessibility Audit:** Verifying that both the MinIO Console dashboard (port `9001`) and the DbGate panel function in isolation over the development mesh with zero resource or socket binding conflicts.

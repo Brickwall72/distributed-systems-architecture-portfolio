@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/templates.unit.test.ts
 import request from 'supertest';
 import express from 'express';
-import { templateRoutes } from './templates';
+import templateRoutes from './templates';
 import { runStandardRouteTests } from '@shared/testing';
 
 // 1. Run standard route tests for the root manifest endpoint (GET /templates)

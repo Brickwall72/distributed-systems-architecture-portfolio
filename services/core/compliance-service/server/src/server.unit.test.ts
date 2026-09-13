@@ -1,4 +1,12 @@
 // File: services/core/compliance-service/server/src/server.unit.test.ts
+
+vi.mock('./db/database.js', () => ({
+  initDatabase: vi.fn().mockResolvedValue(undefined),
+  pool: {
+    query: vi.fn().mockResolvedValue({ rows: [] }),
+  },
+}));
+
 import request from 'supertest';
 import app from './server.js';
 import express from 'express';

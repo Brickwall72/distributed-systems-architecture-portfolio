@@ -136,8 +136,11 @@ manifests:
     - k8s/local/esign-service/client.yaml
     - k8s/local/esign-service/ingress.yaml
     - k8s/local/shells/topology.yaml
+    - k8s/local/compliance-service/db.yaml
     - k8s/local/compliance-service/client.yaml
     - k8s/local/compliance-service/ingress.yaml
     - k8s/local/compliance-service/server.yaml
     - k8s/local/shells/compliance.yaml
     - k8s/local/shells/global.yaml
+    - k8s/local/infrastructure/dbgate.yaml
+    - k8s/local/infrastructure/minio.yaml

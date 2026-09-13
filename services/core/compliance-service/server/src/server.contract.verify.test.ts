@@ -1,8 +1,33 @@
-// File: services/core/compliance-service/server/src/provider.contract.verify.test.ts
+// File: services/core/compliance-service/server/src/server.contract.verify.test.ts
 import { Verifier } from '@pact-foundation/pact';
-import app from './server.js'; 
 import { Server } from 'http';
 import path from 'path';
+
+// Hoist mock functions to intercept database and storage during verification
+const { mockPoolQuery } = vi.hoisted(() => ({
+  mockPoolQuery: vi.fn().mockResolvedValue({
+    rows: [{ id: 42, created_at: '2026-09-12T19:00:00.000Z' }],
+  }),
+}));
+
+const { mockUploadComplianceDocument } = vi.hoisted(() => ({
+  mockUploadComplianceDocument: vi.fn().mockResolvedValue(
+    's3://compliance-documents/transfer-approval/test-doc-123.pdf'
+  ),
+}));
+
+vi.mock('./db/database.js', () => ({
+  initDatabase: vi.fn().mockResolvedValue(undefined),
+  pool: {
+    query: mockPoolQuery,
+  },
+}));
+
+vi.mock('./services/storage.js', () => ({
+  uploadComplianceDocument: mockUploadComplianceDocument,
+}));
+
+import app from './server.js'; 
 
 describe('Compliance Service Provider Verification', () => {
   let server: Server;
@@ -29,7 +54,15 @@ describe('Compliance Service Provider Verification', () => {
         },
         'template contract-test-bare exists': async () => {
           console.log('contract-test-bare is ready');
-        }
+        },
+        'compliance document backend is ready to accept saves': async () => {
+          mockPoolQuery.mockResolvedValue({
+            rows: [{ id: 42, created_at: '2026-09-12T19:00:00.000Z' }],
+          });
+          mockUploadComplianceDocument.mockResolvedValue(
+            's3://compliance-documents/transfer-approval/test-doc-123.pdf'
+          );
+        },
       }
     };
 

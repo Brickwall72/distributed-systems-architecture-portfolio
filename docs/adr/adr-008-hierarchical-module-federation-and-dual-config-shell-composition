@@ -1,7 +1,7 @@
-# ADR-008: Hierarchical Micro-Frontend Composition via Nested Domain Shells and Isolated Tooling Profiles
+# ADR-008: Hierarchical Micro-Frontend Composition via Nested Domain Shells and Unified Configuration Profiles
 
 ## Status
-Accepted
+Amended (2026-09-13) — Original decision accepted on 2026-08-29; updated to reflect unified single-file Vite configurations, targeted asynchronous bootstrap gates, and programmatic handler API sharing boundaries.
 
 * **Date:** 2026-08-29
 * **Author:** Sam Brickett
@@ -11,32 +11,50 @@ Accepted
 ---
 
 ## Context and Problem Statement
-The user interface layer must scale across multiple decoupled domains without triggering deployment dependencies, manual source code alterations, or framework collisions in browser memory. Combining standalone development servers, module federation sharing networks, and component testing lifecycles into single, unified project configuration bundles introduces severe caching deadlocks under Vite 6 and React 19. 
+The user interface layer must scale across multiple decoupled domains without triggering deployment dependencies, manual source code alterations, or framework collisions in browser memory. Combining standalone development servers, module federation sharing networks, and component testing lifecycles into divergent configuration files increases file proliferation and maintenance overhead.
 
 Furthermore, standard micro-frontend host-to-remote paths require top-level layout blocks to maintain hardcoded knowledge of every underlying microservice endpoint. This layout pattern forces constant modifications and redeployments of the primary entry dashboard whenever individual domains or microservices are added, restructured, or updated, creating a significant structural bottleneck that halts continuous portfolio expansion.
+
+Exposing simple UI interaction elements (such as button wrappers containing basic callback handlers) across service boundaries introduces configuration bloat, complicates wrapper component abstraction, and clutters shared manifests with unnecessary presentation code.
 
 ## Decision Drivers
 * **Absolute Deployment Isolation:** The global master shell must build and deploy with zero pre-compiled awareness of what domains or pages exist in the broader system.
 * **On-Demand Composition:** Intermediate domain shells must dynamically mount themselves into the active user view only as they become available.
-* **Tooling Safety:** Eliminate circular dependencies and cache collisions caused by mixing standalone execution profiles, federation build tasks, and testing wrappers.
+* **Unified Tooling Architecture:** Centralize localized development, testing, and federation options into a single, standardized configuration layout per frontend workspace.
 * **Framework Singleton Enforcement:** Ensure core presentation libraries maintain unified memory allocations to guarantee browser stability across independent subfolders.
+* **Granular Interface Abstraction:** Enforce clear guidelines distinguishing high-fidelity interactive widgets from simple pipeline utility operations.
+
+---
 
 ## Decision
-The architecture establishes a decoupled, three-tiered hierarchical frontend framework split across two coordinated design patterns:
+The architecture establishes a decoupled, three-tiered hierarchical frontend framework split across three coordinated design patterns:
 
-1. **Hierarchical Decomposition Architecture:**
-   - **Global Master Shell (`/ui-shells/global-shell/`):** Functions as the single, top-level entry point for the browser. It implements page-based decomposition, dynamically assembling the standalone applications of intermediate domain shells on demand. It strictly provisions framework singletons to downstream clients.
-   - **Domain-Specific Shells (`/ui-shells/domain-shells/*`):** Function as intermediate page managers. They implement widget-based decomposition, pulling in atomic microservice components and organizing them into isolated sub-SPAs.
-   - **Dynamic Module Registry:** To eliminate hardcoded configurations inside the global master, frontends discover entries dynamically at runtime. Upon initialization, individual domain-shell container nodes register their secure endpoints, visual metadata, and remote entry strings to a centralized lookup registry service. The global shell queries this registry on load to discover and mount valid page views dynamically.
+### 1. Hierarchical Decomposition Architecture
+* **Global Master Shell (`/ui-shells/global-shell/`):** Functions as the single, top-level entry point for the browser. It implements page-based decomposition, dynamically assembling the standalone applications of intermediate domain shells on demand. It strictly provisions framework singletons to downstream clients.
+* **Domain-Specific Shells (`/ui-shells/domain-shells/*`):** Function as intermediate page managers. They implement widget-based decomposition, pulling in atomic microservice components and organizing them into isolated sub-SPAs.
+* **Dynamic Module Registry:** To eliminate hardcoded configurations inside the global master, frontends discover entries dynamically at runtime. Upon initialization, individual domain-shell container nodes register their secure endpoints, visual metadata, and remote entry strings to a centralized lookup registry service. The global shell queries this registry on load to discover and mount valid page views dynamically.
 
-2. **Isolated Configuration Architecture:**
-   - **Symmetric Profile Decoupling:** Every frontend client project separates its operational toolchains into four distinct files: `vite.config.ts` for local standalone development, `vite.federation.config.ts` for asset sharing, `module-federation.config.ts` for explicit metadata mapping, and `vitest.config.ts` for component unit testing.
-   - **Asynchronous Execution Gates:** Every entry point utilizes an explicit asynchronous bootstrap wrapper to give the federation manager time to resolve dependencies before browser rendering begins.
+### 2. Differentiated Boundary Sharing Interface
+* **Shared High-Fidelity Widgets:** Complex, state-heavy interactive visual boundaries (such as the electronic signature canvas screen overlay) are explicitly designed, exported, and consumed as portable micro-frontend widgets.
+* **Programmatic Handler APIs for Simple Actions:** Basic single-step pipeline utility operations (such as persisting a signed file to storage) are not wrapped inside cross-service button components. Instead, the underlying functionality is exposed strictly as a raw, headless programmatic handler function API.
+* **Shell Composition Integration:** The intermediate domain shell page orchestrator absorbs these programmatic handler function APIs and wires them directly into local layout triggers or lifecycle callbacks (e.g., invoking the headless persistence API inside the `onSuccess` hook of a shared signature widget panel).
+
+### 3. Unified Configuration Architecture
+* **Single-File Vite Bundling:** Every frontend client project unifies its standalone local serving and federated module sharing scripts inside a single, comprehensive **`vite.config.ts`** manifest profile.
+* **Targeted Asynchronous Execution Gates:** Application initialization and DOM mounting code are shifted into an asynchronous `import('./bootstrap')` entry gate **strictly inside the global master shell** to allow runtime shared dependency resolution. Intermediate domain shells bypass this layer, preserving standard synchronous execution paths.
+* **Testing Isolation:** Isolated client component unit testing parameters remain cleanly decoupled inside dedicated **`vitest.config.ts`** configuration files per workspace.
+
+---
 
 ## Consequences
-* **Positive (Benefits):** The global master shell becomes completely evergreen; new pages and entire functional domains can be introduced to the ecosystem without modifying or redeploying the root dashboard code. Separating toolchains into independent config files keeps local development caching loops fast and completely unpolluted. Framework singletons combine perfectly without memory collisions or runtime entry crashes.
-* **Negative (Risks):** Raising the presentation layer to a three-tiered layout increases the total number of configuration profiles to maintain per frontend workspace. The dynamic module lookup pipeline requires managing an added registry discovery step.
+* **Positive (Benefits):** The global master shell becomes completely evergreen; new pages and entire functional domains can be introduced to the ecosystem without modifying or redeploying the root dashboard code. 
+* **Positive:** Unifying script parameters inside a single `vite.config.ts` significantly decreases configuration layout clutter while maintaining robust local development caching loops.
+* **Positive:** Exposing raw handler APIs for simple steps eliminates component wrapper duplication while preserving the ability to share complex, high-fidelity widgets seamlessly.
+* **Negative (Risks):** Unifying configurations inside a single file requires keeping Vite export functions clean and modular to handle shifting environment variable flags safely.
+
+---
 
 ## Validation and Compliance Plan
 * **Symmetrical Build Probes:** Production compilation tasks must execute smoothly within individual subfolders using targeted configuration targets to verify profile isolation.
 * **Dynamic Registration Audits:** Verification checks must confirm that booting an unmapped domain shell container registers its metadata cleanly, allowing immediate discovery and mounting on the global viewport without modifying master source code files.
+* **Boundary Validation Pass:** Shared widget testing blocks must confirm that complex components accept shell callback functions cleanly, verifying uncoupled inter-service telemetry orchestration.
