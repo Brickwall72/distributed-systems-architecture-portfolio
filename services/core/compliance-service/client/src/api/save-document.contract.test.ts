@@ -41,7 +41,7 @@ describe('saveDocument Consumer Contract', () => {
           .uponReceiving('a POST request to save a compliance document')
           .withRequest({
             method: 'POST',
-            path: '/api/v1/compliance/documents/save',
+            path: '/api/v1/compliance/documents/',
             headers: {
               'Content-Type': 'application/json',
             },

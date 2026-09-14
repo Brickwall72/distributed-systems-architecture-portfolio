@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/App.tsx
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { CustodyTransferPage, DocumentPreviewPage, UnifiedCustodyPage } from './pages';
+import { UnifiedCustodyPage, DocumentsPage } from './pages';
 import { NavigationTabs } from './components';
 import '@shared/styles';
 
@@ -19,7 +19,7 @@ export default function App() {
             <h2 className="text-xl font-bold text-white tracking-wide">Compliance & Flight Clearance Domain</h2>
             <p className="text-sm text-slate-400">Manage cryptographic validation gates and review safety artifacts.</p>
           </div>
-          {/* <NavigationTabs /> */}
+          <NavigationTabs />
         </div>
 
         {/* Dynamic Route View Container with Suspense Boundary */}
@@ -28,6 +28,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<UnifiedCustodyPage />} />
               <Route path="/custody" element={<UnifiedCustodyPage />} />
+              <Route path="/documents" element={<DocumentsPage />} />
             </Routes>
           </Suspense>
         </div>

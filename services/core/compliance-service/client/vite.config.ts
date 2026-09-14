@@ -7,6 +7,7 @@ export default createRemoteConfig({
   port: Number.parseInt(process.env.CLIENT_PORT || '3021'),
   exposes: {
     './TemplateSelector': './src/widgets/TemplateSelector.tsx',
-    './api': './src/api/index.ts'
+    './api': './src/api/index.ts',
+    './contracts': './src/contracts/index.ts'
   },
 });

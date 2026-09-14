@@ -8,7 +8,7 @@ import { createLogger } from '@shared/telemetry';
 const router = Router();
 const logger = createLogger('compliance-service:documents');
 
-router.post('/save', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const { pdfBase64, documentType = 'transfer-approval' } = req.body;
 
@@ -56,6 +56,28 @@ router.post('/save', async (req: Request, res: Response) => {
     const message = err instanceof Error ? err.message : 'Unknown storage error';
     logger.error(`Failed to process compliance document persistence: ${message}`);
     res.status(500).json({ error: `Internal storage failure: ${message}` });
+  }
+});
+
+router.get('/', async (_req, res) => {
+  try {
+    logger.debug('Retrieving Compliance documents from compliance-db.');
+    const { rows } = await pool.query('SELECT * FROM compliance_documents ORDER BY created_at DESC');
+    
+    // Map database columns to match the client contract schema
+    const mappedRows = rows.map((row) => ({
+      id: row.id,
+      // Map your storage URI or document_type to the expected client field
+      document_type: row.document_type || row.s3_uri?.split('/').pop() || 'DD1149-asset-transfer.pdf',
+      s3_uri: row.s3_uri,
+      status: row.status || 'Pending', // Fallback status if not stored yet
+      created_at: row.created_at,
+    }));
+
+    res.json(mappedRows);
+  } catch (error) {
+    logger.error(`Database query failed: ${error}`);
+    res.status(500).json({ error: 'Failed to retrieve compliance_documents dataset' });
   }
 });
 

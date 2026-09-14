@@ -36,59 +36,94 @@ describe('Compliance Documents Router Unit Tests', () => {
     vi.clearAllMocks();
   });
 
-  it('returns 400 if pdfBase64 is missing', async () => {
-    const res = await request(app)
-      .post('/api/v1/compliance/documents/save')
-      .send({}); // Missing pdfBase64
+  describe('POST /api/v1/compliance/documents/', () => {
+    it('returns 400 if pdfBase64 is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/compliance/documents/')
+        .send({}); // Missing pdfBase64
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Missing required field: pdfBase64.' });
-  });
-
-  it('successfully uploads document to MinIO and inserts record into Postgres', async () => {
-    mockUploadComplianceDocument.mockResolvedValue('s3://compliance-documents/transfer-approval/test-doc-123.pdf');
-    mockPoolQuery.mockResolvedValue({
-      rows: [{ id: 42, created_at: '2026-09-12T19:00:00.000Z' }],
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Missing required field: pdfBase64.' });
     });
 
-    const res = await request(app)
-      .post('/api/v1/compliance/documents/save')
-      .send({
-        pdfBase64: 'dGVzdC1wZGY=',
+    it('successfully uploads document to MinIO and inserts record into Postgres', async () => {
+      mockUploadComplianceDocument.mockResolvedValue('s3://compliance-documents/transfer-approval/test-doc-123.pdf');
+      mockPoolQuery.mockResolvedValue({
+        rows: [{ id: 42, created_at: '2026-09-12T19:00:00.000Z' }],
+      });
+
+      const res = await request(app)
+        .post('/api/v1/compliance/documents/')
+        .send({
+          pdfBase64: 'dGVzdC1wZGY=',
+          documentType: 'transfer-approval',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual({
+        id: 42,
+        documentId: expect.any(String),
         documentType: 'transfer-approval',
+        s3Uri: 's3://compliance-documents/transfer-approval/test-doc-123.pdf',
+        createdAt: '2026-09-12T19:00:00.000Z',
       });
 
-    expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toEqual({
-      id: 42,
-      documentId: expect.any(String),
-      documentType: 'transfer-approval',
-      s3Uri: 's3://compliance-documents/transfer-approval/test-doc-123.pdf',
-      createdAt: '2026-09-12T19:00:00.000Z',
+      expect(mockUploadComplianceDocument).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Buffer),
+        'transfer-approval'
+      );
+      expect(mockPoolQuery).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO compliance_documents'),
+        [expect.any(String), 'transfer-approval', 's3://compliance-documents/transfer-approval/test-doc-123.pdf']
+      );
     });
 
-    expect(mockUploadComplianceDocument).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Buffer),
-      'transfer-approval'
-    );
-    expect(mockPoolQuery).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO compliance_documents'),
-      [expect.any(String), 'transfer-approval', 's3://compliance-documents/transfer-approval/test-doc-123.pdf']
-    );
+    it('returns 500 if storage upload throws an error', async () => {
+      mockUploadComplianceDocument.mockRejectedValue(new Error('MinIO connection failed'));
+
+      const res = await request(app)
+        .post('/api/v1/compliance/documents/')
+        .send({
+          pdfBase64: 'dGVzdC1wZGY=',
+        });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal storage failure: MinIO connection failed' });
+    });
   });
 
-  it('returns 500 if storage upload throws an error', async () => {
-    mockUploadComplianceDocument.mockRejectedValue(new Error('MinIO connection failed'));
+  describe('GET /api/v1/compliance/documents/', () => {
+    it('successfully retrieves compliance documents dataset', async () => {
+      const mockRows = [
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          document_type: 'DD1149-asset-transfer.pdf',
+          status: 'Pending',
+          created_at: '2026-09-12T19:00:00.000Z',
+        },
+      ];
+      mockPoolQuery.mockResolvedValue({ rows: mockRows });
 
-    const res = await request(app)
-      .post('/api/v1/compliance/documents/save')
-      .send({
-        pdfBase64: 'dGVzdC1wZGY=',
-      });
+      const res = await request(app)
+        .get('/api/v1/compliance/documents/');
 
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Internal storage failure: MinIO connection failed' });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(mockRows);
+      expect(mockPoolQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT * FROM compliance_documents')
+      );
+    });
+
+    it('returns 500 if database query fails during retrieval', async () => {
+      mockPoolQuery.mockRejectedValue(new Error('Database connection lost'));
+
+      const res = await request(app)
+        .get('/api/v1/compliance/documents/');
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Failed to retrieve compliance_documents dataset' });
+    });
   });
 });
