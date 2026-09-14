@@ -73,6 +73,30 @@ describe('saveDocument API Client', () => {
     );
   });
 
+  it('throws an error if FileReader cannot read the blob', async () => {
+    const mockBlob = new Blob(['test-pdf-content'], { type: 'application/pdf' });
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      blob: async () => mockBlob,
+    });
+
+    vi.stubGlobal(
+      'FileReader',
+      class {
+        result = null;
+        onloadend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        readAsDataURL() {
+          this.onerror?.();
+        }
+      }
+    );
+
+    await expect(saveDocument(mockDocumentUrl)).rejects.toThrow(
+      'Failed to read blob as data URL.'
+    );
+  });
+
   it('throws an error with backend message if server returns a failure status', async () => {
     const mockBlob = new Blob(['test-pdf-content'], { type: 'application/pdf' });
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

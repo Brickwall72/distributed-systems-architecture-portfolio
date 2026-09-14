@@ -26,6 +26,7 @@ spec:
       labels:
         app: minio
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: minio
         image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
@@ -47,6 +48,15 @@ spec:
             port: 9000
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 512Mi
       volumes:
       - name: minio-data
         persistentVolumeClaim:
@@ -83,6 +93,7 @@ spec:
         app: minio-setup
     spec:
       restartPolicy: OnFailure
+      automountServiceAccountToken: false
       containers:
       - name: mc
         image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
@@ -101,6 +112,15 @@ spec:
           mc mb myminio/compliance-documents --ignore-existing
           mc anonymous set download myminio/compliance-documents
           echo 'MinIO setup complete.'
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+            ephemeral-storage: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 128Mi
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

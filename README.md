@@ -271,10 +271,12 @@ Docker storage:
 pnpm docker:df
 ```
 
-Kubernetes and default Compose Neo4j deployments are ephemeral. If you used the
-persistent topology Compose workflow, stop that exact project before resetting
-its graph data. The following intentionally removes the Neo4j volume and all
-data stored in it:
+Kubernetes and default Compose Neo4j deployments are ephemeral. `pnpm k3d:down`
+removes the `platform-cluster` and only Docker volumes mounted by its named k3d
+nodes, including anonymous k3d volumes. It does not remove volumes from other
+projects. If you used the persistent topology Compose workflow, stop that exact
+project before resetting its graph data. The following intentionally removes the
+Neo4j volume and all data stored in it:
 
 ```bash
 docker compose -p topology-service \
@@ -283,9 +285,16 @@ docker compose -p topology-service \
 ```
 
 Use `pnpm docker:df` for a detailed Docker storage report. `pnpm docker:prune`
-removes dangling images and unused builder cache without pruning volumes or all
-images. Use broader Docker cleanup commands only when you intend to rebuild
-unrelated projects as well.
+removes unused BuildKit cache and dangling images without pruning volumes. Run it
+after `pnpm k3d:down` when a rebuild leaves cache you no longer need. `pnpm
+skaffold:reset` intentionally disables Skaffold artifact caching and can create
+large temporary image layers; prefer `pnpm skaffold` for normal development.
+
+The project cannot safely delete anonymous Docker volumes that are not mounted
+by a `platform-cluster` node: Docker does not retain ownership labels for them.
+Inspect such volumes with `docker volume ls` and remove only volumes whose owner
+you can identify. Avoid routine `docker volume prune`, because it may remove
+data used by unrelated projects.
 
 The PDF server image includes Chromium and is intentionally large. Prefer targeted cleanup first:
 
@@ -294,7 +303,7 @@ docker image prune -f
 docker builder prune -f
 ```
 
-Use `docker builder prune -a` only when you are comfortable rebuilding all cached layers. Avoid routine `docker volume prune` because it can remove data used by unrelated projects.
+Use `docker buildx prune -a` only when you are comfortable rebuilding all cached layers.
 
 ### Troubleshooting
 
