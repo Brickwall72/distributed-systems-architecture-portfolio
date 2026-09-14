@@ -22,6 +22,18 @@ declare module 'topology_client/*' {
 
 declare module 'compliance_client/api' {
   export function saveDocument(documentUrl: string): Promise<void>;
+  export function fetchDocuments(): Promise<ComplianceDocument[]>
+}
+
+declare module 'compliance_client/contracts' {
+  type ComplianceDocument = {
+  [x: string]: unknown;
+  id: string;
+  document_type: string;
+  s3_uri: string;
+  status: "Pending" | "Approved" | "Rejected";
+  created_at: string;
+}
 }
 
 declare module 'compliance_client/*' {

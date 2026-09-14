@@ -63,6 +63,19 @@ describe('Compliance Service Provider Verification', () => {
             's3://compliance-documents/transfer-approval/test-doc-123.pdf'
           );
         },
+        'compliance documents exist': async () => {
+          mockPoolQuery.mockResolvedValue({
+            rows: [
+              {
+                id: '550e8400-e29b-41d4-a716-446655440000',
+                document_ref: 'DD1149-asset-transfer.pdf',
+                s3_uri: 's3/uri/location/pdf.pdf',
+                status: 'Pending',
+                created_at: '2026-09-13T21:00:20.000Z',
+              },
+            ],
+          });
+        },
       }
     };
 

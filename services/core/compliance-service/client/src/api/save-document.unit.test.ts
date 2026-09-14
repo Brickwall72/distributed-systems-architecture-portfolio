@@ -50,7 +50,7 @@ describe('saveDocument API Client', () => {
     expect(global.fetch).toHaveBeenNthCalledWith(1, mockDocumentUrl);
 
     // Verify second fetch posted the correct payload to the compliance endpoint
-    expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/v1/compliance/documents/save', {
+    expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/v1/compliance/documents/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

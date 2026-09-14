@@ -28,7 +28,7 @@ export async function saveDocument(
   });
 
   // 3. POST the payload to the compliance service backend (MinIO + Postgres)
-  const apiResponse = await fetch('/api/v1/compliance/documents/save', {
+  const apiResponse = await fetch('/api/v1/compliance/documents/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

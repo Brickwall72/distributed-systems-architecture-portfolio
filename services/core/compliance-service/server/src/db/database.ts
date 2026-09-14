@@ -6,7 +6,7 @@ const { Pool } = pkg;
 const logger = createLogger('compliance-db');
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://admin:password@compliance-db:5432/compliance',
+  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@compliance-db:${process.env.DB_PORT}/${process.env.POSTGRES_DB}`,
 });
 
 /**

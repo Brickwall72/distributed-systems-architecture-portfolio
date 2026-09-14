@@ -22,8 +22,8 @@ services:
       - LABEL_compliance=Compliance DB
       - SERVER_compliance=compliance-db
       - PORT_compliance=5432
-      - USER_compliance=admin
-      - PASSWORD_compliance=password
+      - USER_compliance=posty5432
+      - PASSWORD_compliance=SecurePassword5432
       - ENGINE_compliance=postgres@dbgate-plugin-postgres
     volumes:
       - dbgate-data:/root/.dbgate  # <-- Persists queries, history, and settings
