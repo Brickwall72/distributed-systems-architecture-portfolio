@@ -23,7 +23,7 @@ export async function saveDocument(
         resolve(base64);
       }
     };
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () => reject(new Error('Failed to read blob as data URL.'));
     reader.readAsDataURL(blob);
   });
 

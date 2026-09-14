@@ -26,6 +26,7 @@ spec:
       labels:
         app: dbgate
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: dbgate
         image: dbgate/dbgate:7.2.6
@@ -60,9 +61,11 @@ spec:
           requests:
             cpu: 100m
             memory: 256Mi
+            ephemeral-storage: 128Mi
           limits:
             cpu: 500m
             memory: 512Mi
+            ephemeral-storage: 512Mi
       volumes:
       - name: dbgate-data
         persistentVolumeClaim:

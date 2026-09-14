@@ -201,6 +201,45 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-compliance-server-to-db
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: compliance-server
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: compliance-db
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-compliance-db-ingress-from-server
+  namespace: platform-local
+spec:
+  podSelector:
+    matchLabels:
+      app: compliance-db
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: compliance-server
+    ports:
+    - protocol: TCP
+      port: 5432
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: allow-compliance-server-minio-egress
   namespace: platform-local
 spec:
