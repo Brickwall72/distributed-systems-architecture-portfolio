@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/routes/sign.routes.ts
+// File: services/platform/esignature-service/server/src/routes/sign.ts
 import { Router, Request, Response } from 'express';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { SignPdf } from '@signpdf/signpdf';
@@ -17,7 +17,7 @@ export const esignRouter = Router();
 const logger = createLogger('esignature-service');
 esignRouter.get('/health', createHealthCheck('esign-server'));
 
-esignRouter.post('/sign', async (req: Request, res: Response) => {
+esignRouter.post('/', async (req: Request, res: Response) => {
   const correlationId = (req.headers['x-correlation-id'] as string) || null;
 
   try {
@@ -45,7 +45,7 @@ esignRouter.post('/sign', async (req: Request, res: Response) => {
     // Adjust these values to match your PDF's signature block position
     firstPage.drawImage(signatureImagePng, {
       x: width - 440, // Horizontal position from left
-      y: 505,          // Vertical position from bottom (increase to move up, decrease to move down)
+      y: 35,          // Vertical position from bottom (increase to move up, decrease to move down)
       width: 140,
       height: 40,
     });
@@ -60,7 +60,7 @@ esignRouter.post('/sign', async (req: Request, res: Response) => {
     // Adjust the date text coordinates to match as well
     firstPage.drawText(signingDateStr, {
       x: width - 130,
-      y: 515,          // Must match the signature vertical alignment
+      y: 45,          // Must match the signature vertical alignment
       size: 10,
       color: rgb(0, 0, 0),
     });

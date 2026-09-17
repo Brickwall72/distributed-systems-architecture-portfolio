@@ -41,7 +41,7 @@ describe('SignatureOverlay Contract Tests', () => {
         return { blob: async () => new Blob(['fake-pdf'], { type: 'application/pdf' }) };
       }
       
-      if (url === '/api/v1/esign/sign') {
+      if (url === '/api/v1/esign/') {
         return { 
           ok: true, 
           status: 200,
@@ -59,7 +59,7 @@ describe('SignatureOverlay Contract Tests', () => {
     vi.restoreAllMocks();
   });
 
-  it('adheres to the /api/v1/esign/sign API contract', async () => {
+  it('adheres to the /api/v1/esign/ API contract', async () => {
     render(<SignatureOverlay pdfBlobUrl="mock-pdf-url" onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
     
     const canvas = document.querySelector('canvas')!;
@@ -77,7 +77,7 @@ describe('SignatureOverlay Contract Tests', () => {
     });
 
     // Extract the POST request call to validate the contract
-    const apiCall = globalFetchMock.mock.calls.find((call: any[]) => call[0] === '/api/v1/esign/sign');
+    const apiCall = globalFetchMock.mock.calls.find((call: any[]) => call[0] === '/api/v1/esign/');
     
     expect(apiCall).toBeDefined();
     const requestOptions = apiCall[1];

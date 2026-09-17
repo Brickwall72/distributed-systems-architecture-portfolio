@@ -202,6 +202,10 @@ importers:
       pg:
         specifier: ~8.23.0
         version: 8.23.0
+    devDependencies:
+      tsx:
+        specifier: ~4.23.13
+        version: 4.23.13
 
   services/core/topology-service/client:
     dependencies:
@@ -287,6 +291,10 @@ importers:
       pdf-lib:
         specifier: ~1.17.1
         version: 1.17.1
+    devDependencies:
+      tsx:
+        specifier: ~4.23.13
+        version: 4.23.13
 
   services/platform/pdf-generator/client:
     dependencies:

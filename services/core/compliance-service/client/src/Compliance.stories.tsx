@@ -71,12 +71,12 @@ export const InteractiveFormSelector: Story = {
           }
           if (id === 'custom-audit') {
             return new HttpResponse(
-              '<!DOCTYPE html><html><body><h1>Custom Audit Checklist</h1><p>Entity: {{fromEntityName}}</p></body></html>',
+              '<!DOCTYPE html><html><body><h1>Custom Audit Checklist</h1><p>Entity: {{releasingEntityName}}</p></body></html>',
               { headers: { 'Content-Type': 'text/html' } }
             );
           }
           return new HttpResponse(
-            '<!DOCTYPE html><html><body><h1>DD-1149 Requisition</h1><p>Transfer from {{fromEntityName}} to {{toEntityName}}</p></body></html>',
+            '<!DOCTYPE html><html><body><h1>DD-1149 Requisition</h1><p>Transfer from {{releasingEntityName}} to {{receivingEntityName}}</p></body></html>',
             { headers: { 'Content-Type': 'text/html' } }
           );
         }),

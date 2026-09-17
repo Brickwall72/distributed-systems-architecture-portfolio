@@ -1,6 +1,6 @@
 // File: services/platform/esign-service/server/src/server.ts
 import express from 'express';
-import { esignRouter } from './routes/sign.routes.js';
+import { esignRouter } from './routes/sign.js';
 import { createLogger } from '@shared/telemetry';
 
 const app = express();

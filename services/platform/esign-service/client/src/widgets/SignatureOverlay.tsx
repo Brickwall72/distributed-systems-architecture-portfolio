@@ -91,7 +91,7 @@ export default function SignatureOverlay({
         reader.readAsDataURL(pdfBlob);
       });
 
-      const signResponse = await fetch('/api/v1/esign/sign', {
+      const signResponse = await fetch('/api/v1/esign/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
