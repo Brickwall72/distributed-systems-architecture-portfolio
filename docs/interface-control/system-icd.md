@@ -110,12 +110,12 @@ A stateless platform utility wrapper that accepts a structured compliance data p
 * **Request Schema (`DD1149TemplateDataSchema`):**
   ```json
   {
-    "fromEntityName": "string",
-    "fromAddressLine1": "string",
-    "fromAddressLine2": "string",
-    "toEntityName": "string",
-    "toAddressLine1": "string",
-    "toAddressLine2": "string",
+    "releasingEntityName": "string",
+    "releasingAddressLine1": "string",
+    "releasingAddressLine2": "string",
+    "receivingEntityName": "string",
+    "receivingAddressLine1": "string",
+    "receivingAddressLine2": "string",
     "requisitionNumber": "string",
     "transferDate": "string (YYYYMMDD)",
     "items": [

@@ -48,12 +48,12 @@ export default function UnifiedCustodyPage() {
     if (!(sourceOrg || targetOrg || asset)) return null;
 
     return {
-      fromEntityName: sourceOrg?.name ?? '',
-      fromAddressLine1: sourceOrg?.addressLine1 ?? '',
-      fromAddressLine2: sourceOrg?.addressLine2 ?? '',
-      toEntityName: targetOrg?.name ?? '',
-      toAddressLine1: targetOrg?.addressLine1 ?? '',
-      toAddressLine2: targetOrg?.addressLine2 ?? '',
+      releasingEntityName: sourceOrg?.name ?? '',
+      releasingAddressLine1: sourceOrg?.addressLine1 ?? '',
+      releasingAddressLine2: sourceOrg?.addressLine2 ?? '',
+      receivingEntityName: targetOrg?.name ?? '',
+      receivingAddressLine1: targetOrg?.addressLine1 ?? '',
+      receivingAddressLine2: targetOrg?.addressLine2 ?? '',
       requisitionNumber,
       transferDate,
       items: [

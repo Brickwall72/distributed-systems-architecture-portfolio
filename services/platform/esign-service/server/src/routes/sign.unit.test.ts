@@ -1,7 +1,7 @@
-// File: services/platform/esign-service/server/src/routes/sign.routes.unit.test.ts
+// File: services/platform/esign-service/server/src/routes/sign.unit.test.ts
 import request from 'supertest';
 import express from 'express';
-import { esignRouter } from './sign.routes';
+import { esignRouter } from './sign';
 
 // 1. Hoist mock functions to ensure they are available during module mocking
 const { mockExistsSync, mockReadFileSync } = vi.hoisted(() => ({
@@ -47,7 +47,7 @@ describe('E-Signature Router Unit Tests', () => {
 
   it('returns 400 if pdfBase64 or signatureImageBase64 is missing', async () => {
     const res = await request(app)
-      .post('/api/v1/esign/sign')
+      .post('/api/v1/esign/')
       .send({ pdfBase64: 'mock-pdf' }); // Missing signatureImageBase64
 
     expect(res.status).toBe(400);
@@ -71,7 +71,7 @@ describe('E-Signature Router Unit Tests', () => {
     mockExistsSync.mockReturnValue(false);
 
     const res = await request(app)
-      .post('/api/v1/esign/sign')
+      .post('/api/v1/esign/')
       .send({ pdfBase64: 'mock-pdf', signatureImageBase64: 'mock-png' });
 
     expect(res.status).toBe(200);
@@ -86,7 +86,7 @@ describe('E-Signature Router Unit Tests', () => {
     mockPdfLoad.mockRejectedValue(new Error('PDF parsing failed'));
 
     const res = await request(app)
-      .post('/api/v1/esign/sign')
+      .post('/api/v1/esign/')
       .send({ pdfBase64: 'bad-pdf', signatureImageBase64: 'bad-png' });
 
     expect(res.status).toBe(500);
