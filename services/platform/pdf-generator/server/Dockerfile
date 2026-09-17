@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1.7
+# File: services/platform/pdf-generator/server/Dockerfile
+
+# --- STAGE 1: Builder ---
+FROM base-image:local AS builder
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+WORKDIR /app
+
+RUN mkdir -p "${SERVICE_PATH}"
+COPY package.json tsconfig.json ${SERVICE_PATH}/
+COPY src/ ${SERVICE_PATH}/src/
+
+RUN pnpm build
+
+# --- STAGE 2: Dev Target ---
+FROM builder AS dev
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+
+# Install Chromium for local PDF generation/testing
+RUN apk add --no-cache ca-certificates chromium freetype harfbuzz nss ttf-freefont
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+WORKDIR ${SERVICE_PATH}
+RUN chown -R node:node /app
+USER node
+EXPOSE 4001
+CMD ["pnpm", "dev"]
+
+# --- STAGE 3: Static / Prod Target ---
+FROM node:26.7.0-alpine AS prod
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+
+# Install runtime OS dependencies for Puppeteer
+RUN apk add --no-cache ca-certificates chromium freetype harfbuzz nss ttf-freefont
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    NODE_ENV=production
+
+WORKDIR /app
+
+# Use --chown during COPY to avoid duplicating layers
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/packages ./packages
+COPY --chown=node:node --from=builder /app/pnpm-lock.yaml ./
+
+WORKDIR ${SERVICE_PATH}
+
+# Copy compiled distribution files and production dependencies securely
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/dist ./dist
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/package.json ./
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_modules
+
+# Enforce least-privilege security
+USER node
+EXPOSE 4001
+
+CMD ["node", "dist/server.js"]

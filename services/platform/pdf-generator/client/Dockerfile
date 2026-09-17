@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1.7
+# File: services/platform/pdf-generator/client/Dockerfile
+
+# --- STAGE 1: Builder ---
+FROM base-image:local AS builder
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/client
+WORKDIR /app
+
+# Run as root. No chown required. EACCES issues are bypassed.
+COPY package.json tsconfig.json vite.config.ts index.html ${SERVICE_PATH}/
+
+RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+COPY src/ ${SERVICE_PATH}/src/
+WORKDIR ${SERVICE_PATH}
+RUN pnpm build
+
+# --- STAGE 2: Dev Target (For hot-reloading) ---
+FROM builder AS dev
+EXPOSE 4011
+CMD ["pnpm", "dev"]
+
+# --- STAGE 3: Static / Prod Target ---
+FROM nginx:alpine AS prod
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/client
+
+# 1. Clear out default Nginx configurations and default HTML assets
+RUN rm -rf /usr/share/nginx/html/* && \
+    rm /etc/nginx/conf.d/default.conf
+
+# 2. Inject the declarative configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 3. Grant the non-root 'nginx' user ownership over required directories
+RUN chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && chown -R nginx:nginx /etc/nginx/conf.d \
+    && touch /var/run/nginx.pid \
+    && chown -R nginx:nginx /var/run/nginx.pid
+
+# 4. Copy built assets FLAT, exactly as Vite generated them
+COPY --from=builder ${SERVICE_PATH}/dist /usr/share/nginx/html
+
+# 5. Drop root privileges entirely
+USER nginx
+EXPOSE 4011
+
+CMD ["nginx", "-g", "daemon off;"]

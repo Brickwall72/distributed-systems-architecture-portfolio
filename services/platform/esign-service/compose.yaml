@@ -1,0 +1,47 @@
+# File: services/platform/esign-service/compose.yaml
+services:
+  esign-server:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile
+      target: prod
+    image: esign-server:local
+    container_name: esign-server
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+      NODE_ENV: production
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-4002}/api/v1/esign/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  esign-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+      target: prod
+    image: esign-client:local
+    container_name: esign-client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      CLIENT_PORT: ${CLIENT_PORT}
+    depends_on:
+      esign-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

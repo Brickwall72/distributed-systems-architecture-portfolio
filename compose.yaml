@@ -4,13 +4,9 @@
 # network used for intra-platform communication.
 
 include:
-  - path: ui-shells/global-shell/compose.dev.yaml
-  - path: ui-shells/domain-shells/compliance-shell/compose.dev.yaml
-  - path: ui-shells/domain-shells/topology-shell/compose.dev.yaml
-  - path: services/core/compliance-service/compose.yaml
-  - path: services/core/topology-service/compose.yaml
-  - path: services/platform/pdf-generator/compose.dev.yaml
-  - path: services/platform/esign-service/compose.dev.yaml
+  - path: ui-shells/compose.yaml
+  - path: services/core/compose.yaml
+  - path: services/platform/compose.yaml
 
 services:
   dbgate:

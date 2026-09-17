@@ -1,0 +1,6 @@
+# File: ui-shells/compose.yaml
+
+include:
+  - path: global-shell/compose.dev.yaml
+  - path: domain-shells/compliance-shell/compose.dev.yaml
+  - path: domain-shells/topology-shell/compose.dev.yaml

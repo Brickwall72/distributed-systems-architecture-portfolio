@@ -1,0 +1,47 @@
+# File: services/platform/pdf-generator/compose.yaml
+services:
+  pdf-server:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile
+      target: prod
+    image: pdf-server:local
+    container_name: pdf-server
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+      NODE_ENV: production
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:${SERVER_PORT:-4001}/api/v1/pdf/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  pdf-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+      target: prod
+    image: pdf-client:local
+    container_name: pdf-client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      CLIENT_PORT: ${CLIENT_PORT}
+    depends_on:
+      pdf-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh
