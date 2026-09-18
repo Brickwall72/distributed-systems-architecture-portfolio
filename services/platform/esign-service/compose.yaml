@@ -2,10 +2,10 @@
 services:
   esign-server:
     build:
-      context: ./server
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./Dockerfile.server
       target: prod
-    image: esign-server:local
+    image: esign-server:prod
     container_name: esign-server
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
@@ -27,10 +27,10 @@ services:
 
   esign-client:
     build:
-      context: ./client
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./Dockerfile.client
       target: prod
-    image: esign-client:local
+    image: esign-client:prod
     container_name: esign-client
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"

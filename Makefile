@@ -1,34 +1,49 @@
-# Makefile
 .PHONY: up down dev clean logs
 
-# Define the base docker compose command
 COMPOSE := docker compose
 
-# Start the entire environment normally
+# Start the entire stack in production mode
 up:
 	$(COMPOSE) up --build -d
 
-# Tear down the environment gracefully
+# Tear down the environment
 down:
 	$(COMPOSE) down
 
-# Start the environment with a specific service in dev mode
-# Usage: make dev svc=services/platform/esign-service
+# Start one or more services in dev mode
+# Single service:  make dev svcs=services/platform/esign-service
+# Multi-service:   make dev svcs="services/global-shell services/platform/esign-service"
 dev:
-	@if [ -z "$(svc)" ]; then \
-		echo "❌ Error: Must provide svc path."; \
-		echo "   Usage: make dev svc=services/platform/<service-name>"; \
+	@TARGET_PATHS="$(svcs)$(svc)"; \
+	if [ -z "$$TARGET_PATHS" ]; then \
+		echo "❌ Error: Must provide service path(s)."; \
+		echo "   Usage: make dev svcs=\"services/global-shell services/platform/esign-service\""; \
 		exit 1; \
-	fi
-	@echo "🚀 Spinning up infrastructure with dev override for $(svc)..."
-	$(COMPOSE) -f compose.yaml -f $(svc)/compose.dev.yaml up --build -d --remove-orphans
+	fi; \
+	COMPOSE_FLAGS="-f compose.yaml"; \
+	TARGET_SERVICES=""; \
+	for path in $$TARGET_PATHS; do \
+		DEV_FILE="$$path/compose.dev.yaml"; \
+		if [ -f "$$DEV_FILE" ]; then \
+			COMPOSE_FLAGS="$$COMPOSE_FLAGS -f $$DEV_FILE"; \
+			SERVICES=$$($(COMPOSE) -f $$DEV_FILE config --services 2>/dev/null); \
+			TARGET_SERVICES="$$TARGET_SERVICES $$SERVICES"; \
+		else \
+			echo "⚠️ Warning: $$DEV_FILE not found. Skipping..."; \
+		fi; \
+	done; \
+	if [ -z "$$TARGET_SERVICES" ]; then \
+		echo "❌ No valid dev targets found."; \
+		exit 1; \
+	fi; \
+	echo "🚀 Spinning up dev overrides for targets:$$TARGET_SERVICES"; \
+	$(COMPOSE) $$COMPOSE_FLAGS up --build -d --no-deps $$TARGET_SERVICES
 
-# Nuclear teardown: Stop containers, remove named volumes, and clean orphans
+# Scrub environment (containers, volumes, orphans)
 clean:
 	@echo "🧹 Scrubbing the environment..."
 	$(COMPOSE) down -v --remove-orphans
 
-# Tail logs for the entire stack or a specific service
-# Usage: make logs OR make logs svc=esign-server
+# Tail logs (Usage: make logs OR make logs svc=esign-client)
 logs:
 	$(COMPOSE) logs -f $(svc)

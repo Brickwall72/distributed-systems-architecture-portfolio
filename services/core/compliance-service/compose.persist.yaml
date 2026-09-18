@@ -1,7 +1,0 @@
-services:
-  compliance-db:
-    volumes:
-      - compliance_db_data:/data
-
-volumes:
-  compliance_db_data:

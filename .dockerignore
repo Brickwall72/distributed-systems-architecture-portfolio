@@ -1,3 +1,5 @@
+# File: .dockerignore
+
 # Exclude Package Dependencies & Build Artifacts
 node_modules/
 **/node_modules/
@@ -29,7 +31,13 @@ debug-storybook.log
 # Vite build artifacts
 @mf-types/
 .mf/
+**/.vite-temp
 
 # Testfile outputs
 test-output.pdf
 pacts/
+
+# DevSecOps: Globally exclude infrastructure configuration from container contexts
+**/Dockerfile*
+**/compose*.yaml
+Makefile

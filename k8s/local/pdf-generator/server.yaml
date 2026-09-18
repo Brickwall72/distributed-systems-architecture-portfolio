@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: pdf-server
-        image: pdf-server:local
+        image: pdf-server:prod
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4001

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# File: services/platform/esign-service/server/Dockerfile
+# File: services/platform/esign-service/Dockerfile.server
 
 # --- STAGE 1: Builder ---
 FROM base-image:local AS builder
@@ -8,10 +8,9 @@ WORKDIR /app
 
 # Just copy the service source code directly into the workspace structure already established by the base image
 RUN mkdir -p "${SERVICE_PATH}"
-COPY package.json tsconfig.json ${SERVICE_PATH}/
-COPY src/ ${SERVICE_PATH}/src/
+COPY server/ ${SERVICE_PATH}/
 
-# WORKDIR ${SERVICE_PATH}
+WORKDIR ${SERVICE_PATH}
 # The workspace is already linked from the base image; just build directly
 RUN pnpm build
 

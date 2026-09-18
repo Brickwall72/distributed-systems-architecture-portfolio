@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: topology-server
-        image: topology-server:local
+        image: topology-server:prod
         imagePullPolicy: IfNotPresent
         env:
         - name: SERVER_PORT

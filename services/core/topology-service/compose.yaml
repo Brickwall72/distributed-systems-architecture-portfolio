@@ -8,23 +8,23 @@ services:
     ports:
       - "${DB_EXTERNAL_PORT}:7474"
       - "7687:7687"
+    volumes:
+      - topology_db_data:/data
     networks:
       - platform-mesh
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "cypher-shell -a bolt://localhost:7687 -u \"${DB_USER}\" -p \"${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"
-        ]
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u \"${DB_USER}\" -p \"${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+
   topology-server:
     build:
-      context: ./server
-      dockerfile: ./Dockerfile.dev
-    image: topology-server:local
+      context: .
+      dockerfile: Dockerfile.server
+      target: prod
+    image: topology-server:prod
     container_name: topology-server
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
@@ -36,39 +36,35 @@ services:
     depends_on:
       topology-db:
         condition: service_healthy
-    volumes:
-      - ./server:/app/services/core/topology-service/server
     networks:
       - platform-mesh
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "node -e \"fetch('http://localhost:${SERVER_PORT:-8083}/api/v1/topology/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
-        ]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:${SERVER_PORT:-8083}/api/v1/topology/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+
   topology-client:
     build:
-      context: ./client
-      dockerfile: ./Dockerfile
-    image: topology-client:local
+      context: .
+      dockerfile: Dockerfile.client
+      target: prod
+    image: topology-client:prod
     container_name: topology-client
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
       CLIENT_PORT: ${CLIENT_PORT}
-    volumes:
-      - ./client:/app/services/core/topology-service/client
     depends_on:
       topology-server:
         condition: service_healthy
     networks:
       - platform-mesh
-    
 
 networks:
   platform-mesh:
     name: platform-mesh
+
+volumes:
+  topology_db_data:

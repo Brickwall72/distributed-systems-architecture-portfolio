@@ -63,8 +63,10 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
     ],
     build: {
       target: 'esnext',
+      outDir: 'dist',
+      assetsDir: 'assets',
       minify: false,
-      cssCodeSplit: false, // Keeps federated CSS cleanly bundled
+      cssCodeSplit: true, // Keeps federated CSS cleanly bundled
     },
     // Avoid using a predictable directory in the world-writable system temp directory.
     cacheDir: join(tmpdir(), `vite-cache-${options.domain}-${options.concern}`),

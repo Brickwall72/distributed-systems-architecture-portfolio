@@ -10,6 +10,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: compliance
       PGDATA: /var/lib/postgresql/data
+    volumes:
+      - compliance_db_data:/data
     networks:
       - platform-mesh
     healthcheck:
@@ -19,9 +21,10 @@ services:
       retries: 5
   compliance-server:
     build:
-      context: ./server
-      dockerfile: ./Dockerfile.dev
-    image: compliance-server:local
+      context: .
+      dockerfile: Dockerfile.server
+      target: prod
+    image: compliance-server:prod
     container_name: compliance-server
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
@@ -31,9 +34,6 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_PORT: ${DB_PORT}
       POSTGRES_DB: compliance
-    command: pnpm start
-    volumes:
-      - ./server:/app/services/core/compliance-service/server
     depends_on:
       compliance-db:
         condition: service_healthy
@@ -51,16 +51,15 @@ services:
       start_period: 30s
   compliance-client:
     build:
-      context: ./client
-      dockerfile: ./Dockerfile
-    image: compliance-client:local
+      context: .
+      dockerfile: Dockerfile.client
+      target: prod
+    image: compliance-client:prod
     container_name: compliance-client
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
       PORT: ${CLIENT_PORT}
-    volumes:
-      - ./client:/app/services/core/compliance-service/client
     depends_on:
       compliance-server:
         condition: service_healthy
@@ -70,3 +69,6 @@ services:
 networks:
   platform-mesh:
     name: platform-mesh
+
+volumes:
+  compliance_db_data:

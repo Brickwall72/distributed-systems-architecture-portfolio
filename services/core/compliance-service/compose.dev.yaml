@@ -1,0 +1,26 @@
+# File: services/core/compliance-service/compose.dev.yaml
+services:
+  compliance-server:
+    build:
+      target: dev
+    image: compliance-server:dev
+    environment:
+      # Forces polling for cross-os volume event reliability
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Mount source for nodemon/Vite live-reloading
+      - ./packages:/app/packages
+      - ./services/core/compliance-service/server:/app/services/core/compliance-service/server
+      # Prevent host node_modules from colliding with the container's unprivileged node user
+      - /app/services/core/compliance-service/server/node_modules
+
+  compliance-client:
+    build:
+      target: dev
+    image: compliance-client:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./packages:/app/packages
+      - ./services/core/compliance-service/client:/app/services/core/compliance-service/client
+      - /app/services/core/compliance-service/client/node_modules

@@ -2,21 +2,24 @@
 services:
   esign-server:
     build:
-      # context: .
       target: dev
+    image: esign-server:dev
     command: pnpm run dev
     environment:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./packages:/app/packages
       - ./services/platform/esign-service/server:/app/services/platform/esign-service/server
+      - /app/services/platform/esign-service/server/node_modules
 
   esign-client:
     build:
       target: dev
+    image: esign-client:dev
     command: pnpm run dev
     environment:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./packages:/app/packages
       - ./services/platform/esign-service/client:/app/services/platform/esign-service/client
+      - /app/services/platform/esign-service/client/node_modules

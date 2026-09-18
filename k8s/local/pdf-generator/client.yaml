@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: pdf-client
-        image: pdf-client:local
+        image: pdf-client:prod
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4011

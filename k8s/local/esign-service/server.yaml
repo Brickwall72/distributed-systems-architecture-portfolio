@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: esign-server
-        image: esign-server:local
+        image: esign-server:prod
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4002

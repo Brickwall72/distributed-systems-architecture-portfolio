@@ -36,7 +36,7 @@ spec:
             ephemeral-storage: 128Mi
       containers:
       - name: compliance-server
-        image: compliance-server:local
+        image: compliance-server:prod
         imagePullPolicy: IfNotPresent
         env:
         - name: SERVER_PORT

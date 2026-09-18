@@ -3,19 +3,23 @@ services:
   pdf-server:
     build:
       target: dev
+    image: pdf-server:dev
     command: pnpm run dev
     environment:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./packages:/app/packages
       - ./services/platform/pdf-generator/server:/app/services/platform/pdf-generator/server
+      - /app/services/platform/pdf-generator/server/node_modules
 
   pdf-client:
     build:
       target: dev
+    image: pdf-client:dev
     command: pnpm run dev
     environment:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./packages:/app/packages
       - ./services/platform/pdf-generator/client:/app/services/platform/pdf-generator/client
+      - /app/services/platform/pdf-generator/client/node_modules
