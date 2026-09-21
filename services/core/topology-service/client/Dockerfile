@@ -16,6 +16,6 @@ RUN pnpm build
 WORKDIR ${SERVICE_PATH}
 RUN chown -R node:node "${SERVICE_PATH}"
 USER node
-EXPOSE 3011
+EXPOSE 3000
 
 CMD ["pnpm", "start"]

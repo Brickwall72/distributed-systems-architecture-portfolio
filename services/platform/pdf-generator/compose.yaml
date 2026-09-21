@@ -1,0 +1,53 @@
+# File: services/platform/pdf-generator/compose.yaml
+services:
+  pdf-server:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile
+    image: pdf-server:local
+    container_name: pdf-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pdf-api.rule=PathPrefix(`/pdf/api`)"
+      - "traefik.http.routers.pdf-api.entrypoints=web"
+      - "traefik.http.middlewares.pdf-api-rewrite.replacepathregex.regex=^/pdf/api/v1/(.*)"
+      - "traefik.http.middlewares.pdf-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.pdf-api.middlewares=pdf-api-rewrite"
+      - "traefik.http.services.pdf-api.loadbalancer.server.port=8080"
+    command: pnpm run dev
+    volumes:
+      - ./server:/app/services/platform/pdf-generator/server
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  pdf-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+    image: pdf-client:local
+    container_name: pdf-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pdf.rule=PathPrefix(`/pdf`)"
+      - "traefik.http.routers.pdf.entrypoints=web"
+      - "traefik.http.services.pdf.loadbalancer.server.port=3000"
+    volumes:
+      - ./client:/app/services/platform/pdf-generator/client
+    depends_on:
+      pdf-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

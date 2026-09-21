@@ -16,7 +16,7 @@ describe('AssetSelector Consumer Contract', () => {
           .uponReceiving('a GET request for asset entities')
           .withRequest({
             method: 'GET',
-            path: '/api/v1/topology/assets',
+            path: '/topology/api/v1/assets',
           })
           .willRespondWith({
             status: 200,

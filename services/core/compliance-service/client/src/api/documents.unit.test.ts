@@ -27,7 +27,7 @@ describe('fetchDocuments Unit Tests', () => {
 
     const result = await fetchDocuments();
     expect(result).toEqual(mockData);
-    expect(global.fetch).toHaveBeenCalledWith('/api/v1/compliance/documents/');
+    expect(global.fetch).toHaveBeenCalledWith('/compliance/api/v1/documents/');
   });
 
   it('throws an error on invalid schema payload', async () => {

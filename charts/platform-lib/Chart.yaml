@@ -1,0 +1,7 @@
+# File: charts/platform-lib/Chart.yaml
+apiVersion: v2
+name: platform-lib
+description: Shared template library for workloads
+type: library
+version: 0.1.0
+appVersion: "0.1.0"

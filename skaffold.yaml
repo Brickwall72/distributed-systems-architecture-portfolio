@@ -10,7 +10,7 @@ build:
     - image: topology-server
       context: services/core/topology-service/server
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.ts"
@@ -27,7 +27,7 @@ build:
     - image: pdf-server
       context: services/platform/pdf-generator/server
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.ts"
@@ -35,7 +35,7 @@ build:
     - image: pdf-client
       context: services/platform/pdf-generator/client
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.tsx"
@@ -44,7 +44,7 @@ build:
     - image: esign-server
       context: services/platform/esign-service/server
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.ts"
@@ -52,7 +52,7 @@ build:
     - image: esign-client
       context: services/platform/esign-service/client
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.tsx"
@@ -61,10 +61,9 @@ build:
     - image: topology-shell
       context: ui-shells/domain-shells/topology-shell
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
         buildArgs:
           VITE_ORIGIN: "http://localhost:8081"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/client/remoteEntry.js"
       sync:
         infer:
           - "**/*.tsx"
@@ -73,7 +72,7 @@ build:
     - image: compliance-server
       context: services/core/compliance-service/server
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
       sync:
         infer:
           - "**/*.ts"
@@ -90,16 +89,9 @@ build:
     - image: compliance-shell
       context: ui-shells/domain-shells/compliance-shell
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
         buildArgs:
           VITE_ORIGIN: "http://localhost:8081"
-          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8081/compliance/client/remoteEntry.js"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/client/remoteEntry.js"
-          PDF_REMOTE_ENTRY: "http://localhost:8081/pdf/client/remoteEntry.js"
-          TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
-          PDF_API_URL: "http://localhost:8081/api/v1/pdf"
-          ESIGN_REMOTE_ENTRY: "http://localhost:8081/esign/client/remoteEntry.js"
-          ESIGN_API_URL: "http://localhost:8081/api/v1/esign"
       sync:
         infer:
           - "**/*.tsx"
@@ -108,39 +100,73 @@ build:
     - image: global-shell
       context: ui-shells/global-shell
       docker:
-        dockerfile: Dockerfile.dev
+        dockerfile: Dockerfile
         buildArgs:
           VITE_ORIGIN: "http://localhost:8081"
-          COMPLIANCE_REMOTE_ENTRY: "http://localhost:8081/compliance/remoteEntry.js"
-          TOPOLOGY_REMOTE_ENTRY: "http://localhost:8081/topology/remoteEntry.js"
-          TOPOLOGY_API_URL: "http://localhost:8081/api/v1/topology"
-          PDF_API_URL: "http://localhost:8081/api/v1/pdf"
-          ESIGN_API_URL: "http://localhost:8081/api/v1/esign"
       sync:
         infer:
           - "**/*.tsx"
           - "**/*.ts"
           - "**/*.json"
-manifests:
-  rawYaml:
-    - k8s/local/service-accounts.yaml
-    - k8s/local/network-policy.yaml
-    - k8s/local/topology-service/db.yaml
-    - k8s/local/topology-service/server.yaml
-    - k8s/local/topology-service/client.yaml
-    - k8s/local/topology-service/ingress.yaml
-    - k8s/local/pdf-generator/server.yaml
-    - k8s/local/pdf-generator/client.yaml
-    - k8s/local/pdf-generator/ingress.yaml
-    - k8s/local/esign-service/server.yaml
-    - k8s/local/esign-service/client.yaml
-    - k8s/local/esign-service/ingress.yaml
-    - k8s/local/shells/topology.yaml
-    - k8s/local/compliance-service/db.yaml
-    - k8s/local/compliance-service/client.yaml
-    - k8s/local/compliance-service/ingress.yaml
-    - k8s/local/compliance-service/server.yaml
-    - k8s/local/shells/compliance.yaml
-    - k8s/local/shells/global.yaml
-    - k8s/local/infrastructure/dbgate.yaml
-    - k8s/local/infrastructure/minio.yaml
+deploy:
+  helm:
+    releases:
+      - name: network-policies
+        chartPath: charts/network-policies
+        namespace: platform-local
+      - name: dbgate
+        chartPath: charts/dbgate
+        namespace: platform-local
+      - name: minio
+        chartPath: charts/minio
+        namespace: platform-local
+      - name: topology-service
+        chartPath: charts/topology-service
+        namespace: platform-local
+        setValueTemplates:
+          server.image.repository: "{{.IMAGE_REPO_topology_server}}"
+          server.image.tag: "{{.IMAGE_TAG_topology_server}}"
+          client.image.repository: "{{.IMAGE_REPO_topology_client}}"
+          client.image.tag: "{{.IMAGE_TAG_topology_client}}"
+      - name: compliance-service
+        chartPath: charts/compliance-service
+        namespace: platform-local
+        setValueTemplates:
+          server.image.repository: "{{.IMAGE_REPO_compliance_server}}"
+          server.image.tag: "{{.IMAGE_TAG_compliance_server}}"
+          client.image.repository: "{{.IMAGE_REPO_compliance_client}}"
+          client.image.tag: "{{.IMAGE_TAG_compliance_client}}"
+      - name: pdf-service
+        chartPath: charts/pdf-service
+        namespace: platform-local
+        setValueTemplates:
+          server.image.repository: "{{.IMAGE_REPO_pdf_server}}"
+          server.image.tag: "{{.IMAGE_TAG_pdf_server}}"
+          client.image.repository: "{{.IMAGE_REPO_pdf_client}}"
+          client.image.tag: "{{.IMAGE_TAG_pdf_client}}"
+      - name: esign-service
+        chartPath: charts/esign-service
+        namespace: platform-local
+        setValueTemplates:
+          server.image.repository: "{{.IMAGE_REPO_esign_server}}"
+          server.image.tag: "{{.IMAGE_TAG_esign_server}}"
+          client.image.repository: "{{.IMAGE_REPO_esign_client}}"
+          client.image.tag: "{{.IMAGE_TAG_esign_client}}"
+      - name: topology-shell
+        chartPath: charts/topology-shell
+        namespace: platform-local
+        setValueTemplates:
+          shell.image.repository: "{{.IMAGE_REPO_topology_shell}}"
+          shell.image.tag: "{{.IMAGE_TAG_topology_shell}}"
+      - name: compliance-shell
+        chartPath: charts/compliance-shell
+        namespace: platform-local
+        setValueTemplates:
+          shell.image.repository: "{{.IMAGE_REPO_compliance_shell}}"
+          shell.image.tag: "{{.IMAGE_TAG_compliance_shell}}"
+      - name: global-shell
+        chartPath: charts/global-shell
+        namespace: platform-local
+        setValueTemplates:
+          shell.image.repository: "{{.IMAGE_REPO_global_shell}}"
+          shell.image.tag: "{{.IMAGE_TAG_global_shell}}"

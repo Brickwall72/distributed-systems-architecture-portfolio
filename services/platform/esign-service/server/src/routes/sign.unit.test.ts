@@ -39,7 +39,7 @@ vi.mock('@signpdf/signer-p12', () => ({ P12Signer: vi.fn() }));
 describe('E-Signature Router Unit Tests', () => {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
-  app.use('/api/v1/esign', esignRouter);
+  app.use('/esign/api/v1', esignRouter);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +47,7 @@ describe('E-Signature Router Unit Tests', () => {
 
   it('returns 400 if pdfBase64 or signatureImageBase64 is missing', async () => {
     const res = await request(app)
-      .post('/api/v1/esign/')
+      .post('/esign/api/v1/')
       .send({ pdfBase64: 'mock-pdf' }); // Missing signatureImageBase64
 
     expect(res.status).toBe(400);
@@ -71,7 +71,7 @@ describe('E-Signature Router Unit Tests', () => {
     mockExistsSync.mockReturnValue(false);
 
     const res = await request(app)
-      .post('/api/v1/esign/')
+      .post('/esign/api/v1/')
       .send({ pdfBase64: 'mock-pdf', signatureImageBase64: 'mock-png' });
 
     expect(res.status).toBe(200);
@@ -86,7 +86,7 @@ describe('E-Signature Router Unit Tests', () => {
     mockPdfLoad.mockRejectedValue(new Error('PDF parsing failed'));
 
     const res = await request(app)
-      .post('/api/v1/esign/')
+      .post('/esign/api/v1/')
       .send({ pdfBase64: 'bad-pdf', signatureImageBase64: 'bad-png' });
 
     expect(res.status).toBe(500);

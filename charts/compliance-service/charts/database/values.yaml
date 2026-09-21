@@ -1,0 +1,67 @@
+# File: charts/compliance-service/charts/database/values.yaml
+# Credentials come from the compliance-db-credentials secret bootstrapped by
+# scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
+
+# services/core/compliance-service/server/src/db/database.ts hardcodes "compliance-db"
+# as the fallback connection hostname, so the Service name must match literally.
+nameOverride: compliance-db
+
+image:
+  repository: postgres
+  tag: 18.6-alpine
+  pullPolicy: IfNotPresent
+
+env:
+  - name: POSTGRES_USER
+    valueFrom:
+      secretKeyRef:
+        name: compliance-db-credentials
+        key: POSTGRES_USER
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: compliance-db-credentials
+        key: POSTGRES_PASSWORD
+  - name: POSTGRES_DB
+    valueFrom:
+      secretKeyRef:
+        name: compliance-db-credentials
+        key: POSTGRES_DB
+  - name: PGDATA
+    value: /var/lib/postgresql/data/pgdata
+
+envFrom: []
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9187"
+  prometheus.io/path: "/metrics"
+
+ports:
+  - name: tcp
+    port: 5432
+
+probes:
+  readiness:
+    tcpSocket:
+      port: 5432
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    tcpSocket:
+      port: 5432
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+persistence:
+  enabled: true
+  size: 1Gi
+  mountPath: /var/lib/postgresql/data
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi

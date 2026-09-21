@@ -16,8 +16,8 @@ export default function OrganizationSelector({
   onChange,
 }: OrganizationSelectorProps) {
   const url = excludeId
-    ? `/api/v1/topology/organizations?excludeId=${excludeId}`
-    : '/api/v1/topology/organizations';
+    ? `/topology/api/v1/organizations?excludeId=${excludeId}`
+    : '/topology/api/v1/organizations';
 
   return (
     <BaseSelector<Organization>

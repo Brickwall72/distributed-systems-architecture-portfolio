@@ -1,0 +1,4 @@
+# File: services/platform/compose.yaml
+include:
+  - path: esign-service/compose.yaml
+  - path: pdf-generator/compose.yaml

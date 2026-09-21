@@ -1,0 +1,12 @@
+# File: config/traefik/dynamic/middlewares.yaml
+http:
+  middlewares:
+    gzip-compress:
+      compress: {}
+
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer"

@@ -44,7 +44,7 @@ describe('GeneratePdfButton Component', () => {
     expect(screen.getByRole('button', { name: 'Generating...' })).toBeDisabled();
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/v1/pdf/generate', expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith('/pdf/api/v1/generate', expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ html: '<h1>Manifest</h1>' }),
       }));

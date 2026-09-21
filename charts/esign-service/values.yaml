@@ -1,0 +1,23 @@
+# File: charts/esign-service/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/esign/api`)"
+    serviceName: esign-server
+    rewrite:
+      regex: "^/esign/api/v1/(.*)"
+      replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/esign`)"
+    serviceName: esign-client

@@ -13,4 +13,4 @@ router.get('/health', createHealthCheck('compliance-server'));
 router.use('/templates', templateRoutes);
 router.use('/documents', documentsRouter);
 
-export default router;
+export { router as complianceGateway };

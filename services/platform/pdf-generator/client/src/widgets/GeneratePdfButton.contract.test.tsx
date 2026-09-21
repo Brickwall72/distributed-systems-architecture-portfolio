@@ -27,7 +27,7 @@ describe('GeneratePdfButton Consumer Contract', () => {
       .uponReceiving('a valid HTML payload to convert')
       .withRequest({
         method: 'POST',
-        path: '/api/v1/pdf/generate',
+        path: '/pdf/api/v1/generate',
         headers: { 'Content-Type': 'application/json' },
         body: {
           html: like('<h1>Test Transfer Document (DD-1149)</h1>'),

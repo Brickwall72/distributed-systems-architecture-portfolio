@@ -1,0 +1,26 @@
+# File: ui-shells/domain-shells/compliance-shell/compose.yaml
+services:
+  compliance-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: compliance-shell:local
+    container_name: compliance-shell
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.compliance-shell.rule=PathPrefix(`/compliance-shell`)"
+      - "traefik.http.routers.compliance-shell.entrypoints=web"
+      - "traefik.http.services.compliance-shell.loadbalancer.server.port=3000"
+    volumes:
+      - .:/app/ui-shells/domain-shells/compliance-shell
+    depends_on:
+      - pdf-client
+      - esign-client
+      - compliance-client
+      - topology-client
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

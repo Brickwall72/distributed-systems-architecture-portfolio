@@ -1,0 +1,24 @@
+# File: ui-shells/global-shell/compose.yaml
+services:
+  global-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: global-shell:local
+    container_name: global-shell
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.global-shell.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.global-shell.entrypoints=web"
+      - "traefik.http.services.global-shell.loadbalancer.server.port=3000"
+    volumes:
+      - .:/app/ui-shells/global-shell
+    depends_on:
+      - topology-shell
+      - compliance-shell
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

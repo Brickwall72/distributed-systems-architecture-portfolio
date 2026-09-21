@@ -23,17 +23,17 @@
 Used by shells and process coordinators to retrieve organizational hierarchies, resolve asset custody projections from graph edges, and validate structural constraints.
 
 * **Endpoints:**
-  1. `GET /api/v1/topology/organizations`
-  2. `GET /api/v1/topology/assets` (Supports query parameters: `?ownerId=string&excludeOwnerId=string`)
-  3. `POST /api/v1/topology/authorizations`
-  4. `GET /api/v1/topology/entities` (Returns full network graph projection of custody transfers)
+  1. `GET /topology/api/v1/organizations`
+  2. `GET /topology/api/v1/assets` (Supports query parameters: `?ownerId=string&excludeOwnerId=string`)
+  3. `POST /topology/api/v1/authorizations`
+  4. `GET /topology/api/v1/entities` (Returns full network graph projection of custody transfers)
 
 * **Mandatory Headers:**
   * `X-Correlation-ID`: `string (UUIDv4)`
   * `Authorization`: `Bearer <Service-To-Service-JWT>`
 
 * **Response Schemas (200 OK):**
-  * **Organizations (`GET /api/v1/topology/organizations`)**:
+  * **Organizations (`GET /topology/api/v1/organizations`)**:
     ```json
     [
       {
@@ -45,7 +45,7 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
       }
     ]
     ```
-  * **Assets (`GET /api/v1/topology/assets`)**:
+  * **Assets (`GET /topology/api/v1/assets`)**:
     ```json
     [
       {
@@ -56,7 +56,7 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
       }
     ]
     ```
-  * **Authorizations (`POST /api/v1/topology/authorizations`)**:
+  * **Authorizations (`POST /topology/api/v1/authorizations`)**:
     ```json
     {
       "authorized": "boolean",
@@ -64,7 +64,7 @@ Used by shells and process coordinators to retrieve organizational hierarchies, 
       "clearanceToken": "string (Cryptographic Hash Validation Signature)"
     }
     ```
-  * **Entity Directory Graph (`GET /api/v1/topology/entities`)**:
+  * **Entity Directory Graph (`GET /topology/api/v1/entities`)**:
     ```json
     {
       "timestamp": "string (ISO 8601 UTC)",

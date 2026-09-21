@@ -1,0 +1,40 @@
+# File: charts/esign-service/charts/server/values.yaml
+
+nameOverride: esign-server
+
+image:
+  repository: esign-server
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env: []
+envFrom: []
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+probes:
+  readiness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

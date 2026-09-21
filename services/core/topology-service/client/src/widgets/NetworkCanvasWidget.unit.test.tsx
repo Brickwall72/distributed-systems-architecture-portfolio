@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import NetworkCanvasWidget from './NetworkCanvasWidget';
 
 const server = setupServer(
-  http.get('/api/v1/topology/entities', () => {
+  http.get('/topology/api/v1/entities', () => {
     return HttpResponse.json({
       timestamp: new Date().toISOString(),
       transfers: [
@@ -41,7 +41,7 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
 
   it('should catch a network exception and display the explicit error boundary screen', async () => {
     server.use(
-      http.get('/api/v1/topology/entities', () => {
+      http.get('/topology/api/v1/entities', () => {
         return new HttpResponse(null, { status: 500 });
       })
     );

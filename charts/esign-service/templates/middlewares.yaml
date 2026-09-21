@@ -1,0 +1,6 @@
+# File: charts/esign-service/templates/middlewares.yaml
+# gzip-compress/security-headers are shared cluster-wide (see charts/traefik-shared);
+# only the per-service rewrite middleware belongs to this chart.
+
+{{ include "platform-lib.rewriteMiddleware" (dict "name" (printf "%s-api-rewrite" .Release.Name) "regex" .Values.ingress.api.rewrite.regex "replacement" .Values.ingress.api.rewrite.replacement) }}
+
