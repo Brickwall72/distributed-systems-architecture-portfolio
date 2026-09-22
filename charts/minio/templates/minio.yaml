@@ -122,13 +122,13 @@ spec:
             - -c
             - |
               echo 'Waiting for MinIO to start...'
-              until mc alias set myminio http://minio:9000 {{ .Values.rootUser }} {{ .Values.rootPassword }}; do
+              until mc --config-dir /tmp alias set myminio http://minio:9000 {{ .Values.rootUser }} {{ .Values.rootPassword }}; do
                 echo 'MinIO unavailable, retrying in 2 seconds...'
                 sleep 2
               done
               echo 'MinIO is up. Creating buckets...'
-              mc mb myminio/{{ .Values.bucket }} --ignore-existing
-              mc anonymous set download myminio/{{ .Values.bucket }}
+              mc --config-dir /tmp mb myminio/{{ .Values.bucket }} --ignore-existing
+              mc --config-dir /tmp anonymous set download myminio/{{ .Values.bucket }}
               echo 'MinIO setup complete.'
           resources:
             requests:

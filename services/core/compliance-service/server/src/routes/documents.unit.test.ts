@@ -30,7 +30,7 @@ vi.mock('@shared/telemetry', () => ({
 describe('Compliance Documents Router Unit Tests', () => {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
-  app.use('/compliance/api/v1/documents', documentsRouter);
+  app.use('/api/v1/documents', documentsRouter);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,7 +39,7 @@ describe('Compliance Documents Router Unit Tests', () => {
   describe('POST /compliance/api/v1/documents/', () => {
     it('returns 400 if pdfBase64 is missing', async () => {
       const res = await request(app)
-        .post('/compliance/api/v1/documents/')
+        .post('/api/v1/documents/')
         .send({}); // Missing pdfBase64
 
       expect(res.status).toBe(400);
@@ -53,7 +53,7 @@ describe('Compliance Documents Router Unit Tests', () => {
       });
 
       const res = await request(app)
-        .post('/compliance/api/v1/documents/')
+        .post('/api/v1/documents/')
         .send({
           pdfBase64: 'dGVzdC1wZGY=',
           documentType: 'transfer-approval',
@@ -84,7 +84,7 @@ describe('Compliance Documents Router Unit Tests', () => {
       mockUploadComplianceDocument.mockRejectedValue(new Error('MinIO connection failed'));
 
       const res = await request(app)
-        .post('/compliance/api/v1/documents/')
+        .post('/api/v1/documents/')
         .send({
           pdfBase64: 'dGVzdC1wZGY=',
         });
@@ -107,7 +107,7 @@ describe('Compliance Documents Router Unit Tests', () => {
       mockPoolQuery.mockResolvedValue({ rows: mockRows });
 
       const res = await request(app)
-        .get('/compliance/api/v1/documents/');
+        .get('/api/v1/documents/');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(mockRows);
@@ -120,7 +120,7 @@ describe('Compliance Documents Router Unit Tests', () => {
       mockPoolQuery.mockRejectedValue(new Error('Database connection lost'));
 
       const res = await request(app)
-        .get('/compliance/api/v1/documents/');
+        .get('/api/v1/documents/');
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'Failed to retrieve compliance_documents dataset' });

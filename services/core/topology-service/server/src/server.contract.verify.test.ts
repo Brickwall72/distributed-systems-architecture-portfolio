@@ -1,5 +1,6 @@
 // File: services/core/topology-service/server/src/server.contract.test.ts
 import { Verifier } from '@pact-foundation/pact';
+import { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import { mockState } from './utils/test-setup'; // Import the global mock state controller
 import app from './server';
@@ -23,6 +24,12 @@ describe('Pact Provider Verification', () => {
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/topology-client-topology-server.json'),
       ],
+      requestFilter: (req: Request, _res: Response, next: NextFunction) => {
+        if (req.url.startsWith('/topology/')) {
+          req.url = req.url.replace(/^\/topology/, '');
+        }
+        next();
+      },
       stateHandlers: {
         'assets exist in the topology graph': async () => {
           mockState.currentState = 'assets';

@@ -4,7 +4,7 @@ import app from './server.js';
 
 describe('PDF Generator Server Bootstrap (Integration)', () => {
   it('should return 200 HEALTHY from the shared telemetry health endpoint', async () => {
-    const res = await request(app).get('/pdf/api/v1/health');
+    const res = await request(app).get('/api/v1/health');
     
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
