@@ -4,15 +4,35 @@
 # network used for intra-platform communication.
 
 include:
-  - path: ui-shells/global-shell/compose.dev.yaml
-  - path: ui-shells/domain-shells/compliance-shell/compose.dev.yaml
-  - path: ui-shells/domain-shells/topology-shell/compose.dev.yaml
-  - path: services/core/compliance-service/compose.yaml
-  - path: services/core/topology-service/compose.yaml
-  - path: services/platform/pdf-generator/compose.dev.yaml
-  - path: services/platform/esign-service/compose.dev.yaml
+  - path: ui-shells/compose.yaml
+  - path: services/core/compose.yaml
+  - path: services/platform/compose.yaml
 
 services:
+  traefik:
+    image: traefik:v3.7.12
+    container_name: traefik
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.dashboard.address=:8090"
+    ports:
+      - "80:80"
+      - "8090:8090"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`localhost`)"
+      - "traefik.http.routers.dashboard.entrypoints=dashboard"
+      - "traefik.http.routers.dashboard.service=api@internal"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./config/traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro"
+      - "./config/traefik/dynamic:/etc/traefik/dynamic:ro"
+    networks:
+      - platform-mesh
   dbgate:
     image: dbgate/dbgate:7.2.6
     ports:
@@ -35,7 +55,7 @@ services:
     container_name: minio
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "9001:9001" # console port. will have to forward in k3d to access: kubectl port-forward svc/minio 9001:9001
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin

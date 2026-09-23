@@ -12,7 +12,6 @@ describe('DocumentViewer Component', () => {
     const iframe = screen.getByTitle('Document Viewer');
     expect(iframe).toHaveAttribute('srcDoc', mockHtml);
     expect(iframe).not.toHaveAttribute('src');
-    expect(iframe).toHaveAttribute('sandbox', 'allow-same-origin');
   });
 
   it('renders binary source using src when contentType is pdf', () => {

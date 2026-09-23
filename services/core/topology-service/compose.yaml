@@ -23,13 +23,18 @@ services:
   topology-server:
     build:
       context: ./server
-      dockerfile: ./Dockerfile.dev
+      dockerfile: ./Dockerfile
     image: topology-server:local
     container_name: topology-server
-    ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.topology-api.rule=PathPrefix(`/topology/api`)"
+      - "traefik.http.routers.topology-api.entrypoints=web"
+      - "traefik.http.middlewares.topology-api-rewrite.replacepathregex.regex=^/topology/api/v1/(.*)"
+      - "traefik.http.middlewares.topology-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.topology-api.middlewares=topology-api-rewrite"
+      - "traefik.http.services.topology-api.loadbalancer.server.port=8080"
     environment:
-      SERVER_PORT: ${SERVER_PORT}
       DB_URI: bolt://topology-db:7687
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -44,7 +49,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:${SERVER_PORT:-8083}/api/v1/topology/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
         ]
       interval: 10s
       timeout: 5s
@@ -56,10 +61,11 @@ services:
       dockerfile: ./Dockerfile
     image: topology-client:local
     container_name: topology-client
-    ports:
-      - "${CLIENT_PORT}:${CLIENT_PORT}"
-    environment:
-      CLIENT_PORT: ${CLIENT_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.topology.rule=PathPrefix(`/topology`)"
+      - "traefik.http.routers.topology.entrypoints=web"
+      - "traefik.http.services.topology.loadbalancer.server.port=3000"
     volumes:
       - ./client:/app/services/core/topology-service/client
     depends_on:

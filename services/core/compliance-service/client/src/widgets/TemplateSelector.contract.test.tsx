@@ -16,7 +16,7 @@ describe('TemplateSelector Consumer Contract', () => {
           .uponReceiving('a GET request for template manifest')
           .withRequest({
             method: 'GET',
-            path: '/api/v1/compliance/templates',
+            path: '/compliance/api/v1/templates',
           })
           .willRespondWith({
             status: 200,
@@ -32,7 +32,7 @@ describe('TemplateSelector Consumer Contract', () => {
           .uponReceiving('a GET request for template html content')
           .withRequest({
             method: 'GET',
-            path: '/api/v1/compliance/templates/contract-test-bare',
+            path: '/compliance/api/v1/templates/contract-test-bare',
           })
           .willRespondWith({
             status: 200,

@@ -1,0 +1,23 @@
+# File: charts/compliance-service/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/compliance/api`)"
+    serviceName: compliance-server
+    rewrite:
+      regex: "^/compliance/api/v1/(.*)"
+      replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/compliance`)"
+    serviceName: compliance-client

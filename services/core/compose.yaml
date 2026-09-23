@@ -1,0 +1,4 @@
+# File: services/core/compose.yaml
+include:
+  - path: compliance-service/compose.yaml
+  - path: topology-service/compose.yaml

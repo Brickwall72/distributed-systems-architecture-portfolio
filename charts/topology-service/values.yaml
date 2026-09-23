@@ -1,0 +1,23 @@
+# File: charts/topology-service/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/topology/api`)"
+    serviceName: topology-server
+    rewrite:
+      regex: "^/topology/api/v1/(.*)"
+      replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/topology`)"
+    serviceName: topology-client

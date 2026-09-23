@@ -1,0 +1,21 @@
+# File: charts/compliance-shell/templates/ingress-web.yaml
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    app.kubernetes.io/name: compliance-shell
+    app.kubernetes.io/component: ingress
+spec:
+  entryPoints:
+    {{- toYaml .Values.ingress.web.entryPoints | nindent 4 }}
+  routes:
+    - match: {{ .Values.ingress.route.rule | quote }}
+      kind: Rule
+      services:
+        - name: {{ .Values.ingress.route.serviceName }}
+          port: 80
+      middlewares:
+        - name: gzip-compress
+        - name: security-headers

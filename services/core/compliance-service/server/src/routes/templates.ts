@@ -4,10 +4,10 @@ import { createLogger } from '@shared/telemetry';
 import { TemplateRepository } from '../repositories/TemplateRepository.js';
 
 const router = Router();
-const logger = createLogger('compliance-service:templates');
+const logger = createLogger('compliance-server:templates');
 
 /**
- * GET /api/v1/compliance/templates
+ * GET /compliance/api/v1/templates
  * Returns a lightweight manifest of available templates for UI dropdowns.
  */
 router.get('/', (req: Request, res: Response) => {
@@ -23,7 +23,7 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/v1/compliance/templates/:id
+ * GET /compliance/api/v1/templates/:id
  * Returns the raw HTML string for the requested template.
  */
 router.get('/:id', (req: Request, res: Response): void => {

@@ -23,7 +23,7 @@ export default function GeneratePdfButton ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/v1/pdf/generate', {
+      const response = await fetch('/pdf/api/v1/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ html: htmlPayload }),

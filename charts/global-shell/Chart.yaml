@@ -1,0 +1,13 @@
+# File: charts/global-shell/Chart.yaml
+
+apiVersion: v2
+name: global-shell
+description: Vertical slice chart for the global shell (micro-frontend host)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: shell
+    version: 0.1.0        # match charts/global-shell/charts/shell/Chart.yaml version
+    repository: "file://charts/shell"

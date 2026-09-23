@@ -16,12 +16,12 @@ vi.mock('../services/pdfService.js', () => ({
 // Spin up a minimal express app just for testing this router
 const app = express();
 app.use(express.json());
-app.use('/api/v1/pdf', pdfRouter);
+app.use('/api/v1', pdfRouter);
 
 describe('pdfRouter (Controller Layer)', () => {
   it('should return 200 and application/pdf on valid HTML payload', async () => {
     const response = await request(app)
-      .post('/api/v1/pdf/generate')
+      .post('/api/v1/generate')
       .set('x-correlation-id', 'test-cid-123')
       .send({ html: '<h1>Test Report</h1>' })
       .responseType('blob');
@@ -34,7 +34,7 @@ describe('pdfRouter (Controller Layer)', () => {
 
   it('should return 400 if HTML payload is missing', async () => {
     const response = await request(app)
-      .post('/api/v1/pdf/generate')
+      .post('/api/v1/generate')
       .send({});
 
     expect(response.status).toBe(400);
@@ -43,7 +43,7 @@ describe('pdfRouter (Controller Layer)', () => {
 
   it('should return 400 if HTML payload is not a string', async () => {
     const response = await request(app)
-      .post('/api/v1/pdf/generate')
+      .post('/api/v1/generate')
       .send({ html: 12345 });
 
     expect(response.status).toBe(400);
@@ -52,7 +52,7 @@ describe('pdfRouter (Controller Layer)', () => {
 
   it('should return 500 if the service layer throws an error', async () => {
     const response = await request(app)
-      .post('/api/v1/pdf/generate')
+      .post('/api/v1/generate')
       .send({ html: 'TRIGGER_ERROR' });
 
     expect(response.status).toBe(500);

@@ -15,7 +15,7 @@ export default function NetworkCanvasWidget() {
   const fetchAndHydrateGraphView = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/v1/topology/entities', {
+      const response = await fetch('/topology/api/v1/entities', {
         headers: { 'X-Correlation-ID': `UI-REFRESH-${Date.now()}` }
       });
 

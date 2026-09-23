@@ -2,7 +2,7 @@
 # File: services/platform/pdf-generator/server/src/test.sh
 
 # The HTML string is minified and double-quotes are escaped for valid JSON
-curl -X POST http://localhost:4001/api/v1/pdf/generate \
+curl -X POST http://localhost:4001/pdf/api/v1/generate \
   -H "Content-Type: application/json" \
   -H "x-correlation-id: manual-bash-test-01" \
   -d '{

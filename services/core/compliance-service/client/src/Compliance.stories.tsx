@@ -52,7 +52,7 @@ export const InteractiveFormSelector: Story = {
     msw: {
       handlers: [
         // Mock the template manifest endpoint
-        http.get('/api/v1/compliance/templates', () => {
+        http.get('/compliance/api/v1/templates', () => {
           return HttpResponse.json([
             { id: 'dd-1149', name: 'DD Form 1149 (Requisition & Invoice)' },
             { id: 'dd-250', name: 'DD Form 250 (Material Inspection & Receiving)' },
@@ -60,7 +60,7 @@ export const InteractiveFormSelector: Story = {
           ]);
         }),
         // Mock individual template HTML content dynamically based on ID
-        http.get('/api/v1/compliance/templates/:id', ({ params }) => {
+        http.get('/compliance/api/v1/templates/:id', ({ params }) => {
           const { id } = params;
           
           if (id === 'dd-250') {

@@ -1,0 +1,42 @@
+# File: charts/global-shell/charts/shell/values.yaml
+# The container startup command renders these values into ui-manifest.json.
+nameOverride: global-shell
+
+image:
+  repository: global-shell
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env:
+  - name: TOPOLOGY_REMOTE_ENTRY
+    value: http://localhost:8081/topology-shell/remoteEntry.js
+  - name: COMPLIANCE_REMOTE_ENTRY
+    value: http://localhost:8081/compliance-shell/remoteEntry.js
+envFrom: []
+
+annotations:
+  prometheus.io/scrape: "false"
+
+probes:
+  readiness:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 3
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 512Mi

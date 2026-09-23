@@ -1,0 +1,53 @@
+# File: services/platform/esign-generator/compose.yaml
+services:
+  esign-server:
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile
+    image: esign-server:local
+    container_name: esign-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esign-api.rule=PathPrefix(`/esign/api`)"
+      - "traefik.http.routers.esign-api.entrypoints=web"
+      - "traefik.http.middlewares.esign-api-rewrite.replacepathregex.regex=^/esign/api/v1/(.*)"
+      - "traefik.http.middlewares.esign-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.esign-api.middlewares=esign-api-rewrite"
+      - "traefik.http.services.esign-api.loadbalancer.server.port=8080"
+    command: pnpm run dev
+    volumes:
+      - ./server:/app/services/platform/esign-service/server
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  esign-client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+    image: esign-client:local
+    container_name: esign-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esign.rule=PathPrefix(`/esign`)"
+      - "traefik.http.routers.esign.entrypoints=web"
+      - "traefik.http.services.esign.loadbalancer.server.port=3000"
+    volumes:
+      - ./client:/app/services/platform/esign-service/client
+    depends_on:
+      esign-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

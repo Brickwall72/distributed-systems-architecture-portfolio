@@ -1,0 +1,6 @@
+dependencies:
+- name: shell
+  repository: file://charts/shell
+  version: 0.1.0
+digest: sha256:40d98b38daa8a060b193b54ecdefb28c06aaba794b6dd4afa1f42fabf464afdd
+generated: "2026-09-21T00:46:40.884034391-06:00"

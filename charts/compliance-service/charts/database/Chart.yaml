@@ -1,0 +1,13 @@
+# File: charts/compliance-service/charts/database/Chart.yaml
+
+apiVersion: v2
+name: database
+description: Database workload for compliance-service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: platform-lib
+    version: 0.1.0
+    repository: "file://../../../platform-lib"

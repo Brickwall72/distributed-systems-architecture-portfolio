@@ -1,0 +1,23 @@
+# File: ui-shells/domain-shells/topology-shell/compose.yaml
+services:
+  topology-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: topology-shell:local
+    container_name: topology-shell
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.topology-shell.rule=PathPrefix(`/topology-shell`)"
+      - "traefik.http.routers.topology-shell.entrypoints=web"
+      - "traefik.http.services.topology-shell.loadbalancer.server.port=3000"
+    depends_on:
+      - topology-client
+    volumes:
+      - .:/app/ui-shells/domain-shells/topology-shell
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh

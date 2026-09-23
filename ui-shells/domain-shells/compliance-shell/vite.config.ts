@@ -4,52 +4,29 @@ import { createRemoteConfig } from '@shared/vite-config';
 export default createRemoteConfig({
   domain: 'compliance',
   concern: 'shell',
-  port: Number.parseInt(process.env.PORT || '3020'),
   exposes: {
     './App': './src/App.tsx',
-  },
-  proxy: {
-    '/api/v1/pdf': {
-      target: process.env.PDF_API_URL || 'http://localhost:4001',
-      changeOrigin: true,
-      secure: false,
-    },
-    '/api/v1/topology': {
-      target: process.env.TOPOLOGY_API_URL || 'http://localhost:8083',
-      changeOrigin: true,
-      secure: false,
-    },
-    '/api/v1/compliance': {
-      target: process.env.COMPLIANCE_API_URL || 'http://localhost:8082',
-      changeOrigin: true,
-      secure: false,
-    },
-    '/api/v1/esign': {
-      target: process.env.ESIGN_API_URL || 'http://localhost:4002',
-      changeOrigin: true,
-      secure: false,
-    },
   },
   remotes: {
     pdf_client: {
       type: 'module',
       name: 'pdf-client',
-      entry: `${process.env.PDF_REMOTE_ENTRY || 'http://localhost:4011/remoteEntry.js'}`,
+      entry: `${process.env.VITE_ORIGIN}/pdf/client/remoteEntry.js`,
     },
     topology_client: {
       type: 'module',
       name: 'topology-client',
-      entry: `${process.env.TOPOLOGY_REMOTE_ENTRY || 'http://localhost:3011/remoteEntry.js'}`
+      entry:`${process.env.VITE_ORIGIN}/topology/client/remoteEntry.js`,
     },
     compliance_client: {
       type: 'module',
       name: 'compliance-client',
-      entry: `${process.env.COMPLIANCE_REMOTE_ENTRY || 'http://localhost:3021/remoteEntry.js'}`
+      entry: `${process.env.VITE_ORIGIN}/compliance/client/remoteEntry.js`,
     },
     esign_client: {
       type: 'module',
       name: 'esign-client',
-      entry: `${process.env.ESIGN_REMOTE_ENTRY || 'http://localhost:4012/remoteEntry.js'}`,
+      entry: `${process.env.VITE_ORIGIN}/esign/client/remoteEntry.js`,
     },
   },
   preview: {

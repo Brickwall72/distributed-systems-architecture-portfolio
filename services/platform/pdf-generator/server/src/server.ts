@@ -4,17 +4,17 @@ import { pdfRouter } from './routes/pdf.routes.js';
 import { createLogger } from '@shared/telemetry';
 
 const app = express();
-const logger = createLogger('pdf-server-api');
+const logger = createLogger('pdf-server');
 
 app.disable('x-powered-by');
 
 app.use(express.json({ limit: '10mb' }));
 
 // Mount domain routers under a versioned prefix
-app.use('/api/v1/pdf', pdfRouter);
+app.use('/api/v1', pdfRouter);
 
 if (process.env.NODE_ENV !== 'test') {
-  const PORT = Number(process.env.PORT) || 4001;
+  const PORT = 8080;
   app.listen(PORT, '0.0.0.0', () => {
     logger.info(`PDF Generator Microservice running on port ${PORT}`);
   });

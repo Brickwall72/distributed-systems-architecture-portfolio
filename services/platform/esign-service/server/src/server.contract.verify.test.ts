@@ -26,7 +26,7 @@ describe('E-Sign Server Contract Tests (server.ts)', () => {
     const correlationId = `esign-req-${Date.now()}`;
 
     const res = await request(app)
-      .post('/api/v1/esign/')
+      .post('/api/v1/')
       .set('x-correlation-id', correlationId)
       .set('Content-Type', 'application/json')
       .send({
@@ -50,7 +50,7 @@ describe('E-Sign Server Contract Tests (server.ts)', () => {
 
   it('handles missing payload parameters correctly via server middleware', async () => {
     const res = await request(app)
-      .post('/api/v1/esign/')
+      .post('/api/v1/')
       .send({ pdfBase64: MINIMAL_PDF_BASE64 }); // Missing signatureImageBase64
 
     expect(res.status).toBe(400);

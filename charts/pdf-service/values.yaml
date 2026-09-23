@@ -1,0 +1,23 @@
+# File: charts/pdf-service/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/pdf/api`)"
+    serviceName: pdf-server
+    rewrite:
+      regex: "^/pdf/api/v1/(.*)"
+      replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/pdf`)"
+    serviceName: pdf-client

@@ -1,0 +1,69 @@
+# File: charts/topology-service/charts/database/values.yaml
+# Credentials come from the topology-db-credentials secret bootstrapped by
+# scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
+
+# services/core/topology-service/server/src/topologyDatabase.ts defaults DB_URI to
+# bolt://localhost:7687, so the server chart must set DB_URI explicitly; this name
+# also matches the compose/k8s-local "topology-db" hostname convention.
+nameOverride: topology-db
+
+image:
+  repository: neo4j
+  tag: "5.26.0"
+  pullPolicy: IfNotPresent
+
+env:
+  - name: NEO4J_AUTH
+    valueFrom:
+      secretKeyRef:
+        name: topology-db-credentials
+        key: NEO4J_AUTH
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: topology-db-credentials
+        key: DB_USER
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: topology-db-credentials
+        key: DB_PASSWORD
+
+envFrom: []
+
+annotations: {}
+
+ports:
+  - name: bolt
+    port: 7687
+  - name: http
+    port: 7474
+
+probes:
+  readiness:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - cypher-shell -a bolt://127.0.0.1:7687 -u "$DB_USER" -p "$DB_PASSWORD" 'RETURN 1' >/dev/null 2>&1
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 30
+  liveness:
+    tcpSocket:
+      port: 7687
+    initialDelaySeconds: 30
+    periodSeconds: 20
+
+# k8s/local/topology-service/db.yaml has no PVC for Neo4j either - not proven yet.
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi

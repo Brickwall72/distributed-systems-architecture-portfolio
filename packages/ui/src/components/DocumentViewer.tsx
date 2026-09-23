@@ -48,7 +48,6 @@ export default function DocumentViewer({
             "w-full h-full border-0 flex-1 transition-all",
             isSigningActive && "pointer-events-none select-none"
           )}
-          sandbox="allow-same-origin"
         />
       ) : (
         // Renders the generated PDF Blob URL

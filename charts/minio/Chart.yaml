@@ -1,0 +1,12 @@
+# File: charts/minio/Chart.yaml
+apiVersion: v2
+name: minio
+description: MinIO S3-compatible object storage for local development
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: platform-lib
+    version: 0.1.0
+    repository: "file://../platform-lib"

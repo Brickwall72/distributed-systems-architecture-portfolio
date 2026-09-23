@@ -17,7 +17,7 @@ describe('Documents API Contract', () => {
       .uponReceiving('a request to get the documents dataset')
       .withRequest({
         method: 'GET',
-        path: '/api/v1/compliance/documents/',
+        path: '/compliance/api/v1/documents/',
       })
       .willRespondWith({
         status: 200,

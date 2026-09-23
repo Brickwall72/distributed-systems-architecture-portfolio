@@ -1,0 +1,17 @@
+# File: charts/traefik-values.yaml
+# Mirrors config/traefik/traefik.yaml (entryPoints, dashboard) so the k3d Traefik
+# release matches the compose static config instead of relying on chart defaults.
+
+ports:
+  web:
+    exposedPort: 80
+  dashboard:
+    port: 8090
+    expose:
+      default: true
+    exposedPort: 8090
+    protocol: TCP
+
+additionalArguments:
+  - "--api.dashboard=true"
+  - "--api.insecure=true"

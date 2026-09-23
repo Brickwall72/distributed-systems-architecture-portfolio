@@ -1,0 +1,19 @@
+# File: charts/esign-service/Chart.yaml
+
+apiVersion: v2
+name: esign-service
+description: Vertical slice chart for the eSign service (server + client)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: client
+    version: 0.1.0        # match charts/esign-service/charts/client/Chart.yaml version
+    repository: "file://charts/client"
+  - name: server
+    version: 0.1.0        # match charts/esign-service/charts/server/Chart.yaml version
+    repository: "file://charts/server"
+  - name: platform-lib
+    version: 0.1.0        # match charts/platform-lib/Chart.yaml version
+    repository: "file://../platform-lib"

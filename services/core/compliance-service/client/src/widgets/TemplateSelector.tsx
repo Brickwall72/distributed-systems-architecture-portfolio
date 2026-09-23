@@ -24,7 +24,7 @@ export default function TemplateSelector({
 
   // 1. Fetch the manifest of available templates on mount
   useEffect(() => {
-    fetch('/api/v1/compliance/templates')
+    fetch('/compliance/api/v1/templates')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch templates');
         return res.json();
@@ -38,7 +38,7 @@ export default function TemplateSelector({
     if (!id) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/v1/compliance/templates/${id}`);
+      const res = await fetch(`/compliance/api/v1/templates/${id}`);
       if (!res.ok) throw new Error('Failed to fetch template content');
       
       const html = await res.text();

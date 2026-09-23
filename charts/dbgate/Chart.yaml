@@ -1,0 +1,12 @@
+# File: charts/dbgate/Chart.yaml
+apiVersion: v2
+name: dbgate
+description: dbgate database admin UI for local development
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: platform-lib
+    version: 0.1.0
+    repository: "file://../platform-lib"

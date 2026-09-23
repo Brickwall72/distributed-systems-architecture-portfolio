@@ -1,0 +1,114 @@
+# File: charts/dbgate/templates/dbgate.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dbgate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dbgate
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbgate
+  labels:
+    app.kubernetes.io/name: dbgate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dbgate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dbgate
+    spec:
+      serviceAccountName: dbgate
+      automountServiceAccountToken: false
+      securityContext:
+        {{- include "platform-lib.databasePodSecurityContext" . | nindent 8 }}
+      containers:
+        - name: dbgate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
+          env:
+            - name: CONNECTIONS
+              value: "compliance"
+            - name: LABEL_compliance
+              value: "Compliance DB"
+            - name: SERVER_compliance
+              value: "compliance-db"
+            - name: PORT_compliance
+              value: "5432"
+            - name: USER_compliance
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-credentials
+                  key: POSTGRES_USER
+            - name: PASSWORD_compliance
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-credentials
+                  key: POSTGRES_PASSWORD
+            - name: ENGINE_compliance
+              value: "postgres@dbgate-plugin-postgres"
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: data
+              mountPath: /root/.dbgate
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: dbgate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbgate
+spec:
+  selector:
+    app.kubernetes.io/name: dbgate
+  ports:
+    - name: http
+      port: 3040
+      targetPort: 3000
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dbgate-web
+spec:
+  entryPoints:
+    {{- toYaml .Values.ingress.entryPoints | nindent 4 }}
+  routes:
+    - match: {{ .Values.ingress.rule | quote }}
+      kind: Rule
+      services:
+        - name: dbgate
+          port: 3040
+      middlewares:
+        - name: gzip-compress
+        - name: security-headers
+{{- end }}
