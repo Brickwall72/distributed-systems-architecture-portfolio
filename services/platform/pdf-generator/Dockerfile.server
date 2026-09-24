@@ -1,56 +1,69 @@
 # syntax=docker/dockerfile:1.7
 # File: services/platform/pdf-generator/server/Dockerfile
 
-# --- STAGE 1: Builder ---
-FROM base-image:local AS builder
+# ==========================================
+# STAGE 1: OS Base & Environment
+# Installs Chromium ONCE. Cached permanently unless APK packages change.
+# ==========================================
+FROM base-image:local AS os-base
 ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
 WORKDIR /app
+
+# Prevent Puppeteer from downloading Chromium in ALL downstream stages
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Retains downloaded .apk files on host disk across base-image rebuilds
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add ca-certificates chromium freetype harfbuzz nss ttf-freefont
+
+# ==========================================
+# STAGE 2: Builder
+# ==========================================
+FROM os-base AS builder
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
 
 COPY server/ ${SERVICE_PATH}/
 
 WORKDIR ${SERVICE_PATH}
 RUN pnpm build
 
-# --- STAGE 2: Dev Target ---
-FROM builder AS dev
+# ==========================================
+# STAGE 3: Dev Target
+# Inherits from os-base (NOT builder) so code edits never re-trigger 'apk add'
+# ==========================================
+FROM os-base AS dev
 ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
 
-# Install Chromium for local PDF generation/testing
-RUN apk add --no-cache ca-certificates chromium freetype harfbuzz nss ttf-freefont
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
 WORKDIR ${SERVICE_PATH}
-RUN chown -R node:node /app
+
+# Copy with --chown directly to eliminate slow 'RUN chown -R' commands
+COPY --chown=node:node server/ ${SERVICE_PATH}/
+
 USER node
 EXPOSE 8080
 CMD ["pnpm", "dev"]
 
-# --- STAGE 3: Static / Prod Target ---
-FROM node:26.7.0-alpine AS prod
+# ==========================================
+# STAGE 4: Production Target
+# ==========================================
+FROM os-base AS prod
 ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
-
-# Install runtime OS dependencies for Puppeteer
-RUN apk add --no-cache ca-certificates chromium freetype harfbuzz nss ttf-freefont
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    NODE_ENV=production
+ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Use --chown during COPY to avoid duplicating layers
+# Copy monorepo dependencies and compiled distribution files
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/packages ./packages
 COPY --chown=node:node --from=builder /app/pnpm-lock.yaml ./
 
 WORKDIR ${SERVICE_PATH}
 
-# Copy compiled distribution files and production dependencies securely
 COPY --chown=node:node --from=builder ${SERVICE_PATH}/dist ./dist
 COPY --chown=node:node --from=builder ${SERVICE_PATH}/package.json ./
 COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_modules
 
-# Enforce least-privilege security
 USER node
 EXPOSE 8080
 

@@ -4,15 +4,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: compliance-shell:local
+      target: prod
+    image: compliance-shell:prod
     container_name: compliance-shell
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.compliance-shell.rule=PathPrefix(`/compliance-shell`)"
       - "traefik.http.routers.compliance-shell.entrypoints=web"
       - "traefik.http.services.compliance-shell.loadbalancer.server.port=3000"
-    volumes:
-      - .:/app/ui-shells/domain-shells/compliance-shell
     depends_on:
       - pdf-client
       - esign-client

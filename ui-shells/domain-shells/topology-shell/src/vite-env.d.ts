@@ -1,8 +1,6 @@
 // File: ui-shells/domain-shells/topology-shell/src/vite-env.d.ts
 // (Or create a new file named remote.d.ts in the src/ directory)
 
-declare module 'topology_client';
-
 declare module 'topology_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;

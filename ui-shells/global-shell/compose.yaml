@@ -4,7 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: global-shell:local
+      target: prod
+    image: global-shell:prod
     container_name: global-shell
     labels:
       - "traefik.enable=true"

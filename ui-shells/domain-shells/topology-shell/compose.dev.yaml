@@ -1,0 +1,12 @@
+# File: ui-shells/domain-shells/topology-shell/compose.dev.yaml
+services:
+  topology-shell:
+    build:
+      target: dev
+    image: topology-shell:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ../../../packages:/app/packages
+      - .:/app/ui-shells/domain-shells/topology-shell
+      - /app/ui-shells/domain-shells/topology-shell/node_modules

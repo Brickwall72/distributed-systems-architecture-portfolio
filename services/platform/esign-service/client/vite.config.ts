@@ -5,7 +5,6 @@ export default createRemoteConfig({
   domain: 'esign',
   concern: 'client',
   exposes: {
-    '.': './src/index.ts',
     './widget/SignatureOverlay': './src/widgets/SignatureOverlay.tsx',
   }
 });
