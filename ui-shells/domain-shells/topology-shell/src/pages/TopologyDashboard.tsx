@@ -3,8 +3,8 @@ import { Suspense, lazy } from 'react';
 import '@shared/styles';
 
 // Dynamically consume the autonomous widgets from the federated remote
-const ConnectionFormWidget = lazy(() => import('topology_service/ConnectionFormWidget'));
-const NetworkCanvasWidget = lazy(() => import('topology_service/NetworkCanvasWidget'));
+const ConnectionFormWidget = lazy(() => import('topology_client/widget/ConnectionForm'));
+const NetworkCanvasWidget = lazy(() => import('topology_client/widget/NetworkCanvas'));
 
 export default function TopologyDashboard() {
   return (

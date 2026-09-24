@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: platform-local
-  labels:
-    app.kubernetes.io/part-of: distributed-platform
-    environment: local

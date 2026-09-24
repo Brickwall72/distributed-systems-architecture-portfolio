@@ -2,6 +2,7 @@
 import { Verifier } from '@pact-foundation/pact';
 import { Server } from 'http';
 import path from 'path';
+import type { NextFunction, Request, Response } from 'express';
 
 // Hoist mock functions to intercept database and storage during verification
 const { mockPoolQuery } = vi.hoisted(() => ({
@@ -48,6 +49,12 @@ describe('Compliance Service Provider Verification', () => {
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/compliance-client-compliance-server.json')
       ],
+      requestFilter: (req: Request, _res: Response, next: NextFunction) => {
+        if (req.url.startsWith('/compliance/')) {
+          req.url = req.url.replace(/^\/compliance/, '');
+        }
+        next();
+      },
       stateHandlers: {
         'compliance templates exist in the registry': async () => {
           console.log('Templates are ready');

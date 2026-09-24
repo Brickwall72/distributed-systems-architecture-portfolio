@@ -1,0 +1,16 @@
+# File: charts/topology-shell/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  route:
+    rule: "PathPrefix(`/topology-shell`)"
+    serviceName: topology-shell

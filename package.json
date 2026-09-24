@@ -21,7 +21,9 @@
     "env:copy": "find . -name \".env.example\" -exec sh -c 'cp \"$1\" \"${1%.example}\"' _ {} \\;",
     "k3d:up": "sh scripts/k3d-up.sh",
     "k3d:down": "sh scripts/k3d-down.sh",
-    "helm": "helm repo add traefik https://traefik.github.io/charts --force-update && helm repo update && helm upgrade --install traefik traefik/traefik --create-namespace --namespace traefik --set ports.web.exposedPort=80 --wait",
+    "charts:deps": "sh scripts/charts-deps.sh",
+    "helm": "helm repo add traefik https://traefik.github.io/charts --force-update && helm repo update && helm upgrade --install traefik traefik/traefik --create-namespace --namespace traefik -f charts/traefik-values.yaml --wait && helm upgrade --install traefik-shared charts/traefik-shared --create-namespace --namespace platform-local",
+    "helm:down": "helm uninstall traefik-shared --namespace platform-local || true; helm uninstall traefik --namespace traefik || true",
     "skaffold": "pnpm k8s:secrets && pnpm docker:base && scripts/with-buildkit.sh skaffold dev --cache-artifacts=true --cleanup=true",
     "skaffold:reset": "pnpm k8s:secrets && pnpm docker:base && scripts/with-buildkit.sh skaffold dev --cache-artifacts=false --cleanup=true"
   },

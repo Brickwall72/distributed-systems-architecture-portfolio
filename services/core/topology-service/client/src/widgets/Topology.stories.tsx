@@ -38,7 +38,7 @@ const MOCK_ASSETS: Asset[] = [
 
 // Reusable MSW Handlers
 const handlers = [
-  http.get('/api/v1/topology/entities', () => {
+  http.get('/topology/api/v1/entities', () => {
     return HttpResponse.json({
       connections: [
         {
@@ -51,15 +51,15 @@ const handlers = [
       ],
     });
   }),
-  http.post('/api/v1/topology/entities', async ({ request }) => {
+  http.post('/topology/api/v1/entities', async ({ request }) => {
     const body = await request.json();
     console.log('MSW intercepted POST payload:', body);
     return HttpResponse.json({ success: true, timestamp: Date.now() }, { status: 201 });
   }),
-  http.get('/api/v1/topology/organizations', () => {
+  http.get('/topology/api/v1/organizations', () => {
     return HttpResponse.json(MOCK_ORGANIZATIONS);
   }),
-  http.get('/api/v1/topology/assets', ({ request }) => {
+  http.get('/topology/api/v1/assets', ({ request }) => {
     const url = new URL(request.url);
     const ownerId = url.searchParams.get('ownerId');
     const excludeOwnerId = url.searchParams.get('excludeOwnerId');
@@ -106,7 +106,7 @@ export const NetworkCanvasFailure: Story = {
   render: () => <NetworkCanvasWidget />,
   beforeEach: ({ msw }) => {
     msw.use(
-      http.get('/api/v1/topology/entities', () => {
+      http.get('/topology/api/v1/entities', () => {
         return new HttpResponse(null, { status: 500, statusText: 'Database Connection Lost' });
       })
     );

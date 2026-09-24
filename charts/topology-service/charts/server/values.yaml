@@ -1,0 +1,57 @@
+# File: charts/topology-service/charts/server/values.yaml
+
+nameOverride: topology-server
+
+image:
+  repository: topology-server
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env:
+  - name: DB_URI
+    value: bolt://topology-db:7687
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: topology-db-credentials
+        key: DB_USER
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: topology-db-credentials
+        key: DB_PASSWORD
+envFrom: []
+
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z topology-db 7687; do echo waiting for topology-db; sleep 2; done']
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+probes:
+  readiness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

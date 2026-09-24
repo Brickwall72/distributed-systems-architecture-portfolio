@@ -22,7 +22,7 @@ export default function AssetSelector({
   if (excludeOwnerId) params.append('excludeOwnerId', excludeOwnerId);
 
   const queryString = params.toString();
-  const url = queryString ? `/api/v1/topology/assets?${queryString}` : '/api/v1/topology/assets';
+  const url = queryString ? `/topology/api/v1/assets?${queryString}` : '/topology/api/v1/assets';
 
   return (
     <BaseSelector<Asset>

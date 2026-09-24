@@ -1,0 +1,13 @@
+# File: charts/topology-shell/Chart.yaml
+
+apiVersion: v2
+name: topology-shell
+description: Vertical slice chart for the topology domain shell (micro-frontend)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: shell
+    version: 0.1.0        # match charts/topology-shell/charts/shell/Chart.yaml version
+    repository: "file://charts/shell"

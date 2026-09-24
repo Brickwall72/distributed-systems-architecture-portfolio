@@ -1,0 +1,41 @@
+# File: charts/topology-shell/charts/shell/values.yaml
+# Remote entry URLs are baked into the image at build time (skaffold.yaml
+# docker buildArgs), not read as runtime env - see skaffold.yaml artifacts.
+nameOverride: topology-shell
+
+image:
+  repository: topology-shell
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env:
+  - name: VITE_ORIGIN
+    value: http://localhost:8081
+envFrom: []
+
+annotations:
+  prometheus.io/scrape: "false"
+
+probes:
+  readiness:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 512Mi

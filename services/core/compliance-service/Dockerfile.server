@@ -22,7 +22,7 @@ ARG SERVICE_PATH=/app/services/core/compliance-service/server
 # Anonymous volumes in compose.dev.yaml prevent EACCES issues natively.
 USER node
 WORKDIR ${SERVICE_PATH}
-EXPOSE 8082
+EXPOSE 8080
 
 CMD ["pnpm", "dev"]
 
@@ -48,6 +48,6 @@ COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_module
 
 # Lock down the container for production execution
 USER node
-EXPOSE 8082
+EXPOSE 8080
 
 CMD ["node", "dist/server.js"]

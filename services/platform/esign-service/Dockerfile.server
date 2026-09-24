@@ -7,7 +7,6 @@ ARG SERVICE_PATH=/app/services/platform/esign-service/server
 WORKDIR /app
 
 # Just copy the service source code directly into the workspace structure already established by the base image
-RUN mkdir -p "${SERVICE_PATH}"
 COPY server/ ${SERVICE_PATH}/
 
 WORKDIR ${SERVICE_PATH}
@@ -19,7 +18,7 @@ FROM builder AS dev
 # Run as root: eliminates the slow chown layer and bypasses volume mount permission issues
 ARG SERVICE_PATH=/app/services/platform/esign-service/server
 WORKDIR ${SERVICE_PATH}
-EXPOSE 4002
+EXPOSE 8080
 CMD ["pnpm", "dev"]
 
 # --- STAGE 3: Static / Prod Target ---
@@ -44,6 +43,6 @@ COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_module
 
 # Enforce least-privilege security
 USER node
-EXPOSE 4002
+EXPOSE 8080
 
 CMD ["node", "dist/server.js"]

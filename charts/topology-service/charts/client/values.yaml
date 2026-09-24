@@ -1,0 +1,38 @@
+# File: charts/topology-service/charts/client/values.yaml
+
+nameOverride: topology-client
+
+image:
+  repository: topology-client
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env: []
+envFrom: []
+
+annotations:
+  prometheus.io/scrape: "false"
+
+probes:
+  readiness:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 3
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 512Mi

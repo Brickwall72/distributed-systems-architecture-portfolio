@@ -1,0 +1,24 @@
+# File: charts/dbgate/values.yaml
+# Reuses the compliance-db-credentials secret bootstrapped by scripts/k8s-local-secrets.sh.
+
+image:
+  repository: dbgate/dbgate
+  tag: "7.2.6"
+  pullPolicy: IfNotPresent
+
+persistence:
+  size: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  entryPoints:
+    - web
+  rule: "Host(`dbgate.localhost`)"

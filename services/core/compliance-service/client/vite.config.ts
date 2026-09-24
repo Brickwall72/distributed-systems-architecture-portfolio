@@ -4,10 +4,11 @@ import { createRemoteConfig } from '@shared/vite-config';
 export default createRemoteConfig({
   domain: 'compliance',
   concern: 'client',
-  port: Number.parseInt(process.env.CLIENT_PORT || '3021'),
   exposes: {
-    './TemplateSelector': './src/widgets/TemplateSelector.tsx',
-    './api': './src/api/index.ts',
-    './contracts': './src/contracts/index.ts'
+    '.': './src/index.ts',
+    './widget/TemplateSelector': './src/widgets/TemplateSelector.tsx',
+    './api/fetchDocuments': './src/api/documents.ts',
+    './api/saveDocument': './src/api/save-document.ts',
+    './contract/ComplianceDocument': './src/contracts/documents.ts'
   },
 });

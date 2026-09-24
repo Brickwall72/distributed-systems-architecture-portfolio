@@ -33,3 +33,6 @@ ui-shells/global-shell/public/ui-manifest.json
 # Testfile outputs
 test-output.pdf
 pacts/
+
+#Helm files
+*.tgz

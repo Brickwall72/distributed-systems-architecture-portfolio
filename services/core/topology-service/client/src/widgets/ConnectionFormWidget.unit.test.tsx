@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw';
 import ConnectionFormWidget from './ConnectionFormWidget';
 
 const server = setupServer(
-  http.post('/api/v1/topology/entities', () => {
+  http.post('/topology/api/v1/entities', () => {
     return HttpResponse.json({ success: true }, { status: 201 });
   })
 );

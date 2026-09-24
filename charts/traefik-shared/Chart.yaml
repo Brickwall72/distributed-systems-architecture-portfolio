@@ -1,0 +1,7 @@
+# File: charts/traefik-shared/Chart.yaml
+apiVersion: v2
+name: traefik-shared
+description: Cluster-wide Traefik Middleware CRDs shared by every service chart (installed once, not per-service)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

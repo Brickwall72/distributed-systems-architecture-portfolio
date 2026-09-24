@@ -1,0 +1,7 @@
+# File: charts/network-policies/Chart.yaml
+apiVersion: v2
+name: network-policies
+description: Namespace-wide NetworkPolicy set, installed once (not per-service)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

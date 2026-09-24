@@ -5,8 +5,8 @@ import { topologyGateway } from './routes/index.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 8083;
-const logger = createLogger('topology/');
+const PORT = 8080;
+const logger = createLogger('topology-server');
 
 /* Disable the default Express fingerprint header. This is a small but useful hardening step for
 the platform because the service sits on a validation boundary and should not reveal framework
@@ -18,7 +18,7 @@ ADR-004 and the ICD contract that keeps sensitive identifiers out of URL query s
 app.use(express.json());
 
 // Mount the actual business API under the versioned topology namespace defined in the ICD.
-app.use('/api/v1/topology', topologyGateway);
+app.use('/api/v1', topologyGateway);
 
 /* Safety net for unhandled exceptions. The compliance flow depends on predictability, so a
  generic internal-server error is returned instead of exposing a stack trace or partial state. */

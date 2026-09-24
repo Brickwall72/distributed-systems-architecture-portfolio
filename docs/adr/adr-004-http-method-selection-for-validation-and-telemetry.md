@@ -21,7 +21,7 @@ The process coordinator (`compliance-service`) interacts with two distinct exter
 ## Decision
 The system enforces a strict dichotomy between validation calculations and raw property fetches:
 
-1. **Non-Idempotent `POST` for the `topology-service` (`/api/v1/topology/authorizations`):**
+1. **Non-Idempotent `POST` for the `topology-service` (`/topology/api/v1/authorizations`):**
    Validation requests to the graph engine require evaluating complex relationships (source assets, target operations, and situational action contexts). This metadata is encapsulated strictly within the HTTP request body via `POST` to hide sensitive identifiers from query string logging. Furthermore, because executing a validation check triggers internal security audit logs and counters, it is treated as an active operation that carries side effects. Using a non-idempotent `POST` inherently blocks all intermediate proxies and runtimes from caching the response.
 
 2. **Idempotent, Non-Cached `GET` for the `resource-cache` (`/api/v1/telemetry/:assetId`):**

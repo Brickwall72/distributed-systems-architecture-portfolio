@@ -93,7 +93,7 @@ The monorepo separates presentation layout orchestration and mission-specific bu
 
 ## 2. Local Development
 
-The integrated development workflow uses Docker, k3d, Kubernetes, Helm-managed Traefik, and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8081`; no manual `kubectl port-forward` is required.
+The integrated development workflow uses Docker, k3d, Kubernetes, Helm (Traefik, `traefik-shared`, and every service/shell chart under `charts/`), and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8081`; no manual `kubectl port-forward` is required.
 
 ### Fresh Environment
 
@@ -140,10 +140,16 @@ Select or create the k3d cluster:
 pnpm k3d:up
 ```
 
-Ensure Traefik is installed:
+Ensure Traefik and the shared Traefik middlewares are installed:
 
 ```bash
 pnpm helm
+```
+
+Vendor `platform-lib` into every service/shell chart's `charts/` directory. Run this once after clone and again whenever `charts/platform-lib` or any chart's `Chart.yaml` dependencies change:
+
+```bash
+pnpm charts:deps
 ```
 
 Create the Kubernetes database credentials while the cluster API is available:
@@ -187,8 +193,8 @@ curl -i http://localhost:8081/
 curl -i http://localhost:8081/topology/client/remoteEntry.js
 curl -i http://localhost:8081/compliance/client/remoteEntry.js
 curl -i http://localhost:8081/pdf/client/remoteEntry.js
-curl -i http://localhost:8081/api/v1/topology/health
-curl -i http://localhost:8081/api/v1/pdf/health
+curl -i http://localhost:8081/topology/api/v1/health
+curl -i http://localhost:8081/pdf/api/v1/health
 ```
 
 The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8081`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
@@ -245,9 +251,15 @@ docker compose -p topology-service \
 Tear down the integrated Kubernetes workflow in this order:
 
 1. Stop the running Skaffold process with `Ctrl+C`. Skaffold removes its
-	managed workloads while leaving the local namespace and generated Secret
+	managed Helm releases while leaving the local namespace and generated Secret
 	available for the next run.
-2. Delete the local k3d cluster and its containers:
+2. Remove the Traefik and `traefik-shared` Helm releases:
+
+```bash
+pnpm helm:down
+```
+
+3. Delete the local k3d cluster and its containers:
 
 ```bash
 pnpm k3d:down
@@ -255,7 +267,10 @@ pnpm k3d:down
 
 The cluster deletion also removes the `platform-local` namespace and its
 Kubernetes Secret. Do not run `pnpm k8s:secrets` after this step unless you have
-started the cluster again with `pnpm k3d:up`.
+started the cluster again with `pnpm k3d:up`. Running `pnpm k3d:down` alone is
+sufficient to remove Traefik too, since it deletes the whole cluster; use
+`pnpm helm:down` on its own only when you want to reset Traefik/`traefik-shared`
+without tearing down the entire cluster.
 
 If you used the ordinary root Compose workflow separately, stop it before
 cleaning Docker resources:

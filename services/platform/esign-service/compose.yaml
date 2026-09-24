@@ -7,18 +7,21 @@ services:
       target: prod
     image: esign-server:prod
     container_name: esign-server
-    ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
-    environment:
-      SERVER_PORT: ${SERVER_PORT}
-      NODE_ENV: production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esign-api.rule=PathPrefix(`/esign/api`)"
+      - "traefik.http.routers.esign-api.entrypoints=web"
+      - "traefik.http.middlewares.esign-api-rewrite.replacepathregex.regex=^/esign/api/v1/(.*)"
+      - "traefik.http.middlewares.esign-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.esign-api.middlewares=esign-api-rewrite"
+      - "traefik.http.services.esign-api.loadbalancer.server.port=8080"
     networks:
       - platform-mesh
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:${SERVER_PORT:-4002}/api/v1/esign/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
         ]
       interval: 10s
       timeout: 5s
@@ -32,10 +35,11 @@ services:
       target: prod
     image: esign-client:prod
     container_name: esign-client
-    ports:
-      - "${CLIENT_PORT}:${CLIENT_PORT}"
-    environment:
-      CLIENT_PORT: ${CLIENT_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esign.rule=PathPrefix(`/esign`)"
+      - "traefik.http.routers.esign.entrypoints=web"
+      - "traefik.http.services.esign.loadbalancer.server.port=3000"
     depends_on:
       esign-server:
         condition: service_healthy

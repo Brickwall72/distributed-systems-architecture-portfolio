@@ -1,0 +1,7 @@
+# File: charts/platform-lib/values.yaml
+#
+# platform-lib is a library chart: its templates are `include`d directly by
+# consuming charts (charts/*/charts/<component>), which are the sole source
+# of truth for image, replicas, resources, probes and annotations. This file
+# intentionally has no defaults since Helm never merges them into the
+# consuming chart's context.

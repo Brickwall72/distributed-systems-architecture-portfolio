@@ -1,0 +1,16 @@
+# File: charts/global-shell/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  route:
+    rule: "PathPrefix(`/`)"
+    serviceName: global-shell

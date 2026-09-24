@@ -36,7 +36,7 @@ describe('NetworkCanvasWidget Consumer Contract', () => {
       .uponReceiving('a request for the full entity directory graph')
       .withRequest({
         method: 'GET',
-        path: '/api/v1/topology/entities',
+        path: '/topology/api/v1/entities',
       })
       .willRespondWith({
         status: 200,

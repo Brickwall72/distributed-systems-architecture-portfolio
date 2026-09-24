@@ -1,0 +1,13 @@
+# File: charts/compliance-shell/Chart.yaml
+
+apiVersion: v2
+name: compliance-shell
+description: Vertical slice chart for the compliance domain shell (micro-frontend)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: shell
+    version: 0.1.0        # match charts/compliance-shell/charts/shell/Chart.yaml version
+    repository: "file://charts/shell"

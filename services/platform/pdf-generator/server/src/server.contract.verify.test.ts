@@ -1,6 +1,7 @@
 // File: services/platform/pdf-generator/server/src/server.contract.verify.test.ts
 import { Verifier } from '@pact-foundation/pact';
 import path from 'path';
+import type { NextFunction, Request, Response } from 'express';
 
 // 1. Mock the heavy PDF generation service so the test stays lightweight and fast
 vi.mock('./services/pdfService.js', () => ({
@@ -27,10 +28,16 @@ describe('Pact Provider Verification', () => {
   it('validates expected contracts from pdf-client', async () => {
     const opts = {
       provider: 'pdf-server',
-      providerBaseUrl: `http://localhost:${port}`,
+      providerBaseUrl: `http://localhost:${port}`, // Traefik
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/pdf-client-pdf-server.json'),
       ],
+      requestFilter: (req: Request, _res: Response, next: NextFunction) => {
+        if (req.url.startsWith('/pdf/')) {
+          req.url = req.url.replace(/^\/pdf/, '');
+        }
+        next();
+      },
       stateHandlers: {
         'the pdf generator engine is healthy': async () => {
           // State hook is satisfied since our mock service is ready

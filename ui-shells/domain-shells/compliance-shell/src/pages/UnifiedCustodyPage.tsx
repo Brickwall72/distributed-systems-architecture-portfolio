@@ -2,14 +2,14 @@
 import { useState, useMemo, Suspense, lazy } from 'react';
 import { Organization, Asset, DD1149TemplateData } from '@contracts/domain';
 import { DocumentViewer, hydrateTemplate } from '@shared/ui-components';
-import { saveDocument } from 'compliance_client/api'
+import { saveDocument } from 'compliance_client/api/saveDocument'
 
 // Micro-Frontend Federated Remote Imports
-const OrganizationSelector = lazy(() => import('topology_client/OrganizationSelectorWidget'));
-const AssetSelector = lazy(() => import('topology_client/AssetSelectorWidget'));
-const GeneratePdfButton = lazy(() => import('pdf_client/GeneratePdfButton'));
-const TemplateSelector = lazy(() => import('compliance_client/TemplateSelector'));
-const SignatureOverlay = lazy(() => import('esign_client/SignatureOverlay'));
+const OrganizationSelector = lazy(() => import('topology_client/widget/OrganizationSelector'));
+const AssetSelector = lazy(() => import('topology_client/widget/AssetSelector'));
+const GeneratePdfButton = lazy(() => import('pdf_client/widget/GeneratePdfButton'));
+const TemplateSelector = lazy(() => import('compliance_client/widget/TemplateSelector'));
+const SignatureOverlay = lazy(() => import('esign_client/widget/SignatureOverlay'));
 
 export default function UnifiedCustodyPage() {
   // 1. Selector States

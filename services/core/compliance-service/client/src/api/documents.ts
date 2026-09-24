@@ -8,7 +8,7 @@ import { getApiBaseUrl } from './client-config';
  */
 export async function fetchDocuments(): Promise<ComplianceDocument[]> {
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/compliance/documents/`);
+  const response = await fetch(`${baseUrl}/compliance/api/v1/documents/`);
   
   if (!response.ok) {
     throw new Error(`Failed to fetch documents dataset: ${response.status} ${response.statusText}`);

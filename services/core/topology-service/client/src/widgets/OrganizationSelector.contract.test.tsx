@@ -16,7 +16,7 @@ describe('OrganizationSelector Consumer Contract', () => {
           .uponReceiving('a GET request for organization entities')
           .withRequest({
             method: 'GET',
-            path: '/api/v1/topology/organizations',
+            path: '/topology/api/v1/organizations',
           })
           .willRespondWith({
             status: 200,

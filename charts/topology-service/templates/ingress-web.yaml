@@ -1,0 +1,31 @@
+# File: charts/topology-service/templates/ingress-web.yaml
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    app.kubernetes.io/name: topology
+    app.kubernetes.io/component: ingress
+spec:
+  entryPoints:
+    {{- toYaml .Values.ingress.web.entryPoints | nindent 4 }}
+  routes:
+    - match: {{ .Values.ingress.api.rule | quote }}
+      kind: Rule
+      services:
+        - name: {{ .Values.ingress.api.serviceName }}
+          port: 80
+      middlewares:
+        - name: {{ .Release.Name }}-api-rewrite
+        - name: gzip-compress
+        - name: security-headers
+    - match: {{ .Values.ingress.client.rule | quote }}
+      kind: Rule
+      services:
+        - name: {{ .Values.ingress.client.serviceName }}
+          port: 80
+      middlewares:
+        - name: gzip-compress
+        - name: security-headers
+

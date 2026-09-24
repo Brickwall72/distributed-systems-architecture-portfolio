@@ -1,4 +1,9 @@
 // File: ui-shells/domain-shells/compliance-shell/src/App.tsx
+import('compliance_client');
+import('topology_client');
+import('pdf_client');
+import('esign_client');
+
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UnifiedCustodyPage, DocumentsPage } from './pages';

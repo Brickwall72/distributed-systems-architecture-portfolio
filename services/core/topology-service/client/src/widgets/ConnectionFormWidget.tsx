@@ -23,7 +23,7 @@ export default function ConnectionFormWidget() {
       const payload = { sourceId, sourceLabel, targetId, targetLabel, actionContext };
       
       // 1. Make the actual API call to your backend/Neo4j
-      await fetch('/api/v1/topology/entities', {
+      await fetch('/topology/api/v1/entities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

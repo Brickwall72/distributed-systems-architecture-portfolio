@@ -13,21 +13,21 @@ import express from 'express';
 
 describe('Compliance Service Application (`server.ts`)', () => {
   it('disables the x-powered-by security header to reduce the attack surface', async () => {
-    const response = await request(app).get('/api/v1/compliance/templates');
+    const response = await request(app).get('/api/v1/templates');
     
     // Ensures app.disable('x-powered-by') is active
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
-  it('correctly mounts the compliance gateway router under /api/v1/compliance', async () => {
-    const response = await request(app).get('/api/v1/compliance/templates');
+  it('correctly mounts the compliance gateway router under /compliance/api/v1', async () => {
+    const response = await request(app).get('/api/v1/templates');
     
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
   });
 
   it('returns a 404 for unknown paths falling through the gateway', async () => {
-    const response = await request(app).get('/api/v1/compliance/invalid-subpath-route');
+    const response = await request(app).get('/api/v1/invalid-subpath-route');
     
     expect(response.status).toBe(404);
   });

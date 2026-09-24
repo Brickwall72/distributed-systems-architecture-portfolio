@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.tsx
 import { useEffect, useState } from 'react';
-import { fetchDocuments } from 'compliance_client/api';
-import { ComplianceDocument } from 'compliance_client/contracts';
+import { fetchDocuments } from 'compliance_client/api/fetchDocuments';
+import { ComplianceDocument } from 'compliance_client/contract/ComplianceDocument';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components'; // Adjust ui package reference as configured in your project
 
 const columns: TableColumn<ComplianceDocument>[] = [

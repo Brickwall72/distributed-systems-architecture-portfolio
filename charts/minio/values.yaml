@@ -1,0 +1,34 @@
+# File: charts/minio/values.yaml
+# minioadmin/minioadmin matches the existing compose/k8s-local dev-only defaults.
+
+image:
+  repository: quay.io/minio/minio
+  tag: "RELEASE.2025-04-22T22-12-26Z"
+  pullPolicy: IfNotPresent
+
+setupImage:
+  repository: quay.io/minio/mc
+  tag: "RELEASE.2025-08-13T08-35-41Z"
+  pullPolicy: IfNotPresent
+
+rootUser: minioadmin
+rootPassword: minioadmin
+
+bucket: compliance-documents
+
+persistence:
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  entryPoints:
+    - web
+  rule: "Host(`minio.localhost`)"

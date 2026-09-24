@@ -17,12 +17,14 @@ RUN pnpm build
 
 # --- STAGE 2: Dev Target (For hot-reloading) ---
 FROM builder AS dev
-EXPOSE 4011
+EXPOSE 3000
 CMD ["pnpm", "dev"]
 
 # --- STAGE 3: Static / Prod Target ---
-FROM nginx:alpine AS prod
+FROM nginxinc/nginx-unprivileged:alpine AS prod
 ARG SERVICE_PATH=/app/services/platform/pdf-generator/client
+
+USER root
 
 # 1. Clear out default Nginx configurations and default HTML assets
 RUN rm -rf /usr/share/nginx/html/* && \
@@ -43,6 +45,6 @@ COPY --from=builder ${SERVICE_PATH}/dist /usr/share/nginx/html
 
 # 5. Drop root privileges entirely
 USER nginx
-EXPOSE 4011
+EXPOSE 3000
 
 CMD ["nginx", "-g", "daemon off;"]

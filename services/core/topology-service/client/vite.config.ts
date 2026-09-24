@@ -4,11 +4,11 @@ import { createRemoteConfig } from '@shared/vite-config';
 export default createRemoteConfig({
   domain: 'topology',
   concern: 'client',
-  port: Number.parseInt(process.env.CLIENT_PORT || '3011'),
   exposes: {
-    './ConnectionFormWidget': './src/widgets/ConnectionFormWidget.tsx',
-    './NetworkCanvasWidget': './src/widgets/NetworkCanvasWidget.tsx',
-    './AssetSelectorWidget': './src/widgets/AssetSelector.tsx',
-    './OrganizationSelectorWidget': './src/widgets/OrganizationSelector.tsx',
+    '.': './src/index.ts',
+    './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
+    './widget/NetworkCanvas': './src/widgets/NetworkCanvasWidget.tsx',
+    './widget/AssetSelector': './src/widgets/AssetSelector.tsx',
+    './widget/OrganizationSelector': './src/widgets/OrganizationSelector.tsx',
   }
 });

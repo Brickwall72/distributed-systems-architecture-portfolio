@@ -7,24 +7,26 @@ services:
       target: prod
     image: pdf-server:prod
     container_name: pdf-server
-    ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
-    environment:
-      SERVER_PORT: ${SERVER_PORT}
-      NODE_ENV: production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pdf-api.rule=PathPrefix(`/pdf/api`)"
+      - "traefik.http.routers.pdf-api.entrypoints=web"
+      - "traefik.http.middlewares.pdf-api-rewrite.replacepathregex.regex=^/pdf/api/v1/(.*)"
+      - "traefik.http.middlewares.pdf-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.pdf-api.middlewares=pdf-api-rewrite"
+      - "traefik.http.services.pdf-api.loadbalancer.server.port=8080"
     networks:
       - platform-mesh
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:${SERVER_PORT:-4001}/api/v1/pdf/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
         ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-
   pdf-client:
     build:
       context: .
@@ -32,10 +34,11 @@ services:
       target: prod
     image: pdf-client:prod
     container_name: pdf-client
-    ports:
-      - "${CLIENT_PORT}:${CLIENT_PORT}"
-    environment:
-      CLIENT_PORT: ${CLIENT_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pdf.rule=PathPrefix(`/pdf`)"
+      - "traefik.http.routers.pdf.entrypoints=web"
+      - "traefik.http.services.pdf.loadbalancer.server.port=3000"
     depends_on:
       pdf-server:
         condition: service_healthy
