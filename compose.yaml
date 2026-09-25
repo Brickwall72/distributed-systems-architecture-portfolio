@@ -33,8 +33,10 @@ services:
       - "./config/traefik/dynamic:/etc/traefik/dynamic:ro"
     networks:
       - platform-mesh
+
   dbgate:
     image: dbgate/dbgate:7.2.6
+    container_name: dbgate
     ports:
       - "3040:3000"
     environment:
@@ -51,7 +53,7 @@ services:
       - platform-mesh
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    image: cgr.dev/chainguard/minio:latest
     container_name: minio
     ports:
       - "9000:9000"
@@ -66,22 +68,18 @@ services:
       - minio-data:/data
 
   minio-setup:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
-    container_name: minio-setup
+    image: cgr.dev/chainguard/minio-client:latest-dev
     depends_on:
       - minio
     networks:
       - platform-mesh
     entrypoint: >
       /bin/sh -c "
-      echo 'Waiting for MinIO...';
-      sleep 5;
-      mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      mc mb myminio/compliance-documents --ignore-existing;
-      mc anonymous set download myminio/compliance-documents;
+      until mc alias set localmfe http://minio:9000 minioadmin minioadmin; do echo 'Waiting for MinIO...'; sleep 1; done;
+      mc mb --ignore-existing localmfe/compliance-documents;
+      mc anonymous set public localmfe/compliance-documents;
       exit 0;
       "
-
 volumes:
   dbgate-data:
   minio-data:
