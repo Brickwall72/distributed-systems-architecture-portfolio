@@ -208,12 +208,8 @@ if [[ "${BUILD_DOCKER_BASE:-false}" == "true" ]]; then
     docker build -f Dockerfile.base -t base-image:local .
 fi
 
-echo "Provisioning the local k3d cluster and Traefik ingress controller..."
-pnpm k3d:up
-pnpm helm
-
 echo "${DEPLOYMENT_BANNER}"
-echo "✓ ENVIRONMENT SETUP COMPLETE: System is compilation- and cluster-ready."
+echo "✓ ENVIRONMENT SETUP COMPLETE: System tooling and dependencies are configured."
 echo "${DEPLOYMENT_BANNER}"
 
 # SELF-HEALING AUTOMATION: If running as a child process, prompt the user for the parent injection

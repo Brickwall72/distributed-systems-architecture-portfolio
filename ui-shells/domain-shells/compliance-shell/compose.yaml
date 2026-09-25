@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: prod
+      target: dev
     image: compliance-shell:prod
     container_name: compliance-shell
     labels:
