@@ -1,0 +1,12 @@
+# File: ui-shells/domain-shells/compliance-shell/compose.dev.yaml
+services:
+  compliance-shell:
+    build:
+      target: dev
+    image: compliance-shell:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ../../../packages:/app/packages
+      - .:/app/ui-shells/domain-shells/compliance-shell
+      - /app/ui-shells/domain-shells/compliance-shell/node_modules

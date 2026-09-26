@@ -4,7 +4,7 @@ nameOverride: topology-server
 
 image:
   repository: topology-server
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1
@@ -23,6 +23,11 @@ env:
         name: topology-db-credentials
         key: DB_PASSWORD
 envFrom: []
+
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z topology-db 7687; do echo waiting for topology-db; sleep 2; done']
 
 annotations:
   prometheus.io/scrape: "true"

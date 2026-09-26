@@ -1,12 +1,25 @@
-# File: Dockerfile.base
 # syntax=docker/dockerfile:1.7
+# File: Dockerfile.base
+
 FROM node:26.7.0-alpine
 WORKDIR /app
 
 RUN npm install -g pnpm@11.24.0 --ignore-scripts
 
-COPY tsconfig.json pnpm-workspace.yaml package.json ./
-COPY packages/ ./packages
+# ==========================================
+# LAYER 1: Dependency Caching
+# ==========================================
 COPY pnpm-lock.yaml ./
 RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
-	pnpm install --frozen-lockfile --ignore-scripts && pnpm build
+    pnpm fetch --ignore-scripts
+
+# ==========================================
+# LAYER 2: Source Code & Installation
+# ==========================================
+# COPY packages/ BEFORE running pnpm install so workspace:* links resolve successfully
+COPY tsconfig.json pnpm-workspace.yaml package.json ./
+COPY packages/ ./packages/
+
+RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --offline --ignore-scripts \
+    && pnpm build

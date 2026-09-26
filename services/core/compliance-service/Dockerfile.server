@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1.7
+# File: services/core/compliance-service/Dockerfile.server
+
+# --- STAGE 1: Builder ---
+FROM base-image:local AS builder
+ARG SERVICE_PATH=/app/services/core/compliance-service/server
+WORKDIR /app
+
+# DevSecOps: Full context copy replaces brittle whitelisting. 
+# .dockerignore prevents node_modules/ bloat.
+COPY server/ ${SERVICE_PATH}/
+
+WORKDIR ${SERVICE_PATH}
+# Execute the workspace build
+RUN pnpm build
+
+# --- STAGE 2: Dev Target ---
+FROM builder AS dev
+ARG SERVICE_PATH=/app/services/core/compliance-service/server
+
+# DevSecOps Fix: Drop privileges. 
+# Anonymous volumes in compose.dev.yaml prevent EACCES issues natively.
+USER node
+WORKDIR ${SERVICE_PATH}
+EXPOSE 8080
+
+CMD ["pnpm", "dev"]
+
+# --- STAGE 3: Static / Prod Target ---
+FROM node:26.7.0-alpine AS prod
+ARG SERVICE_PATH=/app/services/core/compliance-service/server
+
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Securely rebuild the required monorepo workspace structure
+# Use --chown=node:node during COPY to prevent layer duplication
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/packages ./packages
+COPY --chown=node:node --from=builder /app/pnpm-lock.yaml ./
+
+WORKDIR ${SERVICE_PATH}
+
+# Securely copy only the built artifacts for this specific service
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/dist ./dist
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/package.json ./
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_modules
+
+# Lock down the container for production execution
+USER node
+EXPOSE 8080
+
+CMD ["node", "dist/server.js"]

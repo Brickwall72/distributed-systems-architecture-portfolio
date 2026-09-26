@@ -98,4 +98,3 @@ metadata:
   name: {{ $name }}
 automountServiceAccountToken: false
 {{- end -}}
-

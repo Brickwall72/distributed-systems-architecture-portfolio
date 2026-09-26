@@ -168,7 +168,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
           },
         },
       },
-      responseClone?.body
+      responseClone && responseClone.body
         ? [serializedRequest.body, responseClone.body]
         : [],
     )
@@ -301,7 +301,7 @@ function sendToClient(client, message, transferrables = []) {
     const channel = new MessageChannel()
 
     channel.port1.onmessage = (event) => {
-      if (event.data?.error) {
+      if (event.data && event.data.error) {
         return reject(event.data.error)
       }
 

@@ -5,6 +5,6 @@ export default createRemoteConfig({
   domain: 'pdf',
   concern: 'client',
   exposes: {
-    './GeneratePdfButton': './src/widgets/GeneratePdfButton.tsx',
+    './widget/GeneratePdfButton': './src/widgets/GeneratePdfButton.tsx',
   }
 });

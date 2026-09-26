@@ -1,14 +1,25 @@
 // File: ui-shells/domain-shells/compliance-shell/src/App.tsx
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useFederationRegistry } from '@shared/mf-runtime';
 import { UnifiedCustodyPage, DocumentsPage } from './pages';
 import { NavigationTabs } from './components';
 import '@shared/styles';
 
 export default function App() {
+  const { isReady } = useFederationRegistry({ shellName: 'compliance_shell' });
+
   const isStandalone =
     window.location.pathname === '/compliance' ||
     window.location.pathname.startsWith('/compliance/');
+
+  if (!isReady) {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-6 bg-slate-900 text-slate-400 font-mono text-sm min-h-screen animate-pulse">
+        Initializing Compliance Domain Registry...
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter basename={isStandalone ? '/compliance' : undefined}>

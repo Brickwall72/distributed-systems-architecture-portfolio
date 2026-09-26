@@ -4,7 +4,7 @@ nameOverride: compliance-client
 
 image:
   repository: compliance-client
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1
@@ -18,13 +18,13 @@ annotations:
 probes:
   readiness:
     httpGet:
-      path: /
+      path: /health
       port: 3000
     initialDelaySeconds: 3
     periodSeconds: 10
   liveness:
     httpGet:
-      path: /
+      path: /health
       port: 3000
     initialDelaySeconds: 10
     periodSeconds: 10

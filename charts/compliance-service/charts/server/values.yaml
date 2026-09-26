@@ -4,7 +4,7 @@ nameOverride: compliance-server
 
 image:
   repository: compliance-server
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1
@@ -16,6 +16,11 @@ env:
         name: compliance-db-credentials
         key: DATABASE_URL
 envFrom: []
+
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z compliance-db 5432; do echo waiting for db; sleep 2; done']
 
 annotations:
   prometheus.io/scrape: "true"

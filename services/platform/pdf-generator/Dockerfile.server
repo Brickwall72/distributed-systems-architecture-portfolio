@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1.7
+# File: services/platform/pdf-generator/server/Dockerfile
+
+# ==========================================
+# STAGE 1: OS Base & Environment
+# Installs Chromium ONCE. Cached permanently unless APK packages change.
+# ==========================================
+FROM base-image:local AS os-base
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+WORKDIR /app
+
+# Prevent Puppeteer from downloading Chromium in ALL downstream stages
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Retains downloaded .apk files on host disk across base-image rebuilds
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add ca-certificates chromium freetype harfbuzz nss ttf-freefont
+
+# ==========================================
+# STAGE 2: Builder
+# ==========================================
+FROM os-base AS builder
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+
+COPY server/ ${SERVICE_PATH}/
+
+WORKDIR ${SERVICE_PATH}
+RUN pnpm build
+
+# ==========================================
+# STAGE 3: Dev Target
+# Inherits from os-base (NOT builder) so code edits never re-trigger 'apk add'
+# ==========================================
+FROM os-base AS dev
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+
+WORKDIR ${SERVICE_PATH}
+
+# Copy with --chown directly to eliminate slow 'RUN chown -R' commands
+COPY --chown=node:node server/ ${SERVICE_PATH}/
+
+USER node
+EXPOSE 8080
+CMD ["pnpm", "dev"]
+
+# ==========================================
+# STAGE 4: Production Target
+# ==========================================
+FROM os-base AS prod
+ARG SERVICE_PATH=/app/services/platform/pdf-generator/server
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Copy monorepo dependencies and compiled distribution files
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/packages ./packages
+COPY --chown=node:node --from=builder /app/pnpm-lock.yaml ./
+
+WORKDIR ${SERVICE_PATH}
+
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/dist ./dist
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/package.json ./
+COPY --chown=node:node --from=builder ${SERVICE_PATH}/node_modules ./node_modules
+
+USER node
+EXPOSE 8080
+
+CMD ["node", "dist/server.js"]

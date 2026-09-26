@@ -2,9 +2,10 @@
 services:
   pdf-server:
     build:
-      context: ./server
-      dockerfile: ./Dockerfile
-    image: pdf-server:local
+      context: .
+      dockerfile: ./Dockerfile.server
+      target: prod
+    image: pdf-server:prod
     container_name: pdf-server
     labels:
       - "traefik.enable=true"
@@ -14,9 +15,6 @@ services:
       - "traefik.http.middlewares.pdf-api-rewrite.replacepathregex.replacement=/api/v1/$1"
       - "traefik.http.routers.pdf-api.middlewares=pdf-api-rewrite"
       - "traefik.http.services.pdf-api.loadbalancer.server.port=8080"
-    command: pnpm run dev
-    volumes:
-      - ./server:/app/services/platform/pdf-generator/server
     networks:
       - platform-mesh
     healthcheck:
@@ -31,17 +29,16 @@ services:
       start_period: 30s
   pdf-client:
     build:
-      context: ./client
-      dockerfile: ./Dockerfile
-    image: pdf-client:local
+      context: .
+      dockerfile: ./Dockerfile.client
+      target: prod
+    image: pdf-client:prod
     container_name: pdf-client
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pdf.rule=PathPrefix(`/pdf`)"
       - "traefik.http.routers.pdf.entrypoints=web"
       - "traefik.http.services.pdf.loadbalancer.server.port=3000"
-    volumes:
-      - ./client:/app/services/platform/pdf-generator/client
     depends_on:
       pdf-server:
         condition: service_healthy

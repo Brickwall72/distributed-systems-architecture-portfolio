@@ -5,9 +5,9 @@ export default createRemoteConfig({
   domain: 'topology',
   concern: 'client',
   exposes: {
-    './ConnectionFormWidget': './src/widgets/ConnectionFormWidget.tsx',
-    './NetworkCanvasWidget': './src/widgets/NetworkCanvasWidget.tsx',
-    './AssetSelectorWidget': './src/widgets/AssetSelector.tsx',
-    './OrganizationSelectorWidget': './src/widgets/OrganizationSelector.tsx',
+    './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
+    './widget/NetworkCanvas': './src/widgets/NetworkCanvasWidget.tsx',
+    './widget/AssetSelector': './src/widgets/AssetSelector.tsx',
+    './widget/OrganizationSelector': './src/widgets/OrganizationSelector.tsx',
   }
 });

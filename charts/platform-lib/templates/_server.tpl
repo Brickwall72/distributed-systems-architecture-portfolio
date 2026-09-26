@@ -27,6 +27,10 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         {{- include "platform-lib.podSecurityContext" . | nindent 8 }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      {{- end }}
       containers:
         - name: server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

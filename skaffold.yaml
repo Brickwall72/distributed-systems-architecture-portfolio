@@ -8,51 +8,57 @@ build:
     useBuildkit: true
   artifacts:
     - image: topology-server
-      context: services/core/topology-service/server
+      context: services/core/topology-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.server
+        target: prod
       sync:
         infer:
           - "**/*.ts"
           - "**/*.json"
     - image: topology-client
-      context: services/core/topology-service/client
+      context: services/core/topology-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.client
+        target: prod
       sync:
         infer:
           - "**/*.tsx"
           - "**/*.ts"
           - "**/*.json"
     - image: pdf-server
-      context: services/platform/pdf-generator/server
+      context: services/platform/pdf-generator
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.server
+        target: prod
       sync:
         infer:
           - "**/*.ts"
           - "**/*.json"
     - image: pdf-client
-      context: services/platform/pdf-generator/client
+      context: services/platform/pdf-generator
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.client
+        target: prod
       sync:
         infer:
           - "**/*.tsx"
           - "**/*.ts"
           - "**/*.json"
     - image: esign-server
-      context: services/platform/esign-service/server
+      context: services/platform/esign-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.server
+        target: prod
       sync:
         infer:
           - "**/*.ts"
           - "**/*.json"
     - image: esign-client
-      context: services/platform/esign-service/client
+      context: services/platform/esign-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.client
+        target: prod
       sync:
         infer:
           - "**/*.tsx"
@@ -62,25 +68,25 @@ build:
       context: ui-shells/domain-shells/topology-shell
       docker:
         dockerfile: Dockerfile
-        buildArgs:
-          VITE_ORIGIN: "http://localhost:8081"
       sync:
         infer:
           - "**/*.tsx"
           - "**/*.ts"
           - "**/*.json"
     - image: compliance-server
-      context: services/core/compliance-service/server
+      context: services/core/compliance-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.server
+        target: prod
       sync:
         infer:
           - "**/*.ts"
           - "**/*.json"
     - image: compliance-client
-      context: services/core/compliance-service/client
+      context: services/core/compliance-service
       docker:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.client
+        target: prod
       sync:
         infer:
           - "**/*.tsx"
@@ -90,8 +96,6 @@ build:
       context: ui-shells/domain-shells/compliance-shell
       docker:
         dockerfile: Dockerfile
-        buildArgs:
-          VITE_ORIGIN: "http://localhost:8081"
       sync:
         infer:
           - "**/*.tsx"
@@ -101,8 +105,6 @@ build:
       context: ui-shells/global-shell
       docker:
         dockerfile: Dockerfile
-        buildArgs:
-          VITE_ORIGIN: "http://localhost:8081"
       sync:
         infer:
           - "**/*.tsx"

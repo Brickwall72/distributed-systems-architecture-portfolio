@@ -2,30 +2,33 @@
 
 /// <reference types="vite/client" />
 
-declare module 'pdf_client/*' {
+declare module 'pdf_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;
   export default Component;
 }
 
-declare module 'esign_client/*' {
+declare module 'esign_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;
   export default Component;
 }
 
-declare module 'topology_client/*' {
+declare module 'topology_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;
   export default Component;
 }
 
-declare module 'compliance_client/api' {
+declare module 'compliance_client/api/saveDocument' {
   export function saveDocument(documentUrl: string): Promise<void>;
+}
+
+declare module 'compliance_client/api/fetchDocuments' {
   export function fetchDocuments(): Promise<ComplianceDocument[]>
 }
 
-declare module 'compliance_client/contracts' {
+declare module 'compliance_client/contract/ComplianceDocument' {
   type ComplianceDocument = {
   [x: string]: unknown;
   id: string;
@@ -36,7 +39,7 @@ declare module 'compliance_client/contracts' {
 }
 }
 
-declare module 'compliance_client/*' {
+declare module 'compliance_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;
   export default Component;

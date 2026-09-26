@@ -15,14 +15,12 @@ interface RemoteConfigOptions {
 }
 
 export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
-  let basePath: string;
+  let basePath: string = `/${options.domain}/${options.concern}/`
   if (options.domain === 'global') {
     basePath = '/';
   } else if (options.concern === 'shell') {
-    basePath = `/${options.domain}-shell`;
-  } else {
-    basePath = `/${options.domain}/${options.concern}`;
-  }
+    basePath = `/${options.domain}-shell/`;
+  } 
 
   return defineConfig({
     base: basePath,
@@ -67,8 +65,10 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
     ],
     build: {
       target: 'esnext',
+      outDir: 'dist',
+      assetsDir: 'assets',
       minify: false,
-      cssCodeSplit: false, // Keeps federated CSS cleanly bundled
+      cssCodeSplit: true, // Keeps federated CSS cleanly bundled
     },
     // Avoid using a predictable directory in the world-writable system temp directory.
     cacheDir: join(tmpdir(), `vite-cache-${options.domain}-${options.concern}`),

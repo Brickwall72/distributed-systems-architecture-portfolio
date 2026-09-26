@@ -1,0 +1,12 @@
+# File: ui-shells/global-shell/compose.dev.yaml
+services:
+  global-shell:
+    build:
+      target: dev
+    image: global-shell:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ../../packages:/app/packages
+      - .:/app/ui-shells/global-shell
+      - /app/ui-shells/global-shell/node_modules

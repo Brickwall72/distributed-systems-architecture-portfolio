@@ -1,0 +1,38 @@
+# File: charts/global-shell/templates/configmap-registry.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-shell-registry
+  labels:
+    app.kubernetes.io/name: global-shell-registry
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  apps.json: |
+    {
+      "remotes": [
+        {
+          "name": "compliance_shell",
+          "entry": "/compliance-shell/mf-manifest.json"
+        },
+        {
+          "name": "topology_shell",
+          "entry": "/topology-shell/mf-manifest.json"
+        },
+        {
+          "name": "compliance_client",
+          "entry": "/compliance/client/mf-manifest.json"
+        },
+        {
+          "name": "topology_client",
+          "entry": "/topology/client/mf-manifest.json"
+        },
+        {
+          "name": "esign_client",
+          "entry": "/esign/client/mf-manifest.json"
+        },
+        {
+          "name": "pdf_client",
+          "entry": "/pdf/client/mf-manifest.json"
+        }
+      ]
+    }

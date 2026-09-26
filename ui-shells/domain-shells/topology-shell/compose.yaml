@@ -4,7 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: topology-shell:local
+      target: prod
+    image: topology-shell:prod
     container_name: topology-shell
     labels:
       - "traefik.enable=true"
@@ -13,8 +14,6 @@ services:
       - "traefik.http.services.topology-shell.loadbalancer.server.port=3000"
     depends_on:
       - topology-client
-    volumes:
-      - .:/app/ui-shells/domain-shells/topology-shell
     networks:
       - platform-mesh
 
