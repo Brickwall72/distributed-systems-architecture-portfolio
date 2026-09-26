@@ -4,7 +4,7 @@ nameOverride: pdf-client
 
 image:
   repository: pdf-client
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1

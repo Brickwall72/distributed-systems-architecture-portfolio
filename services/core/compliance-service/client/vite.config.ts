@@ -6,8 +6,7 @@ export default createRemoteConfig({
   concern: 'client',
   exposes: {
     './widget/TemplateSelector': './src/widgets/TemplateSelector.tsx',
-    './api/fetchDocuments': './src/api/documents.ts',
-    './api/saveDocument': './src/api/save-document.ts',
+    './api': './src/api/index.ts',
     './contract/ComplianceDocument': './src/contracts/documents.ts'
   },
 });

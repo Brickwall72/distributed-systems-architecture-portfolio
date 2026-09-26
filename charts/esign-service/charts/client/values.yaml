@@ -4,7 +4,7 @@ nameOverride: esign-client
 
 image:
   repository: esign-client
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1

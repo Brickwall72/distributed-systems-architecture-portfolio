@@ -50,8 +50,9 @@ RUN chown -R nginx:nginx /var/cache/nginx \
     && touch /var/run/nginx.pid \
     && chown -R nginx:nginx /var/run/nginx.pid
 
-# Securely copy compiled static assets from builder stage
+# Securely copy compiled static assets and enforce unprivileged ownership
 COPY --from=builder ${SERVICE_PATH}/dist /usr/share/nginx/html/topology-shell
+RUN chmod -R a-w /usr/share/nginx/html/topology-shell
 
 USER nginx
 EXPOSE 3000

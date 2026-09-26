@@ -7,28 +7,7 @@ export default createRemoteConfig({
   exposes: {
     './App': './src/App.tsx',
   },
-  remotes: {
-    pdf_client: {
-      type: 'module',
-      name: 'pdf-client',
-      entry: `${process.env.VITE_ORIGIN}/pdf/client/remoteEntry.js`,
-    },
-    topology_client: {
-      type: 'module',
-      name: 'topology-client',
-      entry:`${process.env.VITE_ORIGIN}/topology/client/remoteEntry.js`,
-    },
-    compliance_client: {
-      type: 'module',
-      name: 'compliance-client',
-      entry: `${process.env.VITE_ORIGIN}/compliance/client/remoteEntry.js`,
-    },
-    esign_client: {
-      type: 'module',
-      name: 'esign-client',
-      entry: `${process.env.VITE_ORIGIN}/esign/client/remoteEntry.js`,
-    },
-  },
+  remotes: {},
   preview: {
     port: 3020,
     host: true, // Also add this if your Dockerfile uses 'vite preview' for production builds

@@ -1,21 +1,15 @@
 # File: charts/global-shell/charts/shell/values.yaml
-# The container startup command renders these values into ui-manifest.json.
+
 nameOverride: global-shell
 
 image:
   repository: global-shell
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1
 
-env:
-  - name: VITE_ORIGIN
-    value: http://localhost:8081
-  - name: TOPOLOGY_REMOTE_ENTRY
-    value: http://localhost:8081/topology-shell/remoteEntry.js
-  - name: COMPLIANCE_REMOTE_ENTRY
-    value: http://localhost:8081/compliance-shell/remoteEntry.js
+env: []
 envFrom: []
 
 annotations:
@@ -24,13 +18,13 @@ annotations:
 probes:
   readiness:
     httpGet:
-      path: /
+      path: /health # <-- Change from / to /health
       port: 3000
     initialDelaySeconds: 3
     periodSeconds: 10
   liveness:
     httpGet:
-      path: /
+      path: /health # <-- Change from / to /health
       port: 3000
     initialDelaySeconds: 10
     periodSeconds: 10
@@ -42,3 +36,13 @@ resources:
   limits:
     cpu: 250m
     memory: 512Mi
+
+volumeMounts:
+  - name: registry-volume
+    mountPath: /usr/share/nginx/html/registry
+    readOnly: true
+
+volumes:
+  - name: registry-volume
+    configMap:
+      name: global-shell-registry

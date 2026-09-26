@@ -44,8 +44,16 @@ spec:
           envFrom:
             {{- toYaml .Values.envFrom | nindent 12 }}
           {{- end }}
+          {{- if .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.volumeMounts | nindent 14 }}
+          {{- end }}
           {{- include "platform-lib.probes" .Values.probes | nindent 10 }}
           {{- include "platform-lib.resources" .Values.resources | nindent 10 }}
+      {{- if .Values.volumes }}
+      volumes:
+        {{- toYaml .Values.volumes | nindent 10 }}
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

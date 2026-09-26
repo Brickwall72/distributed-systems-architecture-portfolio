@@ -1,8 +1,16 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.tsx
 import { useEffect, useState } from 'react';
-import { fetchDocuments } from 'compliance_client/api/fetchDocuments';
-import { ComplianceDocument } from 'compliance_client/contract/ComplianceDocument';
-import { DatabaseTwinTable, TableColumn } from '@shared/ui-components'; // Adjust ui package reference as configured in your project
+import { loadRemote } from '@module-federation/enhanced/runtime';
+import { DatabaseTwinTable, TableColumn, FederatedErrorBoundary } from '@shared/ui-components';
+
+// Local interface definition or shared contract type
+interface ComplianceDocument {
+  id: string;
+  document_type: string;
+  s3_uri: string;
+  status: string;
+  created_at: string;
+}
 
 const columns: TableColumn<ComplianceDocument>[] = [
   { key: 'id', header: 'Document ID' },
@@ -26,15 +34,26 @@ export default function DocumentsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDocuments()
-      .then((data) => {
+    async function loadComplianceData() {
+      try {
+        // Dynamically resolve the compliance client API at runtime via the global registry,
+        // removing build-time static import coupling entirely.
+        const complianceApi = await loadRemote<any>('compliance_client/api');
+        
+        if (!complianceApi || typeof complianceApi.fetchDocuments !== 'function') {
+          throw new Error('Failed to resolve fetchDocuments from compliance_client remote');
+        }
+
+        const data = await complianceApi.fetchDocuments();
         setDocuments(data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to retrieve dataset');
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+
+    loadComplianceData();
   }, []);
 
   if (loading) {
@@ -47,10 +66,12 @@ export default function DocumentsPage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-950/40 border border-red-800/80 rounded-lg text-red-200 space-y-1">
-        <h4 className="font-semibold text-sm">Failed to load dataset view</h4>
-        <p className="text-xs text-red-300/80">{error}</p>
-      </div>
+      <FederatedErrorBoundary remoteName="compliance_client/api">
+        <div className="p-4 bg-red-950/40 border border-red-800/80 rounded-lg text-red-200 space-y-1">
+          <h4 className="font-semibold text-sm">Failed to load dataset view</h4>
+          <p className="text-xs text-red-300/80">{error}</p>
+        </div>
+      </FederatedErrorBoundary>
     );
   }
 
@@ -66,11 +87,13 @@ export default function DocumentsPage() {
         </span>
       </div>
 
-      <DatabaseTwinTable 
-        data={documents}
-        columns={columns}
-        rowKey="id"
-      />
+      <FederatedErrorBoundary remoteName="DatabaseTwinTable">
+        <DatabaseTwinTable 
+          data={documents}
+          columns={columns}
+          rowKey="id"
+        />
+      </FederatedErrorBoundary>
     </div>
   );
 }

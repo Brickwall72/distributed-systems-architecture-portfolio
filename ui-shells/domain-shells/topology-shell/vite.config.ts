@@ -7,13 +7,7 @@ export default createRemoteConfig({
   exposes: {
     './App': './src/App.tsx',
   },
-  remotes: {
-    topology_client: {
-        type: 'module',
-        name: 'topology-client',
-        entry: `${process.env.VITE_ORIGIN}/topology/client/remoteEntry.js`
-    },
-  },
+  remotes: {},
   preview: {
     port: 3010,
     host: true, // Also add this if your Dockerfile uses 'vite preview' for production builds

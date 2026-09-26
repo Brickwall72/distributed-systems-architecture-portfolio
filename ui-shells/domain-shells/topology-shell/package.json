@@ -11,6 +11,9 @@
   "dependencies": {
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
+    "@shared/ui-components": "workspace:*",
+    "@shared/mf-runtime": "workspace:*",
+    "@module-federation/enhanced": "~2.9.1",
     "react": "~19.2.8",
     "react-dom": "~19.2.8"
   }

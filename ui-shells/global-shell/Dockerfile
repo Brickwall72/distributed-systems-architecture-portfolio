@@ -33,7 +33,7 @@ RUN chown -R node:node "${SERVICE_PATH}"
 USER node
 EXPOSE 3000
 
-CMD ["sh", "-c", ": \"${TOPOLOGY_REMOTE_ENTRY:=http://localhost/topology-shell/remoteEntry.js}\"; : \"${COMPLIANCE_REMOTE_ENTRY:=http://localhost/compliance-shell/remoteEntry.js}\"; export TOPOLOGY_REMOTE_ENTRY COMPLIANCE_REMOTE_ENTRY; envsubst '${TOPOLOGY_REMOTE_ENTRY} ${COMPLIANCE_REMOTE_ENTRY}' < public/ui-manifest.template.json > public/ui-manifest.json && exec pnpm dev"]
+CMD ["pnpm", "dev"]
 
 # --- STAGE 3: Static / Prod Target ---
 FROM nginxinc/nginx-unprivileged:alpine AS prod
@@ -62,4 +62,4 @@ RUN chown -R nginx:nginx /usr/share/nginx/html
 USER nginx
 EXPOSE 3000
 
-CMD ["sh", "-c", ": \"${TOPOLOGY_REMOTE_ENTRY:=http://localhost/topology-shell/remoteEntry.js}\"; : \"${COMPLIANCE_REMOTE_ENTRY:=http://localhost/compliance-shell/remoteEntry.js}\"; export TOPOLOGY_REMOTE_ENTRY COMPLIANCE_REMOTE_ENTRY; envsubst '${TOPOLOGY_REMOTE_ENTRY} ${COMPLIANCE_REMOTE_ENTRY}' < /usr/share/nginx/html/ui-manifest.template.json > /usr/share/nginx/html/ui-manifest.json && exec nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]

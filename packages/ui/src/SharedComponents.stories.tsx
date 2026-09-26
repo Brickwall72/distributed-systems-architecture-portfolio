@@ -1,6 +1,12 @@
 // File: packages/ui/src/components/SharedComponents.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
-import { DatabaseTwinTable, TableColumn, DatabaseTwinProps, DocumentViewer } from './components';
+import { 
+  DatabaseTwinTable, 
+  TableColumn, 
+  DatabaseTwinProps, 
+  DocumentViewer, 
+  FederatedErrorBoundary 
+} from './components';
 
 const meta: Meta = {
   title: 'Shared Components',
@@ -138,4 +144,29 @@ export const TableCustomRenderView: StoryObj<DatabaseTwinProps<MockTransferRecor
       </div>
     ),
   ],
+};
+
+export const ErrorBoundaryNormal: StoryObj = {
+  render: () => (
+    <FederatedErrorBoundary remoteName="compliance_client">
+      <div className="p-6 bg-emerald-950/30 border border-emerald-800/80 rounded-xl text-emerald-200 space-y-2 shadow-sm">
+        <h4 className="font-semibold text-sm">Remote Widget Operational</h4>
+        <p className="text-xs text-emerald-300/80">Successfully resolved widget from remote runtime registry peer.</p>
+      </div>
+    </FederatedErrorBoundary>
+  ),
+};
+
+export const ErrorBoundaryTriggered: StoryObj = {
+  render: () => {
+    const BuggyWidget = () => {
+      throw new Error('Network partition: failed to fetch /topology/client/mf-manifest.json');
+    };
+
+    return (
+      <FederatedErrorBoundary remoteName="topology_client">
+        <BuggyWidget />
+      </FederatedErrorBoundary>
+    );
+  },
 };

@@ -4,7 +4,7 @@ nameOverride: topology-client
 
 image:
   repository: topology-client
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1

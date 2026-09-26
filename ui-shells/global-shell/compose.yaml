@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: dev
+      target: prod
     image: global-shell:prod
     container_name: global-shell
     labels:

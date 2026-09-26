@@ -4,7 +4,7 @@ nameOverride: pdf-server
 
 image:
   repository: pdf-server
-  tag: dev
+  tag: prod
   pullPolicy: IfNotPresent
 
 replicas: 1

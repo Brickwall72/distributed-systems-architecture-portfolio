@@ -15,14 +15,12 @@ interface RemoteConfigOptions {
 }
 
 export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
-  let basePath: string;
+  let basePath: string = `/${options.domain}/${options.concern}/`
   if (options.domain === 'global') {
     basePath = '/';
   } else if (options.concern === 'shell') {
-    basePath = `/${options.domain}-shell`;
-  } else {
-    basePath = `/${options.domain}/${options.concern}`;
-  }
+    basePath = `/${options.domain}-shell/`;
+  } 
 
   return defineConfig({
     base: basePath,
