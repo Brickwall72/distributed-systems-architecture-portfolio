@@ -13,7 +13,7 @@
     "test:contract": {
       "dependsOn": ["build"],
       "inputs": ["src/**/*.ts", "src/**/*.contract.test.ts"],
-      "outputs": ["pacts/**"]
+      "outputs": []
     },
     "test:verify": {
       "dependsOn": ["build"],
