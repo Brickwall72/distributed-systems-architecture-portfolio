@@ -16,7 +16,7 @@
   "dependencies": {
     "@shared/telemetry": "workspace:*",
     "@shared/interfaces": "workspace:*",
-    "@contracts/domain": "workspace:*",
+    "@contracts/custody": "workspace:*",
     "neo4j-driver": "~6.2.0",
     "zod": "~4.5.4",
     "express": "~5.2.1"

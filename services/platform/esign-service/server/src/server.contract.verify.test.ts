@@ -1,4 +1,5 @@
 // File: services/platform/esign-service/server/src/server.contract.server.test.ts
+import { vi, describe, it, expect, afterEach } from 'vitest';
 import request from 'supertest';
 import app from './server.js';
 
@@ -8,7 +9,7 @@ const MINIMAL_PDF_BASE64 = 'JVBERi0xLjQKJcOkw7zDtsOfCjEgMCBvYmoKPDwvVHlwZSAvQ2F0
 // Minimal valid 1x1 transparent Base64 PNG
 const MINIMAL_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
-// Mock fs to bypass the cryptographic seal attempt, keeping everything else integrated via server.ts
+// Mock fs to bypass the cryptographic seal attempt
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>();
   return {
@@ -32,6 +33,9 @@ describe('E-Sign Server Contract Tests (server.ts)', () => {
       .send({
         pdfBase64: MINIMAL_PDF_BASE64,
         signatureImageBase64: MINIMAL_PNG_BASE64,
+        documentId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        signerId: 'usr_4412',
+        entityId: 'clr_9910',
       })
       .responseType('blob'); // Handles binary PDF responses correctly
 
@@ -55,5 +59,19 @@ describe('E-Sign Server Contract Tests (server.ts)', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Missing pdfBase64 or signatureImageBase64 payload.' });
+  });
+
+  it('rejects requests missing required event metadata', async () => {
+    const res = await request(app)
+      .post('/api/v1/')
+      .send({
+        pdfBase64: MINIMAL_PDF_BASE64,
+        signatureImageBase64: MINIMAL_PNG_BASE64,
+      }); // Missing documentId, signerId, entityId
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'Missing documentId, signerId, or entityId metadata required for event contract.',
+    });
   });
 });

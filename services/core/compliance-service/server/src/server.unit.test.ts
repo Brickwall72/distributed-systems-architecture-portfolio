@@ -1,5 +1,8 @@
 // File: services/core/compliance-service/server/src/server.unit.test.ts
+import request from 'supertest';
+import express from 'express';
 
+// 1. Mock DB module
 vi.mock('./db/database.js', () => ({
   initDatabase: vi.fn().mockResolvedValue(undefined),
   pool: {
@@ -7,19 +10,23 @@ vi.mock('./db/database.js', () => ({
   },
 }));
 
-import request from 'supertest';
+// 2. Mock Telemetry
+vi.mock('@shared/telemetry', () => ({
+  createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() })),
+  createHealthCheck: vi.fn(() => (_req: any, res: any) => res.status(200).send('OK')),
+}));
+
+// Import app AFTER mocks are established
 import app from './server.js';
-import express from 'express';
 
 describe('Compliance Service Application (`server.ts`)', () => {
   it('disables the x-powered-by security header to reduce the attack surface', async () => {
     const response = await request(app).get('/api/v1/templates');
     
-    // Ensures app.disable('x-powered-by') is active
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
-  it('correctly mounts the compliance gateway router under /compliance/api/v1', async () => {
+  it('correctly mounts the compliance gateway router under /api/v1', async () => {
     const response = await request(app).get('/api/v1/templates');
     
     expect(response.status).toBe(200);
@@ -32,21 +39,20 @@ describe('Compliance Service Application (`server.ts`)', () => {
     expect(response.status).toBe(404);
   });
 });
+
 describe('Root Error Handler Middleware', () => {
   it('intercepts unhandled exceptions and returns the standardized 500 payload', async () => {
-    // Create a local test app mirroring server.ts error middleware structure
     const testApp = express();
     
     testApp.get('/error-trigger', (_req, _res, next) => {
       next(new Error('Database connection dropped'));
     });
 
-    // Mirror the root error handler from server.ts
     testApp.use((_err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
       res.status(500).json({
         errorCode: 'INTERNAL_SERVER_ERROR',
         message: 'An unexpected processing fault occurred within the compliance gateway container context.',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     });
 
@@ -56,7 +62,7 @@ describe('Root Error Handler Middleware', () => {
     expect(response.body).toEqual({
       errorCode: 'INTERNAL_SERVER_ERROR',
       message: 'An unexpected processing fault occurred within the compliance gateway container context.',
-      timestamp: expect.any(String)
+      timestamp: expect.any(String),
     });
   });
 });

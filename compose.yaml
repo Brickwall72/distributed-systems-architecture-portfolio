@@ -34,6 +34,23 @@ services:
     networks:
       - platform-mesh
 
+  services:
+  nats:
+    image: nats:2.15-alpine
+    ports:
+      - "4222:4222" # Client connections
+      - "8222:8222" # HTTP management & monitoring dashboard
+    command: ["-js"]
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - platform-mesh
+
   dbgate:
     image: dbgate/dbgate:7.2.6
     container_name: dbgate
@@ -83,6 +100,7 @@ services:
 volumes:
   dbgate-data:
   minio-data:
+  nats-data:
 
 networks:
   platform-mesh:

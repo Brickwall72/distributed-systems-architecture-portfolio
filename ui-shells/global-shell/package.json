@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@contracts/shell": "workspace:*",
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
     "@shared/ui-components": "workspace:*",

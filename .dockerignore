@@ -41,3 +41,6 @@ pacts/
 **/Dockerfile*
 **/compose*.yaml
 Makefile
+
+# Turborepo local cache
+.turbo

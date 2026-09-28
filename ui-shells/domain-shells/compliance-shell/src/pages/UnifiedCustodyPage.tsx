@@ -1,7 +1,8 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
 import { useState, useMemo, Suspense, lazy } from 'react';
 import { loadRemote } from '@module-federation/enhanced/runtime';
-import { Organization, Asset, DD1149TemplateData } from '@contracts/domain';
+import { Organization, Asset } from '@contracts/custody';
+import { DD1149TemplateData } from '@contracts/compliance';
 import { DocumentViewer, hydrateTemplate, FederatedErrorBoundary } from '@shared/ui-components';
 
 // Dynamically resolve all cross-boundary widgets and APIs as flat runtime peers

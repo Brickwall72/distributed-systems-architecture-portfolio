@@ -11,13 +11,17 @@
     "dev": "tsx watch src/server.ts",
     "test": "pnpm test:unit && pnpm test:verify",
     "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.test",
     "test:verify": "vitest run .contract.verify.test"
   },
   "dependencies": {
     "@shared/telemetry": "workspace:*",
+    "@shared/messaging": "workspace:*",
+    "@contracts/esign": "workspace:*",
     "@aws-sdk/client-s3": "~3.1131.0",
     "express": "~5.2.1",
-    "pg": "~8.23.0"
+    "pg": "~8.23.0",
+    "zod": "~4.6.5"
   },
   "devDependencies": {
     "tsx": "~4.23.13"

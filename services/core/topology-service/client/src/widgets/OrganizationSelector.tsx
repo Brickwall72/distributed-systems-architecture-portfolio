@@ -1,5 +1,5 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector.tsx
-import { Organization } from '@contracts/domain';
+import { Organization } from '@contracts/custody';
 import BaseSelector from './BaseSelector.jsx';
 
 interface OrganizationSelectorProps {

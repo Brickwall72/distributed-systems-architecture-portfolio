@@ -36,3 +36,6 @@ pacts/
 
 #Helm files
 *.tgz
+
+# Turborepo local cache
+.turbo
