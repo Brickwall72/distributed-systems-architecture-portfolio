@@ -109,7 +109,7 @@ export default function NetworkCanvasWidget() {
   };
 
   useEffect(() => {
-    fetchAndHydrateGraphView();
+    void fetchAndHydrateGraphView();
     window.addEventListener(TOPOLOGY_MUTATION_EVENT, fetchAndHydrateGraphView);
     return () => {
       window.removeEventListener(TOPOLOGY_MUTATION_EVENT, fetchAndHydrateGraphView);

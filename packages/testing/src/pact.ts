@@ -23,7 +23,7 @@ export function createPactTestHelper(config: PactConfig) {
 
     await pactProvider.executeTest(async (mockServer) => {
       const originalFetch = global.fetch;
-      global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      global.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
         const urlString = typeof input === 'string' ? input : input.toString();
         const targetUrl = urlString.startsWith('/') 
           ? `${mockServer.url}${urlString}` 

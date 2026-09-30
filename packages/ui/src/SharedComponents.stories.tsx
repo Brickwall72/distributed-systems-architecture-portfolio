@@ -39,7 +39,7 @@ export const HtmlPreview: StoryObj<typeof DocumentViewer> = {
   ],
 };
 
-const localTestPdfUrl = new URL('../__fixtures__/example.pdf', import.meta.url).href;
+const localTestPdfUrl = new URL('./__fixtures__/example.pdf', import.meta.url).href;
 
 export const PdfView: StoryObj<typeof DocumentViewer> = {
   render: (args) => <DocumentViewer {...args} />,

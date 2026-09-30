@@ -15,9 +15,9 @@ export const mockState = {
 const { mockSession } = vi.hoisted(() => {
   return {
     mockSession: vi.fn(() => ({
-      executeRead: vi.fn(async (callback: any) => {
+      executeRead: vi.fn((callback: any) => {
         return callback({
-          run: vi.fn(async () => {
+          run: vi.fn(() => {
             // State-driven routing for contract tests and advanced unit tests
             if (mockState.currentState === 'organizations') {
               return {
@@ -91,7 +91,7 @@ const { mockSession } = vi.hoisted(() => {
 });
 
 vi.mock('../topologyDatabase.js', () => ({
-  initializeDatabaseConnection: async () => ({}),
-  terminateDatabaseClient: async () => ({}),
+  initializeDatabaseConnection: () => ({}),
+  terminateDatabaseClient: () => ({}),
   getDatabaseClient: () => ({ session: mockSession }),
 }));
