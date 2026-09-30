@@ -53,7 +53,7 @@ export default function DocumentsPage() {
       }
     }
 
-    loadComplianceData();
+    void loadComplianceData();
   }, []);
 
   if (loading) {

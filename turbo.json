@@ -6,17 +6,17 @@
       "outputs": ["dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build"],
       "inputs": ["src/**/*.ts", "src/**/*.unit.test.ts", "vitest.config.ts"],
       "outputs": []
     },
     "test:contract": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build"],
       "inputs": ["src/**/*.ts", "src/**/*.contract.test.ts"],
-      "outputs": []
+      "outputs": ["pacts/**", "**/pacts/**"]
     },
     "test:verify": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^test:contract", "test:contract"],
       "inputs": ["src/**/*.ts", "src/**/*.verify.contract.test.ts"],
       "outputs": []
     },

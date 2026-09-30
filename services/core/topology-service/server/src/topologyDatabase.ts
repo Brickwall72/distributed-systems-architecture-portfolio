@@ -29,7 +29,7 @@ export async function initializeDatabaseConnection(
 ): Promise<Driver> {
   logger.info(`Attempting secure connection to graph infrastructure node at URI: [${DB_URI}]`);
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  const connect = async (attempt: number): Promise<Driver> => {
     try {
       /* Build a persistent driver with a bounded pool so the topology service remains resilient
       under multiple validation requests while still respecting the FMEA recommendation for
@@ -61,11 +61,15 @@ export async function initializeDatabaseConnection(
       }
 
       // Wait for the database container to finish its boot sequence before the next retry.
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return new Promise<Driver>((resolve, reject) => {
+        setTimeout(() => {
+          connect(attempt + 1).then(resolve).catch(reject);
+        }, delayMs);
+      });
     }
-  }
+  };
 
-  throw new Error('Graph database connection pool initialization failed unexpectedly.');
+  return connect(1);
 }
 
 /**

@@ -55,11 +55,10 @@ jobs:
       - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Install System Chromium
-        if: steps.changes.outputs.pdf-server == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser
+      - name: Install System Chromium Binary
+        uses: browser-actions/setup-chrome@53b433108beecbba288c0531baeca36f43780a88
+        with:
+          chrome-version: stable
 
       - name: Compile Workspace Packages
         run: pnpm build

@@ -55,7 +55,7 @@ export default function TemplateSelector({
   // 3. Auto-load the first template if none is selected yet
   useEffect(() => {
     if (templates.length > 0 && !selectedId && !isLoading) {
-      handleSelect(templates[0].id);
+      void handleSelect(templates[0].id);
     }
   }, [templates, selectedId]);
 

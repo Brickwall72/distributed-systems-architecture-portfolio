@@ -50,7 +50,7 @@ export default function BaseSelector<T>({
       }
     };
 
-    fetchData();
+    void fetchData();
     return () => {
       isMounted = false;
     };
