@@ -38,4 +38,4 @@ pacts/
 *.tgz
 
 # Turborepo local cache
-.turbo
+.turbo/

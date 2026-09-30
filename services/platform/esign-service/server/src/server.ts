@@ -29,7 +29,7 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`E-Sign Microservice running on port ${env.PORT}`);
   });
 
-  const shutdown = async (signal: string) => {
+  const shutdown = (signal: string) => {
     logger.info(`Received ${signal}. Initiating graceful shutdown...`);
 
     server.close(async () => {

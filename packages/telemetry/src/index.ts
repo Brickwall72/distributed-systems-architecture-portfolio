@@ -8,4 +8,4 @@
  * observability without depending on a specific service implementation.
  */
 export * from './health.js';
-export * from './logger';
+export * from './logger.js';

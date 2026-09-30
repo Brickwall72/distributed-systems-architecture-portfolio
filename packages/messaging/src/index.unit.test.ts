@@ -1,17 +1,29 @@
 // File: packages/messaging/src/index.unit.test.ts
-import { EventBroker, type Logger } from './index';
+import { EventBroker, Logger } from './index.js';
 
-// Mock external NATS v3 modules
-const mockClose = vi.fn();
-const mockStreamsAdd = vi.fn();
-const mockPublish = vi.fn();
-const mockSubscribe = vi.fn();
+// Mocks for NATS transport and JetStream
+const mockNc = {
+  close: vi.fn().mockResolvedValue(undefined),
+};
 
-const mockNc = { close: mockClose };
-const mockJsm = { streams: { add: mockStreamsAdd } };
+const mockConsumer = {
+  consume: vi.fn(),
+};
+
 const mockJs = {
-  publish: mockPublish,
-  subscribe: mockSubscribe,
+  publish: vi.fn().mockResolvedValue({ stream: 'TEST', seq: 1 }),
+  consumers: {
+    get: vi.fn(),
+  },
+};
+
+const mockJsm = {
+  streams: {
+    add: vi.fn().mockResolvedValue({ name: 'TEST_STREAM' }),
+  },
+  consumers: {
+    add: vi.fn().mockResolvedValue({ name: 'TEST_CONSUMER' }),
+  },
 };
 
 vi.mock('@nats-io/transport-node', () => ({
@@ -21,171 +33,234 @@ vi.mock('@nats-io/transport-node', () => ({
 vi.mock('@nats-io/jetstream', () => ({
   jetstream: vi.fn(() => mockJs),
   jetstreamManager: vi.fn(() => Promise.resolve(mockJsm)),
+  AckPolicy: {
+    Explicit: 'explicit',
+  },
 }));
 
 describe('EventBroker', () => {
+  let logger: Logger;
   let broker: EventBroker;
-  let mockLogger: Logger;
+  const natsUrl = 'nats://localhost:4222';
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock logger directly satisfying the structural Logger interface defined in index.ts
-    mockLogger = {
+    logger = {
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
       debug: vi.fn(),
     };
 
-    broker = new EventBroker('nats://localhost:4222', mockLogger);
+    broker = new EventBroker(natsUrl, logger);
   });
 
-  describe('Structural Type Verification', () => {
-    it('should compile and accept any custom logger matching the structural interface shape', () => {
-      const minimalLogger: Logger = {
-        info: () => {},
-        warn: () => {},
-        error: () => {},
-        debug: () => {},
-      };
+  describe('constructor', () => {
+    it('should throw an error if natsUrl is empty or undefined', () => {
+      expect(() => new EventBroker('', logger)).toThrow(
+        'EventBroker initialization failed: NATS URL is required but was undefined or empty.'
+      );
+    });
 
-      const customBroker = new EventBroker('nats://localhost:4222', minimalLogger);
-      expect(customBroker).toBeInstanceOf(EventBroker);
+    it('should instantiate successfully with a valid NATS URL', () => {
+      expect(broker).toBeDefined();
     });
   });
 
-  describe('connect & disconnect', () => {
-    it('should connect to NATS and initialize JetStream contexts', async () => {
+  describe('connect and disconnect', () => {
+    it('should establish connection and initialize JetStream clients', async () => {
       await broker.connect();
 
-      expect(mockLogger.info).toHaveBeenCalledWith('Connected to NATS Broker at nats://localhost:4222');
+      expect(logger.info).toHaveBeenCalledWith(
+        `Attempting connection to NATS Broker at ${natsUrl}`
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        `Successfully connected to NATS Broker at ${natsUrl}`
+      );
     });
 
-    it('should gracefully close connection on disconnect', async () => {
+    it('should gracefully close the connection on disconnect', async () => {
       await broker.connect();
       await broker.disconnect();
 
-      expect(mockClose).toHaveBeenCalledTimes(1);
-      expect(mockLogger.info).toHaveBeenCalledWith('Disconnected from NATS Broker');
+      expect(mockNc.close).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledWith('Disconnected from NATS Broker');
+    });
+
+    it('should handle disconnect safely if connect was never called', async () => {
+      await expect(broker.disconnect()).resolves.not.toThrow();
+      expect(mockNc.close).not.toHaveBeenCalled();
     });
   });
 
   describe('ensureStream', () => {
-    it('should successfully add a stream', async () => {
-      mockStreamsAdd.mockResolvedValueOnce({});
+    beforeEach(async () => {
       await broker.connect();
+    });
 
-      await broker.ensureStream('TEST_STREAM', ['test.>']);
+    it('should add a stream via JetStream manager', async () => {
+      const streamName = 'ESIGN_EVENTS';
+      const subjects = ['events.esign.>'];
 
-      expect(mockStreamsAdd).toHaveBeenCalledWith({
-        name: 'TEST_STREAM',
-        subjects: ['test.>'],
+      await broker.ensureStream(streamName, subjects);
+
+      expect(mockJsm.streams.add).toHaveBeenCalledWith({
+        name: streamName,
+        subjects,
       });
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        "Ensured JetStream 'TEST_STREAM' exists for subjects: test.>"
+      expect(logger.debug).toHaveBeenCalledWith(
+        `Ensured JetStream '${streamName}' exists for subjects: events.esign.>`
       );
     });
 
-    it('should log a warning if stream creation throws an error', async () => {
-      mockStreamsAdd.mockRejectedValueOnce(new Error('Stream already exists'));
-      await broker.connect();
+    it('should catch stream addition errors and log warning', async () => {
+      mockJsm.streams.add.mockRejectedValueOnce(new Error('Stream name in use'));
 
-      await broker.ensureStream('TEST_STREAM', ['test.>']);
+      await broker.ensureStream('EXISTING_STREAM', ['events.>']);
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Stream check warning (might already exist): Stream already exists'
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Stream check warning (might already exist): Stream name in use'
       );
     });
   });
 
   describe('publish', () => {
-    it('should encode payload using TextEncoder and publish to NATS', async () => {
-      mockPublish.mockResolvedValueOnce({ stream: 'TEST_STREAM', seq: 1 });
+    beforeEach(async () => {
       await broker.connect();
-
-      const payload = { meta: { domain: 'compliance' }, data: { id: '123' } };
-      await broker.publish('events.test.created', payload, 'cid-999');
-
-      expect(mockPublish).toHaveBeenCalledTimes(1);
-      const [subject, encodedBytes] = mockPublish.mock.calls[0];
-
-      expect(subject).toBe('events.test.created');
-
-      // Decode Uint8Array bytes using TextDecoder
-      const decodedJson = JSON.parse(new TextDecoder().decode(encodedBytes));
-      expect(decodedJson).toEqual(payload);
-      expect(mockLogger.debug).toHaveBeenCalledWith('Published event to events.test.created', 'cid-999');
     });
 
-    it('should log an error and rethrow when publish fails', async () => {
-      mockPublish.mockRejectedValueOnce(new Error('Publish timeout'));
-      await broker.connect();
+    it('should encode payload as JSON and publish to target subject', async () => {
+      const subject = 'events.esign.compliance.document.signed';
+      const payload = { documentId: '123e4567-e89b-12d3-a456-426614174000' };
+      const correlationId = 'cid_1002';
+
+      await broker.publish(subject, payload, correlationId);
+
+      expect(mockJs.publish).toHaveBeenCalledTimes(1);
+      const [pubSubject, pubPayload] = mockJs.publish.mock.calls[0];
+
+      expect(pubSubject).toBe(subject);
+      expect(new TextDecoder().decode(pubPayload)).toBe(JSON.stringify(payload));
+      expect(logger.debug).toHaveBeenCalledWith(
+        `Published event to ${subject}`,
+        correlationId
+      );
+    });
+
+    it('should log and rethrow when publishing fails', async () => {
+      const error = new Error('Publish timeout');
+      mockJs.publish.mockRejectedValueOnce(error);
 
       await expect(
-        broker.publish('events.test.failed', { foo: 'bar' }, 'cid-error')
+        broker.publish('events.test', { foo: 'bar' }, 'cid_err')
       ).rejects.toThrow('Publish timeout');
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to publish to events.test.failed: Publish timeout',
-        'cid-error'
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to publish to events.test: Publish timeout',
+        'cid_err'
       );
     });
   });
 
   describe('subscribe', () => {
-    it('should process inbound message stream, decode via msg.json(), and invoke handler with ack', async () => {
-      const mockAck = vi.fn();
-      const testPayload = { id: 'evt_101', status: 'SIGNED' };
+    beforeEach(async () => {
+      await broker.connect();
+    });
 
-      // Mock async generator yield matching NATS v3 Msg shape
-      async function* mockSubscriptionStream() {
-        yield {
-          json: () => testPayload,
-          ack: mockAck,
-        };
+    it('should use existing consumer if found', async () => {
+      mockJs.consumers.get.mockResolvedValueOnce(mockConsumer);
+      mockConsumer.consume.mockResolvedValueOnce((async function* () {})());
+
+      await broker.subscribe(
+        'ESIGN_EVENTS',
+        'compliance-service',
+        async () => {}
+      );
+
+      expect(mockJs.consumers.get).toHaveBeenCalledWith(
+        'ESIGN_EVENTS',
+        'compliance-service'
+      );
+      expect(mockJsm.consumers.add).not.toHaveBeenCalled();
+    });
+
+    it('should create new consumer if existing consumer is not found', async () => {
+      mockJs.consumers.get
+        .mockRejectedValueOnce(new Error('Consumer not found'))
+        .mockResolvedValueOnce(mockConsumer);
+      mockConsumer.consume.mockResolvedValueOnce((async function* () {})());
+
+      await broker.subscribe(
+        'ESIGN_EVENTS',
+        'compliance-service',
+        async () => {},
+        'events.esign.compliance.document.signed'
+      );
+
+      expect(mockJsm.consumers.add).toHaveBeenCalledWith('ESIGN_EVENTS', {
+        durable_name: 'compliance-service',
+        filter_subject: 'events.esign.compliance.document.signed',
+        ack_policy: 'explicit',
+      });
+      expect(mockJs.consumers.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('should pass parsed message payload to handler and execute ack on success', async () => {
+      const mockMsg = {
+        subject: 'events.esign.compliance.document.signed',
+        json: vi.fn().mockReturnValue({ documentId: 'doc_123' }),
+        ack: vi.fn(),
+        nak: vi.fn(),
+      };
+
+      async function* singleMessageGenerator() {
+        yield mockMsg;
       }
 
-      mockSubscribe.mockResolvedValueOnce(mockSubscriptionStream());
-      await broker.connect();
+      mockJs.consumers.get.mockResolvedValueOnce(mockConsumer);
+      mockConsumer.consume.mockResolvedValueOnce(singleMessageGenerator());
 
-      const handlerSpy = vi.fn(async (_payload, ack) => {
+      const handler = vi.fn().mockImplementation(async (_payload, ack) => {
         ack();
       });
 
-      await broker.subscribe('events.esign.>', 'durable_test_consumer', handlerSpy);
+      await broker.subscribe('ESIGN_EVENTS', 'compliance-service', handler);
 
-      // Yield event loop briefly for generator processing
+      // Give async consumer processing loop tick to run
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockSubscribe).toHaveBeenCalledWith('events.esign.>', {
-        config: { durable_name: 'durable_test_consumer' },
-      });
-      expect(handlerSpy).toHaveBeenCalledWith(testPayload, expect.any(Function));
-      expect(mockAck).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith({ documentId: 'doc_123' }, expect.any(Function));
+      expect(mockMsg.ack).toHaveBeenCalledTimes(1);
+      expect(mockMsg.nak).not.toHaveBeenCalled();
     });
 
-    it('should catch and log errors thrown during message handler execution', async () => {
-      async function* mockFailingStream() {
-        yield {
-          json: () => ({ bad: 'data' }),
-          ack: vi.fn(),
-        };
+    it('should nak message and log error if message handling fails', async () => {
+      const mockMsg = {
+        subject: 'events.esign.compliance.document.signed',
+        json: vi.fn().mockReturnValue({ documentId: 'doc_corrupt' }),
+        ack: vi.fn(),
+        nak: vi.fn(),
+      };
+
+      async function* singleMessageGenerator() {
+        yield mockMsg;
       }
 
-      mockSubscribe.mockResolvedValueOnce(mockFailingStream());
-      await broker.connect();
+      mockJs.consumers.get.mockResolvedValueOnce(mockConsumer);
+      mockConsumer.consume.mockResolvedValueOnce(singleMessageGenerator());
 
-      const failingHandler = vi.fn(async () => {
-        throw new Error('Database write failed');
-      });
+      const handler = vi.fn().mockRejectedValue(new Error('Validation failed'));
 
-      await broker.subscribe('events.esign.>', 'failing_consumer', failingHandler);
+      await broker.subscribe('ESIGN_EVENTS', 'compliance-service', handler);
 
+      // Give async consumer processing loop tick to run
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error processing event on events.esign.>: Database write failed'
+      expect(mockMsg.ack).not.toHaveBeenCalled();
+      expect(mockMsg.nak).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error processing event on events.esign.compliance.document.signed: Validation failed'
       );
     });
   });

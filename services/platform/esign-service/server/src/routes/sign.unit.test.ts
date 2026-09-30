@@ -1,138 +1,196 @@
-// File: services/platform/esign-service/server/src/routes/sign.unit.test.ts
-import request from 'supertest';
+// File: services/platform/esignature-service/server/src/routes/sign.unit.test.ts
 import express from 'express';
-import { esignRouter } from './sign';
+import request from 'supertest';
+import { esignRouter } from './sign.js';
+import { signDocument } from '../services/signing.js';
+import { uploadSignedDocument } from '../services/storage.js';
+import { getESignPublisher } from '../messaging/publisher.js';
 
-// 1. Hoist mock functions
-const { mockExistsSync, mockReadFileSync } = vi.hoisted(() => ({
-  mockExistsSync: vi.fn(),
-  mockReadFileSync: vi.fn(),
-}));
-
-const { mockPdfLoad } = vi.hoisted(() => ({
-  mockPdfLoad: vi.fn(),
-}));
-
-const { mockPublishDocumentSigned, mockGetESignPublisher } = vi.hoisted(() => ({
-  mockPublishDocumentSigned: vi.fn().mockResolvedValue(undefined),
-  mockGetESignPublisher: vi.fn(),
-}));
-
-// 2. Mock node:fs explicitly
-vi.mock('node:fs', () => ({
-  default: {
-    existsSync: mockExistsSync,
-    readFileSync: mockReadFileSync,
-  },
-  existsSync: mockExistsSync,
-  readFileSync: mockReadFileSync,
-}));
-
+// Mocks for internal dependencies
 vi.mock('@shared/telemetry', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() })),
-  createHealthCheck: vi.fn(() => (_req: any, res: any) => res.status(200).send('OK')),
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+  createHealthCheck: () => (_req: unknown, res: { json: (data: unknown) => void }) =>
+    res.json({ status: 'ok' }),
 }));
 
-vi.mock('pdf-lib', () => ({
-  PDFDocument: { load: mockPdfLoad },
-  rgb: vi.fn(),
+vi.mock('../services/signing.js', () => ({
+  signDocument: vi.fn(),
 }));
 
-vi.mock('@signpdf/signpdf', () => ({ SignPdf: vi.fn() }));
-vi.mock('@signpdf/signer-p12', () => ({ P12Signer: vi.fn() }));
+vi.mock('../services/storage.js', () => ({
+  uploadSignedDocument: vi.fn(),
+}));
 
-// 3. Mock publisher module
 vi.mock('../messaging/publisher.js', () => ({
-  getESignPublisher: mockGetESignPublisher,
+  getESignPublisher: vi.fn(),
 }));
 
-describe('E-Signature Router Unit Tests', () => {
-  const app = express();
-  app.use(express.json({ limit: '10mb' }));
-  app.use('/api/v1', esignRouter);
+describe('E-Signature Route (POST /)', () => {
+  let app: express.Application;
 
-  const validPayload = {
-    pdfBase64: 'mock-pdf',
-    signatureImageBase64: 'mock-png',
-    documentId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    signerId: 'usr_4412',
-    entityId: 'clr_9910',
+  const mockSignedPdfBuffer = Buffer.from('%PDF-1.7 Signed Document Content');
+  const mockSignedAt = '2026-09-30T04:34:42.100Z';
+  const mockUploadedAt = '2026-09-30T04:34:42.150Z';
+
+  const mockPublishDocumentSigned = vi.fn().mockResolvedValue(undefined);
+
+  const validRequestBody = {
+    pdfBase64: 'JVBERi0xLj...',
+    signatureImageBase64: 'iVBORw0KGgo...',
+    documentId: '123e4567-e89b-12d3-a456-426614174000',
+    documentType: 'DD-1149',
+    signerId: 'usr_99128',
+    entityId: 'org_77102',
+    customPath: 'custom/path/doc.pdf',
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    app = express();
+    app.use(express.json());
+    app.use('/', esignRouter);
+
+    vi.mocked(signDocument).mockResolvedValue({
+      pdfBuffer: mockSignedPdfBuffer,
+      signedAt: mockSignedAt,
+    });
+
+    vi.mocked(uploadSignedDocument).mockResolvedValue({
+      s3Uri: 's3://esign-vault/signed/123e4567.pdf',
+      bucket: 'esign-vault',
+      key: 'signed/123e4567.pdf',
+      fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      uploadedAt: mockUploadedAt,
+    });
+
+    vi.mocked(getESignPublisher).mockReturnValue({
+      publishDocumentSigned: mockPublishDocumentSigned,
+    } as unknown as ReturnType<typeof getESignPublisher>);
   });
 
-  it('returns 400 if pdfBase64 or signatureImageBase64 is missing', async () => {
-    const res = await request(app)
-      .post('/api/v1/')
-      .send({ pdfBase64: 'mock-pdf' });
-
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Missing pdfBase64 or signatureImageBase64 payload.' });
+  describe('GET /health', () => {
+    it('should return 200 OK from health check', async () => {
+      const response = await request(app).get('/health');
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ status: 'ok' });
+    });
   });
 
-  it('returns 400 if documentId, signerId, or entityId metadata is missing', async () => {
-    const res = await request(app)
-      .post('/api/v1/')
-      .send({
-        pdfBase64: 'mock-pdf',
-        signatureImageBase64: 'mock-png',
+  describe('POST /', () => {
+    it('should successfully sign, store, publish event, and return PDF binary', async () => {
+      const response = await request(app)
+        .post('/')
+        .set('x-correlation-id', 'cid_test_1001')
+        .send(validRequestBody);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+      expect(response.headers['content-disposition']).toBe(
+        'inline; filename="digitally-signed-document.pdf"'
+      );
+      expect(response.body).toEqual(mockSignedPdfBuffer);
+
+      expect(signDocument).toHaveBeenCalledWith({
+        pdfBase64: validRequestBody.pdfBase64,
+        signatureImageBase64: validRequestBody.signatureImageBase64,
+        correlationId: 'cid_test_1001',
       });
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      error: 'Missing documentId, signerId, or entityId metadata required for event contract.',
+      expect(uploadSignedDocument).toHaveBeenCalledWith({
+        pdfBuffer: mockSignedPdfBuffer,
+        entityId: validRequestBody.entityId,
+        documentId: validRequestBody.documentId,
+        customPath: validRequestBody.customPath,
+        correlationId: 'cid_test_1001',
+      });
+
+      expect(mockPublishDocumentSigned).toHaveBeenCalledWith({
+        data: {
+          documentId: validRequestBody.documentId,
+          documentType: validRequestBody.documentType,
+          signerId: validRequestBody.signerId,
+          entityId: validRequestBody.entityId,
+          status: 'SIGNED',
+          s3Uri: 's3://esign-vault/signed/123e4567.pdf',
+          storageBucket: 'esign-vault',
+          storageKey: 'signed/123e4567.pdf',
+          fileHash:
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+          signedAt: mockSignedAt,
+          uploadedAt: mockUploadedAt,
+        },
+        correlationId: 'cid_test_1001',
+      });
     });
-  });
 
-  it('processes the PDF, publishes NATS event, and returns 200 without cert', async () => {
-    const mockSave = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
-    mockPdfLoad.mockResolvedValue({
-      getPages: vi.fn().mockReturnValue([{
-        getSize: vi.fn().mockReturnValue({ width: 600 }),
-        drawImage: vi.fn(),
-        drawText: vi.fn(),
-      }]),
-      embedPng: vi.fn().mockResolvedValue({}),
-      save: mockSave,
-    } as any);
+    it('should bypass publishing if getESignPublisher returns null', async () => {
+      vi.mocked(getESignPublisher).mockReturnValue(undefined);
 
-    mockExistsSync.mockReturnValue(false);
-    mockGetESignPublisher.mockReturnValue({
-      publishDocumentSigned: mockPublishDocumentSigned,
+      const response = await request(app).post('/').send(validRequestBody);
+
+      expect(response.status).toBe(200);
+      expect(mockPublishDocumentSigned).not.toHaveBeenCalled();
     });
 
-    const res = await request(app)
-      .post('/api/v1/')
-      .send(validPayload);
+    it('should reject requests missing pdfBase64 or signatureImageBase64 with 400', async () => {
+      const invalidBody = { ...validRequestBody, pdfBase64: '' };
 
-    expect(res.status).toBe(200);
-    expect(res.header['content-type']).toBe('application/pdf');
-    expect(res.header['content-disposition']).toBe('inline; filename="digitally-signed-document.pdf"');
-    expect(res.body).toEqual(Buffer.from([1, 2, 3]));
+      const response = await request(app).post('/').send(invalidBody);
 
-    // Assert event dispatching interaction
-    expect(mockPublishDocumentSigned).toHaveBeenCalledWith({
-      data: {
-        documentId: validPayload.documentId,
-        signerId: validPayload.signerId,
-        entityId: validPayload.entityId,
-        status: 'SIGNED',
-      },
-      correlationId: null,
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Missing pdfBase64 or signatureImageBase64 payload.',
+      });
+      expect(signDocument).not.toHaveBeenCalled();
     });
-  });
 
-  it('catches thrown errors and returns 500', async () => {
-    mockPdfLoad.mockRejectedValue(new Error('PDF parsing failed'));
-    mockGetESignPublisher.mockReturnValue(undefined);
+    it('should reject requests missing documentId, signerId, or entityId metadata with 400', async () => {
+      const invalidBody = { ...validRequestBody, documentId: '' };
 
-    const res = await request(app)
-      .post('/api/v1/')
-      .send(validPayload);
+      const response = await request(app).post('/').send(invalidBody);
 
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'E-Signature processing failed: PDF parsing failed' });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error:
+          'Missing documentId, signerId, or entityId metadata required for event contract.',
+      });
+      expect(signDocument).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 when cryptographic signing service throws an error', async () => {
+      vi.mocked(signDocument).mockRejectedValueOnce(
+        new Error('Invalid digital certificate signature')
+      );
+
+      const response = await request(app).post('/').send(validRequestBody);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'E-Signature processing failed: Invalid digital certificate signature',
+      });
+      expect(uploadSignedDocument).not.toHaveBeenCalled();
+      expect(mockPublishDocumentSigned).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 when MinIO storage service throws an error', async () => {
+      vi.mocked(uploadSignedDocument).mockRejectedValueOnce(
+        new Error('S3 Storage Bucket write permissions denied')
+      );
+
+      const response = await request(app).post('/').send(validRequestBody);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error:
+          'E-Signature processing failed: S3 Storage Bucket write permissions denied',
+      });
+      expect(mockPublishDocumentSigned).not.toHaveBeenCalled();
+    });
   });
 });

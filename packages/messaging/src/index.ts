@@ -4,12 +4,13 @@ import {
   jetstream, 
   jetstreamManager, 
   JetStreamClient, 
-  JetStreamManager 
+  JetStreamManager,
+  AckPolicy,
+  Consumer
 } from '@nats-io/jetstream';
 
 /**
  * Structural logging contract required by EventBroker.
- * Defined locally to avoid manifest-level dependencies on telemetry packages.
  */
 export interface Logger {
   info(message: string, correlationId?: string | null): void;
@@ -18,28 +19,33 @@ export interface Logger {
   debug(message: string, correlationId?: string | null): void;
 }
 
-type JetStreamClientWithSubscribe = JetStreamClient & {
-  subscribe: (
-    subject: string,
-    opts?: { config?: { durable_name?: string } }
-  ) => Promise<any>;
-};
-
 export class EventBroker {
   private nc!: NatsConnection;
-  private js!: JetStreamClientWithSubscribe;
+  private js!: JetStreamClient;
   private jsm!: JetStreamManager;
 
-  constructor(private readonly natsUrl: string, readonly logger: Logger) {}
+  constructor(private readonly natsUrl: string, readonly logger: Logger) {
+    if (!natsUrl) {
+      throw new Error('EventBroker initialization failed: NATS URL is required but was undefined or empty.');
+    }
+  }
 
   /**
-   * Establishes the TCP transport connection and initializes the JetStream context.
+   * Establishes TCP connection with exponential reconnect policy and initializes JetStream context.
    */
   async connect() {
-    this.nc = await connect({ servers: this.natsUrl });
-    this.js = jetstream(this.nc) as JetStreamClientWithSubscribe;
+    this.logger.info(`Attempting connection to NATS Broker at ${this.natsUrl}`);
+    
+    this.nc = await connect({ 
+      servers: this.natsUrl,
+      maxReconnectAttempts: 10,
+      reconnectTimeWait: 2000,
+      waitOnFirstConnect: true,
+    });
+
+    this.js = jetstream(this.nc);
     this.jsm = await jetstreamManager(this.nc);
-    this.logger.info(`Connected to NATS Broker at ${this.natsUrl}`);
+    this.logger.info(`Successfully connected to NATS Broker at ${this.natsUrl}`);
   }
 
   /**
@@ -79,29 +85,44 @@ export class EventBroker {
   }
 
   /**
-   * Subscribes to a subject via a durable consumer, processing messages and auto-acking.
+   * Subscribes to a JetStream stream using a durable consumer.
+   * 
+   * @param streamName The JetStream stream identifier (e.g., 'ESIGN_EVENTS')
+   * @param durableName The durable consumer identifier (e.g., 'compliance-service')
+   * @param handler Message handler callback
+   * @param filterSubject Optional subject filter (e.g., 'events.esign.compliance.document.signed')
    */
   async subscribe(
-    subject: string,
+    streamName: string,
     durableName: string,
-    handler: (payload: any, ack: () => void) => Promise<void>
+    handler: (payload: any, ack: () => void) => Promise<void>,
+    filterSubject?: string
   ) {
-    const sub = await this.js.subscribe(subject, {
-      config: { durable_name: durableName },
-    });
+    let consumer: Consumer;
 
-    this.logger.info(`Subscribed to ${subject} as durable consumer '${durableName}'`);
+    try {
+      consumer = await this.js.consumers.get(streamName, durableName);
+    } catch {
+      await this.jsm.consumers.add(streamName, {
+        durable_name: durableName,
+        filter_subject: filterSubject,
+        ack_policy: AckPolicy.Explicit,
+      });
 
-    // Async generator loop to process inbound message streams
+      consumer = await this.js.consumers.get(streamName, durableName);
+    }
+
+    const messages = await consumer.consume();
+    this.logger.info(`Subscribed to stream '${streamName}' as durable consumer '${durableName}'`);
+
     (async () => {
-      for await (const msg of sub) {
+      for await (const msg of messages) {
         try {
-          // NATS v3 native msg.json() deserialization
           const payload = msg.json();
           await handler(payload, () => msg.ack());
         } catch (err) {
-          this.logger.error(`Error processing event on ${subject}: ${(err as Error).message}`);
-          // In production, consider negative acknowledgment (msg.nak()) depending on retry strategy
+          this.logger.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
+          msg.nak();
         }
       }
     })();

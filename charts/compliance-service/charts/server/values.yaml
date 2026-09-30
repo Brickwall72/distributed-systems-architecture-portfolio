@@ -15,6 +15,8 @@ env:
       secretKeyRef:
         name: compliance-db-credentials
         key: DATABASE_URL
+  - name: NATS_URL
+    value: "nats://nats.platform-local.svc.cluster.local:4222"
 envFrom: []
 
 initContainers:

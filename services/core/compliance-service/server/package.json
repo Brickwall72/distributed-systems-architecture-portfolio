@@ -18,7 +18,10 @@
     "@shared/telemetry": "workspace:*",
     "@shared/messaging": "workspace:*",
     "@contracts/esign": "workspace:*",
+    "@contracts/compliance": "workspace:*",
     "@aws-sdk/client-s3": "~3.1131.0",
+    "@nats-io/jetstream": "~3.4.0",
+    "@nats-io/transport-node": "~3.4.0",
     "express": "~5.2.1",
     "pg": "~8.23.0",
     "zod": "~4.6.5"

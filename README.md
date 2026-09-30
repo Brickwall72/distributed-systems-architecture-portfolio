@@ -155,13 +155,7 @@ pnpm charts:deps
 Create the Kubernetes database credentials while the cluster API is available:
 
 ```bash
-(
-  export TOPOLOGY_DB_PASSWORD=$(grep "^DB_PASSWORD=" services/core/topology-service/.env | sed 's/^DB_PASSWORD=//') && \
-  export COMPLIANCE_DB_PASSWORD=$(grep "^DB_PASSWORD=" services/core/compliance-service/.env | sed 's/^DB_PASSWORD=//') && \
-  export MINIO_ACCESS_KEY=$(grep "^S3_ACCESS_KEY=" services/core/compliance-service/.env | sed 's/^S3_ACCESS_KEY=//') && \
-  export MINIO_SECRET_KEY=$(grep "^S3_SECRET_KEY=" services/core/compliance-service/.env | sed 's/^S3_SECRET_KEY=//') && \
-  pnpm k8s:secrets
-)
+pnpm k8s:secrets
 ```
 
 If `DB_PASSWORD` is omitted, the helper generates a local value. The command is

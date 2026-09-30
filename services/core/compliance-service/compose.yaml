@@ -39,6 +39,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_PORT: ${DB_PORT}
       POSTGRES_DB: compliance
+      NATS_URL: nats://nats:4222
     depends_on:
       compliance-db:
         condition: service_healthy

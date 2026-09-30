@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/client/src/api/documents.ts
 import { z } from 'zod';
-import { ComplianceDocumentSchema, ComplianceDocument } from '../contracts';
+import { ComplianceDocumentSchema, ComplianceDocument } from '@contracts/compliance';
 import { getApiBaseUrl } from './client-config';
 
 /**
@@ -17,5 +17,5 @@ export async function fetchDocuments(): Promise<ComplianceDocument[]> {
   const data = await response.json();
   
   // Enforces the contract at runtime
-  return z.array(ComplianceDocumentSchema).parse(data);
+  return z.array(ComplianceDocumentSchema).parse(data) as ComplianceDocument[];
 }

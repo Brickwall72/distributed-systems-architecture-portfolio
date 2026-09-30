@@ -15,6 +15,11 @@ services:
       - "traefik.http.middlewares.esign-api-rewrite.replacepathregex.replacement=/api/v1/$1"
       - "traefik.http.routers.esign-api.middlewares=esign-api-rewrite"
       - "traefik.http.services.esign-api.loadbalancer.server.port=8080"
+    environment:
+      PORT: 8080
+      NATS_URL: nats://nats:4222
+      SIGNING_CERT_PATH: /app/certs/certificate.p12
+      SIGNING_CERT_PASSWORD: ${SIGNING_CERT_PASSWORD}
     networks:
       - platform-mesh
     healthcheck:
@@ -27,6 +32,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    volumes:
+      - ./server/certs:/app/certs:ro
 
   esign-client:
     build:

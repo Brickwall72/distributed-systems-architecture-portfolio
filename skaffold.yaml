@@ -122,6 +122,9 @@ deploy:
       - name: minio
         chartPath: charts/minio
         namespace: platform-local
+      - name: nats
+        chartPath: charts/nats
+        namespace: platform-local
       - name: topology-service
         chartPath: charts/topology-service
         namespace: platform-local

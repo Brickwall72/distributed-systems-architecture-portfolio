@@ -1,4 +1,5 @@
 // File: services/platform/esignature-service/server/src/messaging/publisher.ts
+import crypto from 'node:crypto';
 import { EventBroker } from '@shared/messaging';
 import {
   ESIGN_SUBJECTS,
@@ -6,6 +7,9 @@ import {
   DocumentSignedEvent,
   DocumentSignedEventSchema,
   DocumentSignedData,
+  DocumentRejectedEvent,
+  DocumentRejectedEventSchema,
+  DocumentRejectedData,
 } from '@contracts/esign';
 
 let publisherInstance: ESignPublisher | undefined;
@@ -31,9 +35,9 @@ export class ESignPublisher {
     data: DocumentSignedData;
     correlationId?: string | null;
   }): Promise<void> {
-    const correlationId = params.correlationId ?? `cid_${crypto.randomUUID()}`;
+    const correlationId = params.correlationId || `cid_${crypto.randomUUID()}`;
 
-    const event: DocumentSignedEvent = {
+    const rawEvent: DocumentSignedEvent = {
       specversion: '1.0',
       id: `evt_${crypto.randomUUID()}`,
       source: 'service:esign-server',
@@ -44,10 +48,38 @@ export class ESignPublisher {
       data: params.data,
     };
 
-    const validatedEvent = DocumentSignedEventSchema.parse(event);
+    // Strict schema gate against createCloudEventSchema
+    const validatedEvent = DocumentSignedEventSchema.parse(rawEvent);
 
     await this.broker.publish(
       ESIGN_SUBJECTS.DOCUMENT_SIGNED,
+      validatedEvent,
+      correlationId
+    );
+  }
+
+  public async publishDocumentRejected(params: {
+    data: DocumentRejectedData;
+    correlationId?: string | null;
+  }): Promise<void> {
+    const correlationId = params.correlationId || `cid_${crypto.randomUUID()}`;
+
+    const rawEvent: DocumentRejectedEvent = {
+      specversion: '1.0',
+      id: `evt_${crypto.randomUUID()}`,
+      source: 'service:esign-server',
+      type: ESIGN_EVENT_TYPES.DOCUMENT_REJECTED,
+      time: new Date().toISOString(),
+      datacontenttype: 'application/json',
+      correlationId,
+      data: params.data,
+    };
+
+    // Strict schema gate against createCloudEventSchema
+    const validatedEvent = DocumentRejectedEventSchema.parse(rawEvent);
+
+    await this.broker.publish(
+      ESIGN_SUBJECTS.DOCUMENT_REJECTED,
       validatedEvent,
       correlationId
     );

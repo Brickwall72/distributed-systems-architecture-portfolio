@@ -44,3 +44,9 @@ Makefile
 
 # Turborepo local cache
 .turbo
+
+# Certs
+*.p12
+*.key
+*.crt
+*.pem
