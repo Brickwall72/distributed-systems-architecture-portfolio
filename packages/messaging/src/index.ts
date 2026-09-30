@@ -115,15 +115,19 @@ export class EventBroker {
     const messages = await consumer.consume();
     this.logger.info(`Subscribed to stream '${streamName}' as durable consumer '${durableName}'`);
 
-    (async () => {
-      for await (const msg of messages) {
-        try {
-          const payload = msg.json();
-          await handler(payload, () => msg.ack());
-        } catch (err) {
-          this.logger.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
-          msg.nak();
+    void (async () => {
+      try {
+        for await (const msg of messages) {
+          try {
+            const payload = msg.json();
+            await handler(payload, () => msg.ack());
+          } catch (err) {
+            this.logger.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
+            msg.nak();
+          }
         }
+      } catch (streamErr) {
+        this.logger.error(`Fatal stream iterator error in messaging consumer loop: ${(streamErr as Error).message}`);
       }
     })();
   }

@@ -40,7 +40,7 @@ export const uploadSignedDocument = async ({
   correlationId,
 }: UploadDocumentOptions): Promise<UploadDocumentResult> => {
   // Build a standard platform key (<entityId>/<documentId>.pdf) unless a custom path prefix is supplied
-  const cleanPrefix = customPath ? customPath.replace(/^\/+|\/+$/g, '') : entityId;
+  const cleanPrefix = customPath ? customPath.replace(/^\/+/, '').replace(/\/+$/, '') : entityId;
   const bucket: string = 'compliance-documents'; // TODO: Derive bucket dynamically from payload context
   const objectKey = `${cleanPrefix}/${documentId}.pdf`;
 
