@@ -1,20 +1,13 @@
 // File: services/platform/esignature-service/server/src/routes/sign.ts
 import { Router, Request, Response } from 'express';
-import { PDFDocument, rgb } from 'pdf-lib';
-import { SignPdf } from '@signpdf/signpdf';
-import { P12Signer } from '@signpdf/signer-p12';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createLogger, createHealthCheck } from '@shared/telemetry';
-
-// Shim __dirname for ES Module environments
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getESignPublisher } from '../messaging/publisher.js';
+import { uploadSignedDocument } from '../services/storage.js';
+import { signDocument } from '../services/signing.js';
 
 export const esignRouter = Router();
-
 const logger = createLogger('esignature-service');
+
 esignRouter.get('/health', createHealthCheck('esign-server'));
 
 esignRouter.post('/', async (req: Request, res: Response) => {
@@ -23,66 +16,71 @@ esignRouter.post('/', async (req: Request, res: Response) => {
   try {
     logger.info('Received e-signature request.', correlationId);
 
-    const { pdfBase64, signatureImageBase64 } = req.body;
+    const {
+      pdfBase64,
+      signatureImageBase64,
+      documentId,
+      documentType,
+      signerId,
+      entityId,
+      customPath,
+    } = req.body;
 
+    // Boundary Validation
     if (!pdfBase64 || !signatureImageBase64) {
       logger.warn('Validation failed: Missing pdfBase64 or signatureImageBase64 payload.', correlationId);
       res.status(400).json({ error: 'Missing pdfBase64 or signatureImageBase64 payload.' });
       return;
     }
 
-    // 1. Load the PDF into pdf-lib for visual modifications
-    let pdfBuffer = Buffer.from(pdfBase64, 'base64');
-    const pdfDoc = await PDFDocument.load(pdfBuffer);
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0];
-    const { width } = firstPage.getSize();
-
-    // 2. Convert base64 signature string to binary Buffer and embed it
-    const signatureImageBytes = Buffer.from(signatureImageBase64, 'base64');
-    const signatureImagePng = await pdfDoc.embedPng(signatureImageBytes);
-    
-    // Adjust these values to match your PDF's signature block position
-    firstPage.drawImage(signatureImagePng, {
-      x: width - 440, // Horizontal position from left
-      y: 35,          // Vertical position from bottom (increase to move up, decrease to move down)
-      width: 140,
-      height: 40,
-    });
-
-    // 3. Generate the server-side signing timestamp
-    const signingDateStr = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-
-    // Adjust the date text coordinates to match as well
-    firstPage.drawText(signingDateStr, {
-      x: width - 130,
-      y: 45,          // Must match the signature vertical alignment
-      size: 10,
-      color: rgb(0, 0, 0),
-    });
-
-    // Save the visually updated PDF bytes
-    pdfBuffer = Buffer.from(await pdfDoc.save());
-
-    // 4. Apply the cryptographic digital seal using @signpdf
-    const certPath = path.resolve(__dirname, '../../certs/certificate.p12');
-    if (fs.existsSync(certPath)) {
-      logger.debug('Applying P12 cryptographic certificate seal.', correlationId);
-      const p12Buffer = fs.readFileSync(certPath);
-      const signer = new P12Signer(p12Buffer, {
-        passphrase: process.env.CERT_PASSPHRASE || 'changeit',
-      });
-      const signPdf = new SignPdf();
-      pdfBuffer = Buffer.from(await signPdf.sign(pdfBuffer, signer));
-    } else {
-      logger.warn('P12 certificate file not found; skipping cryptographic seal.', correlationId);
+    if (!documentId || !signerId || !entityId) {
+      logger.warn('Validation failed: Missing documentId, signerId, or entityId metadata.', correlationId);
+      res.status(400).json({ error: 'Missing documentId, signerId, or entityId metadata required for event contract.' });
+      return;
     }
 
-    logger.info('Document successfully signed and sealed.', correlationId);
+    // 1. Execute cryptographic signing domain logic
+    const { pdfBuffer, signedAt } = await signDocument({
+      pdfBase64,
+      signatureImageBase64,
+      correlationId,
+    });
+
+    // 2. Persist to MinIO via Claim-Check Pattern
+    logger.debug('Persisting signed document to Object Storage.', correlationId);
+    const { s3Uri, bucket, key, fileHash, uploadedAt } = await uploadSignedDocument({
+      pdfBuffer,
+      entityId,
+      documentId,
+      customPath,
+      correlationId,
+    });
+
+    // 3. Dispatch CloudEvent over NATS JetStream
+    const publisher = getESignPublisher();
+    if (publisher) {
+      await publisher.publishDocumentSigned({
+        data: {
+          documentId,
+          documentType,
+          signerId,
+          entityId,
+          status: 'SIGNED',
+          s3Uri,
+          storageBucket: bucket,
+          storageKey: key,
+          fileHash,
+          signedAt,
+          uploadedAt,
+        },
+        correlationId,
+      });
+      logger.info(`Published document.signed event for document ${documentId}`, correlationId);
+    } else {
+      logger.warn('NATS publisher unavailable; event publishing bypassed.', correlationId);
+    }
+
+    logger.info('Document successfully signed, stored, and event emitted.', correlationId);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="digitally-signed-document.pdf"');

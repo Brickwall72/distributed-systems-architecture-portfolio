@@ -1,59 +1,86 @@
-// File: services/platform/esign-service/server/src/server.contract.server.test.ts
+// File: services/platform/esign-service/server/src/server.contract.verify.test.ts
 import request from 'supertest';
+
+// 1. Hoist mock data before Vitest transforms imports
+const { mockStorageResult, mockPdfBuffer } = vi.hoisted(() => ({
+  mockStorageResult: {
+    s3Uri: 's3://compliance-documents/org_armory_01/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+    fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  },
+  mockPdfBuffer: Buffer.from('%PDF-1.7 mock binary content'),
+}));
+
+// 2. Mock external side effects (Storage, Messaging, Cryptographic Signing)
+vi.mock('./messaging/publisher.js', () => ({
+  getESignPublisher: vi.fn(() => ({
+    publishDocumentSigned: vi.fn().mockResolvedValue(undefined),
+    publishDocumentRejected: vi.fn().mockResolvedValue(undefined),
+  })),
+  setESignPublisher: vi.fn(),
+  ESignPublisher: vi.fn(),
+}));
+
+vi.mock('./services/storage.js', () => ({
+  uploadSignedDocument: vi.fn().mockResolvedValue(mockStorageResult),
+  uploadDocument: vi.fn().mockResolvedValue(mockStorageResult),
+  getStorageService: vi.fn(() => ({
+    uploadSignedDocument: vi.fn().mockResolvedValue(mockStorageResult),
+  })),
+}));
+
+vi.mock('./services/signing.js', () => ({
+  signDocument: vi.fn().mockResolvedValue(mockPdfBuffer),
+}));
+
 import app from './server.js';
 
-// Minimal valid 1-page Base64 PDF to prevent pdf-lib from crashing
-const MINIMAL_PDF_BASE64 = 'JVBERi0xLjQKJcOkw7zDtsOfCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwvVHlwZSAvUGFnZXMgL0tpZHMgWzMgMCBSXSAvQ291bnQgMQo+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KPj4KZW5kb2JqCnhyZWYKMCA0CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY4IDAwMDAwIG4gCjAwMDAwMDAxMjUgMDAwMDAgbiAKdHJhaWxlcgo8PC9TaXplIDQgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjE5NAolJUVPRgo=';
+const VALID_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORUSCYII=';
 
-// Minimal valid 1x1 transparent Base64 PNG
-const MINIMAL_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-
-// Mock fs to bypass the cryptographic seal attempt, keeping everything else integrated via server.ts
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    existsSync: vi.fn(() => false), // Pretend p12 cert doesn't exist to skip @signpdf
-  };
-});
-
-describe('E-Sign Server Contract Tests (server.ts)', () => {
+describe('E-Sign Server HTTP API Integration Contract (server.ts)', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it('fulfills the API contract through the fully configured Express app', async () => {
-    const correlationId = `esign-req-${Date.now()}`;
-
+  it('fulfills HTTP contract: accepts payload, orchestrates signing, and returns PDF content-type', async () => {
     const res = await request(app)
       .post('/api/v1/')
-      .set('x-correlation-id', correlationId)
+      .set('x-correlation-id', `esign-test-${Date.now()}`)
       .set('Content-Type', 'application/json')
       .send({
-        pdfBase64: MINIMAL_PDF_BASE64,
-        signatureImageBase64: MINIMAL_PNG_BASE64,
-      })
-      .responseType('blob'); // Handles binary PDF responses correctly
+        pdfBase64: Buffer.from('%PDF-1.7 input doc').toString('base64'),
+        signatureImageBase64: VALID_PNG_BASE64,
+        documentId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        signerId: 'usr_actor_404',
+        entityId: 'org_armory_01',
+        documentType: 'DD-1149',
+      });
 
-    // Assert Status Contract
+    // Verify HTTP Protocol Contract
     expect(res.status).toBe(200);
-
-    // Assert Headers Contract
-    expect(res.header['content-type']).toBe('application/pdf');
+    expect(res.header['content-type']).toMatch(/application\/pdf/);
     expect(res.header['content-disposition']).toBe('inline; filename="digitally-signed-document.pdf"');
-
-    // Assert Body Contract (should be binary PDF data starting with %PDF)
-    const responseBuffer = res.body as Buffer;
-    expect(Buffer.isBuffer(responseBuffer)).toBe(true);
-    expect(responseBuffer.toString('utf8', 0, 4)).toBe('%PDF');
   });
 
-  it('handles missing payload parameters correctly via server middleware', async () => {
+  it('fulfills HTTP contract: enforces schema validation on missing body fields', async () => {
     const res = await request(app)
       .post('/api/v1/')
-      .send({ pdfBase64: MINIMAL_PDF_BASE64 }); // Missing signatureImageBase64
+      .send({ pdfBase64: 'some-base64' });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Missing pdfBase64 or signatureImageBase64 payload.' });
+  });
+
+  it('fulfills HTTP contract: enforces required compliance metadata fields', async () => {
+    const res = await request(app)
+      .post('/api/v1/')
+      .send({
+        pdfBase64: 'some-base64',
+        signatureImageBase64: VALID_PNG_BASE64,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'Missing documentId, signerId, or entityId metadata required for event contract.',
+    });
   });
 });

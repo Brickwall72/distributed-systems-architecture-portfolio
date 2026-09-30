@@ -1,0 +1,22 @@
+# File: charts/nats/values.yaml
+image:
+  repository: nats
+  tag: "2.15-alpine"
+  pullPolicy: IfNotPresent
+
+persistence:
+  size: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  entryPoints:
+    - web
+  rule: "Host(`nats.localhost`)"

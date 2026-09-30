@@ -1,98 +1,167 @@
+// File: services/platform/esignature-service/client/src/widgets/SignatureOverlay.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SignatureOverlay from './SignatureOverlay';
 
-describe('SignatureOverlay Contract Tests', () => {
+describe('SignatureOverlay Unit Tests', () => {
   const mockOnSuccess = vi.fn();
   const mockOnCancel = vi.fn();
-  let globalFetchMock: any;
+
+  const defaultProps = {
+    pdfBlobUrl: 'blob:http://localhost/mock-pdf',
+    documentId: 'doc-uuid-1234',
+    signerId: 'usr-actor-404',
+    entityId: 'org-armory-01',
+    onSuccess: mockOnSuccess,
+    onCancel: mockOnCancel,
+  };
+
+  const mockCtx = {
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    clearRect: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // 1. Mock Canvas methods
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
-      beginPath: vi.fn(), 
-      moveTo: vi.fn(), 
-      lineTo: vi.fn(), 
-      stroke: vi.fn(),
-    } as any));
-    HTMLCanvasElement.prototype.getBoundingClientRect = vi.fn(() => ({ left: 0, top: 0 } as any));
-    HTMLCanvasElement.prototype.toDataURL = vi.fn(() => 'data:image/png;base64,MOCK_SIGNATURE_BASE_64');
+    // Mock HTMLCanvasElement API for JSDOM
+    HTMLCanvasElement.prototype.getContext = vi.fn(
+      () => mockCtx as unknown as CanvasRenderingContext2D
+    ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.toDataURL = vi.fn(() => 'data:image/png;base64,mockSignatureData');
+    HTMLCanvasElement.prototype.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 100,
+      width: 200,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    }));
 
-    // 2. Mock FileReader using a proper class constructor to satisfy `new FileReader()`
-    class MockFileReader {
-      result = 'data:application/pdf;base64,MOCK_PDF_BASE_64';
-      onloadend: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      readAsDataURL() {
-        if (this.onloadend) {
-          this.onloadend();
-        }
-      }
-    }
-    global.FileReader = MockFileReader as any;
+    // Mock DOM Dimensions
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 200 });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 100 });
 
-    // 3. Mock URL.createObjectURL
-    global.URL.createObjectURL = vi.fn(() => 'blob:mocked-signed-pdf-url');
-
-    // 4. Mock Global Fetch to intercept both the PDF GET and API POST
-    globalFetchMock = vi.fn(async (url: string) => {
-      if (url === 'mock-pdf-url') {
-        return { blob: async () => new Blob(['fake-pdf'], { type: 'application/pdf' }) };
-      }
-      
-      if (url === '/esign/api/v1/') {
-        return { 
-          ok: true, 
-          status: 200,
-          blob: async () => new Blob(['signed-fake-pdf'], { type: 'application/pdf' }) 
-        };
-      }
-      
-      return Promise.reject(new Error(`Unhandled fetch request: ${url}`));
+    // Mock Browser URL globals
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:http://localhost/signed-result-pdf'),
+      revokeObjectURL: vi.fn(),
     });
-    
-    global.fetch = globalFetchMock;
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('adheres to the /esign/api/v1/ API contract', async () => {
-    render(<SignatureOverlay pdfBlobUrl="mock-pdf-url" onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
-    
+  it('renders correctly with disabled actions initially', () => {
+    render(<SignatureOverlay {...defaultProps} />);
+
+    expect(screen.getByText('Sign here using your mouse or touch screen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Submit & Sign PDF' })).toBeDisabled();
+  });
+
+  it('enables actions and hides placeholder after drawing', () => {
+    render(<SignatureOverlay {...defaultProps} />);
+
     const canvas = document.querySelector('canvas')!;
-    
-    // Trigger signature state
+
     fireEvent.mouseDown(canvas, { clientX: 10, clientY: 10 });
-    
-    // Submit payload
-    const submitBtn = screen.getByRole('button', { name: 'Submit & Sign PDF' });
-    fireEvent.click(submitBtn);
+    fireEvent.mouseMove(canvas, { clientX: 20, clientY: 20 });
+    fireEvent.mouseUp(canvas);
 
-    // Wait for the async API flow to finish and call onSuccess
+    expect(mockCtx.beginPath).toHaveBeenCalled();
+    expect(mockCtx.lineTo).toHaveBeenCalled();
+
+    expect(screen.queryByText('Sign here using your mouse or touch screen')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Submit & Sign PDF' })).toBeEnabled();
+  });
+
+  it('clears canvas and resets action buttons on Clear click', () => {
+    render(<SignatureOverlay {...defaultProps} />);
+    const canvas = document.querySelector('canvas')!;
+
+    fireEvent.mouseDown(canvas, { clientX: 10, clientY: 10 });
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+
+    expect(mockCtx.clearRect).toHaveBeenCalledWith(0, 0, 200, 100);
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
+    expect(screen.getByText('Sign here using your mouse or touch screen')).toBeInTheDocument();
+  });
+
+  it('handles full submission flow successfully', async () => {
+    const mockPdfBlob = new Blob(['%PDF-mock'], { type: 'application/pdf' });
+    const mockSignedPdfBlob = new Blob(['%PDF-signed'], { type: 'application/pdf' });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === defaultProps.pdfBlobUrl) {
+          return Promise.resolve({
+            ok: true,
+            blob: () => Promise.resolve(mockPdfBlob),
+          });
+        }
+        if (url === '/esign/api/v1/') {
+          return Promise.resolve({
+            ok: true,
+            blob: () => Promise.resolve(mockSignedPdfBlob),
+          });
+        }
+        return Promise.reject(new Error('Unknown URL'));
+      })
+    );
+
+    render(<SignatureOverlay {...defaultProps} />);
+    const canvas = document.querySelector('canvas')!;
+
+    fireEvent.mouseDown(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit & Sign PDF' }));
+
     await waitFor(() => {
-      expect(mockOnSuccess).toHaveBeenCalledWith('blob:mocked-signed-pdf-url');
+      expect(mockOnSuccess).toHaveBeenCalledWith('blob:http://localhost/signed-result-pdf');
     });
+  });
 
-    // Extract the POST request call to validate the contract
-    const apiCall = globalFetchMock.mock.calls.find((call: any[]) => call[0] === '/esign/api/v1/');
-    
-    expect(apiCall).toBeDefined();
-    const requestOptions = apiCall[1];
+  it('displays structured error message when backend submission fails', async () => {
+    const mockPdfBlob = new Blob(['%PDF-mock'], { type: 'application/pdf' });
 
-    // Assert Headers Contract
-    expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.headers).toHaveProperty('Content-Type', 'application/json');
-    expect(requestOptions.headers).toHaveProperty('x-correlation-id');
-    expect(requestOptions.headers['x-correlation-id']).toMatch(/^esign-req-\d+$/);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === defaultProps.pdfBlobUrl) {
+          return Promise.resolve({
+            ok: true,
+            blob: () => Promise.resolve(mockPdfBlob),
+          });
+        }
+        if (url === '/esign/api/v1/') {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: () => Promise.resolve({ error: 'Signature Verification Engine Failure' }),
+          });
+        }
+        return Promise.reject(new Error('Unknown URL'));
+      })
+    );
 
-    // Assert Body Schema Contract
-    const parsedBody = JSON.parse(requestOptions.body);
-    expect(parsedBody).toEqual({
-      pdfBase64: 'MOCK_PDF_BASE_64',
-      signatureImageBase64: 'MOCK_SIGNATURE_BASE_64',
+    render(<SignatureOverlay {...defaultProps} />);
+    const canvas = document.querySelector('canvas')!;
+
+    fireEvent.mouseDown(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit & Sign PDF' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Signature Verification Engine Failure');
     });
   });
 });

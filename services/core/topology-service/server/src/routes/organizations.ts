@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { createLogger } from '@shared/telemetry';
 import { getDatabaseClient } from '../topologyDatabase.js';
-import { Organization } from '@contracts/domain';
+import { Organization } from '@contracts/custody';
 
 const router = Router();
 const logger = createLogger('topology/organizations');

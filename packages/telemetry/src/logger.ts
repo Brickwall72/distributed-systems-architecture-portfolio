@@ -17,6 +17,16 @@ export interface StructuredLog {
 }
 
 /**
+ * Contract for subsystem logging facades across workspace packages.
+ */
+export interface Logger {
+  info(message: string, correlationId?: string | null): void;
+  warn(message: string, correlationId?: string | null): void;
+  error(message: string, correlationId?: string | null): void;
+  debug(message: string, correlationId?: string | null): void;
+}
+
+/**
  * Creates a consistent logging facade for a subsystem.
  *
  * Every log entry is serialized as a single JSON object to keep output
@@ -25,7 +35,7 @@ export interface StructuredLog {
  * @param subsystemName - Logical component or service name attached to each entry.
  * @returns Logger methods for the supported severity levels.
  */
-export function createLogger(subsystemName: string) {
+export function createLogger(subsystemName: string): Logger {
   const emit = (level: LogLevel, message: string, correlationId: string | null = null) => {
     const logPayload: StructuredLog = {
       timestamp: new Date().toISOString(),

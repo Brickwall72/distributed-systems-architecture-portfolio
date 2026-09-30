@@ -1,3 +1,4 @@
+# File: scripts/charts-deps.sh
 #!/usr/bin/env sh
 set -eu
 
@@ -6,10 +7,10 @@ set -eu
 
 for chart in charts/esign-service charts/pdf-service charts/compliance-service charts/topology-service \
              charts/global-shell charts/topology-shell charts/compliance-shell \
-             charts/dbgate charts/minio; do
-  if [ -d "$chart/charts" ]; then
+             charts/dbgate charts/minio charts/nats; do
+  if [[ -d "$chart/charts" ]]; then
     for sub in "$chart"/charts/*/; do
-      [ -f "${sub}Chart.yaml" ] && helm dependency update "${sub%/}"
+      [[ -f "${sub}Chart.yaml" ]] && helm dependency update "${sub%/}"
     done
   fi
   helm dependency update "$chart"

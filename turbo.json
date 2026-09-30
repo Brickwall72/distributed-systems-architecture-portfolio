@@ -1,0 +1,28 @@
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**/*.ts", "tsconfig.json", "package.json"],
+      "outputs": ["dist/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**/*.ts", "src/**/*.unit.test.ts", "vitest.config.ts"],
+      "outputs": []
+    },
+    "test:contract": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**/*.ts", "src/**/*.contract.test.ts"],
+      "outputs": []
+    },
+    "test:verify": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**/*.ts", "src/**/*.verify.contract.test.ts"],
+      "outputs": []
+    },
+    "test:integration": {
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}

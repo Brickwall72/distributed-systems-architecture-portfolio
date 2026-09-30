@@ -1,5 +1,4 @@
 # File: charts/minio/templates/minio.yaml
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -57,8 +56,15 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /minio/health/ready
               port: 9000
             initialDelaySeconds: 5
             periodSeconds: 5
@@ -100,6 +106,7 @@ kind: Job
 metadata:
   name: minio-setup
 spec:
+  ttlSecondsAfterFinished: 100
   backoffLimit: 5
   template:
     metadata:
@@ -117,18 +124,22 @@ spec:
           imagePullPolicy: {{ .Values.setupImage.pullPolicy }}
           securityContext:
             {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
+          env:
+            - name: MINIO_ROOT_USER
+              value: {{ .Values.rootUser | quote }}
+            - name: MINIO_ROOT_PASSWORD
+              value: {{ .Values.rootPassword | quote }}
           command:
             - /bin/sh
             - -c
             - |
-              echo 'Waiting for MinIO to start...'
-              until mc --config-dir /tmp alias set myminio http://minio:9000 {{ .Values.rootUser }} {{ .Values.rootPassword }}; do
+              echo 'Waiting for MinIO API to start...'
+              until mc --config-dir /tmp alias set myminio http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
                 echo 'MinIO unavailable, retrying in 2 seconds...'
                 sleep 2
               done
-              echo 'MinIO is up. Creating buckets...'
+              echo 'MinIO is up. Creating bucket...'
               mc --config-dir /tmp mb myminio/{{ .Values.bucket }} --ignore-existing
-              mc --config-dir /tmp anonymous set download myminio/{{ .Values.bucket }}
               echo 'MinIO setup complete.'
           resources:
             requests:

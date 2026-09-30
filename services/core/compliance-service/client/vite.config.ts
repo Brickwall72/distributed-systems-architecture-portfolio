@@ -7,6 +7,5 @@ export default createRemoteConfig({
   exposes: {
     './widget/TemplateSelector': './src/widgets/TemplateSelector.tsx',
     './api': './src/api/index.ts',
-    './contract/ComplianceDocument': './src/contracts/documents.ts'
   },
 });

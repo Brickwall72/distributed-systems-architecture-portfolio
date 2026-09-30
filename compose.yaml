@@ -33,6 +33,24 @@ services:
       - "./config/traefik/dynamic:/etc/traefik/dynamic:ro"
     networks:
       - platform-mesh
+      
+  nats:
+    image: nats:2.15-alpine
+    container_name: nats
+    ports:
+      - "4222:4222" # Client connections
+      - "8222:8222" # HTTP management & monitoring dashboard
+    command: ["-m", "8222", "-js"]
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - platform-mesh
 
   dbgate:
     image: dbgate/dbgate:7.2.6
@@ -83,6 +101,7 @@ services:
 volumes:
   dbgate-data:
   minio-data:
+  nats-data:
 
 networks:
   platform-mesh:

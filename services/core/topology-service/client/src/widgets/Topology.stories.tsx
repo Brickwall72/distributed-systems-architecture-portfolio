@@ -2,7 +2,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse } from 'msw';
 import { useState } from 'react';
-import { Asset, Organization } from '@contracts/domain';
+import { Asset, Organization } from '@contracts/custody';
 import { 
   ConnectionFormWidget, 
   NetworkCanvasWidget, 

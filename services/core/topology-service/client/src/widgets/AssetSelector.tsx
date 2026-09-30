@@ -1,5 +1,5 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector.tsx
-import { Asset } from '@contracts/domain';
+import { Asset } from '@contracts/custody';
 import BaseSelector from './BaseSelector.jsx';
 
 interface AssetSelectorProps {

@@ -9,8 +9,45 @@ image:
 
 replicas: 1
 
-env: []
+env: 
+  - name: SIGNING_CERT_PATH
+    value: "/app/certs/certificate.p12"
+  - name: SIGNING_CERT_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: esign-secrets
+        key: SIGNING_CERT_PASSWORD
+  - name: S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: S3_ACCESS_KEY
+  - name: S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: S3_SECRET_KEY
+  - name: S3_ENDPOINT
+    value: "http://minio.platform-local.svc.cluster.local:9000"
+  - name: S3_BUCKET
+    value: "compliance-documents"
+  - name: NATS_URL
+    value: "nats://nats.platform-local.svc.cluster.local:4222"
 envFrom: []
+
+# Volume configuration to mount PKCS#12 bundle from Secret
+volumeMounts:
+  - name: esign-cert-volume
+    mountPath: "/app/certs"
+    readOnly: true
+
+volumes:
+  - name: esign-cert-volume
+    secret:
+      secretName: esign-secrets
+      items:
+        - key: certificate.p12
+          path: certificate.p12
 
 annotations:
   prometheus.io/scrape: "true"

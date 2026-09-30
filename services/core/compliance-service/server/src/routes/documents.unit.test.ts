@@ -1,129 +1,102 @@
 // File: services/core/compliance-service/server/src/routes/documents.unit.test.ts
 import request from 'supertest';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import documentsRouter from './documents.js';
+import { ComplianceDocumentRepository } from '../db/documents.repository.js';
 
-// Hoist mock functions
-const { mockUploadComplianceDocument } = vi.hoisted(() => ({
-  mockUploadComplianceDocument: vi.fn(),
-}));
-
-const { mockPoolQuery } = vi.hoisted(() => ({
-  mockPoolQuery: vi.fn(),
-}));
-
-// Mocks must match the exact relative path used in documents.ts
-vi.mock('../services/storage.js', () => ({
-  uploadComplianceDocument: mockUploadComplianceDocument,
-}));
-
+vi.mock('../db/documents.repository.js');
 vi.mock('../db/database.js', () => ({
-  pool: {
-    query: mockPoolQuery,
-  },
+  pool: {},
 }));
 
-vi.mock('@shared/telemetry', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() })),
-}));
+const app = express();
+app.use(express.json());
+app.use('/api/v1/documents', documentsRouter);
 
-describe('Compliance Documents Router Unit Tests', () => {
-  const app = express();
-  app.use(express.json({ limit: '10mb' }));
-  app.use('/api/v1/documents', documentsRouter);
+// Register the central error handler matching production server.js behavior
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      errorCode: 'VALIDATION_ERROR',
+      message: 'Request validation failed',
+      details: err.issues,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  return res.status(err.status || 500).json({
+    errorCode: err.errorCode || 'INTERNAL_SERVER_ERROR',
+    message: err.message || 'An unexpected error occurred',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+describe('Compliance Documents Router', () => {
+  const validPayload = {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    document_type: 'DD-1149',
+    s3_uri: 's3://compliance-documents/org_armory_01/doc_101.pdf',
+    status: 'Pending',
+  };
+
+  const mockRecord = {
+    ...validPayload,
+    created_at: '2026-09-17T12:00:00.000Z',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('POST /compliance/api/v1/documents/', () => {
-    it('returns 400 if pdfBase64 is missing', async () => {
-      const res = await request(app)
-        .post('/api/v1/documents/')
-        .send({}); // Missing pdfBase64
+  it('POST /api/v1/documents successfully registers a compliance document', async () => {
+    vi.spyOn(ComplianceDocumentRepository.prototype, 'create').mockResolvedValue(mockRecord as any);
 
-      expect(res.status).toBe(400);
-      expect(res.body).toEqual({ error: 'Missing required field: pdfBase64.' });
-    });
+    const response = await request(app)
+      .post('/api/v1/documents')
+      .send(validPayload);
 
-    it('successfully uploads document to MinIO and inserts record into Postgres', async () => {
-      mockUploadComplianceDocument.mockResolvedValue('s3://compliance-documents/transfer-approval/test-doc-123.pdf');
-      mockPoolQuery.mockResolvedValue({
-        rows: [{ id: 42, created_at: '2026-09-12T19:00:00.000Z' }],
-      });
-
-      const res = await request(app)
-        .post('/api/v1/documents/')
-        .send({
-          pdfBase64: 'dGVzdC1wZGY=',
-          documentType: 'transfer-approval',
-        });
-
-      expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toEqual({
-        id: 42,
-        documentId: expect.any(String),
-        documentType: 'transfer-approval',
-        s3Uri: 's3://compliance-documents/transfer-approval/test-doc-123.pdf',
-        createdAt: '2026-09-12T19:00:00.000Z',
-      });
-
-      expect(mockUploadComplianceDocument).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Buffer),
-        'transfer-approval'
-      );
-      expect(mockPoolQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO compliance_documents'),
-        [expect.any(String), 'transfer-approval', 's3://compliance-documents/transfer-approval/test-doc-123.pdf']
-      );
-    });
-
-    it('returns 500 if storage upload throws an error', async () => {
-      mockUploadComplianceDocument.mockRejectedValue(new Error('MinIO connection failed'));
-
-      const res = await request(app)
-        .post('/api/v1/documents/')
-        .send({
-          pdfBase64: 'dGVzdC1wZGY=',
-        });
-
-      expect(res.status).toBe(500);
-      expect(res.body).toEqual({ error: 'Internal storage failure: MinIO connection failed' });
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      success: true,
+      data: mockRecord,
     });
   });
 
-  describe('GET /compliance/api/v1/documents/', () => {
-    it('successfully retrieves compliance documents dataset', async () => {
-      const mockRows = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          document_type: 'DD1149-asset-transfer.pdf',
-          status: 'Pending',
-          created_at: '2026-09-12T19:00:00.000Z',
-        },
-      ];
-      mockPoolQuery.mockResolvedValue({ rows: mockRows });
+  it('POST /api/v1/documents returns 400 when Zod schema validation fails', async () => {
+    const response = await request(app)
+      .post('/api/v1/documents')
+      .send({
+        document_type: '', // Invalid: empty string
+        s3_uri: 'invalid-uri-scheme', // Invalid: missing s3://
+      });
 
-      const res = await request(app)
-        .get('/api/v1/documents/');
+    expect(response.status).toBe(400);
+  });
 
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual(mockRows);
-      expect(mockPoolQuery).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM compliance_documents')
-      );
-    });
+  it('GET /api/v1/documents returns a list of documents', async () => {
+    vi.spyOn(ComplianceDocumentRepository.prototype, 'findAll').mockResolvedValue([mockRecord] as any);
 
-    it('returns 500 if database query fails during retrieval', async () => {
-      mockPoolQuery.mockRejectedValue(new Error('Database connection lost'));
+    const response = await request(app).get('/api/v1/documents');
 
-      const res = await request(app)
-        .get('/api/v1/documents/');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([mockRecord]);
+  });
 
-      expect(res.status).toBe(500);
-      expect(res.body).toEqual({ error: 'Failed to retrieve compliance_documents dataset' });
-    });
+  it('GET /api/v1/documents/:id returns a single document when found', async () => {
+    vi.spyOn(ComplianceDocumentRepository.prototype, 'findById').mockResolvedValue(mockRecord as any);
+
+    const response = await request(app).get('/api/v1/documents/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockRecord);
+  });
+
+  it('GET /api/v1/documents/:id returns 404 when document is not found', async () => {
+    vi.spyOn(ComplianceDocumentRepository.prototype, 'findById').mockResolvedValue(null);
+
+    const response = await request(app).get('/api/v1/documents/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+
+    expect(response.status).toBe(404);
+    expect(response.body.errorCode).toBe('NOT_FOUND');
   });
 });
