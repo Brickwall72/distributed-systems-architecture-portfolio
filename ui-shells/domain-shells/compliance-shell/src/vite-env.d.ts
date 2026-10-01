@@ -20,10 +20,6 @@ declare module 'topology_client/widget/*' {
   export default Component;
 }
 
-declare module 'compliance_client/api/fetchDocuments' {
-  export function fetchDocuments(): Promise<ComplianceDocument[]>
-}
-
 declare module 'compliance_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;

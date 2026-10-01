@@ -27,3 +27,17 @@ export const TransferAuthorizationTemplateDataSchema = z.object({
   items: z.array(TransferItemSchema).min(1, 'At least one asset is required for transfer'),
 });
 export type TransferAuthorizationTemplateData = z.infer<typeof TransferAuthorizationTemplateDataSchema>;
+
+/**
+ * Single source of truth mapping template manifest IDs to their respective payload schemas.
+ */
+export const COMPLIANCE_TEMPLATE_SCHEMAS = {
+  'dd-1149': DD1149TemplateDataSchema,
+  'transfer-authorization': TransferAuthorizationTemplateDataSchema,
+} as const;
+
+export type TemplateId = keyof typeof COMPLIANCE_TEMPLATE_SCHEMAS;
+
+export type TemplateDataMap = {
+  [K in TemplateId]: z.infer<(typeof COMPLIANCE_TEMPLATE_SCHEMAS)[K]>;
+};
