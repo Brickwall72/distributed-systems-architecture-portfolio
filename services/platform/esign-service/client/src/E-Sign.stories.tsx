@@ -1,22 +1,21 @@
-// File: services/core/esignature-service/client/src/widgets/SignatureOverlayWidget.stories.tsx
+// File: services/platform/esignature-service/client/src/E-Sign.stories.tsx
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import SignatureOverlayWidget from './widgets/SignatureOverlay';
+import { SignatureOverlay } from './widgets';
 import { DocumentViewer } from '@shared/ui-components';
 
-const meta: Meta<typeof SignatureOverlayWidget> = {
-  title: 'Widgets/SignatureOverlayWidget',
-  component: SignatureOverlayWidget,
+const meta: Meta<typeof SignatureOverlay> = {
+  title: 'Widgets/SignatureOverlay',
+  component: SignatureOverlay,
   parameters: {
-    layout: 'fullscreen', // Removes default Storybook padding for realistic shell testing
+    layout: 'fullscreen',
   },
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof SignatureOverlayWidget>;
+type Story = StoryObj<typeof SignatureOverlay>;
 
-// Realistic mock document to render underneath the canvas
 const mockHtmlContent = `
   <div style="padding: 40px; font-family: serif; color: #1e293b; line-height: 1.6;">
     <h1 style="border-bottom: 2px solid #cbd5e1; padding-bottom: 10px;">Form DD-1149: Requisition and Invoice/Shipping Document</h1>
@@ -48,20 +47,24 @@ const mockHtmlContent = `
 
 export const IntegratedWithViewer: Story = {
   args: {
-    onSubmit: (signatureBase64: string) => {
-      console.log('Submitted Signature:', signatureBase64);
+    pdfBlobUrl: 'blob:http://localhost:3000/mock-document-blob-id',
+    documentId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    signerId: 'usr-actor-404',
+    entityId: 'org-armory-01',
+    documentType: 'DD-1149',
+    customPath: '/docs/signed',
+    onSuccess: (signedPdfBlobUrl: string) => {
+      console.log('Signature applied successfully. Signed Blob URL:', signedPdfBlobUrl);
     },
     onCancel: () => {
       console.log('Signature cancelled');
     },
   },
   render: (args) => {
-    // Local state to simulate the UnifiedCustodyPage toggling
     const [isSigning, setIsSigning] = useState(true);
 
     return (
       <div className="w-full min-h-screen p-8 bg-slate-950 flex flex-col items-center gap-6">
-        {/* Mock Shell Header */}
         <div className="w-full max-w-4xl flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-800">
           <span className="text-slate-300 font-medium">Compliance Document Preview</span>
           <button 
@@ -72,7 +75,6 @@ export const IntegratedWithViewer: Story = {
           </button>
         </div>
         
-        {/* Integrated Viewer Workspace */}
         <main className="w-full max-w-4xl h-[750px] bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative">
           <DocumentViewer
             content={mockHtmlContent}
@@ -81,17 +83,22 @@ export const IntegratedWithViewer: Story = {
             className="w-full h-full"
             isSigningActive={isSigning}
           >
-            {/* The slot for the overlay, matching the UnifiedCustodyPage implementation */}
             {isSigning && (
-              <SignatureOverlayWidget 
+              <SignatureOverlay 
+                pdfBlobUrl={args.pdfBlobUrl}
+                documentId={args.documentId}
+                signerId={args.signerId}
+                entityId={args.entityId}
+                documentType={args.documentType}
+                customPath={args.customPath}
                 onCancel={() => {
                   setIsSigning(false);
                   args.onCancel();
                 }} 
-                onSubmit={(sig) => {
+                onSuccess={(signedPdfUrl) => {
                   setIsSigning(false);
-                  args.onSubmit(sig);
-                  alert('Signature submitted! Check console for base64 output.');
+                  args.onSuccess(signedPdfUrl);
+                  alert('Signature submitted! Check console for signed PDF blob URL.');
                 }} 
               />
             )}
@@ -99,5 +106,5 @@ export const IntegratedWithViewer: Story = {
         </main>
       </div>
     );
-  }
+  },
 };

@@ -1,5 +1,6 @@
 // File: services/platform/esignature-service/client/src/widgets/SignatureOverlay.tsx
 import { useRef, useState, useEffect } from 'react';
+import { signDocument } from '../api';
 
 interface SignatureOverlayProps {
   pdfBlobUrl: string;
@@ -91,46 +92,15 @@ export default function SignatureOverlay({
 
     try {
       const signatureDataUrl = canvas.toDataURL('image/png');
-      const signatureImageBase64 = signatureDataUrl.split(',')[1] || '';
-
-      const pdfResponse = await fetch(pdfBlobUrl);
-      const pdfBlob = await pdfResponse.blob();
-
-      const pdfBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const resultStr = (reader.result as string) || '';
-          const base64String = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
-          resolve(base64String);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(pdfBlob);
+      const signedPdfUrl = await signDocument({
+        pdfBlobUrl,
+        signatureDataUrl,
+        documentId,
+        signerId,
+        entityId,
+        customPath,
+        documentType,
       });
-
-      const signResponse = await fetch('/esign/api/v1/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-correlation-id': `esign-req-${Date.now()}`,
-        },
-        body: JSON.stringify({
-          pdfBase64,
-          signatureImageBase64,
-          documentId,
-          signerId,
-          entityId,
-          customPath,
-          documentType,
-        }),
-      });
-
-      if (!signResponse.ok) {
-        const errorData = await signResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server returned status ${signResponse.status}`);
-      }
-
-      const signedPdfBlob = await signResponse.blob();
-      const signedPdfUrl = URL.createObjectURL(signedPdfBlob);
 
       onSuccess(signedPdfUrl);
     } catch (error) {

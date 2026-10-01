@@ -318,6 +318,9 @@ importers:
 
   services/platform/esign-service/client:
     dependencies:
+      '@contracts/esign':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/esign
       '@shared/styles':
         specifier: workspace:*
         version: link:../../../../packages/styles

@@ -14,6 +14,7 @@
     "test:integration": "vitest run .integration.test"
   },
   "dependencies": {
+    "@contracts/esign": "workspace:*",
     "@shared/vite-config": "workspace:*",
     "@shared/styles": "workspace:*",
     "react": "~19.2.8",
