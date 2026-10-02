@@ -27,23 +27,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-  pdf-client:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.client
-      target: prod
-    image: pdf-client:prod
-    container_name: pdf-client
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pdf.rule=PathPrefix(`/pdf`)"
-      - "traefik.http.routers.pdf.entrypoints=web"
-      - "traefik.http.services.pdf.loadbalancer.server.port=3000"
-    depends_on:
-      pdf-server:
-        condition: service_healthy
-    networks:
-      - platform-mesh
 
 networks:
   platform-mesh:

@@ -13,11 +13,9 @@
   },
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
-    "dev": "vite build --watch",
     "test": "pnpm test:unit && pnpm test:contract",
     "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .contract.test",
-    "test:integration": "vitest run .integration.test"
+    "test:contract": "vitest run .contract.test"
   },
   "peerDependencies": {
     "react": "~19.2.8",
@@ -27,6 +25,7 @@
     "@contracts/esign": "workspace:*"
   },
   "devDependencies": {
-    "@shared/ui-components": "workspace:*"
+    "@shared/ui-components": "workspace:*",
+    "@shared/vite-config": "workspace:*"
   }
 }

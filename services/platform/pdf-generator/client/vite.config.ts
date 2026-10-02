@@ -1,10 +1,7 @@
-// File: services/core/pdf-generator/client/vite.config.ts
-import { createRemoteConfig } from '@shared/vite-config';
+// File: services/platform/esign-service/client/vite.config.ts
+import { createLibraryConfig } from '@shared/vite-config';
 
-export default createRemoteConfig({
-  domain: 'pdf',
-  concern: 'client',
-  exposes: {
-    './widget/GeneratePdfButton': './src/widgets/GeneratePdfButton.tsx',
-  }
+export default createLibraryConfig({
+  entryPath: './src/index.ts',
+  name: 'PdfClient',
 });
