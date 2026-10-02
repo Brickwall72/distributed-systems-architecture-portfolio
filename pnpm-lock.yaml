@@ -23,9 +23,6 @@ importers:
       '@shared/tsconfig':
         specifier: workspace:*
         version: link:packages/tsconfig
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:packages/vite-config
       '@storybook/addon-links':
         specifier: ~10.6.0
         version: 10.6.0(@types/react@19.2.18)(react@19.2.8)(storybook@10.6.0(@types/react@19.2.18)(react@19.2.8))
@@ -338,6 +335,9 @@ importers:
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../../../../packages/vite-config
 
   services/platform/esign-service/server:
     dependencies:
@@ -378,18 +378,16 @@ importers:
 
   services/platform/pdf-generator/client:
     dependencies:
-      '@shared/styles':
-        specifier: workspace:*
-        version: link:../../../../packages/styles
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../../../../packages/vite-config
       react:
         specifier: ~19.2.8
         version: 19.2.8
       react-dom:
         specifier: ~19.2.8
         version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../../../../packages/vite-config
 
   services/platform/pdf-generator/server:
     dependencies:
@@ -432,6 +430,9 @@ importers:
       esign-client:
         specifier: workspace:*
         version: link:../../../services/platform/esign-service/client
+      pdf-client:
+        specifier: workspace:*
+        version: link:../../../services/platform/pdf-generator/client
       react:
         specifier: ~19.2.8
         version: 19.2.8

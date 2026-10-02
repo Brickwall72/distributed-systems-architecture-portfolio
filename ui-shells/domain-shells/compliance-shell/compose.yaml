@@ -13,7 +13,6 @@ services:
       - "traefik.http.routers.compliance-shell.entrypoints=web"
       - "traefik.http.services.compliance-shell.loadbalancer.server.port=3000"
     depends_on:
-      - pdf-client
       - compliance-client
       - topology-client
     networks:

@@ -4,11 +4,11 @@ import { loadRemote } from '@module-federation/enhanced/runtime';
 import { Organization, Asset } from '@contracts/custody';
 import { DocumentViewer, hydrateTemplate, FederatedErrorBoundary } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
+import { GeneratePdfButton } from 'pdf-client';
 
 // Dynamically resolve all cross-boundary widgets as flat runtime peers
 const OrganizationSelector = lazy(() => loadRemote<any>('topology_client/widget/OrganizationSelector'));
 const AssetSelector = lazy(() => loadRemote<any>('topology_client/widget/AssetSelector'));
-const GeneratePdfButton = lazy(() => loadRemote<any>('pdf_client/widget/GeneratePdfButton'));
 const TemplateSelector = lazy(() => loadRemote<any>('compliance_client/widget/TemplateSelector'));
 
 export default function UnifiedCustodyPage() {

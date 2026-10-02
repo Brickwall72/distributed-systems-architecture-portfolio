@@ -1,3 +1,0 @@
-# File: charts/pdf-service/charts/client/templates/client.yaml
-
-{{ include "platform-lib.client" . }}

@@ -35,16 +35,6 @@ build:
         infer:
           - "**/*.ts"
           - "**/*.json"
-    - image: pdf-client
-      context: services/platform/pdf-generator
-      docker:
-        dockerfile: Dockerfile.client
-        target: prod
-      sync:
-        infer:
-          - "**/*.tsx"
-          - "**/*.ts"
-          - "**/*.json"
     - image: esign-server
       context: services/platform/esign-service
       docker:
@@ -137,16 +127,12 @@ deploy:
         setValueTemplates:
           server.image.repository: "{{.IMAGE_REPO_pdf_server}}"
           server.image.tag: "{{.IMAGE_TAG_pdf_server}}"
-          client.image.repository: "{{.IMAGE_REPO_pdf_client}}"
-          client.image.tag: "{{.IMAGE_TAG_pdf_client}}"
       - name: esign-service
         chartPath: charts/esign-service
         namespace: platform-local
         setValueTemplates:
           server.image.repository: "{{.IMAGE_REPO_esign_server}}"
           server.image.tag: "{{.IMAGE_TAG_esign_server}}"
-          client.image.repository: "{{.IMAGE_REPO_esign_client}}"
-          client.image.tag: "{{.IMAGE_TAG_esign_client}}"
       - name: topology-shell
         chartPath: charts/topology-shell
         namespace: platform-local

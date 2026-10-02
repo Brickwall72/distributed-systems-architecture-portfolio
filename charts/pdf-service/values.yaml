@@ -17,7 +17,3 @@ ingress:
     rewrite:
       regex: "^/pdf/api/v1/(.*)"
       replacement: "/api/v1/$1"
-
-  client:
-    rule: "PathPrefix(`/pdf`)"
-    serviceName: pdf-client

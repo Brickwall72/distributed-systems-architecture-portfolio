@@ -15,10 +15,6 @@
     {
       "name": "topology_client",
       "entry": "/topology/client/mf-manifest.json"
-    },
-    {
-      "name": "pdf_client",
-      "entry": "/pdf/client/mf-manifest.json"
     }
   ]
 }

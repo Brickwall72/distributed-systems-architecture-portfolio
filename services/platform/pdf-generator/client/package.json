@@ -5,18 +5,23 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
     "test": "pnpm test:unit && pnpm test:contract",
     "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .contract.test",
-    "test:integration": "vitest run .integration.test"
+    "test:contract": "vitest run .contract.test"
   },
-  "dependencies": {
-    "@shared/vite-config": "workspace:*",
-    "@shared/styles": "workspace:*",
+  "peerDependencies": {
     "react": "~19.2.8",
     "react-dom": "~19.2.8"
+  },
+  "devDependencies": {
+    "@shared/vite-config": "workspace:*"
   }
 }
