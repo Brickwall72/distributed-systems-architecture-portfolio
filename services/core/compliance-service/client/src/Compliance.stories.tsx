@@ -2,7 +2,8 @@
 import { useState, ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse, delay } from 'msw';
-import { TemplateSelector, DocumentsTable } from './widgets';
+import { TemplateSelector, DocumentsTable, ComplianceWorkflow } from './widgets';
+import '@shared/styles';
 
 const meta: Meta = {
   title: 'Compliance Client/Widgets',
@@ -95,6 +96,13 @@ const sharedMswHandlers = [
     );
   }),
 ];
+
+// Mock Template Data for Workflow Preview
+const mockTemplateData = {
+  releasingEntityName: 'AFRL Directed Energy Directorate (Kirtland AFB)',
+  receivingEntityName: 'Naval Surface Warfare Center (Dahlgren Division)',
+  nomenclature: 'Tactical High-Power Microwave Subsystem Test Bench',
+};
 
 // =============================================================================
 // Widget 1: DocumentsTable Stories
@@ -203,6 +211,46 @@ export const TemplateSelectorInteractive: StoryObj<typeof TemplateSelector> = {
   args: {
     label: 'Compliance Form Definition',
     selectedId: 'dd-1149',
+  },
+  parameters: {
+    msw: {
+      handlers: sharedMswHandlers,
+    },
+  },
+};
+
+// =============================================================================
+// Widget 3: ComplianceWorkflow Stories
+// =============================================================================
+export const ComplianceWorkflowInteractive: StoryObj<typeof ComplianceWorkflow> = {
+  name: 'Compliance Workflow / Complete Execution',
+  render: (args) => <ComplianceWorkflow {...args} />,
+  args: {
+    templateData: mockTemplateData,
+    documentId: '123e4567-e89b-12d3-a456-426614174000',
+    requisitionNumber: 'REQ-2026-0915',
+    signerId: 'usr_compliance_officer_01',
+    entityId: 'org_afrl_kirtland',
+    onWorkflowComplete: (signedPdfUrl) => {
+      console.log('Compliance workflow completed successfully:', signedPdfUrl);
+    },
+  },
+  parameters: {
+    msw: {
+      handlers: sharedMswHandlers,
+    },
+  },
+};
+
+export const ComplianceWorkflowUnset: StoryObj<typeof ComplianceWorkflow> = {
+  name: 'Compliance Workflow / Unhydrated State',
+  render: (args) => <ComplianceWorkflow {...args} />,
+  args: {
+    templateData: null,
+    documentId: '223e4567-e89b-12d3-a456-426614174001',
+    requisitionNumber: 'REQ-2026-9999',
+    signerId: 'usr_compliance_officer_01',
+    entityId: 'org_afrl_kirtland',
   },
   parameters: {
     msw: {
