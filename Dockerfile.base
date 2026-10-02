@@ -19,6 +19,7 @@ RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pn
 # COPY packages/ BEFORE running pnpm install so workspace:* links resolve successfully
 COPY tsconfig.json pnpm-workspace.yaml package.json turbo.json ./
 COPY packages/ ./packages/
+COPY services/platform/esign-service/client/ ./services/platform/esign-service/client/
 
 RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --offline --ignore-scripts \

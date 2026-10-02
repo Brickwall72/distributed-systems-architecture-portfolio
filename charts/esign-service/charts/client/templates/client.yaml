@@ -1,3 +1,0 @@
-# File: charts/esign-service/charts/client/templates/client.yaml
-
-{{ include "platform-lib.client" . }}

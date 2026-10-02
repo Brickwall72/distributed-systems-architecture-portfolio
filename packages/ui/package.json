@@ -18,8 +18,6 @@
     "test:unit": "vitest run .unit.test"
   },
   "peerDependencies": {
-    "@shared/vite-config": "workspace:*",
-    "@shared/styles": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8"
   },
@@ -27,5 +25,9 @@
     "handlebars": "~4.7.9",
     "tailwind-merge": "~3.6.0",
     "clsx": "~2.1.1"
+  },
+  "devDependencies": {
+    "@shared/styles": "workspace:*",
+    "@shared/vite-config": "workspace:*"
   }
 }

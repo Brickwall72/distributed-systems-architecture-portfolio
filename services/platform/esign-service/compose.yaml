@@ -35,24 +35,6 @@ services:
     volumes:
       - ./server/certs:/app/certs:ro
 
-  esign-client:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.client
-      target: prod
-    image: esign-client:prod
-    container_name: esign-client
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.esign.rule=PathPrefix(`/esign`)"
-      - "traefik.http.routers.esign.entrypoints=web"
-      - "traefik.http.services.esign.loadbalancer.server.port=3000"
-    depends_on:
-      esign-server:
-        condition: service_healthy
-    networks:
-      - platform-mesh
-
 networks:
   platform-mesh:
     name: platform-mesh

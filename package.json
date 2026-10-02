@@ -30,6 +30,8 @@
   "devDependencies": {
     "@shared/tsconfig": "workspace:*",
     "@shared/testing": "workspace:*",
+    "@shared/vite-config": "workspace:*",
+    "@shared/styles": "workspace:*",
     "@module-federation/vite": "~1.21.2",
     "@storybook/addon-links": "~10.6.0",
     "@storybook/react": "~10.6.0",
