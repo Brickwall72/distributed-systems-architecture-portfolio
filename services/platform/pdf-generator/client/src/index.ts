@@ -1,2 +1,3 @@
 // File: services/platform/pdf-generator/client/src/index.ts
-export {};
+export * from './api';
+export * from './widgets'

@@ -1,6 +1,8 @@
 // File: services/platform/pdf-generator/client/src/widgets/GeneratePdfButton.tsx
+
 import React, { useState } from 'react';
 import '@shared/styles';
+import { generatePdf } from '../api/generatePdf';
 
 interface GeneratePdfButtonProps {
   /** The raw HTML string to send to the engine */
@@ -11,7 +13,7 @@ interface GeneratePdfButtonProps {
   onError?: (error: Error) => void;
 }
 
-export default function GeneratePdfButton ({
+export default function GeneratePdfButton({
   htmlPayload,
   fileName = 'document.pdf',
   buttonText = 'Generate PDF',
@@ -23,19 +25,7 @@ export default function GeneratePdfButton ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch('/pdf/api/v1/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: htmlPayload }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate PDF: ${response.statusText}`);
-      }
-
-      // Convert the binary stream into a browser Object URL
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const blobUrl = await generatePdf(htmlPayload);
 
       if (onSuccess) {
         // If the host shell provides an onSuccess handler (like DocumentViewer),
@@ -51,7 +41,9 @@ export default function GeneratePdfButton ({
         link.remove();
       }
     } catch (err) {
-      if (onError && err instanceof Error) onError(err);
+      if (onError && err instanceof Error) {
+        onError(err);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -66,4 +58,4 @@ export default function GeneratePdfButton ({
       {isGenerating ? 'Generating...' : buttonText}
     </button>
   );
-};
+}

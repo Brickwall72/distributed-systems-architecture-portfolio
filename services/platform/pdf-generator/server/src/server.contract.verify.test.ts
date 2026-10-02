@@ -2,20 +2,21 @@
 import { Verifier } from '@pact-foundation/pact';
 import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 // 1. Mock the heavy PDF generation service so the test stays lightweight and fast
 vi.mock('./services/pdfService.js', () => ({
   generatePdfFromHtml: async (_html: string) => {
     // Return a mock PDF buffer matching what the consumer contract expects
-    return Buffer.from('%PDF-1.4\n%MockBinaryData');
+    return Buffer.from('%PDF-1.4 sample content');
   },
 }));
 
-import app from './server'; // Adjust import to your main server export file
+import app from './server';
 
 describe('Pact Provider Verification', () => {
   let server: any;
-  const port = 8089; // Use a unique port for this service
+  const port = 8089;
 
   beforeAll(() => {
     server = app.listen(port);
@@ -28,10 +29,11 @@ describe('Pact Provider Verification', () => {
   it('validates expected contracts from pdf-client', async () => {
     const opts = {
       provider: 'pdf-server',
-      providerBaseUrl: `http://localhost:${port}`, // Traefik
+      providerBaseUrl: `http://localhost:${port}`,
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/pdf-client-pdf-server.json'),
       ],
+      // Replicates Traefik route rewriting: strips leading `/pdf` prefix before sending to Express router
       requestFilter: (req: Request, _res: Response, next: NextFunction) => {
         if (req.url.startsWith('/pdf/')) {
           req.url = req.url.replace(/^\/pdf/, '');
@@ -39,8 +41,8 @@ describe('Pact Provider Verification', () => {
         next();
       },
       stateHandlers: {
-        'the pdf generator engine is healthy': async () => {
-          // State hook is satisfied since our mock service is ready
+        // Matches the consumer .given('pdf generator service is available') clause
+        'pdf generator service is available': async () => {
           return Promise.resolve();
         },
       },
