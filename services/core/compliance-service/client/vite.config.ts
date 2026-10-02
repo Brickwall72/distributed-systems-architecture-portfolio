@@ -7,5 +7,6 @@ export default createRemoteConfig({
   exposes: {
     './widget/TemplateSelector':  './src/widgets/TemplateSelector.tsx',
     './widget/DocumentsTable':    './src/widgets/DocumentsTable.tsx',
+    './widget/ComplianceWorkflow': './src/widgets/ComplianceWorkflow.tsx'
   },
 });

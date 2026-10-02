@@ -19,6 +19,8 @@
     "@shared/ui-components": "workspace:*",
     "@contracts/custody": "workspace:*",
     "@contracts/compliance": "workspace:*",
+    "esign-client": "workspace:*",
+    "pdf-client": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "zod": "~4.6.5"

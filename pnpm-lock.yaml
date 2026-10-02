@@ -225,6 +225,12 @@ importers:
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../../packages/vite-config
+      esign-client:
+        specifier: workspace:*
+        version: link:../../../platform/esign-service/client
+      pdf-client:
+        specifier: workspace:*
+        version: link:../../../platform/pdf-generator/client
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -427,12 +433,6 @@ importers:
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../packages/vite-config
-      esign-client:
-        specifier: workspace:*
-        version: link:../../../services/platform/esign-service/client
-      pdf-client:
-        specifier: workspace:*
-        version: link:../../../services/platform/pdf-generator/client
       react:
         specifier: ~19.2.8
         version: 19.2.8
