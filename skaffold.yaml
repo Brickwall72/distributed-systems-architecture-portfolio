@@ -54,16 +54,6 @@ build:
         infer:
           - "**/*.ts"
           - "**/*.json"
-    - image: esign-client
-      context: services/platform/esign-service
-      docker:
-        dockerfile: Dockerfile.client
-        target: prod
-      sync:
-        infer:
-          - "**/*.tsx"
-          - "**/*.ts"
-          - "**/*.json"
     - image: topology-shell
       context: ui-shells/domain-shells/topology-shell
       docker:

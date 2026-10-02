@@ -17,7 +17,3 @@ ingress:
     rewrite:
       regex: "^/esign/api/v1/(.*)"
       replacement: "/api/v1/$1"
-
-  client:
-    rule: "PathPrefix(`/esign`)"
-    serviceName: esign-client

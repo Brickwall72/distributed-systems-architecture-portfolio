@@ -14,12 +14,18 @@ importers:
       '@pact-foundation/pact':
         specifier: ~17.1.3
         version: 17.1.3(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      '@shared/styles':
+        specifier: workspace:*
+        version: link:packages/styles
       '@shared/testing':
         specifier: workspace:*
         version: link:packages/testing
       '@shared/tsconfig':
         specifier: workspace:*
         version: link:packages/tsconfig
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:packages/vite-config
       '@storybook/addon-links':
         specifier: ~10.6.0
         version: 10.6.0(@types/react@19.2.18)(react@19.2.8)(storybook@10.6.0(@types/react@19.2.18)(react@19.2.8))
@@ -164,12 +170,6 @@ importers:
 
   packages/ui:
     dependencies:
-      '@shared/styles':
-        specifier: workspace:*
-        version: link:../styles
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../vite-config
       clsx:
         specifier: ~2.1.1
         version: 2.1.1
@@ -185,6 +185,13 @@ importers:
       tailwind-merge:
         specifier: ~3.6.0
         version: 3.6.0
+    devDependencies:
+      '@shared/styles':
+        specifier: workspace:*
+        version: link:../styles
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
 
   packages/vite-config:
     dependencies:
@@ -321,12 +328,6 @@ importers:
       '@contracts/esign':
         specifier: workspace:*
         version: link:../../../../packages/contracts/esign
-      '@shared/styles':
-        specifier: workspace:*
-        version: link:../../../../packages/styles
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../../../../packages/vite-config
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -428,6 +429,9 @@ importers:
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../packages/vite-config
+      esign-client:
+        specifier: workspace:*
+        version: link:../../../services/platform/esign-service/client
       react:
         specifier: ~19.2.8
         version: 19.2.8
