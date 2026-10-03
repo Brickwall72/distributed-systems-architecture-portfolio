@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { ComplianceDocument } from '@contracts/compliance';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
-import { fetchDocuments } from '../api/documents';
+import { fetchDocuments } from '../../api/documents';
 
 const columns: TableColumn<ComplianceDocument>[] = [
   { key: 'id', header: 'Document ID' },

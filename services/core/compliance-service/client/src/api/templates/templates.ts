@@ -1,11 +1,11 @@
-// File: services/core/compliance-service/client/src/api/templates.ts
+// File: services/core/compliance-service/client/src/api/templates/templates.ts
 import { z } from 'zod';
 import {
   COMPLIANCE_TEMPLATE_SCHEMAS,
   type TemplateId,
   type TemplateDataMap,
 } from '@contracts/compliance';
-import { getApiBaseUrl } from './client-config';
+import { getApiBaseUrl } from '../client-config';
 
 export const TemplateManifestSchema = z.object({
   id: z.string().min(1),
