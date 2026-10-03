@@ -1,52 +1,58 @@
-// File: services/core/topology-service/server/src/server.contract.test.ts
+// File: services/core/topology-service/server/src/server.contract.verify.test.ts
 import { Verifier } from '@pact-foundation/pact';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import path from 'path';
-import { mockState } from './utils/test-setup'; // Import the global mock state controller
+import type { Server } from 'node:http';
+import { mockState } from './utils/test-setup';
 import app from './server';
 
 describe('Pact Provider Verification', () => {
-  let server: any;
+  let server: Server | undefined;
   const port = 8093;
 
-  beforeAll(() => {
-    server = app.listen(port);
+  beforeAll(async () => {
+    await new Promise<void>((resolve) => {
+      server = app.listen(port, () => {
+        resolve();
+      });
+    });
   });
 
   afterAll(async () => {
-    await new Promise((resolve) => server.close(resolve));
+    if (server) {
+      await new Promise<void>((resolve, reject) => {
+        server?.close((err) => (err ? reject(err) : resolve()));
+      });
+    }
   });
 
   it('validates expected contracts from topology-client', async () => {
     const opts = {
       provider: 'topology-server',
-      providerBaseUrl: `http://localhost:${port}`,
+      providerBaseUrl: `http://127.0.0.1:${port}`,
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/topology-client-topology-server.json'),
       ],
       requestFilter: (req: Request, _res: Response, next: NextFunction) => {
-        if (req.url.startsWith('/topology/')) {
+        if (req.url.startsWith('/topology')) {
           req.url = req.url.replace(/^\/topology/, '');
         }
         next();
       },
       stateHandlers: {
-        'assets exist in the topology graph': async () => {
+        'assets exist for owner org-101': async () => {
           mockState.currentState = 'assets';
-          return Promise.resolve();
         },
-        'organizations exist in the topology graph': async () => {
+        'organizations exist under parent org-parent-101': async () => {
           mockState.currentState = 'organizations';
-          return Promise.resolve();
         },
         'topology entities and custody transfers exist': async () => {
           mockState.currentState = 'entities';
-          return Promise.resolve();
         },
       },
     };
 
-    await new Verifier(opts).verifyProvider();
-    expect(true).toBe(true);
+    const verifier = new Verifier(opts);
+    await verifier.verifyProvider();
   });
 });

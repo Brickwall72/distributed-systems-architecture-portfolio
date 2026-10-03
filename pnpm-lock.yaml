@@ -284,12 +284,9 @@ importers:
       '@shared/interfaces':
         specifier: workspace:*
         version: link:../../../../packages/interfaces
-      '@shared/styles':
+      '@shared/ui-components':
         specifier: workspace:*
-        version: link:../../../../packages/styles
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../../../../packages/vite-config
+        version: link:../../../../packages/ui
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -302,6 +299,10 @@ importers:
       vis-network:
         specifier: ~10.1.2
         version: 10.1.2(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)(keycharm@0.4.0)(uuid@14.0.2)(vis-data@8.0.5(uuid@14.0.2)(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)))(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
+    devDependencies:
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../../../../packages/vite-config
 
   services/core/topology-service/server:
     dependencies:

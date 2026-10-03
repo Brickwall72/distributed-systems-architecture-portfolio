@@ -7,7 +7,7 @@ export default createRemoteConfig({
   exposes: {
     './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
     './widget/NetworkCanvas': './src/widgets/NetworkCanvasWidget.tsx',
-    './widget/AssetSelector': './src/widgets/AssetSelector.tsx',
-    './widget/OrganizationSelector': './src/widgets/OrganizationSelector.tsx',
+    './widget/AssetSelector': './src/widgets/AssetSelector/AssetSelector.tsx',
+    './widget/OrganizationSelector': './src/widgets/OrganizationSelector/OrganizationSelector.tsx',
   }
 });
