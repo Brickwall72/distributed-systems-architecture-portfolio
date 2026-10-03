@@ -5,7 +5,7 @@ import { SignatureOverlay } from 'esign-client';
 import { usePdfGenerator } from '@platform/pdf-client';
 
 // Native import since this widget lives inside compliance_client
-import TemplateSelector from '../TemplateSelector/TemplateSelector'; 
+import TemplateSelector from '../TemplateSelector'; 
 
 export interface ComplianceWorkflowProps {
   /** The generic JSON dictionary used to hydrate the template */

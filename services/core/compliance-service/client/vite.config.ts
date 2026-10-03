@@ -5,8 +5,8 @@ export default createRemoteConfig({
   domain: 'compliance',
   concern: 'client',
   exposes: {
-    './widget/TemplateSelector':  './src/widgets/TemplateSelector/TemplateSelector.tsx',
+    './TemplateSelector':  './src/widgets/TemplateSelector',
     './widget/DocumentsTable':    './src/widgets/DocumentsTable/DocumentsTable.tsx',
-    './widget/ComplianceWorkflowWidget': './src/widgets/ComplianceWorkflow/ComplianceWorkflow.tsx'
+    './ComplianceWorkflowWidget': './src/widgets/ComplianceWorkflow'
   },
 });

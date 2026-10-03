@@ -6,7 +6,7 @@ import { FederatedErrorBoundary } from '@shared/ui-components';
 
 // Dynamically resolve high-level bounded context widgets
 const CustodyTransferSelector = lazy(() => loadRemote<any>('topology_client/CustodyTransferSelector'));
-const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/widget/ComplianceWorkflowWidget'));
+const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/ComplianceWorkflowWidget'));
 
 export default function UnifiedCustodyPage() {
   // 1. Selector States (Managed as a single block from the Topology domain)
