@@ -5,15 +5,22 @@ import { Organization, Asset } from '@contracts/custody';
 import { FederatedErrorBoundary } from '@shared/ui-components';
 
 // Dynamically resolve high-level bounded context widgets
-const OrganizationSelector = lazy(() => loadRemote<any>('topology_client/widget/OrganizationSelector'));
-const AssetSelector = lazy(() => loadRemote<any>('topology_client/widget/AssetSelector'));
+const CustodyTransferSelector = lazy(() => loadRemote<any>('topology_client/CustodyTransferSelector'));
 const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/widget/ComplianceWorkflowWidget'));
 
 export default function UnifiedCustodyPage() {
-  // 1. Selector States
-  const [sourceOrg, setSourceOrg] = useState<Organization | null>(null);
-  const [targetOrg, setTargetOrg] = useState<Organization | null>(null);
-  const [asset, setAsset] = useState<Asset | null>(null);
+  // 1. Selector States (Managed as a single block from the Topology domain)
+  const [transferState, setTransferState] = useState<{
+    sourceOrg: Organization | null;
+    targetOrg: Organization | null;
+    asset: Asset | null;
+  }>({
+    sourceOrg: null,
+    targetOrg: null,
+    asset: null,
+  });
+
+  const { sourceOrg, targetOrg, asset } = transferState;
 
   // 2. Form Metadata Context
   const [requisitionNumber] = useState('REQ-2026-001');
@@ -43,40 +50,11 @@ export default function UnifiedCustodyPage() {
     <div className="flex flex-col h-screen p-6 gap-6 bg-slate-950 text-slate-100">
       
       {/* Step 1: Context Collection (Topology) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <FederatedErrorBoundary remoteName="topology_client/OrganizationSelector">
-          <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading source selector...</div>}>
-            <OrganizationSelector
-              label="1. Transferring Entity (From)"
-              selectedId={sourceOrg?.id}
-              excludeId={targetOrg?.id}
-              onChange={setSourceOrg}
-            />
-          </Suspense>
-        </FederatedErrorBoundary>
-
-        <FederatedErrorBoundary remoteName="topology_client/AssetSelector">
-          <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading asset selector...</div>}>
-            <AssetSelector
-              label="2. Asset Selection"
-              selectedId={asset?.id}
-              ownerId={sourceOrg?.id}
-              onChange={setAsset}
-            />
-          </Suspense>
-        </FederatedErrorBoundary>
-
-        <FederatedErrorBoundary remoteName="topology_client/OrganizationSelector">
-          <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading target selector...</div>}>
-            <OrganizationSelector
-              label="3. Receiving Entity (To)"
-              selectedId={targetOrg?.id}
-              excludeId={sourceOrg?.id}
-              onChange={setTargetOrg}
-            />
-          </Suspense>
-        </FederatedErrorBoundary>
-      </div>
+      <FederatedErrorBoundary remoteName="topology_client/CustodyTransferSelector">
+        <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading transfer selectors...</div>}>
+          <CustodyTransferSelector onStateChange={setTransferState} />
+        </Suspense>
+      </FederatedErrorBoundary>
 
       {/* Step 2: Capability Execution (Compliance) */}
       <main className="flex-1">
