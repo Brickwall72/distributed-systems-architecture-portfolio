@@ -1,8 +1,8 @@
-// File: services/core/compliance-service/client/src/api/documents.contract.test.ts
+// File: services/core/compliance-service/client/src/api/documents/documents.contract.test.ts
 import { MatchersV3 } from '@pact-foundation/pact';
 import { createPactTestHelper } from '@shared/testing';
 import { fetchDocuments } from './documents';
-import { setApiBaseUrl } from './client-config';
+import { setApiBaseUrl } from '../client-config';
 
 const { like, eachLike, regex } = MatchersV3;
 

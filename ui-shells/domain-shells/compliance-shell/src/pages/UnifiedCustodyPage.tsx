@@ -7,7 +7,7 @@ import { FederatedErrorBoundary } from '@shared/ui-components';
 // Dynamically resolve high-level bounded context widgets
 const OrganizationSelector = lazy(() => loadRemote<any>('topology_client/widget/OrganizationSelector'));
 const AssetSelector = lazy(() => loadRemote<any>('topology_client/widget/AssetSelector'));
-const ComplianceWorkflow = lazy(() => loadRemote<any>('compliance_client/widget/ComplianceWorkflow'));
+const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/widget/ComplianceWorkflowWidget'));
 
 export default function UnifiedCustodyPage() {
   // 1. Selector States
@@ -82,7 +82,7 @@ export default function UnifiedCustodyPage() {
       <main className="flex-1">
         <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading compliance workflow...</div>}>
-            <ComplianceWorkflow
+            <ComplianceWorkflowWidget
               templateData={templatePayload}
               documentId={documentId}
               requisitionNumber={requisitionNumber}

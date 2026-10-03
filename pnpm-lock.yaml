@@ -216,21 +216,15 @@ importers:
       '@contracts/custody':
         specifier: workspace:*
         version: link:../../../../packages/contracts/custody
-      '@shared/styles':
+      '@platform/pdf-client':
         specifier: workspace:*
-        version: link:../../../../packages/styles
+        version: link:../../../platform/pdf-generator/client
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../../../../packages/vite-config
       esign-client:
         specifier: workspace:*
         version: link:../../../platform/esign-service/client
-      pdf-client:
-        specifier: workspace:*
-        version: link:../../../platform/pdf-generator/client
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -240,6 +234,10 @@ importers:
       zod:
         specifier: ~4.6.5
         version: 4.6.5
+    devDependencies:
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../../../../packages/vite-config
 
   services/core/compliance-service/server:
     dependencies:
@@ -391,6 +389,9 @@ importers:
         specifier: ~19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@shared/ui-components':
+        specifier: workspace:*
+        version: link:../../../../packages/ui
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../../packages/vite-config

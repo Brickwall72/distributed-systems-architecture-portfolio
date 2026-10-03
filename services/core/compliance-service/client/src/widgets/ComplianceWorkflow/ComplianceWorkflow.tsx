@@ -1,11 +1,11 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.tsx
 import { useState, useMemo } from 'react';
-import { DocumentViewer, hydrateTemplate } from '@shared/ui-components';
+import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
-import { GeneratePdfButton } from 'pdf-client';
+import { usePdfGenerator } from '@platform/pdf-client';
 
 // Native import since this widget lives inside compliance_client
-import TemplateSelector from './TemplateSelector'; 
+import TemplateSelector from '../TemplateSelector/TemplateSelector'; 
 
 export interface ComplianceWorkflowProps {
   /** The generic JSON dictionary used to hydrate the template */
@@ -30,6 +30,14 @@ export default function ComplianceWorkflowWidget({
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
+
+  const fileName = `${selectedTemplateId || 'document'}-${requisitionNumber}.pdf`;
+
+  const { generate, isGenerating } = usePdfGenerator({
+    fileName,
+    onSuccess: (blobUrl) => setPdfBlobUrl(blobUrl),
+    onError: (err) => console.error('Failed to generate PDF:', err),
+  });
 
   const handleTemplateLoad = (templateId: string, rawHtml: string) => {
     setSelectedTemplateId(templateId);
@@ -68,19 +76,24 @@ export default function ComplianceWorkflowWidget({
 
         <div className="flex items-center gap-3">
           {pdfBlobUrl && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPdfBlobUrl(null)}
-              className="px-3 py-1.5 text-sm bg-slate-800 hover:bg-slate-700 rounded-md transition"
             >
               Back to Interactive View
-            </button>
+            </Button>
           )}
 
-          <GeneratePdfButton
-            htmlPayload={isReadyForPdf ? hydratedHtml : ''}
-            fileName={`${selectedTemplateId || 'document'}-${requisitionNumber}.pdf`}
-            onSuccess={setPdfBlobUrl}
-          />
+          <Button
+            variant="primary"
+            size="md"
+            isLoading={isGenerating}
+            disabled={!isReadyForPdf || !hydratedHtml}
+            onClick={() => generate(hydratedHtml)}
+          >
+            Generate PDF
+          </Button>
         </div>
       </div>
 
@@ -94,13 +107,14 @@ export default function ComplianceWorkflowWidget({
           isSigningActive={isSigning}
         >
           <div className="absolute bottom-4 right-4 z-10">
-            <button
-              onClick={() => setIsSigning(true)}
+            <Button
+              variant="primary"
               disabled={!pdfBlobUrl || isSigned || isSigning}
-              className="px-3 py-1.5 w-40 text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-md transition shadow"
+              onClick={() => setIsSigning(true)}
+              className="w-40 shadow"
             >
               {isSigned ? 'Signed' : 'Sign Document'}
-            </button>
+            </Button>
           </div>
 
           {isSigning && pdfBlobUrl && (

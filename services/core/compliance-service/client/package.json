@@ -14,15 +14,16 @@
     "test:contract": "vitest run .contract.test"
   },
   "dependencies": {
-    "@shared/vite-config": "workspace:*",
-    "@shared/styles": "workspace:*",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8",
     "@shared/ui-components": "workspace:*",
     "@contracts/custody": "workspace:*",
     "@contracts/compliance": "workspace:*",
     "esign-client": "workspace:*",
-    "pdf-client": "workspace:*",
-    "react": "~19.2.8",
-    "react-dom": "~19.2.8",
+    "@platform/pdf-client": "workspace:*",
     "zod": "~4.6.5"
+  },
+  "devDependencies": {
+    "@shared/vite-config": "workspace:*"
   }
 }

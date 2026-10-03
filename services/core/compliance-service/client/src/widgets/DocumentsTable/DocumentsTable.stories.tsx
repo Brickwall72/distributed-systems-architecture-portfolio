@@ -1,12 +1,12 @@
-// File: services/core/compliance-service/client/src/Compliance.stories.tsx
-import { useState, ComponentProps } from 'react';
+// File: services/core/compliance-service/client/src/widgets/DocumentsTable/DocumentsTable.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse, delay } from 'msw';
-import { TemplateSelector, DocumentsTable, ComplianceWorkflow } from './widgets';
+import DocumentsTable from './DocumentsTable';
 import '@shared/styles';
 
 const meta: Meta = {
-  title: 'Compliance Client/Widgets',
+  title: 'Widgets/Compliance Client/DocumentsTable',
+  component: DocumentsTable,
   parameters: {
     layout: 'padded',
   },
@@ -97,13 +97,6 @@ const sharedMswHandlers = [
   }),
 ];
 
-// Mock Template Data for Workflow Preview
-const mockTemplateData = {
-  releasingEntityName: 'AFRL Directed Energy Directorate (Kirtland AFB)',
-  receivingEntityName: 'Naval Surface Warfare Center (Dahlgren Division)',
-  nomenclature: 'Tactical High-Power Microwave Subsystem Test Bench',
-};
-
 // =============================================================================
 // Widget 1: DocumentsTable Stories
 // =============================================================================
@@ -156,105 +149,6 @@ export const DocumentsTableError: StoryObj<typeof DocumentsTable> = {
           return new HttpResponse(null, { status: 500 });
         }),
       ],
-    },
-  },
-};
-
-// =============================================================================
-// Widget 2: TemplateSelector Stories
-// =============================================================================
-const InteractiveTemplateSelectorWrapper = (args: ComponentProps<typeof TemplateSelector>) => {
-  const [selectedId, setSelectedId] = useState<string>(args.selectedId || 'dd-1149');
-  const [lastLoadedHtml, setLastLoadedHtml] = useState<string>('');
-
-  return (
-    <div className="flex flex-col gap-4 max-w-2xl">
-      <TemplateSelector
-        {...args}
-        selectedId={selectedId}
-        onTemplateLoad={(id, html) => {
-          setSelectedId(id);
-          setLastLoadedHtml(html);
-          args.onTemplateLoad?.(id, html);
-        }}
-      />
-      
-      {/* Visual HTML Preview Container */}
-      <div className="flex flex-col gap-2 mt-2">
-        <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>Form Preview ({selectedId})</span>
-          <span>{lastLoadedHtml.length} bytes</span>
-        </div>
-
-        <div className="w-full h-[280px] bg-white rounded-lg overflow-hidden border border-slate-700 shadow-inner">
-          {lastLoadedHtml ? (
-            <iframe
-              title="Template Preview"
-              srcDoc={lastLoadedHtml}
-              className="w-full h-full border-0 bg-white"
-              sandbox="allow-same-origin"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-slate-500 text-sm font-sans italic">
-              Loading preview...
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const TemplateSelectorInteractive: StoryObj<typeof TemplateSelector> = {
-  name: 'Template Selector / Interactive Preview',
-  render: (args) => <InteractiveTemplateSelectorWrapper {...args} />,
-  args: {
-    label: 'Compliance Form Definition',
-    selectedId: 'dd-1149',
-  },
-  parameters: {
-    msw: {
-      handlers: sharedMswHandlers,
-    },
-  },
-};
-
-// =============================================================================
-// Widget 3: ComplianceWorkflow Stories
-// =============================================================================
-export const ComplianceWorkflowInteractive: StoryObj<typeof ComplianceWorkflow> = {
-  name: 'Compliance Workflow / Complete Execution',
-  render: (args) => <ComplianceWorkflow {...args} />,
-  args: {
-    templateData: mockTemplateData,
-    documentId: '123e4567-e89b-12d3-a456-426614174000',
-    requisitionNumber: 'REQ-2026-0915',
-    signerId: 'usr_compliance_officer_01',
-    entityId: 'org_afrl_kirtland',
-    onWorkflowComplete: (signedPdfUrl) => {
-      console.log('Compliance workflow completed successfully:', signedPdfUrl);
-    },
-  },
-  parameters: {
-    msw: {
-      handlers: sharedMswHandlers,
-    },
-  },
-};
-
-export const ComplianceWorkflowUnset: StoryObj<typeof ComplianceWorkflow> = {
-  name: 'Compliance Workflow / Unhydrated State',
-  render: (args) => <ComplianceWorkflow {...args} />,
-  args: {
-    templateData: null,
-    documentId: '223e4567-e89b-12d3-a456-426614174001',
-    requisitionNumber: 'REQ-2026-9999',
-    signerId: 'usr_compliance_officer_01',
-    entityId: 'org_afrl_kirtland',
-  },
-  parameters: {
-    msw: {
-      handlers: sharedMswHandlers,
     },
   },
 };

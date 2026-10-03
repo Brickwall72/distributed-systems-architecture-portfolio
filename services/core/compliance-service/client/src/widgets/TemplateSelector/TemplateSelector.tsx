@@ -1,11 +1,11 @@
-// File: services/core/compliance-service/client/src/widgets/TemplateSelector.tsx
+// File: services/core/compliance-service/client/src/widgets/TemplateSelector/TemplateSelector.tsx
 import { useState, useEffect } from 'react';
 import '@shared/styles';
 import {
   fetchTemplateManifest,
   fetchTemplateContent,
   type TemplateManifest,
-} from '../api';
+} from '../../api';
 
 interface TemplateSelectorProps {
   label?: string;

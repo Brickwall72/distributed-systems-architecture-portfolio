@@ -1,6 +1,6 @@
-// File: services/core/compliance-service/client/src/api/documents.unit.test.ts
+// File: services/core/compliance-service/client/src/api/documents/documents.unit.test.ts
 import { fetchDocuments } from './documents';
-import { setApiBaseUrl } from './client-config';
+import { setApiBaseUrl } from '../client-config';
 
 describe('Documents API Unit Tests', () => {
   beforeEach(() => {

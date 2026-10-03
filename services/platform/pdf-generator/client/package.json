@@ -1,5 +1,5 @@
 {
-  "name": "pdf-client",
+  "name": "@platform/pdf-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -22,6 +22,7 @@
     "react-dom": "~19.2.8"
   },
   "devDependencies": {
-    "@shared/vite-config": "workspace:*"
+    "@shared/vite-config": "workspace:*",
+    "@shared/ui-components": "workspace:*"
   }
 }

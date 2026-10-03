@@ -146,6 +146,10 @@ export const TableCustomRenderView: StoryObj<DatabaseTwinProps<MockTransferRecor
   ],
 };
 
+// ==========================================
+// Error Boundary Stories
+// ==========================================
+
 export const ErrorBoundaryNormal: StoryObj = {
   render: () => (
     <FederatedErrorBoundary remoteName="compliance_client">

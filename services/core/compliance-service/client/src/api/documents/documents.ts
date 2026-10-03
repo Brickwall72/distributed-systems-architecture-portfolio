@@ -1,7 +1,7 @@
-// File: services/core/compliance-service/client/src/api/documents.ts
+// File: services/core/compliance-service/client/src/api/documents/documents.ts
 import { z } from 'zod';
 import { ComplianceDocumentSchema, ComplianceDocument } from '@contracts/compliance';
-import { getApiBaseUrl } from './client-config';
+import { getApiBaseUrl } from '../client-config';
 
 /**
  * Fetches and validates the raw dataset of compliance documents.

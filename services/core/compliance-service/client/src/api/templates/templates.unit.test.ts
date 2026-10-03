@@ -1,6 +1,6 @@
-// File: services/core/compliance-service/client/src/api/templates.unit.test.ts
+// File: services/core/compliance-service/client/src/api/templates/templates.unit.test.ts
 import { fetchTemplateManifest, fetchTemplateContent } from './templates';
-import { setApiBaseUrl } from './client-config';
+import { setApiBaseUrl } from '../client-config';
 
 describe('Templates API Unit Tests', () => {
   beforeEach(() => {

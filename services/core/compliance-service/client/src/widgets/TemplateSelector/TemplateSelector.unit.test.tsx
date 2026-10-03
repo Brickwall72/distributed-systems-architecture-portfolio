@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/client/src/widgets/TemplateSelector.unit.test.tsx
+// File: services/core/compliance-service/client/src/widgets/TemplateSelector/TemplateSelector.unit.test.tsx
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
