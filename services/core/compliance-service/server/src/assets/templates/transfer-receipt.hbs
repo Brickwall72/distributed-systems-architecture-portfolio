@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Transfer of Custody - DD1149 Sim</title>
+  <title>Asset Transfer Receipt</title>
   <style>
     html, body {
       height: 100%;
@@ -14,7 +14,7 @@
       color: #333;
       padding: 40px;
       box-sizing: border-box;
-      position: relative; /* Crucial for absolute signature block */
+      position: relative;
     }
     .header-title {
       text-align: center;
@@ -60,7 +60,6 @@
       font-size: 10px;
       background-color: #f3f4f6;
     }
-    /* Hardcoded to the bottom for the e-sign backend */
     .signature-block {
       border: 1px solid #000;
       padding: 15px;
@@ -145,7 +144,6 @@
         <span class="sig-line"></span>
       </div>
       <div>
-        <!-- Left blank so pdf-lib can stamp the execution timestamp securely -->
         <strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
       </div>
     </div>

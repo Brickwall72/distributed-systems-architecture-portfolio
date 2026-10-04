@@ -1,14 +1,29 @@
 // File: services/core/compliance-service/client/src/api/templates/templates.ts
 import { z } from 'zod';
 import {
-  COMPLIANCE_TEMPLATE_SCHEMAS,
+  TemplateIdSchema,
   type TemplateId,
-  type TemplateDataMap,
-} from '@contracts/compliance';
+  TransferPayloadSchema,
+  type TransferPayload,
+} from '@compliance/shared';
 import { getApiBaseUrl } from '../client-config';
 
+export type TemplateDataMap = {
+  'asset-transfer-authorization': TransferPayload;
+  'asset-transfer-receipt': TransferPayload;
+  'contract-test-bare': Record<string, unknown>;
+};
+
+export const COMPLIANCE_TEMPLATE_SCHEMAS: {
+  [K in TemplateId]: z.ZodType<TemplateDataMap[K]>;
+} = {
+  'asset-transfer-authorization': TransferPayloadSchema,
+  'asset-transfer-receipt': TransferPayloadSchema,
+  'contract-test-bare': z.record(z.string(), z.unknown()),
+};
+
 export const TemplateManifestSchema = z.object({
-  id: z.string().min(1),
+  id: TemplateIdSchema,
   name: z.string().min(1),
 });
 
@@ -49,5 +64,5 @@ export function validateTemplatePayload<K extends TemplateId>(
   if (!schema) {
     throw new Error(`No compliance validation schema registered for template ID '${templateId}'`);
   }
-  return schema.parse(data) as TemplateDataMap[K];
+  return schema.parse(data);
 }
