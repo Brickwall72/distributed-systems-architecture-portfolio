@@ -1,8 +1,8 @@
 // File: services/core/compliance-service/server/src/routes/index.ts
 import { Router } from 'express';
 // import { authorizationsRouter } from './authorizations.js';
-import templateRoutes from './templates.js';
-import documentsRouter from './documents.js';
+import { router as templateRoutes } from './templates';
+import documentsRouter from './documents';
 import { createHealthCheck } from '@shared/telemetry';
 
 const router = Router();

@@ -1,5 +1,5 @@
-// File: services/core/compliance-service/server/src/repositories/TemplateRepository.unit.test.ts
-import { TemplateRepository } from './TemplateRepository.js';
+// File: services/core/compliance-service/server/src/repositories/Templates/Templates.unit.test.ts
+import { TemplateRepository } from './Templates';
 
 describe('TemplateRepository', () => {
   it('returns all registered templates via findAll', () => {

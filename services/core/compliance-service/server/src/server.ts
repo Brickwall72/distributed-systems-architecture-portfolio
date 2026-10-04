@@ -1,12 +1,12 @@
 import express from 'express';
 import { ZodError } from 'zod';
-import { complianceGateway } from './routes/index.js';
-import { initDatabase, pool } from './db/database.js';
+import { complianceGateway } from './routes';
+import { initDatabase, pool } from './db/database';
 import { createLogger } from '@shared/telemetry';
 import { EventBroker } from '@shared/messaging';
-import { ESignEventConsumer } from './messaging/consumer.js';
-import { ComplianceDocumentRepository } from './db/documents.repository.js';
-import { env } from './config.js';
+import { ESignEventConsumer } from './messaging/consumer';
+import { ComplianceDocumentRepository } from './db/documents.repository';
+import { env } from './config';
 
 const app = express();
 const logger = createLogger('compliance-server');
