@@ -5,7 +5,7 @@ import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
 
 import app from './server.js';
-import { TemplateRepository } from './repositories/TemplateRepository.js';
+import { TemplateRepository } from './repositories/Templates/Templates.js';
 import { ComplianceDocumentRepository } from './db/documents.repository.js';
 
 describe('Compliance Service Provider Verification', () => {

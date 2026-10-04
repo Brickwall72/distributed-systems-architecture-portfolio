@@ -6,7 +6,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup && pnpm copy-assets",
+    "copy-assets": "node -e \"fs.cpSync('src/assets/templates', 'dist/assets/templates', { recursive: true })\"",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "pnpm test:unit && pnpm test:verify",
@@ -25,8 +26,5 @@
     "express": "~5.2.1",
     "pg": "~8.23.0",
     "zod": "~4.6.5"
-  },
-  "devDependencies": {
-    "tsx": "~4.23.13"
   }
 }
