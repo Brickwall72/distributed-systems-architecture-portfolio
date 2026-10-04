@@ -21,6 +21,7 @@
     "@contracts/compliance": "workspace:*",
     "esign-client": "workspace:*",
     "@platform/pdf-client": "workspace:*",
+    "@compliance/shared": "workspace:*",
     "zod": "~4.6.5"
   },
   "devDependencies": {

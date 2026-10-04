@@ -2,9 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TemplateId } from '@compliance/shared';
 
 export interface ComplianceTemplate {
-  id: string;
+  id: TemplateId;
   name: string;
   html: string;
 }
@@ -14,14 +15,14 @@ interface TemplateMetadata {
   fileName: string;
 }
 
-const TEMPLATE_METADATA: Record<string, TemplateMetadata> = {
-  'transfer-authorization': {
+const TEMPLATE_METADATA: Record<TemplateId, TemplateMetadata> = {
+  'asset-transfer-authorization': {
     name: 'Asset Transfer Authorization',
     fileName: 'transfer-authorization.hbs',
   },
-  'dd-1149': {
-    name: 'DD Form 1149 (Requisition & Invoice)',
-    fileName: 'dd-1149.hbs',
+  'asset-transfer-receipt': {
+    name: 'Asset Transfer Receipt',
+    fileName: 'transfer-receipt.hbs',
   },
   'contract-test-bare': {
     name: 'Minimal Test Template',
@@ -35,13 +36,25 @@ const __dirname = path.dirname(__filename);
 
 // Fallback path resolution checking dist/ and src/ for local test runners
 const getTemplateDirectory = (): string => {
-  const distPath = path.join(__dirname, '../../assets/templates');
-  if (fs.existsSync(distPath)) return distPath;
+  const candidatePaths = [
+    // Bundled production build (dist/server.js -> dist/assets/templates)
+    path.resolve(__dirname, './assets/templates'),
+    // Unbundled dist execution (if tsup preserves folder hierarchy)
+    path.resolve(__dirname, '../../assets/templates'),
+    // Unbundled source execution (tsx watch / vitest under src/repositories/Templates)
+    path.resolve(__dirname, '../../../src/assets/templates'),
+    // Execution working directory fallbacks
+    path.resolve(process.cwd(), 'dist/assets/templates'),
+    path.resolve(process.cwd(), 'src/assets/templates'),
+  ];
 
-  const srcPath = path.join(__dirname, '../../../src/assets/templates');
-  if (fs.existsSync(srcPath)) return srcPath;
+  for (const candidate of candidatePaths) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
 
-  return distPath;
+  return path.resolve(__dirname, './assets/templates');
 };
 
 const TEMPLATES_DIR = getTemplateDirectory();
@@ -49,15 +62,16 @@ const templateCache = new Map<string, ComplianceTemplate>();
 
 export const TemplateRepository = {
   findById: (id: string): ComplianceTemplate | null => {
-    if (!(id in TEMPLATE_METADATA)) {
+    if (!Object.prototype.hasOwnProperty.call(TEMPLATE_METADATA, id)) {
       return null;
     }
+    const templateId = id as TemplateId;
 
-    if (templateCache.has(id)) {
-      return templateCache.get(id)!;
+    if (templateCache.has(templateId)) {
+      return templateCache.get(templateId)!;
     }
 
-    const meta = TEMPLATE_METADATA[id];
+    const meta = TEMPLATE_METADATA[templateId];
     const filePath = path.join(TEMPLATES_DIR, meta.fileName);
 
     if (!fs.existsSync(filePath)) {
@@ -65,14 +79,15 @@ export const TemplateRepository = {
     }
 
     const html = fs.readFileSync(filePath, 'utf-8');
-    const template: ComplianceTemplate = { id, name: meta.name, html };
+    const template: ComplianceTemplate = { id: templateId, name: meta.name, html };
 
-    templateCache.set(id, template);
+    templateCache.set(templateId, template);
     return template;
   },
 
   findAll: (): ComplianceTemplate[] => {
     return Object.keys(TEMPLATE_METADATA)
+      .filter((id) => id !== 'contract-test-bare')
       .map((id) => TemplateRepository.findById(id))
       .filter((template): template is ComplianceTemplate => template !== null);
   },
