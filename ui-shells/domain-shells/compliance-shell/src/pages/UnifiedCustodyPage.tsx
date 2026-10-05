@@ -23,8 +23,6 @@ export default function UnifiedCustodyPage() {
   const { sourceOrg, targetOrg, asset } = transferState;
 
   // 2. Form Metadata Context
-  const [requisitionNumber] = useState('REQ-2026-001');
-  const [documentId] = useState(() => crypto.randomUUID());
   const [transferDate] = useState(new Date().toDateString());
 
   // 3. Map precise domain models to a flexible template contract
@@ -35,7 +33,6 @@ export default function UnifiedCustodyPage() {
       sourceOrg,
       targetOrg,
       asset,
-      requisitionNumber,
       transferDate,
       // Fallback flatteners for older templates
       releasingEntityName: sourceOrg?.name ?? '',
@@ -44,7 +41,7 @@ export default function UnifiedCustodyPage() {
       serialNumber: asset?.serialNumber ?? '',
       items: asset ? [{ itemNumber: 1, nomenclature: asset.nomenclature, serialNumber: asset.serialNumber, unit: 'EA', quantity: 1 }] : [],
     };
-  }, [sourceOrg, targetOrg, asset, requisitionNumber, transferDate]);
+  }, [sourceOrg, targetOrg, asset, transferDate]);
 
   return (
     <div className="flex flex-col h-screen p-6 gap-6 bg-slate-950 text-slate-100">
@@ -62,11 +59,6 @@ export default function UnifiedCustodyPage() {
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading compliance workflow...</div>}>
             <ComplianceWorkflowWidget
               templateData={templatePayload}
-              documentId={documentId}
-              requisitionNumber={requisitionNumber}
-              signerId="usr_compliance_officer"
-              entityId={sourceOrg?.id ?? 'org_unassigned'}
-              onWorkflowComplete={(url: string) => console.log('Final Signed Document:', url)}
             />
           </Suspense>
         </FederatedErrorBoundary>

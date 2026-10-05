@@ -40,8 +40,14 @@ describe('Pact Provider Verification', () => {
         next();
       },
       stateHandlers: {
+        'assets exist in the topology graph': async () => {
+          mockState.currentState = 'assets';
+        },
         'assets exist for owner org-101': async () => {
           mockState.currentState = 'assets';
+        },
+        'organizations exist in the topology graph': async () => {
+          mockState.currentState = 'organizations';
         },
         'organizations exist under parent org-parent-101': async () => {
           mockState.currentState = 'organizations';

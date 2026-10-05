@@ -10,21 +10,17 @@ import TemplateSelector from '../TemplateSelector';
 export interface ComplianceWorkflowProps {
   /** The generic JSON dictionary used to hydrate the template */
   templateData: Record<string, unknown> | null;
-  documentId: string;
-  requisitionNumber: string;
-  signerId: string;
-  entityId: string;
-  onWorkflowComplete?: (signedPdfUrl: string) => void;
 }
 
 export default function ComplianceWorkflowWidget({
-  templateData,
-  documentId,
-  requisitionNumber,
-  signerId,
-  entityId,
-  onWorkflowComplete
+  templateData
 }: Readonly<ComplianceWorkflowProps>) {
+  const requisitionNumber = 'REQ-2026-001';
+  const signerId = "usr_compliance_officer";
+  const entityId = "org_unassigned"
+  const [documentId] = useState(() => crypto.randomUUID());
+  const onWorkflowComplete =( signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [rawTemplateHtml, setRawTemplateHtml] = useState<string>('');
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
