@@ -1,4 +1,4 @@
-// File: packages/telemetry/src/index.ts
+// File: packages/express/src/index.ts
 
 /**
  * Public API surface for the shared telemetry package.
@@ -7,5 +7,5 @@
  * monitoring and structured logging so callers can attach consistent
  * observability without depending on a specific service implementation.
  */
-export * from './health.js';
-export * from './logger.js';
+export * from './middleware';
+export * from './telemetry';

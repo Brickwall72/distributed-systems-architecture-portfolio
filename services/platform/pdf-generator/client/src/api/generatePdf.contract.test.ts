@@ -22,7 +22,7 @@ describe('generatePdf Pact Contract Test', () => {
       .uponReceiving('a request to compile HTML into a PDF')
       .withRequest({
         method: 'POST',
-        path: '/pdf/api/v1/generate',
+        path: '/pdf/api/v1/generator',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -40,7 +40,7 @@ describe('generatePdf Pact Contract Test', () => {
       });
 
     return provider.executeTest(async (mockServer) => {
-      const result = await generatePdf(htmlPayload, mockServer.url);
+      const result = await generatePdf(htmlPayload, { baseUrl: mockServer.url });
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });

@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/organizations.ts
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 import { getDatabaseClient } from '../topologyDatabase.js';
 import { Organization } from '@contracts/custody';
 

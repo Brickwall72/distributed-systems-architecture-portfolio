@@ -20,7 +20,7 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
       create: vi.fn<ComplianceDocumentRepository['create']>().mockResolvedValue({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         document_type: 'DD-1149',
-        s3_uri: 's3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+        s3_uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
         status: 'Approved',
         created_at: new Date().toISOString(),
       }),
@@ -46,7 +46,7 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
           signerId: string('usr_4412'),
           entityId: string('clr_9910'),
           status: 'SIGNED',
-          s3Uri: string('s3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
+          s3Uri: string('s3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
           fileHash: string('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
           signedAt: regex(
             '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$',

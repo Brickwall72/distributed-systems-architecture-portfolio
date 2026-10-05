@@ -1,7 +1,7 @@
 // File: services/platform/esignature-service/server/src/routes/index.ts
 import { Router } from 'express';
 import { router as signatureRoute } from './signature';
-import { createHealthCheck } from '@shared/telemetry';
+import { createHealthCheck } from '@shared/express';
 
 
 export const router = Router();

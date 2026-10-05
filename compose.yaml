@@ -94,8 +94,8 @@ services:
     entrypoint: >
       /bin/sh -c "
       until mc alias set localmfe http://minio:9000 minioadmin minioadmin; do echo 'Waiting for MinIO...'; sleep 1; done;
-      mc mb --ignore-existing localmfe/compliance-documents;
-      mc anonymous set public localmfe/compliance-documents;
+      mc mb --ignore-existing localmfe/dsap;
+      mc anonymous set public localmfe/dsap;
       exit 0;
       "
 volumes:

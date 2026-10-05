@@ -103,8 +103,8 @@ Handles database metadata persistence logging and audit ledger retrieval.
       "status": "SIGNED",
       "signedAt": "2026-09-30T04:00:00.000Z",
       "uploadedAt": "2026-09-30T04:00:01.000Z",
-      "s3Uri": "s3://compliance-documents/DD-1149/123e4567-e89b-12d3-a456-426614174000.pdf",
-      "storageBucket": "compliance-documents",
+      "s3Uri": "s3://dsap/DD-1149/123e4567-e89b-12d3-a456-426614174000.pdf",
+      "storageBucket": "dsap",
       "storageKey": "DD-1149/123e4567-e89b-12d3-a456-426614174000.pdf",
       "fileHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }

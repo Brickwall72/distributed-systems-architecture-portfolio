@@ -5,7 +5,7 @@ import { P12Signer } from '@signpdf/signer-p12';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const logger = createLogger('esignature-service');
 

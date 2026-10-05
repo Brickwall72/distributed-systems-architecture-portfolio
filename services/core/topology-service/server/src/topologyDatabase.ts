@@ -5,7 +5,7 @@ gate described by ADR-003 and Section 3.1 of the ICD. The service boots a single
 verifies connectivity, and seeds a minimal space custody relationship map so validation can operate
 against a stable, testable topology during local development and container startup. */
 import neo4j, { Driver } from 'neo4j-driver';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const logger = createLogger('topology-service');
 

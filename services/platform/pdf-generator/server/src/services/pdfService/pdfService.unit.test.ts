@@ -1,6 +1,6 @@
-// File: services/platform/pdf-generator/server/src/__tests__/pdfService.test.ts
+// File: services/platform/pdf-generator/server/src/services/pdfService/pdfService.unit.test.ts
 import puppeteer from 'puppeteer';
-import { generatePdfFromHtml } from '../services/pdfService.js';
+import { generatePdfFromHtml } from './pdfService';
 
 // Valid PDF buffer stub matching the header assertion (%PDF-)
 const MOCK_PDF_BUFFER = Buffer.from('%PDF-1.7 Fake PDF content for unit test');

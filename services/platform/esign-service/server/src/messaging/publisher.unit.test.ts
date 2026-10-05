@@ -28,7 +28,7 @@ describe('ESignPublisher', () => {
     entityId: 'org_armory_01',
     status: 'SIGNED',
     signedAt: '2026-09-29T22:00:00.000Z',
-    s3Uri: `s3://compliance-documents/org_armory_01/${validDocumentIdSigned}.pdf`,
+    s3Uri: `s3://dsap/org_armory_01/${validDocumentIdSigned}.pdf`,
     fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
   };
 

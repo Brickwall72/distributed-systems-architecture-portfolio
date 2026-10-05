@@ -21,7 +21,7 @@ describe('Event Handlers', () => {
       create: vi.fn().mockResolvedValue({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         document_type: 'DD-1149',
-        s3_uri: 's3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+        s3_uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
         status: 'Approved',
         created_at: new Date().toISOString(),
       }),
@@ -100,7 +100,7 @@ describe('Event Handlers', () => {
 
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          s3_uri: 's3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+          s3_uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
         })
       );
     });
@@ -145,7 +145,7 @@ describe('Event Handlers', () => {
           id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           document_type: 'DD-1149',
           status: 'Rejected',
-          s3_uri: 's3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+          s3_uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
         })
       );
     });

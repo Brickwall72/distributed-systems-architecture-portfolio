@@ -138,6 +138,15 @@ importers:
         specifier: ~4.6.5
         version: 4.6.5
 
+  packages/express:
+    dependencies:
+      express:
+        specifier: ~5.2.1
+        version: 5.2.1(supports-color@7.2.0)
+      zod:
+        specifier: ~4.6.5
+        version: 4.6.5
+
   packages/file-storage:
     dependencies:
       '@aws-sdk/client-s3':
@@ -162,12 +171,6 @@ importers:
         version: 2.9.1(@rspack/core@2.2.7(@module-federation/runtime-tools@2.9.1))(typescript@7.0.2)
 
   packages/styles: {}
-
-  packages/telemetry:
-    dependencies:
-      express:
-        specifier: ~5.2.1
-        version: 5.2.1(supports-color@7.2.0)
 
   packages/testing:
     dependencies:
@@ -237,15 +240,15 @@ importers:
       '@contracts/custody':
         specifier: workspace:*
         version: link:../../../../packages/contracts/custody
-      '@platform/pdf-client':
-        specifier: workspace:*
-        version: link:../../../platform/pdf-generator/client
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
       esign-client:
         specifier: workspace:*
         version: link:../../../platform/esign-service/client
+      pdf-client:
+        specifier: workspace:*
+        version: link:../../../platform/pdf-generator/client
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -280,12 +283,12 @@ importers:
       '@nats-io/transport-node':
         specifier: ~3.4.0
         version: 3.4.0
+      '@shared/express':
+        specifier: workspace:*
+        version: link:../../../../packages/express
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
-      '@shared/telemetry':
-        specifier: workspace:*
-        version: link:../../../../packages/telemetry
       express:
         specifier: ~5.2.1
         version: 5.2.1(supports-color@7.2.0)
@@ -335,12 +338,12 @@ importers:
       '@contracts/custody':
         specifier: workspace:*
         version: link:../../../../packages/contracts/custody
+      '@shared/express':
+        specifier: workspace:*
+        version: link:../../../../packages/express
       '@shared/interfaces':
         specifier: workspace:*
         version: link:../../../../packages/interfaces
-      '@shared/telemetry':
-        specifier: workspace:*
-        version: link:../../../../packages/telemetry
       express:
         specifier: ~5.2.1
         version: 5.2.1(supports-color@7.2.0)
@@ -375,15 +378,15 @@ importers:
       '@contracts/esign':
         specifier: workspace:*
         version: link:../../../../packages/contracts/esign
+      '@shared/express':
+        specifier: workspace:*
+        version: link:../../../../packages/express
       '@shared/filestore':
         specifier: workspace:*
         version: link:../../../../packages/file-storage
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
-      '@shared/telemetry':
-        specifier: workspace:*
-        version: link:../../../../packages/telemetry
       '@signpdf/placeholder-pdf-lib':
         specifier: ~3.3.0
         version: 3.3.0(pdf-lib@1.17.1)
@@ -425,9 +428,12 @@ importers:
 
   services/platform/pdf-generator/server:
     dependencies:
-      '@shared/telemetry':
+      '@shared/express':
         specifier: workspace:*
-        version: link:../../../../packages/telemetry
+        version: link:../../../../packages/express
+      '@shared/filestore':
+        specifier: workspace:*
+        version: link:../../../../packages/file-storage
       cors:
         specifier: ~2.8.6
         version: 2.8.6
@@ -437,6 +443,9 @@ importers:
       puppeteer:
         specifier: ~25.10.0
         version: 25.10.0
+      zod:
+        specifier: ~4.6.5
+        version: 4.6.5
 
   ui-shells/domain-shells/compliance-shell:
     dependencies:
@@ -3713,10 +3722,6 @@ packages:
     engines: {node: '>=22.12.0'}
     hasBin: true
 
-  qs@6.15.3:
-    resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
-    engines: {node: '>=0.6'}
-
   qs@6.16.0:
     resolution: {integrity: sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==}
     engines: {node: '>=0.6'}
@@ -6692,7 +6697,7 @@ snapshots:
       once: 1.4.0
       parseurl: 1.3.3
       proxy-addr: 2.0.7
-      qs: 6.15.3
+      qs: 6.16.0
       range-parser: 1.3.0
       router: 2.2.0(supports-color@7.2.0)
       send: 1.2.1(supports-color@7.2.0)
@@ -7426,11 +7431,6 @@ snapshots:
       - proxy-agent
       - utf-8-validate
       - yauzl
-
-  qs@6.15.3:
-    dependencies:
-      es-define-property: 1.0.1
-      side-channel: 1.1.1
 
   qs@6.16.0:
     dependencies:

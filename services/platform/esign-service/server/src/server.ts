@@ -1,8 +1,7 @@
 // File: services/platform/esignature-service/server/src/server.ts
-import express, { type Request, type Response, type NextFunction } from 'express';
-import { z } from 'zod';
+import express from 'express';
 import { router as esignRouter } from './routes';
-import { createLogger } from '@shared/telemetry';
+import { createLogger, createErrorHandler } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { ESignPublisher, setESignPublisher } from './messaging/publisher';
 import { env } from './config';
@@ -15,24 +14,7 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/v1', esignRouter);
 
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof z.ZodError) {
-    res.status(400).json({
-      error: 'Validation failed',
-      details: err.issues,
-    });
-    return;
-  }
-
-  if (err instanceof SyntaxError && 'status' in err && err.status === 400) {
-    res.status(400).json({ error: 'Invalid JSON payload.' });
-    return;
-  }
-
-  // Fallback for unhandled application errors
-  logger.error(`Internal server error: ${err}`);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(createErrorHandler(logger));
 
 if (process.env.NODE_ENV !== 'test') {
   const broker = new EventBroker(env.NATS_URL, logger);

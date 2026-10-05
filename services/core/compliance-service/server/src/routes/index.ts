@@ -3,7 +3,7 @@ import { Router } from 'express';
 // import { authorizationsRouter } from './authorizations.js';
 import { router as templateRoutes } from './templates';
 import documentsRouter from './documents';
-import { createHealthCheck } from '@shared/telemetry';
+import { createHealthCheck } from '@shared/express';
 
 const router = Router();
 

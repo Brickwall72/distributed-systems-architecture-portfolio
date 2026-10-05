@@ -32,7 +32,7 @@ const { mockFirstPage, mockPdfDoc, mockSign, mockLogger } = vi.hoisted(() => {
   return { mockFirstPage, mockPdfDoc, mockSign, mockLogger };
 });
 
-vi.mock('@shared/telemetry', () => ({
+vi.mock('@shared/express', () => ({
   createLogger: () => mockLogger,
 }));
 

@@ -1,6 +1,6 @@
 // File: services/platform/esignature-service/server/src/routes/sign.ts
 import { Router, Request, Response } from 'express';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 import { getESignPublisher } from '../../messaging/publisher';
 import { uploadSignedDocument, signDocument } from '../../services';
 

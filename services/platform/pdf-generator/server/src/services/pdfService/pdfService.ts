@@ -1,6 +1,6 @@
-// File: services/platform/pdf-generator/server/src/services/pdfService.ts
+// File: services/platform/pdf-generator/server/src/services/pdfService/pdfService.ts
 import puppeteer, { Browser } from 'puppeteer';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const logger = createLogger('pdf-server-engine');
 let browserInstance: Browser | null = null;

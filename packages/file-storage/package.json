@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "pnpm test:unit",
     "test:unit": "vitest run .unit.test"
   },

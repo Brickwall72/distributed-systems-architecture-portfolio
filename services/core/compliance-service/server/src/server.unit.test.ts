@@ -11,7 +11,7 @@ vi.mock('./db/database.js', () => ({
 }));
 
 // 2. Mock Telemetry
-vi.mock('@shared/telemetry', () => ({
+vi.mock('@shared/express', () => ({
   createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() })),
   createHealthCheck: vi.fn(() => (_req: any, res: any) => res.status(200).send('OK')),
 }));
