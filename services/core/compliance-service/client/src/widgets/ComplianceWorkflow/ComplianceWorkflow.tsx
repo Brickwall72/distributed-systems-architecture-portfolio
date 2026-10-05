@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
-import { usePdfGenerator } from '@platform/pdf-client';
+import { usePdfGenerator } from 'pdf-client';
 
 // Native import since this widget lives inside compliance_client
 import TemplateSelector from '../TemplateSelector'; 

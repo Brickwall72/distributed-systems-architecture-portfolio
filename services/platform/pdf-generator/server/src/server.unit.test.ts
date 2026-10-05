@@ -1,6 +1,6 @@
 // File: services/platform/pdf-generator/server/src/server.unit.test.ts
 import request from 'supertest';
-import app from './server.js';
+import app from './server';
 
 describe('PDF Generator Server Bootstrap (Integration)', () => {
   it('should return 200 HEALTHY from the shared telemetry health endpoint', async () => {

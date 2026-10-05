@@ -27,7 +27,7 @@ describe('generatePdf Unit Tests', () => {
     const html = '<p>Test Document</p>';
     const result = await generatePdf(html);
 
-    expect(fetch).toHaveBeenCalledWith('/pdf/api/v1/generate', {
+    expect(fetch).toHaveBeenCalledWith('/pdf/api/v1/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html }),

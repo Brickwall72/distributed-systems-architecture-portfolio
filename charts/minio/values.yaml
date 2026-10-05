@@ -13,7 +13,7 @@ setupImage:
 rootUser: minioadmin
 rootPassword: minioadmin
 
-bucket: compliance-documents
+bucket: dsap
 
 persistence:
   size: 5Gi

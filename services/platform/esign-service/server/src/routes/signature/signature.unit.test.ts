@@ -7,7 +7,7 @@ import { uploadSignedDocument } from '../../services/storage';
 import { getESignPublisher } from '../../messaging/publisher';
 
 // Mocks for internal dependencies
-vi.mock('@shared/telemetry', () => ({
+vi.mock('@shared/express', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),

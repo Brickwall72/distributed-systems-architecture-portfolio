@@ -8,7 +8,7 @@ vi.mock('../topologyDatabase.js', () => ({
   getDatabaseClient: vi.fn(),
 }));
 
-vi.mock('@shared/telemetry', () => ({
+vi.mock('@shared/express', () => ({
   createLogger: () => ({
     error: vi.fn(),
     info: vi.fn(),

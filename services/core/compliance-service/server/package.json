@@ -16,7 +16,7 @@
     "test:verify": "vitest run .contract.verify.test"
   },
   "dependencies": {
-    "@shared/telemetry": "workspace:*",
+    "@shared/express": "workspace:*",
     "@shared/messaging": "workspace:*",
     "@contracts/esign": "workspace:*",
     "@contracts/compliance": "workspace:*",

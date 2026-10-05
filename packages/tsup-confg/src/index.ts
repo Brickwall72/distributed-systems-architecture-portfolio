@@ -16,3 +16,11 @@ export const createNodeServerConfig = (overrideOptions: Options = {}) => {
     ...overrideOptions,
   });
 };
+
+export const createSharedPackageConfig = (overrideOptions: Options = {}) => {
+  return defineConfig({
+    ...nodeServerConfig,
+    entry: ["src/index.ts"],
+    ...overrideOptions,
+  });
+};

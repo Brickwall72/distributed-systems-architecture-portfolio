@@ -1,4 +1,4 @@
-// File: packages/telemetry/src/logger.ts
+// File: packages/express/src/telemetry/logger/logger.ts
 
 /**
  * Severity levels supported by the shared structured logger.

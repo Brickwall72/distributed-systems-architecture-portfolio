@@ -1,4 +1,4 @@
-// File: packages/telemetry/src/health.ts
+// File: packages/express/src/middleware/health/health.ts
 import { Request, Response } from 'express';
 
 /**

@@ -2,13 +2,20 @@
 import { Verifier } from '@pact-foundation/pact';
 import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-// 1. Mock the heavy PDF generation service so the test stays lightweight and fast
-vi.mock('./services/pdfService.js', () => ({
+// 1. Stub all service dependencies called during the request lifecycle
+vi.mock('./services', () => ({
   generatePdfFromHtml: async (_html: string) => {
-    // Return a mock PDF buffer matching what the consumer contract expects
     return Buffer.from('%PDF-1.4 sample content');
+  },
+  uploadGeneratedDocument: async ({ entityId, documentId }: { entityId: string; documentId: string }) => {
+    return {
+      s3Uri: `s3://pdf-documents/${entityId}/${documentId}.pdf`,
+      bucket: 'pdf-documents',
+      key: `${entityId}/${documentId}.pdf`,
+      fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      uploadedAt: new Date().toISOString(),
+    };
   },
 }));
 
@@ -33,7 +40,7 @@ describe('Pact Provider Verification', () => {
       pactUrls: [
         path.resolve(__dirname, '../../client/pacts/pdf-client-pdf-server.json'),
       ],
-      // Replicates Traefik route rewriting: strips leading `/pdf` prefix before sending to Express router
+      // Replicates Traefik route rewriting: strips leading `/pdf` prefix
       requestFilter: (req: Request, _res: Response, next: NextFunction) => {
         if (req.url.startsWith('/pdf/')) {
           req.url = req.url.replace(/^\/pdf/, '');
@@ -41,7 +48,6 @@ describe('Pact Provider Verification', () => {
         next();
       },
       stateHandlers: {
-        // Matches the consumer .given('pdf generator service is available') clause
         'pdf generator service is available': async () => {
           return Promise.resolve();
         },

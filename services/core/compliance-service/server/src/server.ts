@@ -2,7 +2,7 @@ import express from 'express';
 import { ZodError } from 'zod';
 import { complianceGateway } from './routes';
 import { initDatabase, pool } from './db/database';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { ESignEventConsumer } from './messaging/consumer';
 import { ComplianceDocumentRepository } from './db/documents.repository';

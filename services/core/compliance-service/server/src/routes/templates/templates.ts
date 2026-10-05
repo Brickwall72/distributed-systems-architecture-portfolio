@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/server/src/routes/templates/templates.ts
 import { Router, Request, Response } from 'express';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 import { TemplateRepository } from '../../repositories';
 
 export const router = Router();

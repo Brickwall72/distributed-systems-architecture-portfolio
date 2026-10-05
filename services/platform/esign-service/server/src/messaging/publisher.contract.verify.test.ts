@@ -16,7 +16,7 @@ describe('ESign NATS Provider Contract Verification', () => {
               'clr_9910',
               'DD-1149',
               {
-                s3Uri: 's3://compliance-documents/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+                s3Uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
                 fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
               }
             )

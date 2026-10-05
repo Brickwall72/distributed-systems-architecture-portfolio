@@ -4,7 +4,7 @@ import { Router } from 'express';
 import { organizationsRouter } from './organizations.js';
 import { assetsRouter } from './assets.js';
 import { entitiesRouter } from './entities.js';
-import { createHealthCheck } from '@shared/telemetry';
+import { createHealthCheck } from '@shared/express';
 
 const router = Router();
 

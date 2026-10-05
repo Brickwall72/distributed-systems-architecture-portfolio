@@ -189,6 +189,9 @@ spec:
               app.kubernetes.io/name: esign-server
         - podSelector:
             matchLabels:
+              app.kubernetes.io/name: pdf-server
+        - podSelector:
+            matchLabels:
               app.kubernetes.io/name: minio-setup
       ports:
         - protocol: TCP
@@ -216,11 +219,15 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-esign-server-minio-egress
+  name: allow-pdf-and-esign-minio-egress
 spec:
   podSelector:
-    matchLabels:
-      app.kubernetes.io/name: esign-server
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - esign-server
+          - pdf-server
   policyTypes:
     - Egress
   egress:

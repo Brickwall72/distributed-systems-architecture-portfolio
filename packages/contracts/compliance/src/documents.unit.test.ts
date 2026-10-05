@@ -24,7 +24,7 @@ describe('Compliance Document Schemas', () => {
     const validDocument = {
       id: '123e4567-e89b-12d3-a456-426614174000',
       document_type: 'DD-1149',
-      s3_uri: 's3://compliance-documents/DD-1149/123e4567.pdf',
+      s3_uri: 's3://dsap/DD-1149/123e4567.pdf',
       status: 'Approved' as const,
       created_at: '2026-09-30T04:34:42.100Z',
     };
@@ -47,7 +47,7 @@ describe('Compliance Document Schemas', () => {
     it('should reject s3_uri that does not start with s3://', () => {
       const invalid = {
         ...validDocument,
-        s3_uri: 'https://minio.local/compliance-documents/file.pdf',
+        s3_uri: 'https://minio.local/dsap/file.pdf',
       };
       expect(() => ComplianceDocumentSchema.parse(invalid)).toThrow();
     });
@@ -62,7 +62,7 @@ describe('Compliance Document Schemas', () => {
     const validCreateInput = {
       id: '123e4567-e89b-12d3-a456-426614174000',
       document_type: 'TRANSFER_AUTHORIZATION',
-      s3_uri: 's3://compliance-documents/TRANSFER_AUTHORIZATION/123e4567.pdf',
+      s3_uri: 's3://dsap/TRANSFER_AUTHORIZATION/123e4567.pdf',
     };
 
     it('should parse valid input and apply default status "Pending" when status is omitted', () => {

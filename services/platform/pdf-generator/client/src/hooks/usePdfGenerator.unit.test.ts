@@ -47,7 +47,7 @@ describe('usePdfGenerator', () => {
       returnedUrl = await result.current.generate('<h1>Test PDF</h1>');
     });
 
-    expect(mockGeneratePdf).toHaveBeenCalledWith('<h1>Test PDF</h1>');
+    expect(mockGeneratePdf).toHaveBeenCalledWith('<h1>Test PDF</h1>', {customPath:'drafts'});
     expect(onSuccess).toHaveBeenCalledWith(mockBlobUrl);
     expect(returnedUrl).toBe(mockBlobUrl);
     expect(result.current.isGenerating).toBe(false);

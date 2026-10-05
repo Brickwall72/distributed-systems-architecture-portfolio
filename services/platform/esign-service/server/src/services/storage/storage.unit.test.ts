@@ -44,7 +44,7 @@ describe('esignature-service storage wrapper', () => {
       );
 
       const storedItem = inMemoryStorage.storage.get(
-        'compliance-documents/custom/folder/doc-456.pdf'
+        'dsap/custom/folder/doc-456.pdf'
       );
 
       expect(storedItem).toBeDefined();

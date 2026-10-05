@@ -1,4 +1,4 @@
-// File: packages/telemetry/vitest.config.ts
+// File: packages/express/vitest.config.ts
 /**
  * Vitest configuration for the compliance-service server test suite.
  */

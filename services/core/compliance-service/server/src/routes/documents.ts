@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { CreateComplianceDocumentSchema } from '@contracts/compliance';
 import { ComplianceDocumentRepository } from '../db/documents.repository.js';
 import { pool } from '../db/database.js';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const router = Router();
 const logger = createLogger('compliance-server:documents');

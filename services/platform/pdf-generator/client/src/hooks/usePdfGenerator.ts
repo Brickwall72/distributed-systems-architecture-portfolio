@@ -19,7 +19,7 @@ export function usePdfGenerator(options: UsePdfGeneratorOptions = {}) {
     setError(null);
 
     try {
-      const blobUrl = await generatePdf(htmlPayload);
+      const blobUrl = await generatePdf(htmlPayload, {customPath:'drafts'});
 
       if (options.onSuccess) {
         options.onSuccess(blobUrl);

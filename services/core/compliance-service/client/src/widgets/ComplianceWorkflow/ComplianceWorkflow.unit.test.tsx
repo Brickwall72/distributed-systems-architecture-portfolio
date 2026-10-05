@@ -3,11 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ComplianceWorkflowWidget, { ComplianceWorkflowProps } from './ComplianceWorkflow';
 
-// 1. Correctly mock usePdfGenerator hook from @platform/pdf-client
+// 1. Correctly mock usePdfGenerator hook from pdf-client
 const mockGenerate = vi.fn();
 let mockOnSuccessCallback: ((url: string) => void) | undefined;
 
-vi.mock('@platform/pdf-client', () => ({
+vi.mock('pdf-client', () => ({
   usePdfGenerator: (options?: { onSuccess?: (url: string) => void }) => {
     mockOnSuccessCallback = options?.onSuccess;
     return {

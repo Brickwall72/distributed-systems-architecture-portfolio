@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 import { topologyGateway } from './routes/index.js';
 import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
 

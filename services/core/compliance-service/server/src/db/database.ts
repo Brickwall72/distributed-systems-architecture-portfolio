@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/server/src/db/database.ts
 import pkg from 'pg';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const { Pool, types } = pkg;
 const logger = createLogger('compliance-db');

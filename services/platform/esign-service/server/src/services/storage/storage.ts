@@ -38,7 +38,7 @@ export const uploadSignedDocument = (
 ): Promise<UploadResult> => {
   const { pdfBuffer, entityId, documentId, customPath, correlationId } = options;
   const cleanPrefix = customPath ? customPath.replace(/^\/+/, '').replace(/\/+$/, '') : entityId;
-  const bucket = process.env.DOCUMENT_BUCKET || 'compliance-documents'; 
+  const bucket = process.env.DOCUMENT_BUCKET || 'dsap'; 
   const objectKey = `${cleanPrefix}/${documentId}.pdf`;
 
   const metadata: Record<string, string> = {
@@ -68,6 +68,6 @@ export const downloadDocumentStream = (
   { bucket, key }: DownloadDocumentOptions,
   client: StorageProvider = storageClient // Optional injection for testing
 ): Promise<DownloadResult> => {
-  const targetBucket = bucket || process.env.DOCUMENT_BUCKET || 'compliance-documents';
+  const targetBucket = bucket || process.env.DOCUMENT_BUCKET || 'dsap';
   return client.getFileStream(targetBucket, key);
 };

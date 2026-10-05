@@ -7,7 +7,7 @@ import {
 } from '@contracts/esign';
 import { CreateComplianceDocumentSchema } from '@contracts/compliance';
 import { ComplianceDocumentRepository } from '../db/documents.repository.js';
-import { createLogger } from '@shared/telemetry';
+import { createLogger } from '@shared/express';
 
 const logger = createLogger('compliance-server:messaging');
 
@@ -40,7 +40,7 @@ export async function handleDocumentSignedEvent(
     resolvedS3Uri = `s3://${storageBucket}/${storageKey.replace(/^\/+/, '')}`;
   }
   if (!resolvedS3Uri) {
-    resolvedS3Uri = `s3://compliance-documents/${documentType}/${documentId}.pdf`;
+    resolvedS3Uri = `s3://dsap/${documentType}/${documentId}.pdf`;
   }
 
   // 3. Contract Gate: Validate against CreateComplianceDocumentSchema
@@ -73,7 +73,7 @@ export async function handleDocumentRejectedEvent(
   const correlationId = event.correlationId || 'N/A';
 
   // Fallback URI satisfying CreateComplianceDocumentSchema's s3:// requirement
-  const fallbackS3Uri = `s3://compliance-documents/${documentType}/${documentId}.pdf`;
+  const fallbackS3Uri = `s3://dsap/${documentType}/${documentId}.pdf`;
 
   // 2. Contract Gate: Validate against CreateComplianceDocumentSchema
   const createPayload = CreateComplianceDocumentSchema.parse({

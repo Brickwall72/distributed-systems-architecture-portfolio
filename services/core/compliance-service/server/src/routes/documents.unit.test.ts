@@ -35,7 +35,7 @@ describe('Compliance Documents Router', () => {
   const validPayload = {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     document_type: 'DD-1149',
-    s3_uri: 's3://compliance-documents/org_armory_01/doc_101.pdf',
+    s3_uri: 's3://dsap/org_armory_01/doc_101.pdf',
     status: 'Pending',
   };
 

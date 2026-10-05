@@ -4,7 +4,7 @@ import request from 'supertest';
 // 1. Hoist mock data before Vitest transforms imports
 const { mockStorageResult, mockPdfBuffer } = vi.hoisted(() => ({
   mockStorageResult: {
-    s3Uri: 's3://compliance-documents/org_armory_01/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+    s3Uri: 's3://dsap/org_armory_01/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
     fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
   },
   mockPdfBuffer: Buffer.from('%PDF-1.7 mock binary content'),
