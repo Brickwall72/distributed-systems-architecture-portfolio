@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/client/src/widgets/SignatureOverlay.tsx
+// File: services/platform/esignature-service/client/src/components/SignatureOverlay.tsx
 import { useRef, useState, useEffect } from 'react';
 import { signDocument } from '../api';
 

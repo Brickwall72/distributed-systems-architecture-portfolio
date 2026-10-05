@@ -17,12 +17,8 @@
     },
     "test:verify": {
       "dependsOn": ["^test:contract", "test:contract"],
-      "inputs": ["src/**/*.ts", "src/**/*.verify.contract.test.ts"],
+      "inputs": ["src/**/*.ts", "src/**/*.contract.verify.test.ts", "pacts/**", "**/pacts/**"],
       "outputs": []
-    },
-    "test:integration": {
-      "dependsOn": ["build"],
-      "cache": false
     }
   }
 }

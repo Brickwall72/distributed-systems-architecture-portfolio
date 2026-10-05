@@ -11,7 +11,7 @@ const { mockStorageResult, mockPdfBuffer } = vi.hoisted(() => ({
 }));
 
 // 2. Mock external side effects (Storage, Messaging, Cryptographic Signing)
-vi.mock('./messaging/publisher.js', () => ({
+vi.mock('./messaging/publisher', () => ({
   getESignPublisher: vi.fn(() => ({
     publishDocumentSigned: vi.fn().mockResolvedValue(undefined),
     publishDocumentRejected: vi.fn().mockResolvedValue(undefined),
@@ -20,7 +20,7 @@ vi.mock('./messaging/publisher.js', () => ({
   ESignPublisher: vi.fn(),
 }));
 
-vi.mock('./services/storage.js', () => ({
+vi.mock('./services/storage', () => ({
   uploadSignedDocument: vi.fn().mockResolvedValue(mockStorageResult),
   uploadDocument: vi.fn().mockResolvedValue(mockStorageResult),
   getStorageService: vi.fn(() => ({
@@ -28,11 +28,11 @@ vi.mock('./services/storage.js', () => ({
   })),
 }));
 
-vi.mock('./services/signing.js', () => ({
+vi.mock('./services/signing', () => ({
   signDocument: vi.fn().mockResolvedValue(mockPdfBuffer),
 }));
 
-import app from './server.js';
+import app from './server';
 
 const VALID_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORUSCYII=';
 
@@ -43,7 +43,7 @@ describe('E-Sign Server HTTP API Integration Contract (server.ts)', () => {
 
   it('fulfills HTTP contract: accepts payload, orchestrates signing, and returns PDF content-type', async () => {
     const res = await request(app)
-      .post('/api/v1/')
+      .post('/api/v1/signature')
       .set('x-correlation-id', `esign-test-${Date.now()}`)
       .set('Content-Type', 'application/json')
       .send({
@@ -63,7 +63,7 @@ describe('E-Sign Server HTTP API Integration Contract (server.ts)', () => {
 
   it('fulfills HTTP contract: enforces schema validation on missing body fields', async () => {
     const res = await request(app)
-      .post('/api/v1/')
+      .post('/api/v1/signature')
       .send({ pdfBase64: 'some-base64' });
 
     expect(res.status).toBe(400);
@@ -72,7 +72,7 @@ describe('E-Sign Server HTTP API Integration Contract (server.ts)', () => {
 
   it('fulfills HTTP contract: enforces required compliance metadata fields', async () => {
     const res = await request(app)
-      .post('/api/v1/')
+      .post('/api/v1/signature')
       .send({
         pdfBase64: 'some-base64',
         signatureImageBase64: VALID_PNG_BASE64,

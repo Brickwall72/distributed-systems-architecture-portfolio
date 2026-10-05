@@ -1,10 +1,10 @@
 // File: services/platform/esignature-service/server/src/routes/sign.unit.test.ts
 import express from 'express';
 import request from 'supertest';
-import { esignRouter } from './sign.js';
-import { signDocument } from '../services/signing.js';
-import { uploadSignedDocument } from '../services/storage.js';
-import { getESignPublisher } from '../messaging/publisher.js';
+import { router } from './signature';
+import { signDocument } from '../../services/signing';
+import { uploadSignedDocument } from '../../services/storage';
+import { getESignPublisher } from '../../messaging/publisher';
 
 // Mocks for internal dependencies
 vi.mock('@shared/telemetry', () => ({
@@ -18,15 +18,15 @@ vi.mock('@shared/telemetry', () => ({
     res.json({ status: 'ok' }),
 }));
 
-vi.mock('../services/signing.js', () => ({
+vi.mock('../../services/signing', () => ({
   signDocument: vi.fn(),
 }));
 
-vi.mock('../services/storage.js', () => ({
+vi.mock('../../services/storage', () => ({
   uploadSignedDocument: vi.fn(),
 }));
 
-vi.mock('../messaging/publisher.js', () => ({
+vi.mock('../../messaging/publisher', () => ({
   getESignPublisher: vi.fn(),
 }));
 
@@ -54,7 +54,7 @@ describe('E-Signature Route (POST /)', () => {
 
     app = express();
     app.use(express.json());
-    app.use('/', esignRouter);
+    app.use('/', router);
 
     vi.mocked(signDocument).mockResolvedValue({
       pdfBuffer: mockSignedPdfBuffer,
@@ -72,14 +72,6 @@ describe('E-Signature Route (POST /)', () => {
     vi.mocked(getESignPublisher).mockReturnValue({
       publishDocumentSigned: mockPublishDocumentSigned,
     } as unknown as ReturnType<typeof getESignPublisher>);
-  });
-
-  describe('GET /health', () => {
-    it('should return 200 OK from health check', async () => {
-      const response = await request(app).get('/health');
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok' });
-    });
   });
 
   describe('POST /', () => {

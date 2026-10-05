@@ -63,8 +63,8 @@ describe('signDocument API Client', () => {
         } as Response);
       }
 
-      // Mock POST /esign/api/v1/
-      if (url.endsWith('/esign/api/v1/')) {
+      // Mock POST /esign/api/v1/signature
+      if (url.endsWith('/esign/api/v1/signature')) {
         if (!apiSuccess) {
           return Promise.resolve({
             ok: false,
@@ -104,7 +104,7 @@ describe('signDocument API Client', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
 
     const [apiUrl, fetchOptions] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[1];
-    expect(apiUrl).toBe('http://api.internal/esign/api/v1/');
+    expect(apiUrl).toBe('http://api.internal/esign/api/v1/signature');
     expect(fetchOptions.method).toBe('POST');
     expect(fetchOptions.headers).toEqual({
       'Content-Type': 'application/json',

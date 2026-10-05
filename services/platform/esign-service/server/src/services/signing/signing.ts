@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/services/signing.ts
+// File: services/platform/esignature-service/server/src/services/signing/signing.ts
 import { PDFDocument, rgb } from 'pdf-lib';
 import { SignPdf } from '@signpdf/signpdf';
 import { P12Signer } from '@signpdf/signer-p12';

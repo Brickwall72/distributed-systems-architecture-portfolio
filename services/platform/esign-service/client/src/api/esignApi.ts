@@ -53,7 +53,7 @@ export async function signDocument(params: SignDocumentParams, baseUrl = ''): Pr
     ? `esign-req-${crypto.randomUUID()}`
     : `esign-req-${Date.now()}`;
 
-  const response = await fetch(`${baseUrl}/esign/api/v1/`, {
+  const response = await fetch(`${baseUrl}/esign/api/v1/signature`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

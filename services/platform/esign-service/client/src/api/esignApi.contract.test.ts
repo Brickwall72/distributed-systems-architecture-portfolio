@@ -49,7 +49,7 @@ describe('esignApi Pact Consumer Tests', () => {
       .uponReceiving('a request to apply a signature to a PDF document')
       .withRequest({
         method: 'POST',
-        path: '/esign/api/v1/',
+        path: '/esign/api/v1/signature',
         headers: {
           'Content-Type': 'application/json',
           'x-correlation-id': MatchersV3.regex(/^esign-req-.+$/, 'esign-req-123456789'),
@@ -100,7 +100,7 @@ describe('esignApi Pact Consumer Tests', () => {
       .uponReceiving('an invalid or unprocessable signature request')
       .withRequest({
         method: 'POST',
-        path: '/esign/api/v1/',
+        path: '/esign/api/v1/signature',
         headers: {
           'Content-Type': 'application/json',
         },

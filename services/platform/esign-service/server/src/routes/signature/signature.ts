@@ -1,16 +1,13 @@
 // File: services/platform/esignature-service/server/src/routes/sign.ts
 import { Router, Request, Response } from 'express';
-import { createLogger, createHealthCheck } from '@shared/telemetry';
-import { getESignPublisher } from '../messaging/publisher.js';
-import { uploadSignedDocument } from '../services/storage.js';
-import { signDocument } from '../services/signing.js';
+import { createLogger } from '@shared/telemetry';
+import { getESignPublisher } from '../../messaging/publisher';
+import { uploadSignedDocument, signDocument } from '../../services';
 
-export const esignRouter = Router();
+export const router = Router();
 const logger = createLogger('esignature-service');
 
-esignRouter.get('/health', createHealthCheck('esign-server'));
-
-esignRouter.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const correlationId = (req.headers['x-correlation-id'] as string) || null;
 
   try {
