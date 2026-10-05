@@ -63,5 +63,11 @@ jobs:
       - name: Compile Workspace Packages
         run: pnpm build
 
-      - name: Execute Workspace Contract & Test Matrix
-        run: pnpm test
+      - name: Execute Workspace Unit Tests
+        run: pnpm turbo run test:unit
+
+      - name: Generate Consumer Contract Specs
+        run: pnpm turbo run test:contract --cache=""
+
+      - name: Verify Provider Contract Compliance
+        run: pnpm turbo run test:verify

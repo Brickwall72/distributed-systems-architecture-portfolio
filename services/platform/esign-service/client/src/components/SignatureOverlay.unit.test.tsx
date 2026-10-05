@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/client/src/widgets/SignatureOverlay.unit.test.tsx
+// File: services/platform/esignature-service/client/src/components/SignatureOverlay.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SignatureOverlay from './SignatureOverlay';
 import { signDocument } from '../api';
