@@ -1,8 +1,8 @@
 // File: services/core/topology-service/server/src/routes/authorizations.unit.test.ts
 import request from 'supertest';
 import express from 'express';
-import { authorizationsRouter } from './authorizations.js';
-import { mockState } from '../utils/test-setup.js';
+import { authorizationsRouter } from './authorizations';
+import { mockState } from '../utils/test-setup';
 
 const app = express();
 app.use(express.json());

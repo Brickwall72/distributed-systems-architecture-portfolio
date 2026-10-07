@@ -1,11 +1,11 @@
-// File: services/core/topology-service/shared/src/contracts/topology.contract.ts
+// File: services/core/topology-service/shared/src/contracts/assets.contract.ts
 import { initContract } from '@ts-rest/core';
 import { GetAssetsQuerySchema, AssetDTOListSchema } from '../schemas';
-import { ApiErrorResponseSchema } from '@contracts/common'; // Your standard error schema
+import { ApiErrorResponseSchema } from '@contracts/common';
 
 const c = initContract();
 
-export const topologyContract = c.router({
+export const assetsRoutes = {
   getAssets: c.query({
     method: 'GET',
     path: '/assets',
@@ -17,5 +17,7 @@ export const topologyContract = c.router({
     },
     summary: 'Fetch assets with optional owner filtering',
   }),
-  // Add more routes here later (e.g., getAssetById, createAsset)
-});
+};
+
+// Export individual sub-contract for server route instantiation
+export const assetsContract = c.router(assetsRoutes);

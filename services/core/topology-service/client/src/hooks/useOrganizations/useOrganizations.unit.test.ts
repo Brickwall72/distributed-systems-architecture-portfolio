@@ -1,79 +1,90 @@
 // File: services/core/topology-service/client/src/hooks/useOrganizations/useOrganizations.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useOrganizations } from './useOrganizations';
-import { fetchOrganizations } from '../../api';
+import { apiClient } from '../../api';
+import type { OrganizationDTOList } from 'topology-shared';
 
-vi.mock('../../api', () => ({
-  fetchOrganizations: vi.fn(),
+// Mock the API client to intercept HTTP calls at the boundary
+vi.mock('../../api/client', () => ({
+  apiClient: {
+    getOrganizations: vi.fn(),
+  },
 }));
 
-describe('useOrganizations (Hook)', () => {
-  const mockFetchOrganizations = vi.mocked(fetchOrganizations);
-
-  const mockOrganizations = [
+describe('useOrganizations (Hook Unit Test)', () => {
+  const mockOrganizations: OrganizationDTOList = [
     {
       id: 'org-101',
-      name: '1st Battalion',
-      code: '1BN',
-      addressLine1: '101 Cyber Way',
+      name: 'Space Systems Command',
+      type: 'MILITARY_BRANCH',
+      addressLine1: 'Building 2730',
+      addressLine2: 'El Segundo, CA',
     },
     {
       id: 'org-102',
-      name: '2nd Battalion',
-      code: '2BN',
-      addressLine1: '102 Cyber Way',
+      name: 'General Dynamics',
+      type: 'CONTRACTOR',
     },
-  ] as any;
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it('initializes with loading state and resolves data on successful fetch', async () => {
-    mockFetchOrganizations.mockResolvedValueOnce(mockOrganizations);
+    vi.mocked(apiClient.getOrganizations).mockResolvedValue({
+      status: 200,
+      body: mockOrganizations,
+      headers: new Headers(),
+    });
 
     const { result } = renderHook(() => useOrganizations());
 
+    // 1. Initial State assertions
     expect(result.current.isLoading).toBe(true);
     expect(result.current.items).toEqual([]);
     expect(result.current.error).toBeNull();
 
+    // 2. Wait for async resolution
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     expect(result.current.items).toEqual(mockOrganizations);
     expect(result.current.error).toBeNull();
-    expect(mockFetchOrganizations).toHaveBeenCalledTimes(1);
-    expect(mockFetchOrganizations).toHaveBeenCalledWith({
-      parentId: undefined,
-      excludeId: undefined,
-    });
+    expect(apiClient.getOrganizations).toHaveBeenCalledTimes(1);
   });
 
-  it('handles custom parentId and excludeId parameters correctly', async () => {
-    mockFetchOrganizations.mockResolvedValueOnce(mockOrganizations);
+  it('handles custom fetch parameters correctly (filterOwnedId)', async () => {
+    vi.mocked(apiClient.getOrganizations).mockResolvedValue({
+      status: 200,
+      body: mockOrganizations,
+      headers: new Headers(),
+    });
 
-    const params = { parentId: 'org-parent-1', excludeId: 'org-101' };
-    const { result } = renderHook(() => useOrganizations(params));
+    const queryParams = { filterOwnedId: 'asset-99' };
+    const { result } = renderHook(() => useOrganizations(queryParams));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockFetchOrganizations).toHaveBeenCalledWith({
-      parentId: 'org-parent-1',
-      excludeId: 'org-101',
+    expect(apiClient.getOrganizations).toHaveBeenCalledWith({
+      query: queryParams,
+      fetchOptions: { signal: expect.any(AbortSignal) },
     });
   });
 
-  it('sets error state when fetchOrganizations fails', async () => {
-    mockFetchOrganizations.mockRejectedValueOnce(new Error('Database query failed'));
+  it('sets error state when API returns non-200 status code matching ApiErrorResponseSchema', async () => {
+    vi.mocked(apiClient.getOrganizations).mockResolvedValue({
+      status: 500,
+      body: {
+        error: 'Database connection failed',
+        code: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString(),
+      },
+      headers: new Headers(),
+    });
 
     const { result } = renderHook(() => useOrganizations());
 
@@ -82,11 +93,11 @@ describe('useOrganizations (Hook)', () => {
     });
 
     expect(result.current.items).toEqual([]);
-    expect(result.current.error).toBe('Database query failed');
+    expect(result.current.error).toBe('Database connection failed');
   });
 
-  it('uses default fallback error message when error object lacks message', async () => {
-    mockFetchOrganizations.mockRejectedValueOnce({});
+  it('uses default fallback error message when exception message is absent', async () => {
+    vi.mocked(apiClient.getOrganizations).mockRejectedValue(new Error(''));
 
     const { result } = renderHook(() => useOrganizations());
 
@@ -94,57 +105,65 @@ describe('useOrganizations (Hook)', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBe('Failed to load organizations');
+    expect(result.current.items).toEqual([]);
+    expect(result.current.error).toBe('Failed to fetch organizations');
   });
 
-  it('re-fetches organizations when parentId or excludeId parameters change', async () => {
-    mockFetchOrganizations.mockResolvedValue(mockOrganizations);
+  it('re-fetches organizations when filter parameters change', async () => {
+    vi.mocked(apiClient.getOrganizations).mockResolvedValue({
+      status: 200,
+      body: mockOrganizations,
+      headers: new Headers(),
+    });
 
-    const { result, rerender } = renderHook(
-      (params: { parentId?: string; excludeId?: string }) => useOrganizations(params),
-      {
-        initialProps: { parentId: 'org-parent-1', excludeId: undefined } as {
-          parentId?: string;
-          excludeId?: string;
-        },
-      }
-    );
+    const { result, rerender } = renderHook((props) => useOrganizations(props), {
+      initialProps: { filterOwnedId: 'asset-01' },
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockFetchOrganizations).toHaveBeenCalledWith({
-      parentId: 'org-parent-1',
-      excludeId: undefined,
+    expect(apiClient.getOrganizations).toHaveBeenLastCalledWith({
+      query: { filterOwnedId: 'asset-01' },
+      fetchOptions: { signal: expect.any(AbortSignal) },
     });
 
-    rerender({ parentId: 'org-parent-2', excludeId: 'org-101' });
+    // Rerender with updated query params
+    rerender({ filterOwnedId: 'asset-02' });
 
     await waitFor(() => {
-      expect(mockFetchOrganizations).toHaveBeenCalledWith({
-        parentId: 'org-parent-2',
-        excludeId: 'org-101',
-      });
+      expect(apiClient.getOrganizations).toHaveBeenCalledTimes(2);
     });
 
-    expect(mockFetchOrganizations).toHaveBeenCalledTimes(2);
+    expect(apiClient.getOrganizations).toHaveBeenLastCalledWith({
+      query: { filterOwnedId: 'asset-02' },
+      fetchOptions: { signal: expect.any(AbortSignal) },
+    });
   });
 
   it('prevents state updates if component unmounts before request resolves', async () => {
-    let resolvePromise!: (value: any) => void;
+    let resolvePromise: (value: any) => void;
     const pendingPromise = new Promise((resolve) => {
       resolvePromise = resolve;
     });
 
-    mockFetchOrganizations.mockReturnValueOnce(pendingPromise as any);
+    vi.mocked(apiClient.getOrganizations).mockReturnValue(pendingPromise as any);
 
-    const { unmount } = renderHook(() => useOrganizations());
+    const { result, unmount } = renderHook(() => useOrganizations());
 
+    expect(result.current.isLoading).toBe(true);
+
+    // Unmount before resolving
     unmount();
 
-    resolvePromise(mockOrganizations);
+    resolvePromise!({
+      status: 200,
+      body: mockOrganizations,
+      headers: new Headers(),
+    });
 
-    await expect(pendingPromise).resolves.toEqual(mockOrganizations);
+    // Expect no state pollution
+    expect(result.current.items).toEqual([]);
   });
 });

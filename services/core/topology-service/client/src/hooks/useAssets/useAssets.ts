@@ -1,16 +1,15 @@
 // File: services/core/topology-service/client/src/hooks/useAssets.ts
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../api/client';
-import type { GetAssetsQuery, AssetDTO } from 'topology-shared';
+import { apiClient } from '../../api';
+import type { GetAssetsQuery, AssetDTOList } from 'topology-shared';
 
 export function useAssets(params?: GetAssetsQuery) {
-  const [items, setItems] = useState<AssetDTO[]>([]);
+  const [items, setItems] = useState<AssetDTOList>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Extract primitive filter values for stable useEffect dependencies
-  const filterOwnerId = params?.filterOwnerId;
-  const excludeOwnerId = params?.excludeOwnerId;
+  // Serialize params into a primitive string key to compare by value, not object reference.
+  const queryKey = JSON.stringify(params ?? {});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -20,27 +19,29 @@ export function useAssets(params?: GetAssetsQuery) {
         setIsLoading(true);
         setError(null);
 
+        // Pass params directly to the contract call
         const response = await apiClient.getAssets({
-          query: { filterOwnerId, excludeOwnerId },
+          query: params,
           fetchOptions: { signal: controller.signal },
         });
 
         if (response.status === 200) {
           setItems(response.body);
         } else {
-          // Robust extract from ApiErrorResponseSchema or fallback string
-          const responseError =
-            typeof response.body === 'object' && response.body && 'error' in response.body
-              ? String((response.body as { error: unknown }).error)
-              : `Request failed with status ${response.status}`;
-
-          setError(responseError);
+          // Align with ApiErrorResponseSchema ({ error: string, code: string, timestamp: string })
+          const body = response.body as { error?: string; message?: string } | null | undefined;
+          setError(body?.error || body?.message || 'Failed to fetch assets');
           setItems([]);
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return;
+        
+        const message =
+          err instanceof Error && err.message.trim() !== ''
+            ? err.message
+            : 'Failed to fetch assets';
 
-        setError(err instanceof Error && err.message ? err.message : 'Failed to load assets');
+        setError(message);
         setItems([]);
       } finally {
         if (!controller.signal.aborted) {
@@ -54,7 +55,7 @@ export function useAssets(params?: GetAssetsQuery) {
     return () => {
       controller.abort();
     };
-  }, [filterOwnerId, excludeOwnerId]);
+  }, [queryKey]);
 
   return { items, isLoading, error };
 }

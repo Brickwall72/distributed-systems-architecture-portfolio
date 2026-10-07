@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/entities.ts
 import { Router, Request, Response } from 'express';
 import { createLogger } from '@shared/express';
-import { getDatabaseClient } from '../topologyDatabase.js';
+import { getDatabaseClient } from '../topologyDatabase';
 import {
   EntityDirectoryResponsePayload,
   CustodyTransferRecord

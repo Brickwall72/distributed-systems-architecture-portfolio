@@ -1,8 +1,8 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
 import { createLogger } from '@shared/express';
-import { createTopologyGateway } from './routes/index.js';
-import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase.js';
+import { createTopologyGateway } from './routes';
+import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase';
 
 const app = express();
 const PORT = 8080;
@@ -36,7 +36,7 @@ async function bootstrapApplicationServer() {
     app.use('/api/v1', topologyGateway);
 
     app.listen(Number(PORT), '0.0.0.0', () => {
-      console.log(`[topology-server] Safe isolated execution thread pool listening on port ${PORT}`);
+      logger.info(`Safe isolated execution thread pool listening on port ${PORT}`);
     });
   } catch (error_: any) {
     logger.error(`Subsystem container failed to boot cleanly: ${error_.message}`);

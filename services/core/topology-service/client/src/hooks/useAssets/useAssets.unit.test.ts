@@ -1,8 +1,8 @@
 // File: services/core/topology-service/client/src/hooks/useAssets/useAssets.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAssets } from '../useAssets';
-import { apiClient } from '../../api/client';
-import type { AssetDTO } from 'topology-shared';
+import { apiClient } from '../../api';
+import type { AssetDTOList } from 'topology-shared';
 
 // Mock the API client to intercept HTTP calls at the boundary
 vi.mock('../../api/client', () => ({
@@ -12,7 +12,7 @@ vi.mock('../../api/client', () => ({
 }));
 
 describe('useAssets (Hook Unit Test)', () => {
-  const mockAssets: AssetDTO[] = [
+  const mockAssets: AssetDTOList = [
     {
       id: 'ast-101',
       name: 'Radio Transceiver',
@@ -76,10 +76,14 @@ describe('useAssets (Hook Unit Test)', () => {
     });
   });
 
-  it('sets error state when API returns non-200 status code', async () => {
+  it('sets error state when API returns non-200 status code matching ApiErrorResponseSchema', async () => {
     vi.mocked(apiClient.getAssets).mockResolvedValue({
       status: 500,
-      body: { error: 'Database connection failed' },
+      body: {
+        error: 'Database connection failed',
+        code: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString(),
+      },
       headers: new Headers(),
     });
 
@@ -103,7 +107,7 @@ describe('useAssets (Hook Unit Test)', () => {
     });
 
     expect(result.current.items).toEqual([]);
-    expect(result.current.error).toBe('Failed to load assets');
+    expect(result.current.error).toBe('Failed to fetch assets');
   });
 
   it('re-fetches assets when owner filter parameters change', async () => {
@@ -122,7 +126,7 @@ describe('useAssets (Hook Unit Test)', () => {
     });
 
     expect(apiClient.getAssets).toHaveBeenLastCalledWith({
-      query: { filterOwnerId: 'org-1', excludeOwnerId: undefined },
+      query: { filterOwnerId: 'org-1' },
       fetchOptions: { signal: expect.any(AbortSignal) },
     });
 
@@ -134,7 +138,7 @@ describe('useAssets (Hook Unit Test)', () => {
     });
 
     expect(apiClient.getAssets).toHaveBeenLastCalledWith({
-      query: { filterOwnerId: 'org-2', excludeOwnerId: undefined },
+      query: { filterOwnerId: 'org-2' },
       fetchOptions: { signal: expect.any(AbortSignal) },
     });
   });
@@ -161,7 +165,7 @@ describe('useAssets (Hook Unit Test)', () => {
       headers: new Headers(),
     });
 
-    // Expect no state pollution or memory leak warnings
+    // Expect no state pollution
     expect(result.current.items).toEqual([]);
   });
 });

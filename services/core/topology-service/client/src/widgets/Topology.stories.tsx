@@ -5,7 +5,7 @@ import { Asset, Organization } from '@contracts/custody';
 import { 
   ConnectionFormWidget, 
   NetworkCanvasWidget 
-} from './index.js';
+} from './';
 
 const meta: Meta = {
   title: 'Widgets/Autonomous Topology',

@@ -1,8 +1,8 @@
-// File: services/core/topology-service/server/src/repositories/asset/asset.repository.unit.test.ts
+// File: services/core/topology-service/server/src/repositories/assets/assets.repository.unit.test.ts
 import type { Driver, Session, ManagedTransaction, Record as Neo4jRecord } from 'neo4j-driver';
-import { TopologyAssetRepository } from './asset.repository.js';
+import { AssetsRepository } from './assets.repository';
 
-describe('TopologyAssetRepository', () => {
+describe('AssetsRepository', () => {
   let mockTx: Partial<ManagedTransaction>;
   let mockSession: Partial<Session>;
   let mockDriver: Partial<Driver>;
@@ -42,7 +42,7 @@ describe('TopologyAssetRepository', () => {
       summary: {} as any,
     });
 
-    const repository = new TopologyAssetRepository(mockDriver as Driver);
+    const repository = new AssetsRepository(mockDriver as Driver);
     const result = await repository.findAssets({
       filterOwnerId: 'org-01',
       excludeOwnerId: 'org-02',
@@ -76,7 +76,7 @@ describe('TopologyAssetRepository', () => {
       summary: {} as any,
     });
 
-    const repository = new TopologyAssetRepository(mockDriver as Driver);
+    const repository = new AssetsRepository(mockDriver as Driver);
     await repository.findAssets({});
 
     expect(mockTx.run).toHaveBeenCalledWith(
@@ -91,7 +91,7 @@ describe('TopologyAssetRepository', () => {
   it('guarantees session closure even when query execution fails', async () => {
     vi.mocked(mockTx.run!).mockRejectedValue(new Error('Neo4j connection pool exhausted'));
 
-    const repository = new TopologyAssetRepository(mockDriver as Driver);
+    const repository = new AssetsRepository(mockDriver as Driver);
 
     await expect(repository.findAssets({})).rejects.toThrow('Neo4j connection pool exhausted');
 

@@ -1,13 +1,13 @@
-// File: services/core/topology-service/server/src/repositories/asset/asset.repository.ts
+// File: services/core/topology-service/server/src/repositories/assets/assets.repository.ts
 import { Driver } from 'neo4j-driver';
 import { mapRecordToAssetEntity } from '../../mappers';
 import type { GetAssetsQuery } from 'topology-shared';
-import type { TopologyAssetEntity } from '../../domain';
+import type { AssetEntity } from '../../domain';
 
-export class TopologyAssetRepository {
+export class AssetsRepository {
   constructor(private readonly driver: Driver) {}
 
-  async findAssets(filters: GetAssetsQuery): Promise<TopologyAssetEntity[]> {
+  async findAssets(filters: GetAssetsQuery): Promise<AssetEntity[]> {
     const session = this.driver.session();
     try {
       const cypher = `
@@ -18,11 +18,12 @@ export class TopologyAssetRepository {
         AND ($excludeOwnerId IS NULL OR NOT EXISTS {
           MATCH (eo:Organization {id: $excludeOwnerId})-[:HAS_CUSTODY]->(a)
         })
-        WITH a, [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId
-        RETURN a.id AS id, 
-               a.nomenclature AS nomenclature, 
-               a.serialNumber AS serialNumber, 
-               currentOwnerId
+        RETURN 
+          a.id AS id,
+          a.nomenclature AS nomenclature,
+          a.serialNumber AS serialNumber,
+          [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId
+        ORDER BY currentOwnerId ASC, a.nomenclature ASC
       `;
 
       const result = await session.executeRead((tx) =>
