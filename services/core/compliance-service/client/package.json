@@ -22,7 +22,7 @@
     "esign-client": "workspace:*",
     "pdf-client": "workspace:*",
     "@compliance/shared": "workspace:*",
-    "zod": "~4.6.5"
+    "zod": "~3.24.1"
   },
   "devDependencies": {
     "@shared/vite-config": "workspace:*"

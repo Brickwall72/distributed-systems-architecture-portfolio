@@ -6,11 +6,11 @@ export type ComplianceDocumentStatus = z.infer<typeof ComplianceDocumentStatusSc
 
 // Read DTO: Represents the full record returned by DB / API
 export const ComplianceDocumentSchema = z.object({
-  id: z.uuid(),
+  id: z.string().uuid(),
   document_type: z.string().min(1),
   s3_uri: z.string().startsWith('s3://', { message: 'Must be a valid S3 URI' }),
   status: ComplianceDocumentStatusSchema,
-  created_at: z.iso.datetime(),
+  created_at: z.string().datetime(),
 });
 
 export type ComplianceDocument = z.infer<typeof ComplianceDocumentSchema>;

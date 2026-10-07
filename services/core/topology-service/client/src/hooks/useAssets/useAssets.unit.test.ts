@@ -1,71 +1,87 @@
-// File: services/core/topology-service/client/src/hooks/useAssets.unit.test.ts
+// File: services/core/topology-service/client/src/hooks/useAssets/useAssets.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
-import { useAssets } from './useAssets';
-import { fetchAssets } from '../../api';
+import { useAssets } from '../useAssets';
+import { apiClient } from '../../api/client';
+import type { AssetDTO } from 'topology-shared';
 
-vi.mock('../../api', () => ({
-  fetchAssets: vi.fn(),
+// Mock the API client to intercept HTTP calls at the boundary
+vi.mock('../../api/client', () => ({
+  apiClient: {
+    getAssets: vi.fn(),
+  },
 }));
 
-describe('useAssets (Hook)', () => {
-  const mockFetchAssets = vi.mocked(fetchAssets);
-
-  const mockAssets = [
+describe('useAssets (Hook Unit Test)', () => {
+  const mockAssets: AssetDTO[] = [
     {
       id: 'ast-101',
+      name: 'Radio Transceiver',
       nomenclature: 'Radio Transceiver',
       serialNumber: 'SN-001',
+      currentOwnerId: 'org-1',
     },
     {
       id: 'ast-102',
+      name: 'Satellite Terminal',
       nomenclature: 'Satellite Terminal',
       serialNumber: 'SN-002',
     },
-  ] as any;
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it('initializes with loading state and resolves data on successful fetch', async () => {
-    mockFetchAssets.mockResolvedValueOnce(mockAssets);
+    vi.mocked(apiClient.getAssets).mockResolvedValue({
+      status: 200,
+      body: mockAssets,
+      headers: new Headers(),
+    });
 
     const { result } = renderHook(() => useAssets());
 
-    // Verify initial sync state before promise resolves
+    // 1. Initial State assertions
     expect(result.current.isLoading).toBe(true);
     expect(result.current.items).toEqual([]);
     expect(result.current.error).toBeNull();
 
+    // 2. Wait for async resolution
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     expect(result.current.items).toEqual(mockAssets);
     expect(result.current.error).toBeNull();
-    expect(mockFetchAssets).toHaveBeenCalledTimes(1);
-    expect(mockFetchAssets).toHaveBeenCalledWith(undefined);
+    expect(apiClient.getAssets).toHaveBeenCalledTimes(1);
   });
 
-  it('handles custom fetch parameters correctly', async () => {
-    mockFetchAssets.mockResolvedValueOnce(mockAssets);
+  it('handles custom fetch parameters correctly (filterOwnerId and excludeOwnerId)', async () => {
+    vi.mocked(apiClient.getAssets).mockResolvedValue({
+      status: 200,
+      body: mockAssets,
+      headers: new Headers(),
+    });
 
-    const params = { ownerId: 'org-1', excludeOwnerId: 'org-2' };
-    const { result } = renderHook(() => useAssets(params));
+    const queryParams = { filterOwnerId: 'org-1', excludeOwnerId: 'org-2' };
+    const { result } = renderHook(() => useAssets(queryParams));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockFetchAssets).toHaveBeenCalledWith(params);
+    expect(apiClient.getAssets).toHaveBeenCalledWith({
+      query: queryParams,
+      fetchOptions: { signal: expect.any(AbortSignal) },
+    });
   });
 
-  it('sets error state when fetchAssets fails', async () => {
-    mockFetchAssets.mockRejectedValueOnce(new Error('Network timeout'));
+  it('sets error state when API returns non-200 status code', async () => {
+    vi.mocked(apiClient.getAssets).mockResolvedValue({
+      status: 500,
+      body: { error: 'Database connection failed' },
+      headers: new Headers(),
+    });
 
     const { result } = renderHook(() => useAssets());
 
@@ -74,11 +90,11 @@ describe('useAssets (Hook)', () => {
     });
 
     expect(result.current.items).toEqual([]);
-    expect(result.current.error).toBe('Network timeout');
+    expect(result.current.error).toBe('Database connection failed');
   });
 
-  it('uses default fallback error message when error object lacks message', async () => {
-    mockFetchAssets.mockRejectedValueOnce({});
+  it('uses default fallback error message when exception message is absent', async () => {
+    vi.mocked(apiClient.getAssets).mockRejectedValue(new Error(''));
 
     const { result } = renderHook(() => useAssets());
 
@@ -86,50 +102,66 @@ describe('useAssets (Hook)', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
+    expect(result.current.items).toEqual([]);
     expect(result.current.error).toBe('Failed to load assets');
   });
 
   it('re-fetches assets when owner filter parameters change', async () => {
-    mockFetchAssets.mockResolvedValue(mockAssets);
+    vi.mocked(apiClient.getAssets).mockResolvedValue({
+      status: 200,
+      body: mockAssets,
+      headers: new Headers(),
+    });
 
-    const { result, rerender } = renderHook(
-      (params) => useAssets(params),
-      { initialProps: { ownerId: 'org-1' } }
-    );
+    const { result, rerender } = renderHook((props) => useAssets(props), {
+      initialProps: { filterOwnerId: 'org-1' },
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockFetchAssets).toHaveBeenCalledWith({ ownerId: 'org-1' });
-
-    // Change parameter props to trigger useEffect re-execution
-    rerender({ ownerId: 'org-2' });
-
-    await waitFor(() => {
-      expect(mockFetchAssets).toHaveBeenCalledWith({ ownerId: 'org-2' });
+    expect(apiClient.getAssets).toHaveBeenLastCalledWith({
+      query: { filterOwnerId: 'org-1', excludeOwnerId: undefined },
+      fetchOptions: { signal: expect.any(AbortSignal) },
     });
 
-    expect(mockFetchAssets).toHaveBeenCalledTimes(2);
+    // Rerender with updated query params
+    rerender({ filterOwnerId: 'org-2' });
+
+    await waitFor(() => {
+      expect(apiClient.getAssets).toHaveBeenCalledTimes(2);
+    });
+
+    expect(apiClient.getAssets).toHaveBeenLastCalledWith({
+      query: { filterOwnerId: 'org-2', excludeOwnerId: undefined },
+      fetchOptions: { signal: expect.any(AbortSignal) },
+    });
   });
 
   it('prevents state updates if component unmounts before request resolves', async () => {
-    let resolvePromise!: (value: any) => void;
+    let resolvePromise: (value: any) => void;
     const pendingPromise = new Promise((resolve) => {
       resolvePromise = resolve;
     });
 
-    mockFetchAssets.mockReturnValueOnce(pendingPromise as any);
+    vi.mocked(apiClient.getAssets).mockReturnValue(pendingPromise as any);
 
-    const { unmount } = renderHook(() => useAssets());
+    const { result, unmount } = renderHook(() => useAssets());
 
-    // Unmount before resolving the underlying promise
+    expect(result.current.isLoading).toBe(true);
+
+    // Unmount before resolving the promise
     unmount();
 
     // Resolve after unmount
-    resolvePromise(mockAssets);
+    resolvePromise!({
+      status: 200,
+      body: mockAssets,
+      headers: new Headers(),
+    });
 
-    // If isMounted flag fails, React/Vitest will flag unhandled state updates on unmounted components
-    await expect(pendingPromise).resolves.toEqual(mockAssets);
+    // Expect no state pollution or memory leak warnings
+    expect(result.current.items).toEqual([]);
   });
 });

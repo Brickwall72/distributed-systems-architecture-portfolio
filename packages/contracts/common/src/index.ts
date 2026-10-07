@@ -1,3 +1,4 @@
 // File: packages/contracts/common/src/index.ts
-export * from './cloudevent.js';
-export * from './primitives.js';
+export * from './cloudevent';
+export * from './primitives';
+export * from './http.schema';

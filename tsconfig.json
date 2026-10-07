@@ -3,6 +3,7 @@
   "include": [
     "services/core/**/*",
     "services/platform/**/*",
+    "ui-shells/**/*",
     "packages/**/*",
     ".storybook/**/*"
   ]

@@ -63,7 +63,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       transfers
     };
 
-    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer records.`, correlationId);
+    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer record(s).`, correlationId);
     res.status(200).json(responsePayload);
   } catch (caughtError: unknown) {
     logger.error(`Topology entity catalog extraction loop failed: ${String(caughtError)}`, correlationId);

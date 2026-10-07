@@ -1,0 +1,23 @@
+{
+  "name": "@contracts/topology",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly"
+  },
+  "dependencies": {
+    "@contracts/common": "workspace:*"
+  },
+  "peerDependencies": {
+    "zod": "~3.24.1"
+  }
+}

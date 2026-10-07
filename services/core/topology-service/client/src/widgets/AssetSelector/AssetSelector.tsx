@@ -1,46 +1,86 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.tsx
-import { useMemo } from 'react';
-import { Asset } from '@contracts/custody';
-import { Select, SelectOption } from '@shared/ui-components';
-import { GetAssetsParams } from '../../api';
+import { useEffect, useMemo, useState } from 'react';
+import { Select, type SelectOption } from '@shared/ui-components';
 import { useAssets } from '../../hooks';
+import {
+  AssetSelectorInputSchema,
+  type AssetSelectorProps,
+  type AssetBase,
+} from '@contracts/topology';
 
-export interface AssetSelectorProps extends GetAssetsParams {
-  readonly label: string;
-  readonly selectedId?: string;
-  readonly onChange: (asset: Asset | null) => void;
-}
+export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
+  // 1. Safe MFE Boundary Parsing: Prevents invalid Shell props from crashing the render tree
+  const parsedInputs = AssetSelectorInputSchema.safeParse(props);
+  const { filterOwnerId, excludeOwnerId } = parsedInputs.success
+    ? parsedInputs.data
+    : { filterOwnerId: undefined, excludeOwnerId: undefined };
 
-export default function AssetSelector({
-  label,
-  selectedId,
-  ownerId,
-  excludeOwnerId,
-  onChange,
-}: Readonly<AssetSelectorProps>) {
-  const { items, isLoading, error } = useAssets({ ownerId, excludeOwnerId });
+  const { onSelect } = props;
 
-  // Map domain models to purely presentational UI options
+  // 2. Local Selection State
+  const [selectedId, setSelectedId] = useState<string>('');
+
+  // 3. Query Data Access Layer
+  const { items, isLoading, error } = useAssets({ filterOwnerId, excludeOwnerId });
+
+  // 4. Synchronize Selection: Clear selection if active asset is filtered out by prop changes
+  useEffect(() => {
+    if (selectedId && !items.some((item) => item.id === selectedId)) {
+      setSelectedId('');
+      onSelect([]);
+    }
+  }, [items, selectedId, onSelect]);
+
+  // 5. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
-    return items.map((asset) => ({
-      value: asset.id,
-      label: `${asset.nomenclature} (S/N: ${asset.serialNumber})`,
-    }));
+    return items.map((asset) => {
+      const displayName = asset.nomenclature || asset.name || asset.id;
+      const displaySerial = asset.serialNumber || 'N/A';
+      return {
+        value: asset.id,
+        label: `${displayName} (S/N: ${displaySerial})`,
+      };
+    });
   }, [items]);
 
-  // Translate the raw string selection back into the domain object
+  // 6. Handle Selection & Emit Uniform AssetBase[] Payload
   const handleValueChange = (value: string) => {
-    const selectedAsset = items.find((asset) => asset.id === value) || null;
-    onChange(selectedAsset);
+    setSelectedId(value);
+
+    if (!value) {
+      onSelect([]);
+      return;
+    }
+
+    const selectedAsset = items.find((asset) => asset.id === value);
+    if (!selectedAsset) {
+      onSelect([]);
+      return;
+    }
+
+    // Normalize domain object to strict AssetBase schema shape
+    const assetPayload: AssetBase = {
+      ...selectedAsset,
+      id: selectedAsset.id,
+      name: selectedAsset.nomenclature ?? selectedAsset.name ?? selectedAsset.id,
+    };
+
+    // Always emit array to maintain List Collection Pattern with Host Shell
+    onSelect([assetPayload]);
   };
+
+  // Log runtime contract violations without throwing unhandled render errors
+  if (!parsedInputs.success) {
+    console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
+  }
 
   return (
     <Select
-      label={label}
+      label="Select Asset"
       value={selectedId}
       options={options}
       isLoading={isLoading}
-      error={error}
+      error={error ?? undefined}
       onValueChange={handleValueChange}
       loadingText="Loading assets..."
       placeholderText="-- Select Asset --"

@@ -12,7 +12,7 @@
     "./setup": "./src/setup.ts"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json" 
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly" 
   },
   "peerDependencies": {
     "express": "~5.2.1"

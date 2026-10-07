@@ -1,13 +1,14 @@
 // File: services/core/topology-service/client/src/widgets/CustodyTransferSelector/CustodyTransferSelector.tsx
 import { useState, useEffect } from 'react';
-import { Organization, Asset } from '@contracts/custody';
+import { Organization } from '@contracts/custody';
 import OrganizationSelector from '../OrganizationSelector';
+import type { AssetBase, AssetSelectorProps } from '@contracts/topology';
 import AssetSelector from '../AssetSelector';
 
 export interface CustodyTransferState {
   sourceOrg: Organization | null;
   targetOrg: Organization | null;
-  asset: Asset | null;
+  selectedAsset: AssetBase | null;
 }
 
 export interface CustodyTransferSelectorProps {
@@ -19,18 +20,22 @@ export default function CustodyTransferSelector({
 }: CustodyTransferSelectorProps) {
   const [sourceOrg, setSourceOrg] = useState<Organization | null>(null);
   const [targetOrg, setTargetOrg] = useState<Organization | null>(null);
-  const [asset, setAsset] = useState<Asset | null>(null);
+  const [selectedAssets, setSelectedAssets] = useState<AssetBase[]>([]);
+
+  const selectAssetProps: AssetSelectorProps = {
+    onSelect: setSelectedAssets,
+  };
 
   // Expose the aggregated state to the shell
   useEffect(() => {
-    onStateChange({ sourceOrg, targetOrg, asset });
-  }, [sourceOrg, targetOrg, asset, onStateChange]);
+    onStateChange({ sourceOrg, targetOrg, selectedAsset: selectedAssets[0] });
+  }, [sourceOrg, targetOrg, selectedAssets, onStateChange]);
 
   const handleSourceOrgChange = (org: Organization | null) => {
     setSourceOrg(org);
     // Automatically clear the selected asset if the owner organization changes
-    if (asset && org?.id !== sourceOrg?.id) {
-      setAsset(null);
+    if (selectedAssets && org?.id !== sourceOrg?.id) {
+      setSelectedAssets([]);
     }
   };
 
@@ -43,10 +48,7 @@ export default function CustodyTransferSelector({
         onChange={handleSourceOrgChange}
       />
       <AssetSelector
-        label="2. Asset Selection"
-        selectedId={asset?.id}
-        ownerId={sourceOrg?.id}
-        onChange={setAsset}
+        {...selectAssetProps}
       />
       <OrganizationSelector
         label="3. Receiving Entity (To)"

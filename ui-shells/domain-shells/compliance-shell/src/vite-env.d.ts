@@ -13,3 +13,11 @@ declare module 'compliance_client/widget/*' {
   const Component: ComponentType<any>;
   export default Component;
 }
+
+declare module 'compliance_client/AssetSelector' {
+  import type { ComponentType } from 'react';
+  import type { AssetSelectorProps } from '@contracts/topology';
+
+  const AssetSelector: ComponentType<AssetSelectorWidgetProps>;
+  export default AssetSelector;
+}

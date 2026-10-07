@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* tslint:disable */
 
 /**
@@ -38,14 +39,14 @@ addEventListener('message', async function (event) {
 
   switch (event.data) {
     case 'KEEPALIVE_REQUEST': {
-      await sendToClient(client, {
+      sendToClient(client, {
         type: 'KEEPALIVE_RESPONSE',
       })
       break
     }
 
     case 'INTEGRITY_CHECK_REQUEST': {
-      await sendToClient(client, {
+      sendToClient(client, {
         type: 'INTEGRITY_CHECK_RESPONSE',
         payload: {
           packageVersion: PACKAGE_VERSION,
@@ -58,7 +59,7 @@ addEventListener('message', async function (event) {
     case 'MOCK_ACTIVATE': {
       activeClientIds.add(clientId)
 
-      await sendToClient(client, {
+      sendToClient(client, {
         type: 'MOCKING_ENABLED',
         payload: {
           client: {
@@ -149,7 +150,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
     // Clone the response so both the client and the library could consume it.
     const responseClone = isEventStreamResponse ? null : response.clone()
 
-    void sendToClient(
+    sendToClient(
       client,
       {
         type: 'RESPONSE',
@@ -168,7 +169,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
           },
         },
       },
-      responseClone?.body
+      responseClone && responseClone.body
         ? [serializedRequest.body, responseClone.body]
         : [],
     )
@@ -301,7 +302,7 @@ function sendToClient(client, message, transferrables = []) {
     const channel = new MessageChannel()
 
     channel.port1.onmessage = (event) => {
-      if (event.data?.error) {
+      if (event.data && event.data.error) {
         return reject(event.data.error)
       }
 

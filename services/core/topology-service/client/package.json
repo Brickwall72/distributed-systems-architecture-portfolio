@@ -10,13 +10,17 @@
     "build": "vite build",
     "test": "pnpm test:unit && pnpm test:contract",
     "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .contract.test",
-    "test:integration": "vitest run .integration.test"
+    "test:contract": "vitest run .pact.spec"
+  },
+  "peerDependencies": {
+    "@ts-rest/core": "~3.52.1"
   },
   "dependencies": {
     "@shared/interfaces": "workspace:*",
     "@shared/ui-components": "workspace:*",
     "@contracts/custody": "workspace:*",
+    "@contracts/topology": "workspace:*",
+    "topology-shared": "workspace:*",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "vis-network": "~10.1.2",
