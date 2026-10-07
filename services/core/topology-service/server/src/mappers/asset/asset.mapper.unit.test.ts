@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/mappers/asset/asset.mapper.unit.test.ts
 import type { Record as Neo4jRecord } from 'neo4j-driver';
-import { mapRecordToAssetEntity } from './asset.mapper.js';
+import { mapRecordToAssetEntity } from './asset.mapper';
 
 /**
  * Utility helper to mock Neo4j Record instance without importing full driver internals.
@@ -12,7 +12,7 @@ function createMockRecord(data: Record<string, unknown>): Neo4jRecord {
 }
 
 describe('mapRecordToAssetEntity', () => {
-  it('maps a valid complete Neo4j record to a TopologyAssetEntity', () => {
+  it('maps a valid complete Neo4j record to a AssetEntity', () => {
     const record = createMockRecord({
       id: 'asset-123',
       nomenclature: 'AN/PRC-117G',

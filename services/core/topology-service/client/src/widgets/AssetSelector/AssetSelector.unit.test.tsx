@@ -2,7 +2,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import AssetSelector from './AssetSelector';
 import { useAssets } from '../../hooks';
-import type { AssetDTO } from 'topology-shared';
+import type { AssetDTOList } from 'topology-shared';
 
 // Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({
@@ -12,7 +12,7 @@ vi.mock('../../hooks', () => ({
 describe('AssetSelector Widget (UI Boundary)', () => {
   const mockOnSelect = vi.fn();
 
-  const mockAssetList: AssetDTO[] = [
+  const mockAssetList: AssetDTOList = [
     {
       id: 'ast-001',
       name: 'AN/PRC-117G',

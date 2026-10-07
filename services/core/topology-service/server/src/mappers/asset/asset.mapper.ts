@@ -1,9 +1,10 @@
 // File: services/core/topology-service/server/src/mappers/asset/asset.mapper.ts
 import type { Record as Neo4jRecord } from 'neo4j-driver';
-import type { TopologyAssetEntity } from '../../domain/asset.entity.js';
+import type { AssetEntity } from '../../domain';
 
-export function mapRecordToAssetEntity(record: Neo4jRecord): TopologyAssetEntity {
+export function mapRecordToAssetEntity(record: Neo4jRecord): AssetEntity {
   const id = record.get('id');
+
   if (typeof id !== 'string' || !id) {
     throw new Error('Database integrity error: Neo4j record missing string "id" property');
   }

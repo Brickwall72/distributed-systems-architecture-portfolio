@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/index.ts
 import { Router } from 'express';
 import { createExpressEndpoints } from '@ts-rest/express';
-import { organizationsRouter } from './organizations';
+import { createOrganizationsRouter } from './organizations';
 import { createAssetsRouter } from './assets';
 import { entitiesRouter } from './entities';
 import { createHealthCheck } from '@shared/express';
@@ -15,11 +15,17 @@ export function createTopologyGateway(): Router {
   router.get('/health', createHealthCheck('topology-server'));
   
   // router.use('/authorizations', authorizationsRouter);
-  router.use('/organizations', organizationsRouter);
-
+  const organizationsRouter = createOrganizationsRouter();
   // Defer router creation until this factory function is invoked
   const assetsRouter = createAssetsRouter();
-  createExpressEndpoints(topologyContract, assetsRouter, router);
+  createExpressEndpoints(
+    topologyContract,
+    {
+      ...assetsRouter,
+      ...organizationsRouter,
+    },
+    router
+  );
 
   router.use('/entities', entitiesRouter);
 

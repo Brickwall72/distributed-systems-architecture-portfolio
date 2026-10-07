@@ -1,8 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
 import { useState, useMemo, Suspense, lazy } from 'react';
 import { loadRemote } from '@module-federation/enhanced/runtime';
-import { Organization } from '@contracts/custody';
-import { AssetBase } from "@contracts/topology";
+import { AssetBase, OrganizationBase } from "@contracts/topology";
 import { FederatedErrorBoundary } from '@shared/ui-components';
 
 // Dynamically resolve high-level bounded context widgets
@@ -12,8 +11,8 @@ const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/C
 export default function UnifiedCustodyPage() {
   // 1. Selector States (Managed as a single block from the Topology domain)
   const [transferState, setTransferState] = useState<{
-    sourceOrg: Organization | null;
-    targetOrg: Organization | null;
+    sourceOrg: OrganizationBase | null;
+    targetOrg: OrganizationBase | null;
     asset: AssetBase | null;
   }>({
     sourceOrg: null,

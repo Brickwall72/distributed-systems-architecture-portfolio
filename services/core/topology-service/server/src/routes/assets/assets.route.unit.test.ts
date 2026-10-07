@@ -1,11 +1,11 @@
-// File: services/core/topology-service/server/src/routes/assets.unit.test.ts
+// File: services/core/topology-service/server/src/routes/assets/assets.unit.test.ts
 import { AssetDTOListSchema } from 'topology-shared';
-import { createAssetsRouter } from './assets.route.js';
-import type { TopologyAssetRepository } from '../../repositories/index.js';
-import type { TopologyAssetEntity } from '../../domain/asset.entity.js';
+import { createAssetsRouter } from './assets.route';
+import type { AssetsRepository } from '../../repositories';
+import type { AssetEntity } from '../../domain';
 
 describe('createAssetsRouter (API Boundary Handler)', () => {
-  let mockRepository: Partial<TopologyAssetRepository>;
+  let mockRepository: Partial<AssetsRepository>;
 
   beforeEach(() => {
     mockRepository = {
@@ -14,7 +14,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
   });
 
   it('returns HTTP 200 with contract-compliant AssetDTO array when query succeeds', async () => {
-    const mockEntities: TopologyAssetEntity[] = [
+    const mockEntities: AssetEntity[] = [
       {
         id: 'ast-001',
         nomenclature: 'Tactical Radio',
@@ -30,7 +30,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
 
     vi.mocked(mockRepository.findAssets!).mockResolvedValue(mockEntities);
 
-    const router = createAssetsRouter(mockRepository as TopologyAssetRepository);
+    const router = createAssetsRouter(mockRepository as AssetsRepository);
 
     // Directly invoke the ts-rest handler method
     const response = await router.getAssets({
@@ -44,11 +44,11 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(2);
 
-    // 2. Verify schema compliance of payload
+    // 2. DevSecOps Boundary Check: Explicitly validate mapped response body against Zod DTO schema
     const parsedBody = AssetDTOListSchema.safeParse(response.body);
     expect(parsedBody.success).toBe(true);
 
-    // 3. Verify repository arguments
+    // 3. Verify repository receives normalized filter argument
     expect(mockRepository.findAssets).toHaveBeenCalledWith({ filterOwnerId: 'org-10' });
   });
 
@@ -57,7 +57,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       new Error('Neo4j cluster quorum lost')
     );
 
-    const router = createAssetsRouter(mockRepository as TopologyAssetRepository);
+    const router = createAssetsRouter(mockRepository as AssetsRepository);
 
     const response = await router.getAssets({
       query: {},
@@ -66,10 +66,12 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       res: {} as any,
     });
 
-    // Verify sanitized error response
+    // DevSecOps Check: Verify error payload matches ApiErrorResponseSchema without leaking stack trace
     expect(response.status).toBe(500);
     expect(response.body).toEqual({
       error: 'Internal server error while fetching assets',
+      code: 'INTERNAL_SERVER_ERROR',
+      timestamp: expect.any(String),
     });
   });
 });

@@ -11,6 +11,9 @@ import {
 export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   // 1. Safe MFE Boundary Parsing: Prevents invalid Shell props from crashing the render tree
   const parsedInputs = AssetSelectorInputSchema.safeParse(props);
+  if (!parsedInputs.success) {
+    console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
+  }
   const { filterOwnerId, excludeOwnerId } = parsedInputs.success
     ? parsedInputs.data
     : { filterOwnerId: undefined, excludeOwnerId: undefined };
@@ -34,11 +37,10 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   // 5. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
     return items.map((asset) => {
-      const displayName = asset.nomenclature || asset.name || asset.id;
       const displaySerial = asset.serialNumber || 'N/A';
       return {
         value: asset.id,
-        label: `${displayName} (S/N: ${displaySerial})`,
+        label: `${asset.name} (S/N: ${displaySerial})`,
       };
     });
   }, [items]);
@@ -59,21 +61,12 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
     }
 
     // Normalize domain object to strict AssetBase schema shape
-    const assetPayload: AssetBase = {
-      ...selectedAsset,
-      id: selectedAsset.id,
-      name: selectedAsset.nomenclature ?? selectedAsset.name ?? selectedAsset.id,
-    };
+    const assetPayload: AssetBase = selectedAsset;
 
     // Always emit array to maintain List Collection Pattern with Host Shell
     onSelect([assetPayload]);
   };
-
-  // Log runtime contract violations without throwing unhandled render errors
-  if (!parsedInputs.success) {
-    console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
-  }
-
+  
   return (
     <Select
       label="Select Asset"

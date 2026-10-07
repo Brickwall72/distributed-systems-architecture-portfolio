@@ -1,18 +1,18 @@
 // File: services/core/topology-service/server/src/routes/assets/asset.dto.mapper.ts
 import { AssetDTOSchema } from 'topology-shared';
-import { topologyEntityToDTO } from './asset.dto.mapper.js';
-import type { TopologyAssetEntity } from '../../domain/asset.entity.js';
+import { assetEntityToDTO } from './asset.dto.mapper';
+import type { AssetEntity } from '../../domain';
 
-describe('topologyEntityToDTO', () => {
+describe('assetEntityToDTO', () => {
   it('maps a complete domain entity into a contract-valid AssetDTO', () => {
-    const entity: TopologyAssetEntity = {
+    const entity: AssetEntity = {
       id: 'ast-101',
       nomenclature: 'AN/PRC-152A',
       serialNumber: 'SN-44912',
       currentOwnerId: 'org-302',
     };
 
-    const dto = topologyEntityToDTO(entity);
+    const dto = assetEntityToDTO(entity);
 
     // 1. Assert field mapping correctness
     expect(dto).toEqual({
@@ -28,13 +28,13 @@ describe('topologyEntityToDTO', () => {
   });
 
   it('falls back to entity.id for name when nomenclature is an empty string', () => {
-    const entity: TopologyAssetEntity = {
+    const entity: AssetEntity = {
       id: 'ast-999',
       nomenclature: '',
       serialNumber: 'SN-00000',
     };
 
-    const dto = topologyEntityToDTO(entity);
+    const dto = assetEntityToDTO(entity);
 
     expect(dto.name).toBe('ast-999');
     expect(dto.nomenclature).toBe('');
@@ -45,13 +45,13 @@ describe('topologyEntityToDTO', () => {
   });
 
   it('preserves optional currentOwnerId as undefined when omitted', () => {
-    const entity: TopologyAssetEntity = {
+    const entity: AssetEntity = {
       id: 'ast-202',
       nomenclature: 'DAGR GPS Unit',
       serialNumber: 'SN-11223',
     };
 
-    const dto = topologyEntityToDTO(entity);
+    const dto = assetEntityToDTO(entity);
 
     expect(dto.currentOwnerId).toBeUndefined();
     expect(Object.prototype.hasOwnProperty.call(dto, 'currentOwnerId')).toBeTruthy();

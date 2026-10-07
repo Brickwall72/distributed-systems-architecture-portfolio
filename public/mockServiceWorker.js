@@ -1,5 +1,5 @@
-/* eslint-disable */
 /* tslint:disable */
+/* eslint-disable no-undef */
 
 /**
  * Mock Service Worker.
@@ -39,14 +39,14 @@ addEventListener('message', async function (event) {
 
   switch (event.data) {
     case 'KEEPALIVE_REQUEST': {
-      sendToClient(client, {
+      void sendToClient(client, {
         type: 'KEEPALIVE_RESPONSE',
       })
       break
     }
 
     case 'INTEGRITY_CHECK_REQUEST': {
-      sendToClient(client, {
+      void sendToClient(client, {
         type: 'INTEGRITY_CHECK_RESPONSE',
         payload: {
           packageVersion: PACKAGE_VERSION,
@@ -59,7 +59,7 @@ addEventListener('message', async function (event) {
     case 'MOCK_ACTIVATE': {
       activeClientIds.add(clientId)
 
-      sendToClient(client, {
+      void sendToClient(client, {
         type: 'MOCKING_ENABLED',
         payload: {
           client: {
@@ -80,7 +80,7 @@ addEventListener('message', async function (event) {
 
       // Unregister itself when there are no more clients
       if (remainingClients.length === 0) {
-        self.registration.unregister()
+        void self.registration.unregister()
       }
 
       break
@@ -150,7 +150,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
     // Clone the response so both the client and the library could consume it.
     const responseClone = isEventStreamResponse ? null : response.clone()
 
-    sendToClient(
+    void sendToClient(
       client,
       {
         type: 'RESPONSE',
@@ -165,11 +165,11 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
             status: response.status,
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
-            body: responseClone ? responseClone.body : null,
+            body: responseClone?.body ?? null,
           },
         },
       },
-      responseClone && responseClone.body
+      responseClone?.body
         ? [serializedRequest.body, responseClone.body]
         : [],
     )
@@ -302,7 +302,7 @@ function sendToClient(client, message, transferrables = []) {
     const channel = new MessageChannel()
 
     channel.port1.onmessage = (event) => {
-      if (event.data && event.data.error) {
+      if (event.data?.error) {
         return reject(event.data.error)
       }
 

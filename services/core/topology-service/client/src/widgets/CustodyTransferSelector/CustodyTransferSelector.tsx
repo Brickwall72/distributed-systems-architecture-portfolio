@@ -1,13 +1,18 @@
 // File: services/core/topology-service/client/src/widgets/CustodyTransferSelector/CustodyTransferSelector.tsx
 import { useState, useEffect } from 'react';
-import { Organization } from '@contracts/custody';
 import OrganizationSelector from '../OrganizationSelector';
-import type { AssetBase, AssetSelectorProps } from '@contracts/topology';
 import AssetSelector from '../AssetSelector';
+import type { 
+  AssetBase,
+  OrganizationBase,
+  AssetSelectorProps,
+  OrganizationSelectorProps
+} from '@contracts/topology';
+
 
 export interface CustodyTransferState {
-  sourceOrg: Organization | null;
-  targetOrg: Organization | null;
+  sourceOrg: OrganizationBase | null;
+  targetOrg: OrganizationBase | null;
   selectedAsset: AssetBase | null;
 }
 
@@ -18,43 +23,36 @@ export interface CustodyTransferSelectorProps {
 export default function CustodyTransferSelector({
   onStateChange,
 }: CustodyTransferSelectorProps) {
-  const [sourceOrg, setSourceOrg] = useState<Organization | null>(null);
-  const [targetOrg, setTargetOrg] = useState<Organization | null>(null);
+  const [sourceOrg, setSourceOrg] = useState<OrganizationBase[]>([]);
+  const [targetOrg, setTargetOrg] = useState<OrganizationBase[]>([]);
   const [selectedAssets, setSelectedAssets] = useState<AssetBase[]>([]);
 
   const selectAssetProps: AssetSelectorProps = {
     onSelect: setSelectedAssets,
   };
 
+  const selectSourceOrgProps: OrganizationSelectorProps = {
+    onSelect: setSourceOrg,
+  };
+  const selectTargetOrgProps: OrganizationSelectorProps = {
+    onSelect: setTargetOrg,
+  };
+
   // Expose the aggregated state to the shell
   useEffect(() => {
-    onStateChange({ sourceOrg, targetOrg, selectedAsset: selectedAssets[0] });
+    onStateChange({ sourceOrg: sourceOrg[0], targetOrg: targetOrg[0], selectedAsset: selectedAssets[0] });
   }, [sourceOrg, targetOrg, selectedAssets, onStateChange]);
-
-  const handleSourceOrgChange = (org: Organization | null) => {
-    setSourceOrg(org);
-    // Automatically clear the selected asset if the owner organization changes
-    if (selectedAssets && org?.id !== sourceOrg?.id) {
-      setSelectedAssets([]);
-    }
-  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
       <OrganizationSelector
-        label="1. Transferring Entity (From)"
-        selectedId={sourceOrg?.id}
-        excludeId={targetOrg?.id}
-        onChange={handleSourceOrgChange}
+        {...selectSourceOrgProps}
       />
       <AssetSelector
         {...selectAssetProps}
       />
       <OrganizationSelector
-        label="3. Receiving Entity (To)"
-        selectedId={targetOrg?.id}
-        excludeId={sourceOrg?.id}
-        onChange={setTargetOrg}
+        {...selectTargetOrgProps}
       />
     </div>
   );
