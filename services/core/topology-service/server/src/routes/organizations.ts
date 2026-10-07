@@ -18,7 +18,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   if (!queryParams.success) {
     res.status(400).json({ 
       error: 'Invalid query parameters', 
-      details: z.treeifyError(queryParams.error) 
+      details: queryParams.error.format() 
     });
     return;
   }

@@ -3,17 +3,18 @@
 
 # --- STAGE 1: Builder ---
 FROM base-image:local AS builder
-ARG SERVICE_PATH=/app/services/core/topology-service/client
+ARG SERVICE_PATH=/app/services/core/topology-service
 WORKDIR /app
 
 # Full context copy replaces file whitelisting. 
 # .dockerignore handles ignoring local node_modules/ and dist/
-COPY client/ ${SERVICE_PATH}/
+COPY client/ ${SERVICE_PATH}/client/
+COPY shared/ ${SERVICE_PATH}/shared/
 
 RUN --mount=type=cache,id=distributed-platform-pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
-WORKDIR ${SERVICE_PATH}
+WORKDIR ${SERVICE_PATH}/client
 RUN pnpm build
 
 # --- STAGE 2: Dev Target ---

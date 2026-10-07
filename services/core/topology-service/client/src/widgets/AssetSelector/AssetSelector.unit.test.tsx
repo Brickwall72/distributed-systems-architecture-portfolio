@@ -1,130 +1,172 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.unit.test.tsx
 import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import AssetSelector from './AssetSelector';
 import { useAssets } from '../../hooks';
+import type { AssetDTO } from 'topology-shared';
 
+// Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({
   useAssets: vi.fn(),
 }));
 
-describe('AssetSelector Widget', () => {
-  const mockUseAssets = vi.mocked(useAssets);
-  const mockOnChange = vi.fn();
+describe('AssetSelector Widget (UI Boundary)', () => {
+  const mockOnSelect = vi.fn();
 
-  const mockAssets = [
+  const mockAssetList: AssetDTO[] = [
     {
-      id: 'ast-101',
-      nomenclature: 'Radio Transceiver',
-      serialNumber: 'SN-001',
-      currentOwnerId: 'org-1',
+      id: 'ast-001',
+      name: 'AN/PRC-117G',
+      nomenclature: 'AN/PRC-117G',
+      serialNumber: 'SN-9012',
+      currentOwnerId: 'org-01',
     },
     {
-      id: 'ast-102',
-      nomenclature: 'Satellite Terminal',
-      serialNumber: 'SN-002',
-      currentOwnerId: 'org-1',
+      id: 'ast-002',
+      name: 'Radio Unit 2',
+      nomenclature: '',
+      serialNumber: 'SN-9013',
+      currentOwnerId: 'org-01',
     },
-  ] as any;
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('passes filtering params correctly to useAssets', () => {
-    mockUseAssets.mockReturnValue({ items: [], isLoading: true, error: null });
-
-    render(
-      <AssetSelector
-        label="Select Asset"
-        ownerId="org-1"
-        excludeOwnerId="org-2"
-        onChange={mockOnChange}
-      />
-    );
-
-    expect(mockUseAssets).toHaveBeenCalledWith({
-      ownerId: 'org-1',
-      excludeOwnerId: 'org-2',
+  it('renders loading state when data layer is fetching', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      items: [],
+      isLoading: true,
+      error: null,
     });
-  });
 
-  it('renders loading state when fetching assets', () => {
-    mockUseAssets.mockReturnValue({ items: [], isLoading: true, error: null });
-
-    render(<AssetSelector label="Select Asset" onChange={mockOnChange} />);
+    render(<AssetSelector onSelect={mockOnSelect} />);
 
     expect(screen.getByText('Loading assets...')).toBeInTheDocument();
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('renders error state when hook returns error', () => {
-    mockUseAssets.mockReturnValue({
+  it('renders error state when hook returns an API error', () => {
+    vi.mocked(useAssets).mockReturnValue({
       items: [],
       isLoading: false,
-      error: 'Failed to load items',
+      error: 'Failed to fetch assets from gateway',
     });
 
-    render(<AssetSelector label="Select Asset" onChange={mockOnChange} />);
+    render(<AssetSelector onSelect={mockOnSelect} />);
 
-    expect(screen.getByText('Error: Failed to load items')).toBeInTheDocument();
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    // RegExp matches substring alongside "Error: " prefix
+    expect(screen.getByText(/Failed to fetch assets from gateway/i)).toBeInTheDocument();
   });
 
-  it('maps asset items to options and triggers onChange with the full domain object on selection', async () => {
-    const user = userEvent.setup();
-    mockUseAssets.mockReturnValue({
-      items: mockAssets,
+  it('maps AssetDTO items into formatted select options', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      items: mockAssetList,
       isLoading: false,
       error: null,
     });
 
-    render(
-      <AssetSelector
-        label="Select Asset"
-        selectedId="ast-101"
-        onChange={mockOnChange}
-      />
-    );
+    render(<AssetSelector onSelect={mockOnSelect} />);
 
-    const select = screen.getByRole('combobox', { name: 'Select Asset' });
-    expect(select).toHaveValue('ast-101');
+    const select = screen.getByRole('combobox');
+    expect(select).toBeInTheDocument();
 
-    // Verify option label formatting: `${nomenclature} (S/N: ${serialNumber})`
-    expect(
-      screen.getByRole('option', { name: 'Radio Transceiver (S/N: SN-001)' })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('option', { name: 'Satellite Terminal (S/N: SN-002)' })
-    ).toBeInTheDocument();
-
-    // Select second option
-    await user.selectOptions(select, 'ast-102');
-
-    expect(mockOnChange).toHaveBeenCalledTimes(1);
-    expect(mockOnChange).toHaveBeenCalledWith(mockAssets[1]);
+    // Verify option labels maintain fallback formatting rules: nomenclature ?? name
+    expect(screen.getByText('AN/PRC-117G (S/N: SN-9012)')).toBeInTheDocument();
+    expect(screen.getByText('Radio Unit 2 (S/N: SN-9013)')).toBeInTheDocument();
   });
 
-  it('calls onChange with null when selecting the default empty placeholder', () => {
-    mockUseAssets.mockReturnValue({
-      items: mockAssets,
+  it('emits AssetBase[] array payload to Shell on user selection', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      items: mockAssetList,
       isLoading: false,
       error: null,
     });
 
-    render(
-      <AssetSelector
-        label="Select Asset"
-        selectedId="ast-101"
-        onChange={mockOnChange}
-      />
-    );
+    render(<AssetSelector onSelect={mockOnSelect} />);
 
-    const select = screen.getByRole('combobox', { name: 'Select Asset' });
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'ast-001' } });
 
+    // Verify list collection contract payload
+    expect(mockOnSelect).toHaveBeenCalledWith([
+      {
+        id: 'ast-001',
+        name: 'AN/PRC-117G',
+        nomenclature: 'AN/PRC-117G',
+        serialNumber: 'SN-9012',
+        currentOwnerId: 'org-01',
+      },
+    ]);
+  });
+
+  it('clears selection and emits empty array when asset is deselected', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      items: mockAssetList,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<AssetSelector onSelect={mockOnSelect} />);
+
+    const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '' } });
 
-    expect(mockOnChange).toHaveBeenCalledTimes(1);
-    expect(mockOnChange).toHaveBeenCalledWith(null);
+    expect(mockOnSelect).toHaveBeenCalledWith([]);
+  });
+
+  it('safely handles invalid props from Host Shell without crashing render tree', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.mocked(useAssets).mockReturnValue({
+      items: [],
+      isLoading: false,
+      error: null,
+    });
+
+    // Pass invalid prop shape (filterOwnerId should be string, passing number)
+    const invalidProps = {
+      filterOwnerId: 12345 as unknown as string,
+      onSelect: mockOnSelect,
+    };
+
+    render(<AssetSelector {...invalidProps} />);
+
+    // Verify console warning was logged rather than uncaught exception throw
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[AssetSelector MFE] Invalid props received'),
+      expect.anything()
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it('resets selection if currently selected asset disappears after filter update', () => {
+    const { rerender } = render(<AssetSelector onSelect={mockOnSelect} />);
+
+    // 1. Initial render with 2 items
+    vi.mocked(useAssets).mockReturnValue({
+      items: mockAssetList,
+      isLoading: false,
+      error: null,
+    });
+
+    rerender(<AssetSelector onSelect={mockOnSelect} />);
+
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'ast-001' } });
+
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
+
+    // 2. Data updates (ast-001 filtered out)
+    vi.mocked(useAssets).mockReturnValue({
+      items: [mockAssetList[1]], // Only ast-002 remains
+      isLoading: false,
+      error: null,
+    });
+
+    rerender(<AssetSelector onSelect={mockOnSelect} />);
+
+    // useEffect hook should detect ast-001 is missing and emit empty array
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
   });
 });

@@ -1,19 +1,27 @@
 // File: services/core/topology-service/server/src/routes/index.ts
 import { Router } from 'express';
-// import { authorizationsRouter } from './authorizations.js';
-import { organizationsRouter } from './organizations.js';
-import { assetsRouter } from './assets.js';
-import { entitiesRouter } from './entities.js';
+import { createExpressEndpoints } from '@ts-rest/express';
+import { organizationsRouter } from './organizations';
+import { createAssetsRouter } from './assets';
+import { entitiesRouter } from './entities';
 import { createHealthCheck } from '@shared/express';
+import { topologyContract } from 'topology-shared';
 
-const router = Router();
+export function createTopologyGateway(): Router {
+  const router = Router();
 
-/* Container health endpoint used by orchestrators and deployment monitors to verify that the
- * service is alive before routing real business traffic through the validation gate. */
-router.get('/health', createHealthCheck('topology-server'));
-// router.use('/authorizations', authorizationsRouter);
-router.use('/organizations', organizationsRouter);
-router.use('/assets', assetsRouter);
-router.use('/entities', entitiesRouter);
+  /* Container health endpoint used by orchestrators and deployment monitors to verify that the
+   * service is alive before routing real business traffic through the validation gate. */
+  router.get('/health', createHealthCheck('topology-server'));
+  
+  // router.use('/authorizations', authorizationsRouter);
+  router.use('/organizations', organizationsRouter);
 
-export { router as topologyGateway };
+  // Defer router creation until this factory function is invoked
+  const assetsRouter = createAssetsRouter();
+  createExpressEndpoints(topologyContract, assetsRouter, router);
+
+  router.use('/entities', entitiesRouter);
+
+  return router;
+}

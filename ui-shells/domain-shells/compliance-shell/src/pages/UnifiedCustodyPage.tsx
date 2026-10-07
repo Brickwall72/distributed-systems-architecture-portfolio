@@ -1,7 +1,8 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
 import { useState, useMemo, Suspense, lazy } from 'react';
 import { loadRemote } from '@module-federation/enhanced/runtime';
-import { Organization, Asset } from '@contracts/custody';
+import { Organization } from '@contracts/custody';
+import { AssetBase } from "@contracts/topology";
 import { FederatedErrorBoundary } from '@shared/ui-components';
 
 // Dynamically resolve high-level bounded context widgets
@@ -13,7 +14,7 @@ export default function UnifiedCustodyPage() {
   const [transferState, setTransferState] = useState<{
     sourceOrg: Organization | null;
     targetOrg: Organization | null;
-    asset: Asset | null;
+    asset: AssetBase | null;
   }>({
     sourceOrg: null,
     targetOrg: null,
@@ -40,9 +41,9 @@ export default function UnifiedCustodyPage() {
       // Fallback flatteners for older templates
       releasingEntityName: sourceOrg?.name ?? '',
       receivingEntityName: targetOrg?.name ?? '',
-      nomenclature: asset?.nomenclature ?? '',
-      serialNumber: asset?.serialNumber ?? '',
-      items: asset ? [{ itemNumber: 1, nomenclature: asset.nomenclature, serialNumber: asset.serialNumber, unit: 'EA', quantity: 1 }] : [],
+      // nomenclature: asset?.nomenclature ?? '',
+      // serialNumber: asset?.serialNumber ?? '',
+      // items: asset ? [{ itemNumber: 1, nomenclature: asset.nomenclature, serialNumber: asset.serialNumber, unit: 'EA', quantity: 1 }] : [],
     };
   }, [sourceOrg, targetOrg, asset, requisitionNumber, transferDate]);
 

@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly"
 
   },
   "peerDependencies": {

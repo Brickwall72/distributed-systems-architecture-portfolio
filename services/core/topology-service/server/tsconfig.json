@@ -6,5 +6,5 @@
   },
   "include": [
     "src/**/*"
-  ]
+, "../shared/src/schemas"  ]
 }
