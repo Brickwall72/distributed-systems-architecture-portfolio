@@ -9,7 +9,7 @@ export class OrganizationsRepository extends BaseRepository {
     const cypher = `
       MATCH (o:Organization)
       WHERE ($filterOwnedId IS NULL OR EXISTS {
-        MATCH (o)-[:OWNS]->(a:Asset { id: $filterOwnedId })
+        MATCH (o)-[:HAS_CUSTODY]->(a:Asset { id: $filterOwnedId })
       })
       RETURN 
         o.id AS id,

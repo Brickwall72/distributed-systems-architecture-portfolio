@@ -18,3 +18,9 @@ export const OrganizationBaseSchema = z
   });
 
 export type OrganizationBase = z.infer<typeof OrganizationBaseSchema>;
+
+/**
+ * Array contract for collection endpoints and selection outputs.
+ */
+export const OrganizationBaseListSchema = z.array(OrganizationBaseSchema);
+export type OrganizationBaseList = z.infer<typeof OrganizationBaseListSchema>;

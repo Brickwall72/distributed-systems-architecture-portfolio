@@ -2,12 +2,6 @@
 
 /// <reference types="vite/client" />
 
-declare module 'topology_client/*' {
-  import { ComponentType } from 'react';
-  const Component: ComponentType<any>;
-  export default Component;
-}
-
 declare module 'compliance_client/widget/*' {
   import { ComponentType } from 'react';
   const Component: ComponentType<any>;
