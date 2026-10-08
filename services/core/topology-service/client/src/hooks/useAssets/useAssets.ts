@@ -1,7 +1,8 @@
 // File: services/core/topology-service/client/src/hooks/useAssets/useAssets.ts
 import { apiClient } from '../../api';
 import { useTopologyQuery } from '../useTopologyQuery';
-import type { GetAssetsQuery, AssetDTO } from 'topology-shared';
+import { AssetDTO } from '@contracts/topology';
+import type { GetAssetsQuery } from 'topology-shared';
 
 export function useAssets(params?: GetAssetsQuery) {
   return useTopologyQuery<GetAssetsQuery, AssetDTO>({

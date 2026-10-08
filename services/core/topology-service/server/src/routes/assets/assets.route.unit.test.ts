@@ -1,7 +1,9 @@
 // File: services/core/topology-service/server/src/routes/assets/assets.unit.test.ts
-import { AssetDTOListSchema, AssetEntity } from 'topology-shared';
+import { AssetDTOListSchema } from '@contracts/topology';
 import { createAssetsRouter } from './assets.route';
 import type { AssetsRepository } from '../../repositories';
+import { AssetEntity } from '../../domain';
+
 describe('createAssetsRouter (API Boundary Handler)', () => {
   let mockRepository: Partial<AssetsRepository>;
 

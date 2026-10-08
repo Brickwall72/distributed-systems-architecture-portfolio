@@ -4,10 +4,10 @@ import { lazyRemote } from '../utils/federation';
 import { loadRemote } from '@module-federation/enhanced/runtime';
 import { FederatedErrorBoundary } from '@shared/ui-components';
 import type { 
-  // AssetBase,
-  AssetBaseList,
-  // OrganizationBase,
-  OrganizationBaseList,
+  // AssetDTO,
+  AssetDTOList,
+  // OrganizationDTO,
+  OrganizationDTOList,
   AssetSelectorProps,
   OrganizationSelectorProps
 } from '@contracts/topology';
@@ -19,9 +19,9 @@ const ComplianceWorkflowWidget = lazy(() => loadRemote<any>('compliance_client/C
 
 export default function UnifiedCustodyPage() {
   // 1. Topology Data Handlers
-  const [sourceOrg, setSourceOrg] = useState<OrganizationBaseList>([]);
-  const [targetOrg, setTargetOrg] = useState<OrganizationBaseList>([]);
-  const [assets, setAssets] = useState<AssetBaseList>([]);
+  const [sourceOrg, setSourceOrg] = useState<OrganizationDTOList>([]);
+  const [targetOrg, setTargetOrg] = useState<OrganizationDTOList>([]);
+  const [assets, setAssets] = useState<AssetDTOList>([]);
 
   // 2. Form Metadata Context
   const [transferDate] = useState(new Date().toDateString());

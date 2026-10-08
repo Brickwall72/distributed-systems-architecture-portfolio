@@ -1,6 +1,6 @@
 // File: packages/contracts/topology/src/inputs/AssetSelector.input.schema.ts
 import { z } from 'zod';
-import { type AssetBase } from '../outputs';
+import { type AssetDTO } from '../outputs';
 
 /**
  * Runtime input schema enforced at the MFE boundary.
@@ -30,9 +30,9 @@ export type AssetSelectorInputs = z.input<typeof AssetSelectorInputSchema>;
 export type AssetSelectorProps = AssetSelectorInputs & {
   /**
    * Selection event handler invoked on state change.
-   * Always emits a list array (`AssetBase[]`) to enforce List Collection uniformity:
+   * Always emits a list array (`AssetDTO[]`) to enforce List Collection uniformity:
    * - Single-select: `[selectedAsset]` or `[]`
    * - Multi-select: `[assetA, assetB]` or `[]`
    */
-  readonly onSelect: (selectedAssets: AssetBase[]) => void;
+  readonly onSelect: (selectedAssets: AssetDTO[]) => void;
 };

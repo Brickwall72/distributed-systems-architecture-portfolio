@@ -1,7 +1,8 @@
 // File: services/core/topology-service/server/src/routes/organizations/organizations.unit.test.ts
-import { OrganizationDTOListSchema, OrganizationEntity } from 'topology-shared';
+import { OrganizationDTOListSchema } from '@contracts/topology';
 import { createOrganizationsRouter } from './organizations.route';
 import type { OrganizationsRepository } from '../../repositories';
+import { OrganizationEntity } from '../../domain';
 
 describe('createOrganizationsRouter (API Boundary Handler)', () => {
   let mockRepository: Partial<OrganizationsRepository>;

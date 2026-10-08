@@ -1,6 +1,7 @@
 // File: services/core/topology-service/server/src/routes/organizations/organizations.route.ts
 import { initServer } from '@ts-rest/express';
-import { organizationsContract, OrganizationDTOList } from 'topology-shared';
+import { OrganizationDTOList } from '@contracts/topology';
+import { organizationsContract } from 'topology-shared';
 import { OrganizationsRepository } from '../../repositories';
 import { organizationEntityToDTO } from './organization.dto.mapper';
 import { getDatabaseClient } from '../../topologyDatabase';

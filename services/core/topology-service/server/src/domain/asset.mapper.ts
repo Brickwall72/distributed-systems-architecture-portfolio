@@ -1,8 +1,8 @@
 // File: services/core/topology-service/server/src/mappers/asset/asset.mapper.ts
 import type { Record as Neo4jRecord } from 'neo4j-driver';
-import type { AssetEntity } from '../../domain';
+import type { AssetDTO } from '../../domain';
 
-export function mapRecordToAssetEntity(record: Neo4jRecord): AssetEntity {
+export function mapRecordToAssetDTO(record: Neo4jRecord): AssetDTO {
   const id = record.get('id');
 
   if (typeof id !== 'string' || !id) {

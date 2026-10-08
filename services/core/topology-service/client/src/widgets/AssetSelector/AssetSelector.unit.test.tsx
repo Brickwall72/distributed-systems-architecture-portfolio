@@ -2,7 +2,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import AssetSelector from './AssetSelector';
 import { useAssets } from '../../hooks';
-import type { AssetDTOList } from 'topology-shared';
+import type { AssetDTOList } from '@contracts/topology';
 
 // Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({
@@ -75,7 +75,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(screen.getByText('Radio Unit 2 (S/N: SN-9013)')).toBeInTheDocument();
   });
 
-  it('emits AssetBase[] array payload to Shell on user selection', () => {
+  it('emits AssetDTO[] array payload to Shell on user selection', () => {
     vi.mocked(useAssets).mockReturnValue({
       items: mockAssetList,
       isLoading: false,

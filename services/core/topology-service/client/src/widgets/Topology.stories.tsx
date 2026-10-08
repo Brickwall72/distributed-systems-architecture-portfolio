@@ -1,7 +1,7 @@
 // File: src/widgets/Topology.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse } from 'msw';
-import { AssetEntity, OrganizationEntity } from 'topology-shared';
+import { AssetDTOList, OrganizationDTOList } from '@contracts/topology';
 import { 
   ConnectionFormWidget, 
   NetworkCanvasWidget 
@@ -22,15 +22,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Mock Dataset
-const MOCK_ORGANIZATIONS: OrganizationEntity[] = [
-  { id: 'org-1', name: 'Alpha Command', type: 'COMMAND', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
-  { id: 'org-2', name: 'Bravo Logistics', type: 'LOGISTICS', addressLine1: '456 Depot Way', addressLine2: '' },
+const MOCK_ORGANIZATIONS: OrganizationDTOList = [
+  { id: 'org-1', name: 'Alpha Command', type: 'CONTRACTOR', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
+  { id: 'org-2', name: 'Bravo Logistics', type: 'GOV', addressLine1: '456 Depot Way', addressLine2: '' },
 ];
 
-const MOCK_ASSETS: AssetEntity[] = [
-  { id: 'asset-1', nomenclature: 'Tactical Radio', serialNumber: 'TR-102938', currentOwnerId: 'org-1' },
-  { id: 'asset-2', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', currentOwnerId: 'org-2' },
-  { id: 'asset-3', nomenclature: 'Quantum Sensor', serialNumber: 'QS-998877', currentOwnerId: 'org-1' },
+const MOCK_ASSETS: AssetDTOList = [
+  { id: 'asset-1', name: 'Tactical Radio', nomenclature: 'Tactical Radio', serialNumber: 'TR-102938', currentOwnerId: 'org-1' },
+  { id: 'asset-2', name: 'Night Vision Goggles', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', currentOwnerId: 'org-2' },
+  { id: 'asset-3', name: 'Quantum Sensor',nomenclature: 'Quantum Sensor', serialNumber: 'QS-998877', currentOwnerId: 'org-1' },
 ];
 
 // Reusable MSW Handlers

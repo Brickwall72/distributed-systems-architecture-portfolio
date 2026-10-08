@@ -1,5 +1,6 @@
 // File: services/core/topology-service/server/src/routes/organizations/organization.dto.mapper.ts
-import { OrganizationEntity, OrganizationDTOSchema, type OrganizationDTO } from 'topology-shared';
+import { OrganizationDTOSchema, type OrganizationDTO } from '@contracts/topology';
+import type { OrganizationEntity } from '../../domain';
 
 const OrganizationTypeEnum = OrganizationDTOSchema.shape.type;
 
