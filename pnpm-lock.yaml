@@ -128,12 +128,6 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
 
-  packages/contracts/custody:
-    dependencies:
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-
   packages/contracts/esign:
     dependencies:
       '@contracts/common':
@@ -251,9 +245,6 @@ importers:
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance
-      '@contracts/custody':
-        specifier: workspace:*
-        version: link:../../../../packages/contracts/custody
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
@@ -321,9 +312,6 @@ importers:
 
   services/core/topology-service/client:
     dependencies:
-      '@contracts/custody':
-        specifier: workspace:*
-        version: link:../../../../packages/contracts/custody
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../../packages/contracts/topology
@@ -361,9 +349,6 @@ importers:
       '@contracts/common':
         specifier: workspace:*
         version: link:../../../../packages/contracts/common
-      '@contracts/custody':
-        specifier: workspace:*
-        version: link:../../../../packages/contracts/custody
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../../packages/contracts/topology
@@ -505,9 +490,6 @@ importers:
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../packages/contracts/compliance
-      '@contracts/custody':
-        specifier: workspace:*
-        version: link:../../../packages/contracts/custody
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../packages/contracts/topology

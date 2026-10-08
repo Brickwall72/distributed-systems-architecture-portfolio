@@ -19,7 +19,6 @@
   "dependencies": {
     "@shared/express": "workspace:*",
     "@shared/interfaces": "workspace:*",
-    "@contracts/custody": "workspace:*",
     "@contracts/topology": "workspace:*",
     "topology-shared": "workspace:*",
     "@ts-rest/core": "~3.52.1",

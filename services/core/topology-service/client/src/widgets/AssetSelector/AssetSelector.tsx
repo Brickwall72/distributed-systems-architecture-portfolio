@@ -5,7 +5,6 @@ import { useAssets } from '../../hooks';
 import {
   AssetSelectorInputSchema,
   type AssetSelectorProps,
-  type AssetBase,
 } from '@contracts/topology';
 
 export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
@@ -45,7 +44,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
     });
   }, [items]);
 
-  // 6. Handle Selection & Emit Uniform AssetBase[] Payload
+  // 6. Handle Selection & Emit Uniform AssetDTO[] Payload
   const handleValueChange = (value: string) => {
     setSelectedId(value);
 
@@ -60,11 +59,8 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       return;
     }
 
-    // Normalize domain object to strict AssetBase schema shape
-    const assetPayload: AssetBase = selectedAsset;
-
     // Always emit array to maintain List Collection Pattern with Host Shell
-    onSelect([assetPayload]);
+    onSelect([selectedAsset]);
   };
   
   return (

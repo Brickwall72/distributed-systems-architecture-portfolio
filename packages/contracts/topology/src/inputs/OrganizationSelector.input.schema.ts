@@ -1,6 +1,6 @@
 // File: packages/contracts/topology/src/inputs/OrganizationSelector.input.schema.ts
 import { z } from 'zod';
-import { type OrganizationBase } from '../outputs';
+import { type OrganizationDTO } from '../outputs';
 
 /**
  * Runtime input configuration passed from Shell -> OrganizationSelector MFE Widget.
@@ -29,9 +29,9 @@ export type OrganizationSelectorInputs = z.input<typeof OrganizationSelectorInpu
 export type OrganizationSelectorProps = OrganizationSelectorInputs & {
   /**
    * Selection event handler.
-   * Always emits an array (`OrganizationBase[]`) to ensure predictable processing in the Shell:
+   * Always emits an array (`OrganizationDTO[]`) to ensure predictable processing in the Shell:
    * - Single-select: `[selectedOrganization]` or `[]`
    * - Multi-select: `[OrganizationA, OrganizationB]` or `[]`
    */
-  readonly onSelect: (selectedOrganizations: OrganizationBase[]) => void;
+  readonly onSelect: (selectedOrganizations: OrganizationDTO[]) => void;
 };

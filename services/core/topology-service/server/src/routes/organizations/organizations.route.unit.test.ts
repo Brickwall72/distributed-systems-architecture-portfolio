@@ -1,5 +1,5 @@
 // File: services/core/topology-service/server/src/routes/organizations/organizations.unit.test.ts
-import { OrganizationDTOListSchema } from 'topology-shared';
+import { OrganizationDTOListSchema } from '@contracts/topology';
 import { createOrganizationsRouter } from './organizations.route';
 import type { OrganizationsRepository } from '../../repositories';
 import type { OrganizationEntity } from '../../domain';

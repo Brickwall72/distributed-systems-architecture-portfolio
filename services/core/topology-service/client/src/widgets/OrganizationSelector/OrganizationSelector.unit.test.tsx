@@ -2,7 +2,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganizations } from '../../hooks';
-import type { OrganizationDTOList } from 'topology-shared';
+import type { OrganizationDTOList } from '@contracts/topology';
 
 // Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({

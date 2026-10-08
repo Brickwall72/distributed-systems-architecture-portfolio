@@ -5,7 +5,6 @@ import { useOrganizations } from '../../hooks';
 import {
   OrganizationSelectorInputSchema,
   type OrganizationSelectorProps,
-  type OrganizationBase,
 } from '@contracts/topology';
 
 export default function OrganizationSelector(props: Readonly<OrganizationSelectorProps>) {
@@ -86,9 +85,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
       onSelect([]);
       return;
     }
-
-    const organizationPayload: OrganizationBase = selectedOrganization;
-    onSelect([organizationPayload]);
+    onSelect([selectedOrganization]);
   };
 
   // 6. Synchronize Selection & Auto-Select
