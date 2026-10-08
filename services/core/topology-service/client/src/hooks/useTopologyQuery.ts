@@ -25,9 +25,12 @@ export function useTopologyQuery<TParams, TData>({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep latest fetcher in ref to avoid re-triggering effect on inline function closures
+  // Keep latest fetcher AND params in refs to avoid closure staleness without breaking dependency checks
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
+
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   // Primitive string key comparison prevents infinite render loops from un-memoized object params
   const queryKey = JSON.stringify(params ?? {});
@@ -40,7 +43,8 @@ export function useTopologyQuery<TParams, TData>({
         setIsLoading(true);
         setError(null);
 
-        const response = await fetcherRef.current(params, { signal: controller.signal });
+        // Access parameters safely via the ref
+        const response = await fetcherRef.current(paramsRef.current, { signal: controller.signal });
 
         if (response.status === 200 && Array.isArray(response.body)) {
           setItems(response.body as TData[]);
@@ -71,7 +75,8 @@ export function useTopologyQuery<TParams, TData>({
     return () => {
       controller.abort();
     };
-  }, [queryKey, fallbackErrorMessage, params]);
+  // 🚨 REMOVED `params` from dependencies! `queryKey` controls execution lifecycle.
+  }, [queryKey, fallbackErrorMessage]); 
 
   return { items, isLoading, error };
 }

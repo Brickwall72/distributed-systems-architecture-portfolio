@@ -1,5 +1,5 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector/OrganizationSelector.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
 import { useOrganizations } from '../../hooks';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@contracts/topology';
 
 export default function OrganizationSelector(props: Readonly<OrganizationSelectorProps>) {
-  // 1. Safe MFE Boundary Parsing: Prevents invalid Shell props from crashing the render tree
+  // 1. Safe MFE Boundary Parsing
   const parsedInputs = OrganizationSelectorInputSchema.safeParse(props);
   if (!parsedInputs.success) {
     console.warn('[OrganizationSelector MFE] Invalid props received:', parsedInputs.error);
@@ -20,38 +20,66 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
 
   const { onSelect } = props;
 
-  // 2. Local Selection State
+  // 2. Local Selection & Interaction State
   const [selectedId, setSelectedId] = useState<string>('');
+  const userClearedRef = useRef(false);
+
+  // Track previous filtering props to determine filter transitions
+  const prevPropsRef = useRef({ filterOwnedId, excludeOrgId });
+
+  // Evaluate filtering prop changes on every render pass
+  if (
+    prevPropsRef.current.filterOwnedId !== filterOwnedId ||
+    prevPropsRef.current.excludeOrgId !== excludeOrgId
+  ) {
+    const prevOwned = prevPropsRef.current.filterOwnedId;
+    const prevExclude = prevPropsRef.current.excludeOrgId;
+
+    // RULE: If filter is being removed/cleared (broadening context), suppress auto-selection!
+    const isFilterCleared =
+      (prevOwned && !filterOwnedId) || (prevExclude && !excludeOrgId);
+
+    if (isFilterCleared) {
+      userClearedRef.current = true; // Block auto-selection when clearing filters
+    } else {
+      userClearedRef.current = false; // Reset flag on narrowing/changing filters
+    }
+
+    prevPropsRef.current = { filterOwnedId, excludeOrgId };
+  }
 
   // 3. Query Data Access Layer
   const { items, isLoading, error } = useOrganizations({ filterOwnedId });
 
-  // 4. Synchronize Selection: Clear selection if active organization is filtered out by prop changes
-  useEffect(() => {
-    if (selectedId && !items.some((item) => item.id === selectedId)) {
-      setSelectedId('');
-      onSelect([]);
-    }
-  }, [items, selectedId, onSelect]);
-
-  // 5. Map Domain DTOs to UI Select Options
+  // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
-    return items
-      .filter((org) => org.id !== excludeOrgId)
-      .map((org) => ({
-        value: org.id,
-        label: org.name,
-      }));
-  }, [items, excludeOrgId]);
+    // PRECEDENCE RULE: If an explicit asset filter returns exactly 1 holding org, 
+    // bypass excludeOrgId so the true owner can still be selected.
+    const effectiveItems =
+      filterOwnedId && items.length === 1
+        ? items
+        : items.filter((org) => org.id !== excludeOrgId);
 
-  // 6. Handle Selection & Emit Uniform OrganizationBase[] Payload
+    return effectiveItems.map((org) => ({
+      value: org.id,
+      label: org.name,
+    }));
+  }, [items, excludeOrgId, filterOwnedId]);
+
+  // 5. Handle User Selection
   const handleValueChange = (value: string) => {
-    setSelectedId(value);
+    if (value === selectedId) return;
 
+    // Explicit user deselection via placeholder choice
     if (!value) {
+      userClearedRef.current = true;
+      setSelectedId('');
       onSelect([]);
       return;
     }
+
+    userClearedRef.current = false;
+    setSelectedId(value);
 
     const selectedOrganization = items.find((organization) => organization.id === value);
     if (!selectedOrganization) {
@@ -59,12 +87,26 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
       return;
     }
 
-    // Normalize domain object to strict OrganizationBase schema shape
     const organizationPayload: OrganizationBase = selectedOrganization;
-
-    // Always emit array to maintain List Collection Pattern with Host Shell
     onSelect([organizationPayload]);
   };
+
+  // 6. Synchronize Selection & Auto-Select
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Case A: Active selection is no longer present in available options -> Clear
+    if (selectedId && !options.some((option) => option.value === selectedId)) {
+      setSelectedId('');
+      onSelect([]);
+      return;
+    }
+
+    // Case B: Auto-select single option ONLY when NOT suppressed by explicit clear/deselection
+    if (options.length === 1 && selectedId !== options[0].value && !userClearedRef.current) {
+      handleValueChange(options[0].value);
+    }
+  }, [options, selectedId, isLoading]);
 
   return (
     <Select
