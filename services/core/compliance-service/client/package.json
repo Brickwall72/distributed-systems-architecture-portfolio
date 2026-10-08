@@ -17,7 +17,6 @@
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "@shared/ui-components": "workspace:*",
-    "@contracts/custody": "workspace:*",
     "@contracts/compliance": "workspace:*",
     "esign-client": "workspace:*",
     "pdf-client": "workspace:*",

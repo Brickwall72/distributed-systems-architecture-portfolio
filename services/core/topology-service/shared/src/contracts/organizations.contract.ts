@@ -1,6 +1,7 @@
 // File: services/core/topology-service/shared/src/contracts/organizations.contract.ts
 import { initContract } from '@ts-rest/core';
-import { GetOrganizationsQuerySchema, OrganizationDTOListSchema } from '../schemas';
+import { GetOrganizationsQuerySchema } from '../schemas';
+import { OrganizationDTOListSchema } from '@contracts/topology';
 import { ApiErrorResponseSchema } from '@contracts/common';
 
 const c = initContract();

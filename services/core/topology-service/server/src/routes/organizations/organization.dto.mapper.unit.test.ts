@@ -1,5 +1,5 @@
 // File: services/core/topology-service/server/src/routes/organizations/organization.dto.mapper.unit.test.ts
-import { OrganizationDTOSchema } from 'topology-shared';
+import { OrganizationDTOSchema } from '@contracts/topology';
 import { organizationEntityToDTO } from './organization.dto.mapper';
 import type { OrganizationEntity } from '../../domain';
 

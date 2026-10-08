@@ -18,7 +18,6 @@
   "dependencies": {
     "@shared/interfaces": "workspace:*",
     "@shared/ui-components": "workspace:*",
-    "@contracts/custody": "workspace:*",
     "@contracts/topology": "workspace:*",
     "topology-shared": "workspace:*",
     "react": "~19.2.8",

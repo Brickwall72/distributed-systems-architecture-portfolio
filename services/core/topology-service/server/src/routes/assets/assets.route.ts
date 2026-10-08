@@ -1,6 +1,7 @@
 // File: services/core/topology-service/server/src/routes/assets/assets.route.ts
 import { initServer } from '@ts-rest/express';
-import { assetsRoutes, type AssetDTOList } from 'topology-shared';
+import type { AssetDTOList } from '@contracts/topology';
+import { assetsRoutes } from 'topology-shared';
 import { AssetsRepository } from '../../repositories';
 import { assetEntityToDTO } from './asset.dto.mapper';
 import { getDatabaseClient } from '../../topologyDatabase';

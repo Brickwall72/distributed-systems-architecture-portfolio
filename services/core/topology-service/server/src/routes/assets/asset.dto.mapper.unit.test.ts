@@ -1,5 +1,5 @@
 // File: services/core/topology-service/server/src/routes/assets/asset.dto.mapper.ts
-import { AssetDTOSchema } from 'topology-shared';
+import { AssetDTOSchema } from '@contracts/topology';
 import { assetEntityToDTO } from './asset.dto.mapper';
 import type { AssetEntity } from '../../domain';
 
@@ -27,7 +27,7 @@ describe('assetEntityToDTO', () => {
     expect(() => AssetDTOSchema.parse(dto)).not.toThrow();
   });
 
-  it('falls back to entity.id for name when nomenclature is an empty string', () => {
+  it('falls back to entity.id for name and nomenclature when nomenclature is an empty string', () => {
     const entity: AssetEntity = {
       id: 'ast-999',
       nomenclature: '',
@@ -37,10 +37,10 @@ describe('assetEntityToDTO', () => {
     const dto = assetEntityToDTO(entity);
 
     expect(dto.name).toBe('ast-999');
-    expect(dto.nomenclature).toBe('');
+    expect(dto.nomenclature).toBe('ast-999');
     expect(dto.currentOwnerId).toBeUndefined();
 
-    // Verify contract compliance with fallback name
+    // Contract compliance now succeeds without throwing
     expect(() => AssetDTOSchema.parse(dto)).not.toThrow();
   });
 

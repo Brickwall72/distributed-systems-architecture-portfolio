@@ -1,6 +1,6 @@
 // File: packages/contracts/compliance/src/inputs/ComplianceWorkflow.schema.ts
 import { z } from 'zod';
-import { AssetBaseSchema } from '@contracts/topology';
+import { AssetDTOSchema } from '@contracts/topology';
 
 // ==========================================
 //   COMPLIANCE WORKFLOW PAYLOAD CONTRACT
@@ -11,7 +11,7 @@ import { AssetBaseSchema } from '@contracts/topology';
 export const ComplianceWorkflowPayloadSchema = z.object({
   // sourceOrganization: BaseOrganizationSchema,
   // targetOrganization: BaseOrganizationSchema,
-  assets: z.array(AssetBaseSchema).min(1, 'At least one asset is required'),
+  assets: z.array(AssetDTOSchema).min(1, 'At least one asset is required'),
 });
 
 export type ComplianceWorkflowPayload = z.infer<typeof ComplianceWorkflowPayloadSchema>;
