@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/entities.ts
 import { Router, Request, Response } from 'express';
 import { createLogger } from '@shared/express';
-import { getDatabaseClient } from '../topologyDatabase.js';
+import { getDatabaseClient } from '../topologyDatabase';
 import {
   EntityDirectoryResponsePayload,
   CustodyTransferRecord
@@ -63,7 +63,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       transfers
     };
 
-    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer records.`, correlationId);
+    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer record(s).`, correlationId);
     res.status(200).json(responsePayload);
   } catch (caughtError: unknown) {
     logger.error(`Topology entity catalog extraction loop failed: ${String(caughtError)}`, correlationId);

@@ -8,7 +8,6 @@ export default createRemoteConfig({
     './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
     './widget/NetworkCanvas': './src/widgets/NetworkCanvasWidget.tsx',
     './AssetSelector': './src/widgets/AssetSelector',
-    './OrganizationSelector': './src/widgets/OrganizationSelector',
-    './CustodyTransferSelector': './src/widgets/CustodyTransferSelector'
+    './OrganizationSelector': './src/widgets/OrganizationSelector'
   }
 });

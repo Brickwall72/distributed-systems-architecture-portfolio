@@ -7,7 +7,7 @@ export const createCloudEventSchema = <T extends z.ZodType>(dataSchema: T) =>
     id: z.string(),
     source: z.string(),
     type: z.string(),
-    time: z.iso.datetime(),
+    time: z.string().datetime(),
     datacontenttype: z.literal('application/json'),
     correlationId: z.string().nullable().optional(),
     data: dataSchema,

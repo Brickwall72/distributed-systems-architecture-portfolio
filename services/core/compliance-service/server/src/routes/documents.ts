@@ -11,7 +11,7 @@ const logger = createLogger('compliance-server:documents');
 const repository = new ComplianceDocumentRepository(pool);
 
 const IdParamSchema = z.object({
-  id: z.uuid({ message: 'Invalid document UUID format' }),
+  id: z.string().uuid({ message: 'Invalid document UUID format' }),
 });
 
 // POST /api/v1/documents - Create compliance document metadata

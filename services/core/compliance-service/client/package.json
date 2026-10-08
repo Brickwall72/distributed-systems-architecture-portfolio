@@ -17,12 +17,11 @@
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "@shared/ui-components": "workspace:*",
-    "@contracts/custody": "workspace:*",
     "@contracts/compliance": "workspace:*",
     "esign-client": "workspace:*",
     "pdf-client": "workspace:*",
     "@compliance/shared": "workspace:*",
-    "zod": "~4.6.5"
+    "zod": "~3.24.1"
   },
   "devDependencies": {
     "@shared/vite-config": "workspace:*"

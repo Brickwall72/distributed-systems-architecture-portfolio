@@ -90,7 +90,7 @@ const { mockSession } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../topologyDatabase.js', () => ({
+vi.mock('../topologyDatabase', () => ({
   initializeDatabaseConnection: () => ({}),
   terminateDatabaseClient: () => ({}),
   getDatabaseClient: () => ({ session: mockSession }),

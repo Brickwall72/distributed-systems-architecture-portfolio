@@ -1,11 +1,11 @@
 // File: src/widgets/Topology.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse } from 'msw';
-import { Asset, Organization } from '@contracts/custody';
+import { AssetEntity, OrganizationEntity } from 'topology-shared';
 import { 
   ConnectionFormWidget, 
   NetworkCanvasWidget 
-} from './index.js';
+} from './';
 
 const meta: Meta = {
   title: 'Widgets/Autonomous Topology',
@@ -22,12 +22,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Mock Dataset
-const MOCK_ORGANIZATIONS: Organization[] = [
+const MOCK_ORGANIZATIONS: OrganizationEntity[] = [
   { id: 'org-1', name: 'Alpha Command', type: 'COMMAND', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
   { id: 'org-2', name: 'Bravo Logistics', type: 'LOGISTICS', addressLine1: '456 Depot Way', addressLine2: '' },
 ];
 
-const MOCK_ASSETS: Asset[] = [
+const MOCK_ASSETS: AssetEntity[] = [
   { id: 'asset-1', nomenclature: 'Tactical Radio', serialNumber: 'TR-102938', currentOwnerId: 'org-1' },
   { id: 'asset-2', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', currentOwnerId: 'org-2' },
   { id: 'asset-3', nomenclature: 'Quantum Sensor', serialNumber: 'QS-998877', currentOwnerId: 'org-1' },

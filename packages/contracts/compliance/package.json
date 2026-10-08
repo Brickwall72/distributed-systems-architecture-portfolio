@@ -12,14 +12,14 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
     "test": "pnpm test:unit",
     "test:unit": "vitest run .unit.test"
   },
   "dependencies": {
-    "@contracts/common": "workspace:*"
+    "@contracts/topology": "workspace:*"
   },
   "peerDependencies": {
-    "zod": "~4.6.5"
+    "zod": "~3.24.1"
   }
 }
