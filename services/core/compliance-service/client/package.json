@@ -18,9 +18,10 @@
     "react-dom": "~19.2.8",
     "@shared/ui-components": "workspace:*",
     "@contracts/compliance": "workspace:*",
+    "@contracts/topology": "workspace:*",
     "esign-client": "workspace:*",
     "pdf-client": "workspace:*",
-    "@compliance/shared": "workspace:*",
+    "compliance-shared": "workspace:*",
     "zod": "~3.24.1"
   },
   "devDependencies": {

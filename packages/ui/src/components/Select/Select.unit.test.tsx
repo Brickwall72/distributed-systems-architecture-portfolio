@@ -6,12 +6,12 @@ import { Select } from './Select';
 
 describe('Select Component', () => {
   const mockOptions = [
-    { value: 'opt1', label: 'Option 1' },
-    { value: 'opt2', label: 'Option 2' },
+    { id: 'opt1', name: 'Option 1' },
+    { id: 'opt2', name: 'Option 2' },
   ];
 
   it('renders correctly with options and default placeholder', () => {
-    render(<Select label="Test Select" options={mockOptions} onValueChange={vi.fn()} />);
+    render(<Select label="Test Select" options={mockOptions} onSelection={vi.fn()} />);
 
     expect(screen.getByText('Test Select')).toBeInTheDocument();
     
@@ -28,7 +28,7 @@ describe('Select Component', () => {
     const user = userEvent.setup();
     const handleValueChange = vi.fn();
     
-    render(<Select label="Test Select" options={mockOptions} onValueChange={handleValueChange} />);
+    render(<Select label="Test Select" options={mockOptions} onSelection={handleValueChange} />);
     
     const select = screen.getByRole('combobox', { name: 'Test Select' });
     await user.selectOptions(select, 'opt2');
@@ -42,7 +42,7 @@ describe('Select Component', () => {
       <Select 
         label="Test Select" 
         options={mockOptions} 
-        onValueChange={vi.fn()} 
+        onSelection={vi.fn()} 
         isLoading={true} 
         loadingText="Fetching data..."
       />
@@ -57,7 +57,7 @@ describe('Select Component', () => {
       <Select 
         label="Test Select" 
         options={mockOptions} 
-        onValueChange={vi.fn()} 
+        onSelection={vi.fn()} 
         error="Failed to load options"
       />
     );
@@ -71,7 +71,7 @@ describe('Select Component', () => {
       <Select 
         label="Test Select" 
         options={mockOptions} 
-        onValueChange={vi.fn()} 
+        onSelection={vi.fn()} 
         disabled={true}
         required={true}
       />

@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/shared/src/contracts/templates/index.ts
+// File: services/core/compliance-service/shared/src/schemas/templates/index.ts
 import { z } from 'zod';
 
 export const TemplateIdSchema = z.enum([

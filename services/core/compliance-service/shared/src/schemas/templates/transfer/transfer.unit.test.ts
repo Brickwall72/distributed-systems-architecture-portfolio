@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/shared/src/contracts/templates/transfer/transfer.unit.test.ts
+// File: services/core/compliance-service/shared/src/schemas/templates/transfer/transfer.unit.test.ts
 import { TransferItemSchema, TransferPayloadSchema } from './transfer';
 
 describe('TransferItemSchema', () => {

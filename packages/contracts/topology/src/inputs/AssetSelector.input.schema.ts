@@ -1,12 +1,13 @@
 // File: packages/contracts/topology/src/inputs/AssetSelector.input.schema.ts
 import { z } from 'zod';
-import { type AssetDTO } from '../outputs';
+import { type AssetDTOList } from '../outputs';
 
 /**
  * Runtime input schema enforced at the MFE boundary.
  * Defines defaults for optional UI behavior flags.
  */
 export const AssetSelectorInputSchema = z.object({
+  label: z.string().trim().min(1).optional(),
   filterOwnerId: z.string().trim().min(1).optional(),
   excludeOwnerId: z.string().trim().min(1).optional(),
   multiSelect: z.boolean().default(false),
@@ -30,9 +31,9 @@ export type AssetSelectorInputs = z.input<typeof AssetSelectorInputSchema>;
 export type AssetSelectorProps = AssetSelectorInputs & {
   /**
    * Selection event handler invoked on state change.
-   * Always emits a list array (`AssetDTO[]`) to enforce List Collection uniformity:
+   * Always emits a list array (`AssetDTOList`) to enforce List Collection uniformity:
    * - Single-select: `[selectedAsset]` or `[]`
    * - Multi-select: `[assetA, assetB]` or `[]`
    */
-  readonly onSelect: (selectedAssets: AssetDTO[]) => void;
+  readonly onSelect: (selectedAssets: AssetDTOList) => void;
 };

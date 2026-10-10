@@ -3,23 +3,25 @@ import { useState, useMemo } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
 import { usePdfGenerator } from 'pdf-client';
+import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
+import { TemplateSelector } from '../../components'; 
+import { TemplateDTO } from 'compliance-shared';
+import '@shared/styles';
 
-// Native import since this widget lives inside compliance_client
-import TemplateSelector from '../TemplateSelector'; 
+export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
+  const parsedProps = ComplianceWorkflowWidgetPropsSchema.safeParse(props);
+  if (!parsedProps.success) {
+    console.warn('[ComplianceWorkflowWidget MFE] Invalid props received from Host Shell:', parsedProps.error.format());
+  }
+  const { sourceOrg, assets, targetOrg } = parsedProps.success
+    ? parsedProps.data
+    : { sourceOrg: undefined, assets: [], targetOrg: undefined };
 
-export interface ComplianceWorkflowProps {
-  /** The generic JSON dictionary used to hydrate the template */
-  templateData: Record<string, unknown> | null;
-}
-
-export default function ComplianceWorkflowWidget({
-  templateData
-}: Readonly<ComplianceWorkflowProps>) {
   const requisitionNumber = 'REQ-2026-001';
-  const signerId = "usr_compliance_officer";
-  const entityId = "org_unassigned"
+  const signerId = 'usr_compliance_officer';
+  const entityId = 'org_unassigned';
   const [documentId] = useState(() => crypto.randomUUID());
-  const onWorkflowComplete =( signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
+  const onWorkflowComplete = (signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [rawTemplateHtml, setRawTemplateHtml] = useState<string>('');
@@ -35,13 +37,43 @@ export default function ComplianceWorkflowWidget({
     onError: (err) => console.error('Failed to generate PDF:', err),
   });
 
-  const handleTemplateLoad = (templateId: string, rawHtml: string) => {
-    setSelectedTemplateId(templateId);
-    setRawTemplateHtml(rawHtml);
+  const handleTemplateLoad = (template: TemplateDTO) => {
+    setSelectedTemplateId(template.id);
+    setRawTemplateHtml(template.rawHTML);
     setPdfBlobUrl(null);
     setIsSigning(false);
     setIsSigned(false);
   };
+
+  const [transferDate] = useState(new Date().toDateString());
+
+  const templateData = useMemo<Record<string, unknown> | null>(() => {
+    const primaryAsset = assets[0];
+    
+    // Require at least one organization or asset to construct template data
+    if (!sourceOrg && !targetOrg && !primaryAsset) return null;
+
+    return {
+      sourceOrg,
+      targetOrg,
+      asset: primaryAsset,
+      assets,
+      transferDate,
+      requisitionNumber,
+      // Fallback flatteners for legacy templates
+      releasingEntityName: sourceOrg?.name ?? '',
+      receivingEntityName: targetOrg?.name ?? '',
+      nomenclature: primaryAsset?.nomenclature ?? primaryAsset?.name ?? '',
+      serialNumber: primaryAsset?.serialNumber ?? '',
+      items: assets.map((item, idx) => ({
+        itemNumber: idx + 1,
+        nomenclature: item.nomenclature ?? item.name,
+        serialNumber: item.serialNumber ?? '',
+        quantity: 1,
+        unit: 'EA',
+      })),
+    };
+  }, [sourceOrg, targetOrg, assets, transferDate]);
 
   const isReadyForPdf = Boolean(templateData && selectedTemplateId);
 
@@ -65,7 +97,6 @@ export default function ComplianceWorkflowWidget({
         <div className="w-72">
           <TemplateSelector
             label="Compliance Form"
-            selectedId={selectedTemplateId}
             onTemplateLoad={handleTemplateLoad}
           />
         </div>

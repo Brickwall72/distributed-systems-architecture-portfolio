@@ -239,15 +239,18 @@ importers:
 
   services/core/compliance-service/client:
     dependencies:
-      '@compliance/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance
+      '@contracts/topology':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/topology
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
+      compliance-shared:
+        specifier: workspace:*
+        version: link:../shared
       esign-client:
         specifier: workspace:*
         version: link:../../../platform/esign-service/client
@@ -273,9 +276,6 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ~3.1131.0
         version: 3.1131.0
-      '@compliance/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance
@@ -294,6 +294,9 @@ importers:
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
+      compliance-shared:
+        specifier: workspace:*
+        version: link:../shared
       express:
         specifier: ~5.2.1
         version: 5.2.1(supports-color@7.2.0)
@@ -306,6 +309,12 @@ importers:
 
   services/core/compliance-service/shared:
     dependencies:
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/common
+      '@ts-rest/core':
+        specifier: ^3.52.1
+        version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
       zod:
         specifier: ^3.24.1
         version: 3.25.76

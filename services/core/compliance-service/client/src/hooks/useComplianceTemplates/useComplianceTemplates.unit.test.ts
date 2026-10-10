@@ -16,7 +16,7 @@ describe('useComplianceTemplates (Hook)', () => {
   const mockManifest = [
     { id: 'dd-1149', name: 'DD Form 1149' },
     { id: 'da-2062', name: 'DA Form 2062' },
-  ];
+  ] as unknown as Awaited<ReturnType<typeof fetchTemplateManifest>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,8 +43,8 @@ describe('useComplianceTemplates (Hook)', () => {
     });
 
     expect(result.current.options).toEqual([
-      { value: 'dd-1149', label: 'DD Form 1149' },
-      { value: 'da-2062', label: 'DA Form 2062' },
+      { id: 'dd-1149', name: 'DD Form 1149' },
+      { id: 'da-2062', name: 'DA Form 2062' },
     ]);
     expect(result.current.error).toBeNull();
   });

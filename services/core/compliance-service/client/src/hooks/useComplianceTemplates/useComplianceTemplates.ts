@@ -71,8 +71,8 @@ export function useComplianceTemplates({
   }, [templates, selectedId, isManifestLoading, isContentLoading, selectTemplate]);
 
   const options: SelectOption[] = templates.map((t) => ({
-    value: t.id,
-    label: t.name,
+    id: t.id,
+    name: t.name,
   }));
 
   return {

@@ -6,6 +6,7 @@ import { type OrganizationDTO } from '../outputs';
  * Runtime input configuration passed from Shell -> OrganizationSelector MFE Widget.
  */
 export const OrganizationSelectorInputSchema = z.object({
+  label: z.string().trim().min(1).optional(),
   filterOwnedId: z.string().trim().min(1).optional(),
   excludeOrgId: z.string().trim().min(1).optional(),
   multiSelect: z.boolean().default(false),
