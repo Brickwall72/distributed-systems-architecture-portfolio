@@ -18,9 +18,9 @@ export default meta;
 type Story = StoryObj<typeof Select>;
 
 const defaultOptions = [
-  { value: 'usa', label: 'United States' },
-  { value: 'can', label: 'Canada' },
-  { value: 'mex', label: 'Mexico' },
+  { id: 'usa', name: 'United States' },
+  { id: 'can', name: 'Canada' },
+  { id: 'mex', name: 'Mexico' },
 ];
 
 export const Default: Story = {
@@ -34,20 +34,20 @@ export const Interactive: Story = {
   args: {
     label: 'Country',
     options: defaultOptions,
-    value: 'usa',
+    selectedId: 'usa',
   },
   render: (args) => {
     const InteractiveSelect = () => {
-      const [value, setValue] = useState(args.value ?? '');
+      const [value, setValue] = useState(args.selectedId ?? '');
 
       return (
         <Select
           {...args}
-          value={value}
-          onValueChange={(newValue) => {
+          selectedId={value}
+          onSelection={(newValue) => {
             setValue(newValue);
             // Optionally chain to storybook actions if configured
-            args.onValueChange?.(newValue);
+            args.onSelection?.(newValue);
           }}
         />
       );

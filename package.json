@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "clean": "rm -rf packages/**/dist services/**/dist node_modules/.cache .turbo/cache packages/**/.turbo/ services/**/.turbo/ ui-shells/**/dist ui-shells/**/.turbo/",
     "test": "turbo run test:unit test:contract && turbo run test:verify",
     "test:unit": "turbo run test:unit",
     "test:contract": "turbo run test:contract",

@@ -42,13 +42,19 @@ describe('Pact Provider Verification', () => {
       ],
       // Replicates Traefik route rewriting: strips leading `/pdf` prefix
       requestFilter: (req: Request, _res: Response, next: NextFunction) => {
-        if (req.url.startsWith('/pdf/')) {
+        if (req.url.startsWith('/pdf')) {
           req.url = req.url.replace(/^\/pdf/, '');
         }
         next();
       },
       stateHandlers: {
         'pdf generator service is available': async () => {
+          return Promise.resolve();
+        },
+        'the pdf generator engine is healthy': async () => {
+          return Promise.resolve();
+        },
+        'pdf generator engine is healthy': async () => {
           return Promise.resolve();
         },
       },

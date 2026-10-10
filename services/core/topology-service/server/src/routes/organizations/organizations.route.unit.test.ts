@@ -2,7 +2,7 @@
 import { OrganizationDTOListSchema } from '@contracts/topology';
 import { createOrganizationsRouter } from './organizations.route';
 import type { OrganizationsRepository } from '../../repositories';
-import type { OrganizationEntity } from '../../domain';
+import { OrganizationEntity } from '../../domain';
 
 describe('createOrganizationsRouter (API Boundary Handler)', () => {
   let mockRepository: Partial<OrganizationsRepository>;

@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/shared/src/contracts/templates/index.unit.test.ts
+// File: services/core/compliance-service/shared/src/schemas/templates/index.unit.test.ts
 import { TemplateIdSchema } from './index';
 
 describe('TemplateIdSchema', () => {

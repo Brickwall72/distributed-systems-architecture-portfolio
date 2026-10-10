@@ -2,7 +2,7 @@
 import { AssetDTOListSchema } from '@contracts/topology';
 import { createAssetsRouter } from './assets.route';
 import type { AssetsRepository } from '../../repositories';
-import type { AssetEntity } from '../../domain';
+import { AssetEntity } from '../../domain';
 
 describe('createAssetsRouter (API Boundary Handler)', () => {
   let mockRepository: Partial<AssetsRepository>;

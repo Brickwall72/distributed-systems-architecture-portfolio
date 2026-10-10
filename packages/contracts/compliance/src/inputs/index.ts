@@ -1,2 +1,2 @@
 // File: packages/contracts/compliance/src/inputs/index.ts
-export * from './ComplianceWorkflow.schema';
+export * from './ComplianceWorkflow.input.schema';

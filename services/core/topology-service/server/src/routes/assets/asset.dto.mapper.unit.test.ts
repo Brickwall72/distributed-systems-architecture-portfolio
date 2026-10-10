@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/assets/asset.dto.mapper.ts
 import { AssetDTOSchema } from '@contracts/topology';
 import { assetEntityToDTO } from './asset.dto.mapper';
-import type { AssetEntity } from '../../domain';
+import { AssetEntity } from '../../domain';
 
 describe('assetEntityToDTO', () => {
   it('maps a complete domain entity into a contract-valid AssetDTO', () => {

@@ -13,9 +13,9 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   if (!parsedInputs.success) {
     console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
   }
-  const { filterOwnerId, excludeOwnerId } = parsedInputs.success
+  const { label, filterOwnerId, excludeOwnerId } = parsedInputs.success
     ? parsedInputs.data
-    : { filterOwnerId: undefined, excludeOwnerId: undefined };
+    : { label: undefined, filterOwnerId: undefined, excludeOwnerId: undefined };
 
   const { onSelect } = props;
 
@@ -38,14 +38,14 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
     return items.map((asset) => {
       const displaySerial = asset.serialNumber || 'N/A';
       return {
-        value: asset.id,
-        label: `${asset.name} (S/N: ${displaySerial})`,
+        id: asset.id,
+        name: `${asset.name} (S/N: ${displaySerial})`,
       };
     });
   }, [items]);
 
   // 6. Handle Selection & Emit Uniform AssetDTO[] Payload
-  const handleValueChange = (value: string) => {
+  const handleAssetSelect = (value: string) => {
     setSelectedId(value);
 
     if (!value) {
@@ -53,24 +53,24 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       return;
     }
 
-    const selectedAsset = items.find((asset) => asset.id === value);
-    if (!selectedAsset) {
+    const selectedAssets = items.find((asset) => asset.id === value);
+    if (!selectedAssets) {
       onSelect([]);
       return;
     }
 
     // Always emit array to maintain List Collection Pattern with Host Shell
-    onSelect([selectedAsset]);
+    onSelect([selectedAssets]);
   };
   
   return (
     <Select
-      label="Select Asset"
-      value={selectedId}
+      label={label ?? "Asset Select"}
+      selectedId={selectedId}
       options={options}
       isLoading={isLoading}
-      error={error ?? undefined}
-      onValueChange={handleValueChange}
+      error={error}
+      onSelection={handleAssetSelect}
       loadingText="Loading assets..."
       placeholderText="-- Select Asset --"
     />

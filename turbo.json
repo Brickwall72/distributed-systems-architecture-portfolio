@@ -2,22 +2,29 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "tsconfig.json", "package.json"],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "tsconfig.json", "package.json"],
       "outputs": ["dist/**"]
     },
     "test:unit": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "src/**/*.unit.test.ts", "vitest.config.ts"],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.unit.test.ts",
+        "src/**/*.unit.test.tsx",
+        "dist/**",
+        "vitest.config.ts"
+      ],
       "outputs": []
     },
     "test:contract": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "src/**/*.contract.test.ts"],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.contract.test.ts", "src/**/*.contract.test.tsx"],
       "outputs": ["pacts/**", "**/pacts/**"]
     },
     "test:verify": {
       "dependsOn": ["^test:contract", "test:contract"],
-      "inputs": ["src/**/*.ts", "src/**/*.contract.verify.test.ts", "pacts/**", "**/pacts/**"],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.contract.verify.test.ts", "src/**/*.contract.verify.test.tsx", "pacts/**", "**/pacts/**"],
       "outputs": []
     }
   }

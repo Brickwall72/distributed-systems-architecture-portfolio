@@ -1,8 +1,8 @@
 // File: services/core/topology-service/server/src/repositories/assets/assets.repository.ts
 import { BaseRepository } from '../base.repository';
 import { mapRecordToAssetEntity } from '../../mappers';
-import type { GetAssetsQuery } from 'topology-shared';
 import type { AssetEntity } from '../../domain';
+import type { GetAssetsQuery } from 'topology-shared';
 
 export class AssetsRepository extends BaseRepository {
   async findAssets(filters: GetAssetsQuery = {}): Promise<AssetEntity[]> {

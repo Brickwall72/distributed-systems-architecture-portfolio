@@ -1,7 +1,7 @@
 // File: services/core/topology-service/server/src/routes/organizations/organization.dto.mapper.unit.test.ts
 import { OrganizationDTOSchema } from '@contracts/topology';
 import { organizationEntityToDTO } from './organization.dto.mapper';
-import type { OrganizationEntity } from '../../domain';
+import { OrganizationEntity } from '../../domain';
 
 describe('organizationEntityToDTO', () => {
   it('maps a complete domain entity into a contract-valid OrganizationDTO', () => {

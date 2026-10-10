@@ -5,7 +5,7 @@ import {
   type TemplateId,
   TransferPayloadSchema,
   type TransferPayload,
-} from '@compliance/shared';
+} from 'compliance-shared';
 import { getApiBaseUrl } from '../client-config';
 
 export type TemplateDataMap = {
@@ -15,7 +15,7 @@ export type TemplateDataMap = {
 };
 
 export const COMPLIANCE_TEMPLATE_SCHEMAS: {
-  [K in TemplateId]: z.ZodType<TemplateDataMap[K]>;
+  [K in TemplateId]: z.ZodType<TemplateDataMap[K], z.ZodTypeDef, unknown>;
 } = {
   'asset-transfer-authorization': TransferPayloadSchema,
   'asset-transfer-receipt': TransferPayloadSchema,

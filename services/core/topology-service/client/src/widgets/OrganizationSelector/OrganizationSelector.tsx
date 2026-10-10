@@ -13,9 +13,9 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   if (!parsedInputs.success) {
     console.warn('[OrganizationSelector MFE] Invalid props received:', parsedInputs.error);
   }
-  const { filterOwnedId, excludeOrgId } = parsedInputs.success
+  const { label, filterOwnedId, excludeOrgId } = parsedInputs.success
     ? parsedInputs.data
-    : { filterOwnedId: undefined, excludeOrgId: undefined };
+    : { label: undefined, filterOwnedId: undefined, excludeOrgId: undefined };
 
   const { onSelect } = props;
 
@@ -60,13 +60,13 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
         : items.filter((org) => org.id !== excludeOrgId);
 
     return effectiveItems.map((org) => ({
-      value: org.id,
-      label: org.name,
+      id: org.id,
+      name: org.name,
     }));
   }, [items, excludeOrgId, filterOwnedId]);
 
   // 5. Handle User Selection
-  const handleValueChange = (value: string) => {
+  const handleOrganizationSelect = (value: string) => {
     if (value === selectedId) return;
 
     // Explicit user deselection via placeholder choice
@@ -93,26 +93,26 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     if (isLoading) return;
 
     // Case A: Active selection is no longer present in available options -> Clear
-    if (selectedId && !options.some((option) => option.value === selectedId)) {
+    if (selectedId && !options.some((option) => option.id === selectedId)) {
       setSelectedId('');
       onSelect([]);
       return;
     }
 
     // Case B: Auto-select single option ONLY when NOT suppressed by explicit clear/deselection
-    if (options.length === 1 && selectedId !== options[0].value && !userClearedRef.current) {
-      handleValueChange(options[0].value);
+    if (options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
+      handleOrganizationSelect(options[0].id);
     }
   }, [options, selectedId, isLoading]);
 
   return (
     <Select
-      label="Select Organization"
-      value={selectedId}
+      label={label ?? "Organization Select"}
+      selectedId={selectedId}
       options={options}
       isLoading={isLoading}
-      error={error ?? undefined}
-      onValueChange={handleValueChange}
+      error={error}
+      onSelection={handleOrganizationSelect}
       loadingText="Loading organizations..."
       placeholderText="-- Select Organization --"
     />

@@ -1,8 +1,7 @@
 // File: services/core/topology-service/server/src/repositories/organizations/organizations.repository.ts
 import { BaseRepository } from '../base.repository';
 import { mapRecordToOrganizationEntity } from '../../mappers';
-import type { GetOrganizationsQuery } from 'topology-shared';
-import type { OrganizationEntity } from '../../domain';
+import type { GetOrganizationsQuery, OrganizationEntity } from 'topology-shared';
 
 export class OrganizationsRepository extends BaseRepository {
   async findOrganizations(filters: GetOrganizationsQuery = {}): Promise<OrganizationEntity[]> {

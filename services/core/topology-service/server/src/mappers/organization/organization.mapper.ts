@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/mappers/organization/organization.mapper.ts
 import type { Record as Neo4jRecord } from 'neo4j-driver';
-import type { OrganizationEntity } from '../../domain';
+import type { OrganizationEntity } from 'topology-shared';
 
 export function mapRecordToOrganizationEntity(record: Neo4jRecord): OrganizationEntity {
   const id = record.get('id');
