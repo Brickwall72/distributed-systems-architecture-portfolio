@@ -6,6 +6,7 @@ import { usePdfGenerator } from 'pdf-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { TemplateSelector } from '../../components'; 
 import { TemplateDTO } from 'compliance-shared';
+import { generateTemplatePayload } from '../../registry';
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
@@ -27,8 +28,9 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
+  const [selectedDate] = useState(new Date().toDateString());
 
-  // Use a useEffect keyed on the template ID to handle resetting workflow states cleanly
+  // Reset workflow states when template changes
   useEffect(() => {
     setPdfBlobUrl(null);
     setIsSigning(false);
@@ -43,43 +45,32 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     onError: (err) => console.error('Failed to generate PDF:', err),
   });
 
-  const [transferDate] = useState(new Date().toDateString());
+  /**
+   * Delegates payload formation and fallback placeholder mapping 
+   * to the centralized template registry, passing `true` for UI previews.
+   */
+  const displayPayload = useMemo(() => {
+    if (!selectedTemplate?.id) return null;
 
-  const templateData = useMemo<Record<string, unknown> | null>(() => {
-    const primaryAsset = assets[0];
-    
-    // Require at least one organization or asset to construct template data
-    if (!sourceOrg && !targetOrg && !primaryAsset) return null;
+    return generateTemplatePayload(
+      selectedTemplate.id,
+      {
+        sourceOrg,
+        targetOrg,
+        assets,
+        selectedDate
+      },
+      true // usePlaceholders = true for interactive UI workspace preview
+    );
+  }, [selectedTemplate?.id, sourceOrg, targetOrg, assets, requisitionNumber, selectedDate]);
 
-    return {
-      sourceOrg,
-      targetOrg,
-      asset: primaryAsset,
-      assets,
-      transferDate,
-      requisitionNumber,
-      // Fallback flatteners for legacy templates
-      releasingEntityName: sourceOrg?.name ?? '',
-      receivingEntityName: targetOrg?.name ?? '',
-      nomenclature: primaryAsset?.nomenclature ?? primaryAsset?.name ?? '',
-      serialNumber: primaryAsset?.serialNumber ?? '',
-      items: assets.map((item, idx) => ({
-        itemNumber: idx + 1,
-        nomenclature: item.nomenclature ?? item.name,
-        serialNumber: item.serialNumber ?? '',
-        quantity: 1,
-        unit: 'EA',
-      })),
-    };
-  }, [sourceOrg, targetOrg, assets, transferDate]);
-
-  const isReadyForPdf = Boolean(templateData && selectedTemplate?.id);
+  // Always ready to render once template and base data structure exist
+  const isReadyForPdf = Boolean(!pdfBlobUrl && selectedTemplate?.id && (assets.length > 0) && sourceOrg && targetOrg);
 
   const hydratedHtml = useMemo(() => {
-    if (!selectedTemplate?.rawHTML) return '';
-    if (!templateData) return selectedTemplate.rawHTML;
-    return hydrateTemplate(selectedTemplate.rawHTML, templateData);
-  }, [selectedTemplate?.rawHTML, templateData]);
+    if (!selectedTemplate?.rawHTML || !displayPayload) return '';
+    return hydrateTemplate(selectedTemplate.rawHTML, displayPayload);
+  }, [selectedTemplate?.rawHTML, displayPayload]);
 
   const handleSignatureSuccess = (signedPdfUrl: string) => {
     setPdfBlobUrl(signedPdfUrl);
@@ -111,8 +102,6 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           )}
 
           <Button
-            variant="primary"
-            size="md"
             isLoading={isGenerating}
             disabled={!isReadyForPdf || !hydratedHtml}
             onClick={() => generate(hydratedHtml)}
@@ -133,7 +122,6 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
         >
           <div className="absolute bottom-4 right-4 z-10">
             <Button
-              variant="primary"
               disabled={!pdfBlobUrl || isSigned || isSigning}
               onClick={() => setIsSigning(true)}
               className="w-40 shadow"
