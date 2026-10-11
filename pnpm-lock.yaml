@@ -305,13 +305,13 @@ importers:
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
       '@ts-rest/express':
         specifier: ^3.52.1
-        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@26.2.0)(zod@3.25.76))(express@5.2.1(supports-color@7.2.0))(zod@3.25.76)
+        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@26.2.0)(zod@3.25.76))(express@4.22.3(supports-color@7.2.0))(zod@3.25.76)
       compliance-shared:
         specifier: workspace:*
         version: link:../shared
       express:
-        specifier: ~5.2.1
-        version: 5.2.1(supports-color@7.2.0)
+        specifier: ^4.0.0
+        version: 4.22.3(supports-color@7.2.0)
       pg:
         specifier: ~8.23.0
         version: 8.23.0
@@ -6164,13 +6164,6 @@ snapshots:
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@26.2.0)(zod@3.25.76)
       express: 4.22.3(supports-color@7.2.0)
-    optionalDependencies:
-      zod: 3.25.76
-
-  '@ts-rest/express@3.52.1(@ts-rest/core@3.52.1(@types/node@26.2.0)(zod@3.25.76))(express@5.2.1(supports-color@7.2.0))(zod@3.25.76)':
-    dependencies:
-      '@ts-rest/core': 3.52.1(@types/node@26.2.0)(zod@3.25.76)
-      express: 5.2.1(supports-color@7.2.0)
     optionalDependencies:
       zod: 3.25.76
 
