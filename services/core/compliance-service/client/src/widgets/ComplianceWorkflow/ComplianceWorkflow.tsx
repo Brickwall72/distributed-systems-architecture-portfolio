@@ -1,5 +1,5 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.tsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
 import { usePdfGenerator } from 'pdf-client';
@@ -23,27 +23,25 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [documentId] = useState(() => crypto.randomUUID());
   const onWorkflowComplete = (signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [rawTemplateHtml, setRawTemplateHtml] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO>();
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
 
-  const fileName = `${selectedTemplateId || 'document'}-${requisitionNumber}.pdf`;
+  // Use a useEffect keyed on the template ID to handle resetting workflow states cleanly
+  useEffect(() => {
+    setPdfBlobUrl(null);
+    setIsSigning(false);
+    setIsSigned(false);
+  }, [selectedTemplate?.id]);
+
+  const fileName = `${selectedTemplate?.id || 'document'}-${requisitionNumber}.pdf`;
 
   const { generate, isGenerating } = usePdfGenerator({
     fileName,
     onSuccess: (blobUrl) => setPdfBlobUrl(blobUrl),
     onError: (err) => console.error('Failed to generate PDF:', err),
   });
-
-  const handleTemplateLoad = (template: TemplateDTO) => {
-    setSelectedTemplateId(template.id);
-    setRawTemplateHtml(template.rawHTML);
-    setPdfBlobUrl(null);
-    setIsSigning(false);
-    setIsSigned(false);
-  };
 
   const [transferDate] = useState(new Date().toDateString());
 
@@ -75,13 +73,13 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     };
   }, [sourceOrg, targetOrg, assets, transferDate]);
 
-  const isReadyForPdf = Boolean(templateData && selectedTemplateId);
+  const isReadyForPdf = Boolean(templateData && selectedTemplate?.id);
 
   const hydratedHtml = useMemo(() => {
-    if (!rawTemplateHtml) return '';
-    if (!templateData) return rawTemplateHtml;
-    return hydrateTemplate(rawTemplateHtml, templateData);
-  }, [rawTemplateHtml, templateData]);
+    if (!selectedTemplate?.rawHTML) return '';
+    if (!templateData) return selectedTemplate.rawHTML;
+    return hydrateTemplate(selectedTemplate.rawHTML, templateData);
+  }, [selectedTemplate?.rawHTML, templateData]);
 
   const handleSignatureSuccess = (signedPdfUrl: string) => {
     setPdfBlobUrl(signedPdfUrl);
@@ -97,7 +95,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
         <div className="w-72">
           <TemplateSelector
             label="Compliance Form"
-            onTemplateLoad={handleTemplateLoad}
+            onSelect={setSelectedTemplate}
           />
         </div>
 
@@ -150,8 +148,8 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
               documentId={documentId}
               signerId={signerId}
               entityId={entityId}
-              customPath={`transfers/${selectedTemplateId || 'forms'}/${requisitionNumber}`}
-              documentType={selectedTemplateId}
+              customPath={`transfers/${selectedTemplate?.id || 'forms'}/${requisitionNumber}`}
+              documentType={selectedTemplate?.id}
               onCancel={() => setIsSigning(false)}
               onSuccess={handleSignatureSuccess}
             />

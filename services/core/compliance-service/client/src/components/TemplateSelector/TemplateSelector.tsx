@@ -1,8 +1,8 @@
 // File: services/core/compliance-service/client/src/components/TemplateSelector/TemplateSelector.tsx
-import { Select } from '@shared/ui-components';
-import { useComplianceTemplates } from '../../hooks';
-import { TemplateDTO, TemplateType } from 'compliance-shared';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Select, type SelectOption } from '@shared/ui-components';
+import { useTemplatesQuery, useTemplateQuery } from '../../hooks';
+import type { TemplateDTO, TemplateType } from 'compliance-shared';
 
 export type TemplateTypeFilter = TemplateType | 'ALL';
 
@@ -25,41 +25,58 @@ export interface TemplateSelectorProps {
    * Event callback triggered when a compliance template is fetched and loaded into active memory.
    * Emits the resolved canonical `TemplateDTO` payload to downstream workflow viewers.
    *
-   * @param template - The loaded compliance template domain object.
+   * @param template The loaded compliance template domain object.
    */
-  readonly onTemplateLoad: (template: TemplateDTO) => void;
+  readonly onSelect: (template: TemplateDTO) => void;
 }
 
 export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
-  const { label = 'Template Select', typeFilter = 'ALL', onTemplateLoad } = props;
+  const { label = 'Template Select', typeFilter = 'ALL', onSelect } = props;
+
+  // Local selection state
   const [selectedId, setSelectedId] = useState<string>('');
 
-  const { options, isLoading, error, selectTemplate } = useComplianceTemplates({
-    selectedId,
-    onTemplateLoad: (templateId, rawHtml) => {
-      onTemplateLoad({
-        id: templateId,
-        name: 'test',
-        rawHTML: rawHtml,
-        type: 'AUTHORIZATION',
-      });
-      setSelectedId(templateId);
-    },
-  });
+  // 1. Fetch manifest options based on type filter
+  const queryParams = typeFilter === 'ALL' ? undefined : { type: typeFilter };
+  const { data: manifests = [], isLoading: isListLoading, error: listError } = useTemplatesQuery(queryParams);
 
-  const handleSelection = (val: string) => {
-    setSelectedId(val);
-    void selectTemplate(val);
-  };
+  // 2. Fetch full DTO content for the actively selected template ID
+  const { data: activeTemplate, isLoading: isContentLoading, error: contentError } = useTemplateQuery(selectedId);
+
+  // Synchronize and auto-select template on manifest or filter changes
+  useEffect(() => {
+    const isValidSelection = selectedId && manifests.some((m) => m.id === selectedId);
+
+    if (!isValidSelection) {
+      // If nothing is selected or the current selection was filtered out,
+      // fallback to the first available manifest (or clear if empty)
+      setSelectedId(manifests.length > 0 ? manifests[0].id : '');
+    }
+  }, [manifests, selectedId]);
+
+  // Emit full DTO payload upstream whenever activeTemplate successfully loads
+  useEffect(() => {
+    if (activeTemplate) {
+      onSelect(activeTemplate);
+    }
+  }, [activeTemplate, onSelect]);
+
+  // Map domain manifests to UI select options
+  const options: SelectOption[] = useMemo(() => {
+    return manifests.map((m) => ({
+      id: m.id,
+      name: m.name,
+    }));
+  }, [manifests]);
 
   return (
     <Select
       label={label}
       selectedId={selectedId}
       options={options}
-      isLoading={isLoading}
-      error={error}
-      onSelection={handleSelection}
+      isLoading={isListLoading || isContentLoading}
+      error={listError || contentError}
+      onSelection={setSelectedId}
       loadingText={`Loading ${typeFilter} templates...`}
       placeholderText="-- Select Template --"
     />

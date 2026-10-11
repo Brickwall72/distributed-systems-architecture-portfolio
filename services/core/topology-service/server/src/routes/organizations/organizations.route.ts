@@ -3,7 +3,7 @@ import { initServer } from '@ts-rest/express';
 import { OrganizationDTOList } from '@contracts/topology';
 import { organizationsContract } from 'topology-shared';
 import { OrganizationsRepository } from '../../repositories';
-import { organizationEntityToDTO } from './organization.dto.mapper';
+import { organizationEntityToDTO } from '../../mappers';
 import { getDatabaseClient } from '../../topologyDatabase';
 import { createLogger } from '@shared/express';
 

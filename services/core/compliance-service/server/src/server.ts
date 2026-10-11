@@ -1,6 +1,7 @@
+// File: services/core/compliance-service/server/src/server.ts
 import express from 'express';
 import { ZodError } from 'zod';
-import { complianceGateway } from './routes';
+import { createComplianceGateway } from './routes';
 import { initDatabase, pool } from './db/database';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
@@ -16,21 +17,9 @@ let isReady = false;
 app.disable('x-powered-by');
 app.use(express.json({ limit: '10mb' }));
 
-// Health & Readiness Probes for Container Orchestration
-app.get('/healthz', (_req, res) => {
-  res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });
-});
-
-app.get('/readyz', (_req, res) => {
-  if (isReady) {
-    return res.status(200).json({ status: 'READY', timestamp: new Date().toISOString() });
-  }
-  return res.status(503).json({ status: 'NOT_READY', timestamp: new Date().toISOString() });
-});
-
-app.use('/api/v1', complianceGateway);
-
-// Centralized Express Error Middleware
+// ==========================================
+// CENTRALIZED EXPRESS ERROR MIDDLEWARE
+// ==========================================
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err instanceof ZodError) {
     logger.warn(`Schema validation failed at API boundary: ${JSON.stringify(err.issues)}`);
@@ -55,7 +44,10 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   });
 });
 
-if (env.NODE_ENV !== 'test') {
+/**
+ * Boots application dependencies (DB pool, JetStream consumer) and instantiates gateway routes.
+ */
+async function bootstrapApplicationServer() {
   const broker = new EventBroker(env.NATS_URL, logger);
   let server: ReturnType<typeof app.listen>;
 
@@ -109,6 +101,10 @@ if (env.NODE_ENV !== 'test') {
     await esignConsumer.start();
     logger.info('NATS JetStream event consumer listening for esign events.');
 
+    // ✅ Instantiate routes ONLY after database and broker initialization completes, mounted at /api/v1
+    const complianceGateway = createComplianceGateway();
+    app.use('/api/v1', complianceGateway);
+
     server = app.listen(env.PORT, '0.0.0.0', () => {
       isReady = true;
       logger.info(`Compliance Server running on port ${env.PORT}`);
@@ -117,6 +113,10 @@ if (env.NODE_ENV !== 'test') {
     logger.error(`Failed to initialize application dependencies: ${err}`);
     process.exit(1);
   }
+}
+
+if (env.NODE_ENV !== 'test') {
+  await bootstrapApplicationServer();
 }
 
 export default app;

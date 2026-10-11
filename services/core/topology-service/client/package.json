@@ -10,7 +10,7 @@
     "build": "vite build",
     "test": "pnpm test:unit && pnpm test:contract",
     "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .pact.spec"
+    "test:contract": "vitest run .contract.spec"
   },
   "peerDependencies": {
     "@ts-rest/core": "~3.52.1"

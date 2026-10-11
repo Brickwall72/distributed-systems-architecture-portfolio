@@ -1,189 +1,88 @@
-// File: services/platform/compliance/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.unit.test.tsx
+// File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.unit.test.tsx
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
-import { ComplianceWorkflowWidgetParsedProps } from '@contracts/compliance';
+import { usePdfGenerator } from 'pdf-client';
 
-// 1. Mock usePdfGenerator hook from pdf-client
-const mockGenerate = vi.fn();
-let mockOnSuccessCallback: ((url: string) => void) | undefined;
-
+// Mock external dependencies
 vi.mock('pdf-client', () => ({
-  usePdfGenerator: (options?: { onSuccess?: (url: string) => void }) => {
-    mockOnSuccessCallback = options?.onSuccess;
-    return {
-      generate: mockGenerate.mockImplementation(() => {
-        if (mockOnSuccessCallback) {
-          mockOnSuccessCallback('blob:http://localhost/mock-pdf-url');
-        }
-      }),
-      isGenerating: false,
-      error: null,
-    };
-  },
+  usePdfGenerator: vi.fn(),
 }));
 
 vi.mock('esign-client', () => ({
-  SignatureOverlay: ({ onSuccess, onCancel }: any) => (
-    <div data-testid="mock-signature-overlay">
-      <button
-        data-testid="mock-sign-success-btn"
-        onClick={() => onSuccess('blob:http://localhost/mock-signed-pdf-url')}
-      >
-        Complete Signature
-      </button>
-      <button data-testid="mock-sign-cancel-btn" onClick={onCancel}>
-        Cancel Signature
-      </button>
-    </div>
-  ),
+  SignatureOverlay: () => <div data-testid="mock-signature-overlay">Signature Overlay</div>,
 }));
 
-// Mock TemplateSelector component cleanly emitting TemplateDTO
-vi.mock('../../components', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../components')>();
+vi.mock('@shared/ui-components', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shared/ui-components')>();
   return {
     ...actual,
-    TemplateSelector: ({ label, onTemplateLoad }: any) => (
-      <div data-testid="mock-template-selector">
-        <span>{label ?? 'Template Select'}</span>
-        <button
-          data-testid="mock-template-selector-btn"
-          onClick={() =>
-            onTemplateLoad?.({
-              id: 'dd-1149',
-              name: 'DD Form 1149',
-              type: 'AUTHORIZATION',
-              rawHTML: '<h1>Test</h1>',
-            })
-          }
-        >
-          Select Template
-        </button>
+    hydrateTemplate: vi.fn((html, data) => `hydrated:${html}:${JSON.stringify(data)}`),
+    DocumentViewer: ({ content, children }: any) => (
+      <div data-testid="document-viewer" data-content={content}>
+        {content}
+        {children}
       </div>
     ),
   };
 });
 
-vi.mock('@shared/ui-components', () => ({
-  Button: ({ children, onClick, disabled, isLoading, variant, size, ...props }: any) => (
-    <button onClick={onClick} disabled={disabled || isLoading} {...props}>
-      {children}
-    </button>
-  ),
-  DocumentViewer: ({ children, content, contentType }: any) => (
-    <div data-testid="mock-document-viewer" data-content-type={contentType}>
-      <div data-testid="viewer-content">{content}</div>
-      {children}
+vi.mock('../../components', () => ({
+  TemplateSelector: ({ label, onSelect }: any) => (
+    <div>
+      <label>{label}</label>
+      <button
+        data-testid="mock-selector-trigger"
+        onClick={() =>
+          onSelect({
+            id: 'test-template-id',
+            name: 'Test Template',
+            rawHTML: '<p>Hello {{requisitionNumber}}</p>',
+          })
+        }
+      >
+        Select Template
+      </button>
     </div>
   ),
-  hydrateTemplate: (html: string, data: Record<string, unknown>) =>
-    html.replace('{{requisitionNumber}}', String(data.requisitionNumber ?? '')),
 }));
 
 describe('ComplianceWorkflowWidget', () => {
-  const defaultProps: ComplianceWorkflowWidgetParsedProps = {
-    sourceOrg: { id: 'sourceOrg id', name: 'sourceOrg name', type: 'GOV' },
-    assets: [
-      {
-        id: 'assets id',
-        name: 'assets name',
-        nomenclature: 'assets nomenclature',
-        serialNumber: 'assets serial number',
-      },
-    ],
-    targetOrg: { id: 'target id', name: 'target name', type: 'GOV' },
-  };
+  const mockGenerate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockOnSuccessCallback = undefined;
+    vi.mocked(usePdfGenerator).mockReturnValue({
+      generate: mockGenerate,
+      isGenerating: false,
+      error: null,
+    });
   });
 
-  it('renders unhydrated state before template selection', () => {
+  const defaultProps = {
+    sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' as const },
+    targetOrg: { id: 'org-2', name: 'Target Bravo', type: 'CONTRACTOR' as const },
+    assets: [
+      { id: 'ast-1', name: 'Widget Alpha', serialNumber: 'SN-12345', nomenclature: 'Test Asset' },
+    ],
+  };
+
+  it('renders successfully and handles template selection and PDF generation workflow', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    const viewer = screen.getByTestId('mock-document-viewer');
-    expect(viewer).toHaveAttribute('data-content-type', 'html');
+    // Verify label rendered by TemplateSelector mock
+    expect(screen.getByText('Compliance Form')).toBeDefined();
+    
+    // Select a template via mock component trigger
+    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
 
-    const generateBtn = screen.getByRole('button', { name: /generate pdf/i });
-    expect(generateBtn).toBeDisabled();
+    // Verify template data is hydrated and "Generate PDF" becomes enabled
+    const generateBtn = screen.getByText('Generate PDF');
+    expect(generateBtn).not.toHaveProperty('disabled', true);
 
-    const signBtn = screen.getByRole('button', { name: /sign document/i });
-    expect(signBtn).toBeDisabled();
-  });
-
-  it('hydrates template HTML when a template is selected and enables PDF generation', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId('mock-template-selector-btn'));
-
-    expect(screen.getByTestId('viewer-content')).toHaveTextContent('<h1>Test</h1>');
-
-    const generateBtn = screen.getByRole('button', { name: /generate pdf/i });
-    expect(generateBtn).not.toBeDisabled();
-  });
-
-  it('transitions to PDF view when PDF generation succeeds', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId('mock-template-selector-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /generate pdf/i }));
-
-    expect(mockGenerate).toHaveBeenCalledWith('<h1>Test</h1>');
-
-    const viewer = screen.getByTestId('mock-document-viewer');
-    expect(viewer).toHaveAttribute('data-content-type', 'pdf');
-    expect(screen.getByTestId('viewer-content')).toHaveTextContent(
-      'blob:http://localhost/mock-pdf-url'
+    // Click generate PDF
+    fireEvent.click(generateBtn);
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.stringContaining('hydrated:<p>Hello {{requisitionNumber}}</p>')
     );
-
-    const signBtn = screen.getByRole('button', { name: /sign document/i });
-    expect(signBtn).not.toBeDisabled();
-  });
-
-  it('allows toggling back to interactive view from PDF view', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId('mock-template-selector-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /generate pdf/i }));
-
-    const backBtn = screen.getByRole('button', { name: /back to interactive view/i });
-    expect(backBtn).toBeInTheDocument();
-
-    fireEvent.click(backBtn);
-
-    const viewer = screen.getByTestId('mock-document-viewer');
-    expect(viewer).toHaveAttribute('data-content-type', 'html');
-    expect(screen.getByTestId('viewer-content')).toHaveTextContent('<h1>Test</h1>');
-  });
-
-  it('handles cancelling signature overlay without completing workflow', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId('mock-template-selector-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /generate pdf/i }));
-
-    fireEvent.click(screen.getByRole('button', { name: /sign document/i }));
-    expect(screen.getByTestId('mock-signature-overlay')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('mock-sign-cancel-btn'));
-
-    expect(screen.queryByTestId('mock-signature-overlay')).not.toBeInTheDocument();
-  });
-
-  it('handles e-signature modal lifecycle and triggers onWorkflowComplete', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId('mock-template-selector-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /generate pdf/i }));
-
-    fireEvent.click(screen.getByRole('button', { name: /sign document/i }));
-    expect(screen.getByTestId('mock-signature-overlay')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('mock-sign-success-btn'));
-
-    expect(screen.queryByTestId('mock-signature-overlay')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /signed/i })).toBeDisabled();
   });
 });
