@@ -1,0 +1,17 @@
+{
+  "asset-transfer-authorization": {
+    "name": "Asset Transfer Authorization",
+    "fileName": "transfer-authorization.hbs",
+    "type": "AUTHORIZATION"
+  },
+  "asset-transfer-receipt": {
+    "name": "Asset Transfer Receipt",
+    "fileName": "transfer-receipt.hbs",
+    "type": "RECEIPT"
+  },
+  "contract-test-bare": {
+    "name": "Minimal Test Template",
+    "fileName": "contract-test-bare.hbs",
+    "type": "AUTHORIZATION"
+  }
+}

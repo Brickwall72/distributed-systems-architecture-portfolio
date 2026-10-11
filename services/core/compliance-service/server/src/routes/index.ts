@@ -1,16 +1,32 @@
 // File: services/core/compliance-service/server/src/routes/index.ts
 import { Router } from 'express';
-// import { authorizationsRouter } from './authorizations.js';
-import { router as templateRoutes } from './templates';
-import documentsRouter from './documents';
+import { createExpressEndpoints } from '@ts-rest/express';
 import { createHealthCheck } from '@shared/express';
+import { complianceContract } from 'compliance-shared';
+import { createTemplatesRouter } from './templates';
+import documentsRouter from './documents';
 
-const router = Router();
+export function createComplianceGateway(): Router {
+  const router = Router();
 
-/* Container health endpoint used by orchestrators and deployment monitors to verify that the
- * service is alive before routing real business traffic through the validation gate. */
-router.get('/health', createHealthCheck('compliance-server'));
-router.use('/templates', templateRoutes);
-router.use('/documents', documentsRouter);
+  /* Container health endpoint used by orchestrators and deployment monitors */
+  router.get('/health', createHealthCheck('compliance-server'));
 
-export { router as complianceGateway };
+  // Defer router creation until this factory function is invoked inside bootstrapApplicationServer
+  const templatesRouter = createTemplatesRouter();
+
+  createExpressEndpoints(
+    complianceContract,
+    {
+      ...templatesRouter,
+    },
+    router
+  );
+
+  // Traditional Express sub-routers (mounted relative to /api/v1 -> /api/v1/documents)
+  router.use('/documents', documentsRouter);
+
+  return router;
+}
+
+export { createComplianceGateway as complianceGateway };

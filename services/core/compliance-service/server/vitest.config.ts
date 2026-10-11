@@ -9,6 +9,6 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['@shared/testing/setup'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
 });

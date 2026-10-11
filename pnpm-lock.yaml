@@ -248,6 +248,9 @@ importers:
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
+      '@ts-rest/core':
+        specifier: ^3.52.1
+        version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
       compliance-shared:
         specifier: workspace:*
         version: link:../shared
@@ -276,6 +279,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ~3.1131.0
         version: 3.1131.0
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/common
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance
@@ -294,6 +300,12 @@ importers:
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
+      '@ts-rest/core':
+        specifier: ^3.52.1
+        version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
+      '@ts-rest/express':
+        specifier: ^3.52.1
+        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@26.2.0)(zod@3.25.76))(express@5.2.1(supports-color@7.2.0))(zod@3.25.76)
       compliance-shared:
         specifier: workspace:*
         version: link:../shared
@@ -6152,6 +6164,13 @@ snapshots:
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@26.2.0)(zod@3.25.76)
       express: 4.22.3(supports-color@7.2.0)
+    optionalDependencies:
+      zod: 3.25.76
+
+  '@ts-rest/express@3.52.1(@ts-rest/core@3.52.1(@types/node@26.2.0)(zod@3.25.76))(express@5.2.1(supports-color@7.2.0))(zod@3.25.76)':
+    dependencies:
+      '@ts-rest/core': 3.52.1(@types/node@26.2.0)(zod@3.25.76)
+      express: 5.2.1(supports-color@7.2.0)
     optionalDependencies:
       zod: 3.25.76
 
