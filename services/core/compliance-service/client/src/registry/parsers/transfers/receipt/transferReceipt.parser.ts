@@ -1,7 +1,7 @@
 // File: services/platform/compliance/client/src/registry/parsers/transfers/receipt/transferReceipt.parser.ts
-import { ComplianceTemplateInput } from '../../../types';
+import { ParserInput } from '../../../types';
 
-export function parseTransferReceiptPayload(input: ComplianceTemplateInput, usePlaceholders = false) {
+export function parseTransferReceiptPayload({input, usePlaceholders}: ParserInput) {
   const placeholderItems = usePlaceholders ? [{
     itemNumber: 1,
     nomenclature: '[Received Asset Description Required]',

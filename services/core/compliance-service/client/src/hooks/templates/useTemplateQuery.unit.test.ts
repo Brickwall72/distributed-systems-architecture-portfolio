@@ -2,6 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useTemplateQuery } from './useTemplateQuery';
 import { apiClient } from '../../api/client';
+import type { TemplateId } from 'compliance-shared';
 
 vi.mock('../../api/client', () => ({
   apiClient: {
@@ -15,14 +16,16 @@ describe('useTemplateQuery', () => {
   });
 
   it('fetches full template DTO when ID is provided', async () => {
-    const mockDto = { id: 't1', name: 'Form A', rawHTML: '<p>HTML</p>' };
+    const validTemplateId: TemplateId = 'asset-transfer-authorization';
+    const mockDto = { id: validTemplateId, name: 'Form A', rawHTML: '<p>HTML</p>', type: 'AUTHORIZATION' };
+    
     vi.mocked(apiClient.getTemplate).mockResolvedValue({
       status: 200,
       body: mockDto as any,
       headers: new Headers(),
     });
 
-    const { result } = renderHook(() => useTemplateQuery('t1'));
+    const { result } = renderHook(() => useTemplateQuery(validTemplateId));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -30,7 +33,7 @@ describe('useTemplateQuery', () => {
 
     expect(result.current.data).toEqual(mockDto);
     expect(apiClient.getTemplate).toHaveBeenCalledWith({
-      params: { id: 't1' },
+      params: { id: validTemplateId },
       fetchOptions: expect.any(Object),
     });
   });

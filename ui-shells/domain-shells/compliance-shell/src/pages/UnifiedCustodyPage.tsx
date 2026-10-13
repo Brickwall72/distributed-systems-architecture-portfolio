@@ -4,9 +4,8 @@ import { lazyRemote } from '../utils/federation';
 import { FederatedErrorBoundary } from '@shared/ui-components';
 import type { ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import type { 
-  // AssetDTO,
   AssetDTOList,
-  // OrganizationDTO,
+  OrganizationDTO,
   OrganizationDTOList,
   AssetSelectorProps,
   OrganizationSelectorProps
@@ -19,9 +18,17 @@ const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('comp
 
 export default function UnifiedCustodyPage() {
   // 1. Topology Data Handlers
-  const [sourceOrg, setSourceOrg] = useState<OrganizationDTOList>([]);
-  const [targetOrg, setTargetOrg] = useState<OrganizationDTOList>([]);
+  const [sourceOrg, setSourceOrg] = useState<OrganizationDTO>();
+  const [targetOrg, setTargetOrg] = useState<OrganizationDTO>();
   const [assets, setAssets] = useState<AssetDTOList>([]);
+
+  const handleSourceOrgSelect = (orgs: OrganizationDTOList) => {
+    setSourceOrg(orgs[0]);
+  }
+
+  const handleTargetOrgSelect = (orgs: OrganizationDTOList) => {
+    setTargetOrg(orgs[0]);
+  }
 
   return (
     <div className="flex flex-col h-screen p-6 gap-6 bg-slate-950 text-slate-100">
@@ -32,9 +39,9 @@ export default function UnifiedCustodyPage() {
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selectors...</div>}>
             <OrganizationSelector
               label='Source Organization'
-              excludeOrgId={targetOrg[0]?.id}
+              excludeOrgId={targetOrg?.id}
               filterOwnedId={assets[0]?.id}
-              onSelect={setSourceOrg}
+              onSelect={handleSourceOrgSelect}
             />
           </Suspense>
         </FederatedErrorBoundary>
@@ -42,8 +49,8 @@ export default function UnifiedCustodyPage() {
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading asset selector...</div>}>
             <AssetSelector
               label='Asset for Transfer'
-              excludeOwnerId={targetOrg[0]?.id}
-              filterOwnerId={sourceOrg[0]?.id}
+              excludeOwnerId={targetOrg?.id}
+              filterOwnerId={sourceOrg?.id}
               onSelect={setAssets}
             />
           </Suspense>
@@ -52,8 +59,8 @@ export default function UnifiedCustodyPage() {
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selectors...</div>}>
             <OrganizationSelector
               label='Target Organization'
-              excludeOrgId={sourceOrg[0]?.id}
-              onSelect={setTargetOrg}
+              excludeOrgId={sourceOrg?.id}
+              onSelect={handleTargetOrgSelect}
             />
           </Suspense>
         </FederatedErrorBoundary>
@@ -63,9 +70,9 @@ export default function UnifiedCustodyPage() {
         <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading compliance workflow...</div>}>
             <ComplianceWorkflowWidget
-              sourceOrg={sourceOrg[0]}
+              sourceOrg={sourceOrg}
               assets={assets}
-              targetOrg={targetOrg[0]}
+              targetOrg={targetOrg}
             />
           </Suspense>
         </FederatedErrorBoundary>

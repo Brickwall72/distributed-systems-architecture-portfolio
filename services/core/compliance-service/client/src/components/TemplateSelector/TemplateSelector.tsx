@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
 import { useTemplatesQuery, useTemplateQuery } from '../../hooks';
-import type { TemplateDTO, TemplateType } from 'compliance-shared';
+import type { TemplateDTO, TemplateType, TemplateId } from 'compliance-shared';
 
 export type TemplateTypeFilter = TemplateType | 'ALL';
 
@@ -34,14 +34,14 @@ export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
   const { label = 'Template Select', typeFilter = 'ALL', onSelect } = props;
 
   // Local selection state
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<TemplateId>();
 
   // 1. Fetch manifest options based on type filter
   const queryParams = typeFilter === 'ALL' ? undefined : { type: typeFilter };
   const { data: manifests = [], isLoading: isListLoading, error: listError } = useTemplatesQuery(queryParams);
 
   // 2. Fetch full DTO content for the actively selected template ID
-  const { data: activeTemplate, isLoading: isContentLoading, error: contentError } = useTemplateQuery(selectedId);
+  const { data: activeTemplate, isLoading: isContentLoading, error: contentError } = useTemplateQuery(selectedId as TemplateId);
 
   // Synchronize and auto-select template on manifest or filter changes
   useEffect(() => {
@@ -50,7 +50,7 @@ export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
     if (!isValidSelection) {
       // If nothing is selected or the current selection was filtered out,
       // fallback to the first available manifest (or clear if empty)
-      setSelectedId(manifests.length > 0 ? manifests[0].id : '');
+      setSelectedId(manifests.length > 0 ? manifests[0].id : undefined);
     }
   }, [manifests, selectedId]);
 
@@ -76,7 +76,7 @@ export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
       options={options}
       isLoading={isListLoading || isContentLoading}
       error={listError || contentError}
-      onSelection={setSelectedId}
+      onSelection={(id) => setSelectedId(id as TemplateId)}
       loadingText={`Loading ${typeFilter} templates...`}
       placeholderText="-- Select Template --"
     />

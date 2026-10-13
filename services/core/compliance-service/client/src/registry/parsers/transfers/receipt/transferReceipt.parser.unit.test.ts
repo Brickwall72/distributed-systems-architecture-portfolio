@@ -19,12 +19,14 @@ describe('parseReceiptPayload', () => {
 
   it('maps complete input data correctly without placeholders', () => {
     const result = parseTransferReceiptPayload({
-      sourceOrg: mockOrg,
-      targetOrg: mockOrg,
-      assets: [mockAsset],
-      requisitionNumber: 'REQ-2026-888',
-      selectedDate: '20261011',
-    }, false);
+      input: {
+        sourceOrg: mockOrg,
+        targetOrg: mockOrg,
+        assets: [mockAsset],
+        requisitionNumber: 'REQ-2026-888',
+        selectedDate: '20261011',
+      },
+      usePlaceholders: false});
 
     expect(result).toEqual({
       transferringEntityName: 'Bravo Depot',
@@ -49,7 +51,7 @@ describe('parseReceiptPayload', () => {
   });
 
   it('applies receipt fallback placeholders when usePlaceholders is true and fields are missing', () => {
-    const result = parseTransferReceiptPayload({}, true);
+    const result = parseTransferReceiptPayload({input: {}, usePlaceholders: true});
 
     expect(result.transferringEntityName).toBe('[Transferring Entity]');
     expect(result.receivingEntityName).toBe('[Receiving Entity]');
@@ -59,7 +61,7 @@ describe('parseReceiptPayload', () => {
   });
 
   it('returns empty strings and empty items when usePlaceholders is false and fields are missing', () => {
-    const result = parseTransferReceiptPayload({}, false);
+    const result = parseTransferReceiptPayload({input: {}, usePlaceholders: false});
 
     expect(result.transferringEntityName).toBe('');
     expect(result.receivingEntityName).toBe('');

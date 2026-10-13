@@ -2,11 +2,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
-import { usePdfGenerator } from 'pdf-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { TemplateSelector } from '../../components'; 
 import { TemplateDTO } from 'compliance-shared';
-import { generateTemplatePayload } from '../../registry';
+import { generateTemplatePayload, PayloadParams } from '../../registry';
+import { useCompliancePdf } from '../../hooks';
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
@@ -14,21 +14,15 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   if (!parsedProps.success) {
     console.warn('[ComplianceWorkflowWidget MFE] Invalid props received from Host Shell:', parsedProps.error.format());
   }
-  const { sourceOrg, assets, targetOrg } = parsedProps.success
+  const entityData = parsedProps.success
     ? parsedProps.data
     : { sourceOrg: undefined, assets: [], targetOrg: undefined };
 
-  const requisitionNumber = 'REQ-2026-001';
-  const signerId = 'usr_compliance_officer';
-  const entityId = 'org_unassigned';
-  const [documentId] = useState(() => crypto.randomUUID());
-  const onWorkflowComplete = (signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
-
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO>();
+  const [selectedDate] = useState(new Date().toDateString());
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
-  const [selectedDate] = useState(new Date().toDateString());
 
   // Reset workflow states when template changes
   useEffect(() => {
@@ -37,40 +31,45 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     setIsSigned(false);
   }, [selectedTemplate?.id]);
 
-  const fileName = `${selectedTemplate?.id || 'document'}-${requisitionNumber}.pdf`;
+  // Unified base input object shared across preview and hook
+  const templatePayloadInput: PayloadParams = useMemo(() => ({
+    templateId: selectedTemplate?.id,
+    input: {
+      ...entityData,
+      selectedDate,
+    }
+  }), [entityData, selectedDate]);
 
-  const { generate, isGenerating } = usePdfGenerator({
-    fileName,
-    onSuccess: (blobUrl) => setPdfBlobUrl(blobUrl),
-    onError: (err) => console.error('Failed to generate PDF:', err),
-  });
+  // Hook handles generation lifecycle, template fetching, sequential numbering, and pdf-client execution
+  const { generatePdf, isLoading, error } = useCompliancePdf(templatePayloadInput);
 
   /**
-   * Delegates payload formation and fallback placeholder mapping 
-   * to the centralized template registry, passing `true` for UI previews.
+   * Payload for interactive UI workspace preview (usePlaceholders = true)
    */
   const displayPayload = useMemo(() => {
     if (!selectedTemplate?.id) return null;
-
-    return generateTemplatePayload(
-      selectedTemplate.id,
-      {
-        sourceOrg,
-        targetOrg,
-        assets,
-        selectedDate
-      },
-      true // usePlaceholders = true for interactive UI workspace preview
-    );
-  }, [selectedTemplate?.id, sourceOrg, targetOrg, assets, requisitionNumber, selectedDate]);
+    return generateTemplatePayload(templatePayloadInput);
+  }, [templatePayloadInput]);
 
   // Always ready to render once template and base data structure exist
-  const isReadyForPdf = Boolean(!pdfBlobUrl && selectedTemplate?.id && (assets.length > 0) && sourceOrg && targetOrg);
+  const isReadyForPdf = Boolean(
+    !pdfBlobUrl && 
+    selectedTemplate?.id && 
+    (entityData.assets?.length ?? 0) > 0 && 
+    entityData.sourceOrg && 
+    entityData.targetOrg
+  );
 
   const hydratedHtml = useMemo(() => {
     if (!selectedTemplate?.rawHTML || !displayPayload) return '';
     return hydrateTemplate(selectedTemplate.rawHTML, displayPayload);
   }, [selectedTemplate?.rawHTML, displayPayload]);
+
+
+  const signerId = 'usr_compliance_officer';
+  const entityId = 'org_unassigned';
+  const [documentId] = useState(() => crypto.randomUUID());
+  const onWorkflowComplete = (signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
 
   const handleSignatureSuccess = (signedPdfUrl: string) => {
     setPdfBlobUrl(signedPdfUrl);
@@ -102,21 +101,27 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           )}
 
           <Button
-            isLoading={isGenerating}
-            disabled={!isReadyForPdf || !hydratedHtml}
-            onClick={() => generate(hydratedHtml)}
+            isLoading={isLoading}
+            disabled={!isReadyForPdf || Boolean(pdfBlobUrl)}
+            onClick={() => generatePdf(setPdfBlobUrl)}
           >
             Generate PDF
           </Button>
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-950 border border-red-800 text-red-200 px-4 py-2 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Document Workspace */}
       <div className="flex-1 bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative min-h-[600px]">
         <DocumentViewer
           content={pdfBlobUrl ?? hydratedHtml}
           contentType={pdfBlobUrl ? 'pdf' : 'html'}
-          title={`Document Workflow: ${requisitionNumber}`}
+          title="Document Workflow"
           className="w-full h-full"
           isSigningActive={isSigning}
         >
@@ -136,7 +141,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
               documentId={documentId}
               signerId={signerId}
               entityId={entityId}
-              customPath={`transfers/${selectedTemplate?.id || 'forms'}/${requisitionNumber}`}
+              customPath={`transfers/${selectedTemplate?.id || 'forms'}/document`}
               documentType={selectedTemplate?.id}
               onCancel={() => setIsSigning(false)}
               onSuccess={handleSignatureSuccess}

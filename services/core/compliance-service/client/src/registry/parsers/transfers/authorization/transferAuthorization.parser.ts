@@ -1,7 +1,7 @@
 // File: services/platform/compliance/client/src/registry/parsers/transfers/authorization/transferAuthorization.parser.ts
-import { ComplianceTemplateInput } from '../../../types';
+import { ParserInput } from '../../../types';
 
-export function parseTransferAuthorizationPayload(input: ComplianceTemplateInput, usePlaceholders = false) {
+export function parseTransferAuthorizationPayload({input, usePlaceholders}: ParserInput) {
   const placeholderItems = usePlaceholders ? [{
     itemNumber: 1,
     nomenclature: '[Asset Description & Nomenclature Required]',
