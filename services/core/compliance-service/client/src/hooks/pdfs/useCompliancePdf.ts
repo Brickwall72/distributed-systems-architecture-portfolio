@@ -1,46 +1,66 @@
 // File: services/core/compliance-service/client/src/hooks/useCompliancePdf.ts
-import { useCallback } from 'react';
-import { usePdfGenerator } from 'pdf-client';
-import { hydrateTemplate } from '@shared/ui-components';
+import { useCallback, useState } from 'react';
+import { apiClient } from '../../api/client';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { useTemplateQuery } from '../templates';
 
 let sequenceCounter = 1;
 
-export function useCompliancePdf(payloadParams: PayloadParams) {
-  // 1. Fetch template following your established query pattern
-  const { data: templateData, isLoading: isTemplateLoading, error: templateError } = useTemplateQuery(payloadParams.templateId);
-  const rawHTML = templateData?.rawHTML;
+export function useCompliancePdf() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // 2. Generate sequential requisition number and file name
-  const requisitionNumber = `REQ-2026-${String(sequenceCounter++).padStart(4, '0')}`;
-  const fileName = `${payloadParams.templateId || 'document'}-${requisitionNumber}.pdf`;
+  const generatePdf = useCallback(async (payloadParams: PayloadParams, onSuccess: (blobUrl: string) => void) => {
+    if (!payloadParams.templateId) return;
 
-  // 3. Setup pdf-client hook
-  const { generate: generatePdfBlob, isGenerating: isPdfGenerating, error: pdfError } = usePdfGenerator({
-    fileName,
-    onSuccess:()=>console.log('PDF generation successful')
-  });
+    try {
+      setIsGenerating(true);
+      setError(null);
 
-  // 4. Action callback that the widget invokes on button click
-  const generatePdf = useCallback(async (onSuccess: (blobUrl: string) => void) => {
-    if (!payloadParams.templateId || !rawHTML) return;
+      const requisitionNumber = `REQ-2026-${String(sequenceCounter++).padStart(4, '0')}`;
+      
+      const executionParams: PayloadParams = {
+        ...payloadParams,
+        input: {
+          ...payloadParams.input,
+          requisitionNumber,
+        },
+        usePlaceholders: false,
+      };
 
-    payloadParams.input.requisitionNumber = requisitionNumber;
-    payloadParams.usePlaceholders = false;
+      const productionPayload = generateTemplatePayload(executionParams);
 
-    const productionPayload = generateTemplatePayload(payloadParams);
-    const hydratedHtml = hydrateTemplate(rawHTML, productionPayload);
+      // Hit the backend draft endpoint returning JSON containing base64 PDF
+      const response = await apiClient.createTemplateDraft({
+        params: { id: payloadParams.templateId },
+        body: productionPayload,
+      });
 
-    const blobUrl = await generatePdfBlob(hydratedHtml);
-    if (blobUrl) {
-      onSuccess(blobUrl);
+      if (response.status === 201) {
+        // Convert base64 string back to a binary Blob
+        const binaryString = atob(response.body.pdfBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.codePointAt(i)!;
+        }
+        
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        onSuccess(blobUrl);
+      } else {
+        const errBody = response.body as { error?: string; message?: string };
+        setError(errBody?.error || errBody?.message || 'Failed to generate PDF draft');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate PDF draft');
+    } finally {
+      setIsGenerating(false);
     }
-  }, [payloadParams, rawHTML, requisitionNumber, generatePdfBlob]);
+  }, []);
 
   return {
     generatePdf,
-    isLoading: isTemplateLoading || isPdfGenerating,
-    error: templateError || pdfError?.message || null,
+    isLoading: isGenerating,
+    error,
   };
 }

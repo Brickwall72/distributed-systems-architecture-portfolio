@@ -5,26 +5,25 @@ import type { Server } from 'node:http';
 import path from 'node:path';
 import { createComplianceGateway } from '../routes';
 
-// ✅ Must match the exact import path used in templates.route.ts: '../../repositories'
 vi.mock('../repositories', () => {
   return {
     TemplateRepository: {
       findAllManifests: (query?: { type?: string }) => {
         return [
           {
-            id: 't-123',
+            id: 'asset-transfer-authorization',
             name: 'Asset Transfer Authorization',
             type: query?.type || 'AUTHORIZATION',
           },
         ];
       },
       findById: (id: string) => {
-        if (id === 't-123') {
+        if (id === 'asset-transfer-authorization') {
           return {
-            id: 't-123',
+            id: 'asset-transfer-authorization',
             name: 'Asset Transfer Authorization',
             type: 'AUTHORIZATION',
-            version: 1, // ✅ Satisfy client consumer contract expectation
+            version: 1,
             rawHTML: '<div>Authorization Form HTML</div>',
           };
         }
@@ -39,6 +38,15 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
   const PORT = 8089;
 
   beforeAll(async () => {
+    // Mock global fetch for downstream PDF service calls during verification
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => Buffer.from('mock-pdf-binary-content'),
+      })
+    );
+
     const app = express();
     app.use(express.json());
 
@@ -53,6 +61,7 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
   });
 
   afterAll(async () => {
+    vi.unstubAllGlobals();
     if (server) {
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));
@@ -75,7 +84,8 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
       },
       stateHandlers: {
         'templates exist in the system': async () => {},
-        'template with ID t-123 exists': async () => {},
+        'template with ID asset-transfer-authorization exists': async () => {},
+        'template with ID asset-transfer-authorization exists for drafting': async () => {},
       },
     });
 

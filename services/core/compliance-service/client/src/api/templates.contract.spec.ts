@@ -52,7 +52,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
   });
 
   it('returns a full template DTO by ID', async () => {
-    const templateId = 't-123';
+    const templateId = 'asset-transfer-authorization';
 
     provider
       .given(`template with ID ${templateId} exists`)
@@ -86,6 +86,53 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       const body = response.body as { id: string; name: string; rawHTML: string };
       expect(body.id).toBe(templateId);
       expect(body.rawHTML).toContain('Authorization Form HTML');
+    });
+  });
+
+  it('creates a template draft and returns base64-encoded PDF response', async () => {
+    const templateId = 'asset-transfer-authorization';
+
+    provider
+      .given(`template with ID ${templateId} exists for drafting`)
+      .uponReceiving(`a request to create a draft for template ${templateId}`)
+      .withRequest({
+        method: 'POST',
+        path: `/compliance/api/v1/templates/${templateId}/drafts`,
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: like({
+          input: {
+            sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' },
+          },
+        }),
+      })
+      .willRespondWith({
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+        body: like({
+          draftId: string('draft-uuid-123'),
+          pdfBase64: string('JVBERi0xLjcK...'),
+          requisitionNumber: string('REQ-2026-0001'),
+        }),
+      });
+
+    await provider.executeTest(async (mockServer) => {
+      const response = await apiClient.createTemplateDraft({
+        params: { id: templateId },
+        body: {
+          input: {
+            sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' },
+          },
+        },
+        overrideClientOptions: {
+          baseUrl: `${mockServer.url}/compliance/api/v1`,
+        },
+      });
+
+      expect(response.status).toBe(201);
+      const body = response.body as { draftId: string; pdfBase64: string; requisitionNumber: string };
+      expect(body.draftId).toBe('draft-uuid-123');
+      expect(body.pdfBase64).toBeDefined();
+      expect(body.requisitionNumber).toBe('REQ-2026-0001');
     });
   });
 });

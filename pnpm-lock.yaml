@@ -300,6 +300,9 @@ importers:
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
+      '@shared/ui-components':
+        specifier: workspace:*
+        version: link:../../../../packages/ui
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
