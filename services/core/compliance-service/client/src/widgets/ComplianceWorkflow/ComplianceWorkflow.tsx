@@ -41,7 +41,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   }), [entityData, selectedDate]);
 
   // Hook handles generation lifecycle, template fetching, sequential numbering, and pdf-client execution
-  const { generatePdf, isLoading, error } = useCompliancePdf(templatePayloadInput);
+  const { generatePdf, isLoading, error } = useCompliancePdf();
 
   /**
    * Payload for interactive UI workspace preview (usePlaceholders = true)
@@ -103,7 +103,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           <Button
             isLoading={isLoading}
             disabled={!isReadyForPdf || Boolean(pdfBlobUrl)}
-            onClick={() => generatePdf(setPdfBlobUrl)}
+            onClick={() => generatePdf(templatePayloadInput, setPdfBlobUrl)}
           >
             Generate PDF
           </Button>

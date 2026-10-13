@@ -20,6 +20,7 @@
     "@contracts/common": "workspace:*"
   },
   "dependencies": {
+    "@shared/ui-components": "workspace:*",
     "@shared/express": "workspace:*",
     "@shared/messaging": "workspace:*",
     "@contracts/esign": "workspace:*",

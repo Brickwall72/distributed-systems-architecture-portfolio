@@ -1,16 +1,11 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
-import { usePdfGenerator } from 'pdf-client';
-import { useTemplateQuery } from '../../hooks/templates/useTemplateQuery';
+import { useCompliancePdf } from '../../hooks';
 
-// Mock external dependencies
-vi.mock('pdf-client', () => ({
-  usePdfGenerator: vi.fn(),
-}));
-
-vi.mock('../../hooks/templates/useTemplateQuery', () => ({
-  useTemplateQuery: vi.fn(),
+// Mock the custom compliance PDF hook
+vi.mock('../../hooks', () => ({
+  useCompliancePdf: vi.fn(),
 }));
 
 vi.mock('esign-client', () => ({
@@ -53,26 +48,15 @@ vi.mock('../../components', () => ({
 }));
 
 describe('ComplianceWorkflowWidget', () => {
-  const mockGenerate = vi.fn();
+  const mockGeneratePdf = vi.fn(async (_params: any, onSuccess: (blobUrl: string) => void): Promise<void> => {
+    onSuccess('blob:mock-pdf-url');
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Mock pdf-client hook return value with a resolved blob URL
-    vi.mocked(usePdfGenerator).mockReturnValue({
-      generate: mockGenerate.mockResolvedValue('blob:mock-pdf-url'),
-      isGenerating: false,
-      error: null,
-    });
-
-    // Mock template query hook return value to supply rawHTML
-    vi.mocked(useTemplateQuery).mockReturnValue({
-      data: {
-        id: 'asset-transfer-authorization',
-        name: 'Test Template',
-        type: 'AUTHORIZATION',
-        rawHTML: '<p>Hello {{requisitionNumber}}</p>',
-      },
+    vi.mocked(useCompliancePdf).mockReturnValue({
+      generatePdf: mockGeneratePdf,
       isLoading: false,
       error: null,
     });
@@ -103,9 +87,16 @@ describe('ComplianceWorkflowWidget', () => {
     fireEvent.click(generateBtn);
 
     await waitFor(() => {
-      expect(mockGenerate).toHaveBeenCalledWith(
-        expect.stringContaining('hydrated:<p>Hello {{requisitionNumber}}</p>')
+      expect(mockGeneratePdf).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: 'asset-transfer-authorization',
+        }),
+        expect.any(Function)
       );
     });
+
+    // Verify document viewer receives the resulting blob URL
+    const viewer = screen.getByTestId('document-viewer');
+    expect(viewer.getAttribute('data-content')).toBe('blob:mock-pdf-url');
   });
 });
