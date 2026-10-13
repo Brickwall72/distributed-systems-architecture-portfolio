@@ -19,12 +19,15 @@ describe('parseAuthorizationPayload', () => {
 
   it('maps complete input data correctly without placeholders', () => {
     const result = parseTransferAuthorizationPayload({
-      sourceOrg: mockOrg,
-      targetOrg: mockOrg,
-      assets: [mockAsset],
-      requisitionNumber: 'REQ-2026-999',
-      selectedDate: '20261011',
-    }, false);
+      input: {
+        sourceOrg: mockOrg,
+        targetOrg: mockOrg,
+        assets: [mockAsset],
+        requisitionNumber: 'REQ-2026-999',
+        selectedDate: '20261011',
+      },
+      usePlaceholders: false,
+    });
 
     expect(result).toEqual({
       authorizingEntityName: 'Alpha Logistics',
@@ -49,7 +52,7 @@ describe('parseAuthorizationPayload', () => {
   });
 
   it('applies fallback placeholders when usePlaceholders is true and fields are missing', () => {
-    const result = parseTransferAuthorizationPayload({}, true);
+    const result = parseTransferAuthorizationPayload({ input:{}, usePlaceholders: true });
 
     expect(result.authorizingEntityName).toBe('[Releasing Entity / Authorizing]');
     expect(result.requisitionNumber).toBe('[REQ-PENDING]');
@@ -58,7 +61,7 @@ describe('parseAuthorizationPayload', () => {
   });
 
   it('returns empty strings for missing fields when usePlaceholders is false', () => {
-    const result = parseTransferAuthorizationPayload({}, false);
+    const result = parseTransferAuthorizationPayload({ input:{}, usePlaceholders: false });
 
     expect(result.authorizingEntityName).toBe('');
     expect(result.requisitionNumber).toBe('');

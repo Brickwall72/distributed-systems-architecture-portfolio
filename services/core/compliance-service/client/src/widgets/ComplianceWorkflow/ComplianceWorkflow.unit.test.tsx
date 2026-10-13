@@ -1,11 +1,16 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.unit.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { usePdfGenerator } from 'pdf-client';
+import { useTemplateQuery } from '../../hooks/templates/useTemplateQuery';
 
 // Mock external dependencies
 vi.mock('pdf-client', () => ({
   usePdfGenerator: vi.fn(),
+}));
+
+vi.mock('../../hooks/templates/useTemplateQuery', () => ({
+  useTemplateQuery: vi.fn(),
 }));
 
 vi.mock('esign-client', () => ({
@@ -34,8 +39,9 @@ vi.mock('../../components', () => ({
         data-testid="mock-selector-trigger"
         onClick={() =>
           onSelect({
-            id: 'test-template-id',
+            id: 'asset-transfer-authorization',
             name: 'Test Template',
+            type: 'AUTHORIZATION',
             rawHTML: '<p>Hello {{requisitionNumber}}</p>',
           })
         }
@@ -51,9 +57,23 @@ describe('ComplianceWorkflowWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock pdf-client hook return value with a resolved blob URL
     vi.mocked(usePdfGenerator).mockReturnValue({
-      generate: mockGenerate,
+      generate: mockGenerate.mockResolvedValue('blob:mock-pdf-url'),
       isGenerating: false,
+      error: null,
+    });
+
+    // Mock template query hook return value to supply rawHTML
+    vi.mocked(useTemplateQuery).mockReturnValue({
+      data: {
+        id: 'asset-transfer-authorization',
+        name: 'Test Template',
+        type: 'AUTHORIZATION',
+        rawHTML: '<p>Hello {{requisitionNumber}}</p>',
+      },
+      isLoading: false,
       error: null,
     });
   });
@@ -81,8 +101,11 @@ describe('ComplianceWorkflowWidget', () => {
 
     // Click generate PDF
     fireEvent.click(generateBtn);
-    expect(mockGenerate).toHaveBeenCalledWith(
-      expect.stringContaining('hydrated:<p>Hello {{requisitionNumber}}</p>')
-    );
+
+    await waitFor(() => {
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.stringContaining('hydrated:<p>Hello {{requisitionNumber}}</p>')
+      );
+    });
   });
 });
