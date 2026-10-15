@@ -15,7 +15,7 @@ vi.mock('../../registry', () => ({
   generateTemplatePayload: vi.fn((params) => ({ mockPayloadKey: params.templateId })),
 }));
 
-// Mock URL.createObjectURL and atob if needed
+// Mock URL.createObjectURL
 const mockCreateObjectURL = vi.fn(() => 'blob:test-pdf-url');
 Object.defineProperty(window, 'URL', {
   value: {
@@ -23,6 +23,10 @@ Object.defineProperty(window, 'URL', {
   },
   writable: true,
 });
+
+// Mock global fetch for pre-signed URL download
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 describe('useCompliancePdf', () => {
   beforeEach(() => {
@@ -57,16 +61,25 @@ describe('useCompliancePdf', () => {
     expect(mockOnSuccess).not.toHaveBeenCalled();
   });
 
-  it('successfully generates draft, converts base64 to Blob, and triggers onSuccess with blob URL', async () => {
-    const fakeBase64 = btoa('dummy-pdf-binary-content');
+  it('successfully generates draft, fetches via pre-signed URL, converts to Blob, and triggers onSuccess', async () => {
+    // 1. Mock backend response returning pre-signed URL
     vi.mocked(apiClient.createTemplateDraft).mockResolvedValueOnce({
       status: 201,
       body: {
         draftId: 'draft-123',
-        pdfBase64: fakeBase64,
+        presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
         requisitionNumber: 'REQ-2026-0001',
       },
       headers: new Headers(),
+    });
+
+    // 2. Mock fetch response for pre-signed URL download
+    const mockBlob = new Blob(['dummy-pdf-binary-content'], { type: 'application/pdf' });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/pdf' }),
+      blob: async () => mockBlob,
     });
 
     const { result } = renderHook(() => useCompliancePdf());
@@ -90,10 +103,44 @@ describe('useCompliancePdf', () => {
       body: { mockPayloadKey: 'asset-transfer-authorization' },
     });
 
+    // Verifies fetch was called with the pre-signed URL
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:9000/dsap/test-document.pdf?signature=xyz');
+
     // Verifies blob creation and success callback trigger
-    expect(mockCreateObjectURL).toHaveBeenCalled();
+    expect(mockCreateObjectURL).toHaveBeenCalledWith(mockBlob);
     expect(mockOnSuccess).toHaveBeenCalledWith('blob:test-pdf-url');
     expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('reports an HTML storage response instead of displaying it as a blank PDF', async () => {
+    vi.mocked(apiClient.createTemplateDraft).mockResolvedValueOnce({
+      status: 201,
+      body: {
+        draftId: 'draft-123',
+        presignedUrl: 'http://minio.localhost:8081/dsap/test-document.pdf?signature=xyz',
+        requisitionNumber: 'REQ-2026-0001',
+      },
+      headers: new Headers(),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+      blob: async () => new Blob(['<html>MinIO console</html>'], { type: 'text/html' }),
+    });
+
+    const { result } = renderHook(() => useCompliancePdf());
+    const mockOnSuccess = vi.fn();
+
+    await act(async () => {
+      await result.current.generatePdf(defaultParams, mockOnSuccess);
+    });
+
+    expect(result.current.error).toBe('Expected a PDF from storage but received text/html');
+    expect(mockOnSuccess).not.toHaveBeenCalled();
+    expect(mockCreateObjectURL).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -116,6 +163,7 @@ describe('useCompliancePdf', () => {
     });
 
     expect(result.current.error).toBe('Internal server error creating template draft PDF.');
+    expect(mockFetch).not.toHaveBeenCalled();
     expect(mockOnSuccess).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
   });

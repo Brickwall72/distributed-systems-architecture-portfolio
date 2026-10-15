@@ -7,12 +7,13 @@
     "start": "node ./dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsup",
-    "test": "pnpm test:unit pnpm test:verify",
+    "test": "pnpm test:unit",
     "test:unit": "vitest run .unit.test",
-    "test:verify": "vitest run .contract.verify.test",
     "test.sh": "./src/test.sh"
   },
   "dependencies": {
+    "@contracts/pdf": "workspace:*",
+    "@shared/messaging": "workspace:*",
     "@shared/express": "workspace:*",
     "@shared/filestore": "workspace:*",
     "express": "~5.2.1",

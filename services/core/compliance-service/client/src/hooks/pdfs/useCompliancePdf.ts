@@ -29,21 +29,27 @@ export function useCompliancePdf() {
 
       const productionPayload = generateTemplatePayload(executionParams);
 
-      // Hit the backend draft endpoint returning JSON containing base64 PDF
+      // Hit the backend draft endpoint returning JSON containing the pre-signed URL
       const response = await apiClient.createTemplateDraft({
         params: { id: payloadParams.templateId },
         body: productionPayload,
       });
 
       if (response.status === 201) {
-        // Convert base64 string back to a binary Blob
-        const binaryString = atob(response.body.pdfBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.codePointAt(i)!;
+        // Fetch the PDF binary directly from MinIO using the pre-signed URL
+        const pdfRes = await fetch(response.body.presignedUrl);
+        if (!pdfRes.ok) {
+          throw new Error(`Failed to download PDF from storage (HTTP ${pdfRes.status})`);
         }
-        
-        const blob = new Blob([bytes], { type: 'application/pdf' });
+
+        const contentType = pdfRes.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+        if (contentType !== 'application/pdf') {
+          throw new Error(
+            `Expected a PDF from storage but received ${contentType || 'an unknown content type'}`
+          );
+        }
+
+        const blob = await pdfRes.blob();
         const blobUrl = URL.createObjectURL(blob);
         
         onSuccess(blobUrl);

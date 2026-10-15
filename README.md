@@ -186,12 +186,13 @@ kubectl get pods,svc,ingress -A
 curl -i http://localhost:8081/
 curl -i http://localhost:8081/topology/client/remoteEntry.js
 curl -i http://localhost:8081/compliance/client/remoteEntry.js
-curl -i http://localhost:8081/pdf/client/remoteEntry.js
 curl -i http://localhost:8081/topology/api/v1/health
 curl -i http://localhost:8081/pdf/api/v1/health
 ```
 
 The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8081`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
+
+PDF presigned URLs use `http://minio.localhost:8081`, routed to the MinIO S3 API Service on port `9000` (not the web console on port `9001`). The MinIO API allows browser CORS for this local workflow; a successful presigned download should return `Content-Type: application/pdf`.
 
 ### Service-Level Compose Development
 
@@ -211,7 +212,6 @@ The direct development ports are:
 | Compliance shell | `3020` |
 | Compliance client | `3021` |
 | Topology API | `8083` |
-| PDF client | `4011` |
 | PDF API | `4001` |
 | Neo4j browser | `7474` |
 | Neo4j Bolt | `7687` |

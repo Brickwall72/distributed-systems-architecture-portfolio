@@ -29,10 +29,6 @@ data:
         {
           "name": "esign_client",
           "entry": "/esign/client/mf-manifest.json"
-        },
-        {
-          "name": "pdf_client",
-          "entry": "/pdf/client/mf-manifest.json"
         }
       ]
     }

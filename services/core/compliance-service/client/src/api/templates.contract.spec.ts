@@ -63,6 +63,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         headers: { Accept: 'application/json' },
       })
       .willRespondWith({
+        status: 201, // updated from 200 or kept as 200 depending on contract
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: like({
@@ -89,7 +90,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
     });
   });
 
-  it('creates a template draft and returns base64-encoded PDF response', async () => {
+  it('creates a template draft and returns pre-signed URL response', async () => {
     const templateId = 'asset-transfer-authorization';
 
     provider
@@ -110,7 +111,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         headers: { 'Content-Type': 'application/json' },
         body: like({
           draftId: string('draft-uuid-123'),
-          pdfBase64: string('JVBERi0xLjcK...'),
+          presignedUrl: string('http://localhost:9000/dsap/test-document.pdf?signature=xyz'),
           requisitionNumber: string('REQ-2026-0001'),
         }),
       });
@@ -129,9 +130,9 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(201);
-      const body = response.body as { draftId: string; pdfBase64: string; requisitionNumber: string };
+      const body = response.body as { draftId: string; presignedUrl: string; requisitionNumber: string };
       expect(body.draftId).toBe('draft-uuid-123');
-      expect(body.pdfBase64).toBeDefined();
+      expect(body.presignedUrl).toBeDefined();
       expect(body.requisitionNumber).toBe('REQ-2026-0001');
     });
   });

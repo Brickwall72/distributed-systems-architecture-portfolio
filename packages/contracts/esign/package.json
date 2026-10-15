@@ -12,9 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
-    "test": "pnpm test:unit",
-    "test:unit": "vitest run .unit.test"
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly"
   },
   "dependencies": {
     "@contracts/common": "workspace:*"

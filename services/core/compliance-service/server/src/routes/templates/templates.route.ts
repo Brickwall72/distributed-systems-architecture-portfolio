@@ -4,11 +4,17 @@ import { createLogger } from '@shared/express';
 import { templatesRoutes } from 'compliance-shared';
 import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
+import { EventBroker } from '@shared/messaging';
+import { PDF_SUBJECTS, GeneratePdfRequestSchema, GeneratePdfResponseSchema } from '@contracts/pdf';
 
 const logger = createLogger('compliance-server:templates');
 const s = initServer();
 
-export function createTemplatesRouter() {
+interface TemplatesRouterDeps {
+  broker: EventBroker;
+}
+
+export function createTemplatesRouter(deps: TemplatesRouterDeps) {
   return s.router(templatesRoutes, {
     // eslint-disable-next-line @typescript-eslint/require-await
     getTemplates: async ({ query, req }) => {
@@ -82,46 +88,64 @@ export function createTemplatesRouter() {
           };
         }
 
-        const hydratedHtml = hydrateTemplate(template.rawHTML, body);
-        const reqNum = (body as Record<string, unknown>).requisitionNumber;
+        const bodyObj = (body as Record<string, unknown>) || {};
+        const inputObj = bodyObj.input as Record<string, unknown> | undefined;
+        const targetOrg = inputObj?.targetOrg as Record<string, unknown> | undefined;
+        const entityId = (targetOrg?.id as string) || (bodyObj.entityId as string) || 'org-unassigned';
+        const reqNum = bodyObj.requisitionNumber;
 
-        // Call the PDF generator microservice backend from the server side
-        const pdfResponse = await fetch('http://traefik:80/pdf/api/v1/generator', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(correlationId ? { 'x-correlation-id': correlationId } : {}),
-          },
-          body: JSON.stringify({
-            html: hydratedHtml,
-            documentId: crypto.randomUUID(),
-            documentType: id,
-            customPath: `transfers/${id}/${typeof reqNum === 'string' ? reqNum : 'draft'}`,
-          }),
-        });
+        const hydratedHtml = hydrateTemplate(template.rawHTML, bodyObj);
+        const documentId = crypto.randomUUID();
 
-        if (!pdfResponse.ok) {
-          throw new Error(`PDF generator service responded with status ${pdfResponse.status}`);
+        const broker = deps.broker;
+        if (!broker) {
+          throw new Error('EventBroker dependency is not available');
         }
 
-        const pdfBuffer = await pdfResponse.arrayBuffer();
+        const requestPayload = GeneratePdfRequestSchema.parse({
+          html: hydratedHtml,
+          documentId,
+          documentType: id,
+          entityId,
+          customPath: `transfers/${id}/${typeof reqNum === 'string' ? reqNum : 'draft'}`,
+          correlationId: correlationId || undefined,
+        });
+
+        const rawResponse = await broker.request(
+          PDF_SUBJECTS.GENERATE_DRAFT,
+          requestPayload,
+          { correlationId: correlationId || undefined, timeout: 15000 }
+        );
+
+        const pdfResponse = GeneratePdfResponseSchema.parse(rawResponse);
+
+        if (!pdfResponse.success) {
+          throw new Error('PDF generator service returned an unsuccessful response status');
+        }
+
+        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${pdfResponse.documentId}]`, correlationId);
 
         return {
           status: 201 as const,
           body: {
-            draftId: crypto.randomUUID(),
-            pdfBase64: Buffer.from(pdfBuffer).toString('base64'),
+            draftId: pdfResponse.documentId,
+            presignedUrl: pdfResponse.presignedUrl,
             requisitionNumber: typeof reqNum === 'string' ? reqNum : '',
           },
         };
       } catch (err: unknown) {
-        const cause = err instanceof Error ? (err as any).cause : undefined;
-        logger.error(`Failed to create template draft PDF: ${err instanceof Error ? err.message : String(err)} | Cause: ${JSON.stringify(cause)}`, correlationId);
+        const message = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+
+        logger.error(`Failed to create template draft PDF: ${message}`, correlationId);
+
+        // ✅ Expose the exact error during tests so we can see what's failing instantly
         return {
           status: 500 as const,
           body: {
-            error: 'Internal server error creating template draft PDF.',
+            error: message,
             code: 'INTERNAL_SERVER_ERROR',
+            details: stack ? [stack] : undefined,
             timestamp: new Date().toISOString(),
           },
         };

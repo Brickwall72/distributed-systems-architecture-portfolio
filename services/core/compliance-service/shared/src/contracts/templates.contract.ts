@@ -34,22 +34,22 @@ export const templatesRoutes = {
     summary: 'Retrieve the complete template DTO including raw HTML.',
   }),
   createTemplateDraft: c.mutation({
-  method: 'POST',
-  path: '/templates/:id/drafts',
-  pathParams: z.object({ id: TemplateDTOSchema.shape.id }),
-  body: z.record(z.unknown()),
-  responses: {
-    201: z.object({
-      draftId: z.string(),
-      pdfBase64: z.string(),
-      requisitionNumber: z.string(),
-    }),
-    400: ApiErrorResponseSchema,
-    404: ApiErrorResponseSchema,
-    500: ApiErrorResponseSchema,
-  },
-  summary: 'Generate a compliance template draft PDF',
-})
+    method: 'POST',
+    path: '/templates/:id/drafts',
+    pathParams: z.object({ id: TemplateDTOSchema.shape.id }),
+    body: z.record(z.unknown()),
+    responses: {
+      201: z.object({
+        draftId: z.string().uuid(),
+        presignedUrl: z.string().url(), // ✅ Replaced pdfBase64 with pre-signed MinIO download URL
+        requisitionNumber: z.string(),
+      }),
+      400: ApiErrorResponseSchema,
+      404: ApiErrorResponseSchema,
+      500: ApiErrorResponseSchema,
+    },
+    summary: 'Generate a compliance template draft PDF',
+  }),
 };
 
 export const templatesContract = c.router(templatesRoutes);

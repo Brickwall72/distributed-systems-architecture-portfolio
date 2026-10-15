@@ -193,6 +193,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: minio-setup
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
       ports:
         - protocol: TCP
           port: 9000
@@ -257,6 +260,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: esign-server
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pdf-server
       ports:
         - protocol: TCP
           port: 4222
@@ -288,6 +294,25 @@ spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: esign-server
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nats
+      ports:
+        - protocol: TCP
+          port: 4222
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pdf-server-nats-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-server
   policyTypes:
     - Egress
   egress:

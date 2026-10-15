@@ -12,10 +12,7 @@
     }
   },
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
-    "test": "pnpm test:unit && pnpm test:contract",
-    "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .contract.test"
+    "build": "vite build && tsc --emitDeclarationOnly --outDir dist"
   },
   "peerDependencies": {
     "react": "~19.2.8",

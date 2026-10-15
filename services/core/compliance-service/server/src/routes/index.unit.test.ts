@@ -28,8 +28,11 @@ describe('createComplianceGateway (Route Accumulator Topology)', () => {
     vi.clearAllMocks();
     app = express();
     app.use(express.json());
-    // Mount the accumulator at /api/v1 to mimic production server.ts wiring
-    app.use('/api/v1', createComplianceGateway());
+
+    const mockBroker = { request: vi.fn() };
+
+    // ✅ Pass mock broker explicitly into createComplianceGateway
+    app.use('/api/v1', createComplianceGateway({ broker: mockBroker as any }));
   });
 
   it('mounts the /health check endpoint with service health payload', async () => {

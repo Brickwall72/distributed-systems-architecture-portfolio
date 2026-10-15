@@ -40,7 +40,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     }
   }), [entityData, selectedDate]);
 
-  // Hook handles generation lifecycle, template fetching, sequential numbering, and pdf-client execution
+  // Hook handles generation lifecycle, template fetching, sequential numbering, and pdf-generator execution
   const { generatePdf, isLoading, error } = useCompliancePdf();
 
   /**

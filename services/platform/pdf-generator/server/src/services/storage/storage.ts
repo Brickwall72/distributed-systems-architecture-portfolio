@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/services/storage/storage.ts
+// File: services/platform/pdf-generator/server/src/services/storage/storage.ts
 import {
   ObjectStorageClient,
   type StorageProvider,
@@ -6,8 +6,18 @@ import {
 } from '@shared/filestore';
 import { env } from '../../config';
 
-export const storageClient: StorageProvider = new ObjectStorageClient({
+// 1. Internal client for container-to-container communication (Docker network: minio:9000)
+export const internalStorageClient: StorageProvider = new ObjectStorageClient({
   endpoint: env.S3_ENDPOINT,
+  region: env.S3_REGION,
+  accessKeyId: env.S3_ACCESS_KEY,
+  secretAccessKey: env.S3_SECRET_KEY,
+  forcePathStyle: true,
+});
+
+// 2. Public client strictly for generating pre-signed URLs reachable by the browser (localhost:9000)
+export const publicStorageClient: StorageProvider = new ObjectStorageClient({
+  endpoint: env.S3_PUBLIC_ENDPOINT,
   region: env.S3_REGION,
   accessKeyId: env.S3_ACCESS_KEY,
   secretAccessKey: env.S3_SECRET_KEY,
@@ -24,16 +34,11 @@ export interface UploadDocumentOptions {
 
 export const uploadGeneratedDocument = (
   options: UploadDocumentOptions,
-  client: StorageProvider = storageClient
+  client: StorageProvider = internalStorageClient // Defaults to internal network client
 ): Promise<UploadResult> => {
   const { pdfBuffer, entityId, documentId, customPath, correlationId } = options;
 
-  // 1. Sanitize customPath (e.g. "/drafts/" -> "drafts")
   const sanitizedPath = customPath ? customPath.replace(/^\/+|\/+$/g, '') : '';
-
-  // 2. Construct key maintaining entityId isolation:
-  // - With customPath='drafts': "acme-corp/drafts/doc-123.pdf"
-  // - Without customPath:       "acme-corp/doc-123.pdf"
   const objectKey = sanitizedPath
     ? `${entityId}/${sanitizedPath}/${documentId}.pdf`
     : `${entityId}/${documentId}.pdf`;
