@@ -54,6 +54,10 @@ export class InMemoryStorageClient implements StorageProvider {
     });
   }
 
+  getSignedDownloadUrl(bucket: string, key: string): Promise<string> {
+    return Promise.resolve(`http://localhost:9000/${bucket}/${key}?mock-presigned=true`);
+  }
+
   /**
    * Helper utility for assertions during automated tests.
    */

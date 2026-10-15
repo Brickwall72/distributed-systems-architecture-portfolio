@@ -23,7 +23,6 @@
     "@contracts/compliance": "workspace:*",
     "@contracts/topology": "workspace:*",
     "esign-client": "workspace:*",
-    "pdf-client": "workspace:*",
     "compliance-shared": "workspace:*",
     "zod": "~3.24.1"
   },

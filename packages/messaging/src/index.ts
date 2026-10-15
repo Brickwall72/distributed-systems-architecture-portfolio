@@ -71,6 +71,63 @@ export class EventBroker {
   }
 
   /**
+   * Sends a request to a target subject and awaits a reply (NATS Request-Reply pattern).
+   */
+  async request<TResponse = unknown>(
+    subject: string,
+    payload: unknown,
+    options: { timeout?: number; correlationId?: string | null } = {}
+  ): Promise<TResponse> {
+    const { timeout = 10000, correlationId = null } = options;
+    try {
+      const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
+      this.logger.debug(`Sending NATS request to ${subject}`, correlationId);
+
+      const responseMsg = await this.nc.request(subject, encodedPayload, { timeout });
+      const decodedResponse = JSON.parse(new TextDecoder().decode(responseMsg.data));
+
+      this.logger.debug(`Received NATS reply from ${subject}`, correlationId);
+      return decodedResponse as TResponse;
+    } catch (err) {
+      this.logger.error(`NATS request failed on ${subject}: ${(err as Error).message}`, correlationId);
+      throw err;
+    }
+  }
+
+  /**
+   * Sets up a responder for incoming NATS request-reply calls.
+   */
+  respond(
+    subject: string,
+    handler: (payload: any) => Promise<unknown>
+  ): void {
+    const subscription = this.nc.subscribe(subject);
+    this.logger.info(`Listening for NATS requests on subject '${subject}'`);
+
+    void (async () => {
+      for await (const msg of subscription) {
+        try {
+          const payload = JSON.parse(new TextDecoder().decode(msg.data));
+          const result = await handler(payload);
+          
+          if (msg.reply) {
+            const encodedReply = new TextEncoder().encode(JSON.stringify(result));
+            msg.respond(encodedReply);
+          }
+        } catch (err) {
+          this.logger.error(`Error handling request on ${msg.subject}: ${(err as Error).message}`);
+          if (msg.reply) {
+            const errorReply = new TextEncoder().encode(
+              JSON.stringify({ error: (err as Error).message })
+            );
+            msg.respond(errorReply);
+          }
+        }
+      }
+    })();
+  }
+
+  /**
    * Publishes an event payload to a target subject using native TextEncoder serialization.
    */
   async publish(subject: string, payload: unknown, correlationId: string | null = null) {

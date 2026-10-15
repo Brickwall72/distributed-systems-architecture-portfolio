@@ -48,6 +48,8 @@ spec:
               value: {{ .Values.rootUser | quote }}
             - name: MINIO_ROOT_PASSWORD
               value: {{ .Values.rootPassword | quote }}
+            - name: MINIO_API_CORS_ALLOW_ORIGIN
+              value: "*"
           ports:
             - name: api
               containerPort: 9000
@@ -153,7 +155,8 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: minio-web
+  name: minio-api
+  namespace: {{ .Release.Namespace }} # Ensures it matches your release namespace
 spec:
   entryPoints:
     {{- toYaml .Values.ingress.entryPoints | nindent 4 }}
@@ -162,7 +165,7 @@ spec:
       kind: Rule
       services:
         - name: minio
-          port: 9001
+          port: 9000
       middlewares:
         - name: gzip-compress
         - name: security-headers

@@ -5,15 +5,19 @@ import { createHealthCheck } from '@shared/express';
 import { complianceContract } from 'compliance-shared';
 import { createTemplatesRouter } from './templates';
 import documentsRouter from './documents';
+import { EventBroker } from '@shared/messaging';
 
-export function createComplianceGateway(): Router {
+interface ComplianceGatewayDeps {
+  broker: EventBroker;
+}
+
+export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   const router = Router();
 
   /* Container health endpoint used by orchestrators and deployment monitors */
   router.get('/health', createHealthCheck('compliance-server'));
 
-  // Defer router creation until this factory function is invoked inside bootstrapApplicationServer
-  const templatesRouter = createTemplatesRouter();
+  const templatesRouter = createTemplatesRouter({ broker: deps.broker });
 
   createExpressEndpoints(
     complianceContract,
@@ -23,7 +27,6 @@ export function createComplianceGateway(): Router {
     router
   );
 
-  // Traditional Express sub-routers (mounted relative to /api/v1 -> /api/v1/documents)
   router.use('/documents', documentsRouter);
 
   return router;

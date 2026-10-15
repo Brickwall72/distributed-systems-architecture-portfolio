@@ -1,5 +1,5 @@
 /* tslint:disable */
-/* eslint-disable no-undef */
+/* eslint-disable no-undef, no-unused-vars */
 
 /**
  * Mock Service Worker.
@@ -80,7 +80,7 @@ addEventListener('message', async function (event) {
 
       // Unregister itself when there are no more clients
       if (remainingClients.length === 0) {
-        void self.registration.unregister()
+        self.registration.unregister()
       }
 
       break
@@ -165,7 +165,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
             status: response.status,
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
-            body: responseClone?.body ?? null,
+            body: responseClone ? responseClone.body : null,
           },
         },
       },

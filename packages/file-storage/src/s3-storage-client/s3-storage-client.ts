@@ -1,5 +1,6 @@
 // File: packages/file-storage/src/s3-storage-client/s3-storage-client.ts
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Readable } from 'node:stream';
 import crypto from 'node:crypto';
 import type {
@@ -72,5 +73,22 @@ export class ObjectStorageClient implements StorageProvider {
       stream: response.Body as Readable,
       contentType: response.ContentType,
     };
+  }
+
+  async getSignedDownloadUrl(
+    bucket: string,
+    key: string,
+    expiresInSeconds: number = 600
+  ): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+
+    // Generates a cryptographically signed URL valid for the specified duration (default: 10 mins)
+    // Cast needed: duplicate @smithy/smithy-client versions yield incompatible Client types
+    return getSignedUrl(this.client as unknown as Parameters<typeof getSignedUrl>[0], command as unknown as Parameters<typeof getSignedUrl>[1], {
+      expiresIn: expiresInSeconds,
+    });
   }
 }

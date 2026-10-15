@@ -22,8 +22,12 @@ env:
         key: S3_SECRET_KEY
   - name: S3_ENDPOINT
     value: "http://minio.platform-local.svc.cluster.local:9000"
+  - name: S3_PUBLIC_ENDPOINT
+    value: "http://minio.localhost:8081" # Browser-accessible ingress/port-forward endpoint
   - name: S3_BUCKET
     value: "dsap"
+  - name: NATS_URL
+    value: "nats://nats.platform-local.svc.cluster.local:4222"
 envFrom: []
 
 annotations:

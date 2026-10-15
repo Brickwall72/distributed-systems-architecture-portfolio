@@ -38,19 +38,23 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
   const PORT = 8089;
 
   beforeAll(async () => {
-    // Mock global fetch for downstream PDF service calls during verification
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        arrayBuffer: async () => Buffer.from('mock-pdf-binary-content'),
-      })
-    );
-
     const app = express();
     app.use(express.json());
 
-    const gateway = createComplianceGateway();
+    const mockBroker = {
+      request: vi.fn().mockResolvedValue({
+        success: true,
+        documentId: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9', // ✅ Must be a valid UUID
+        s3Uri: 's3://drafts/org-1/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+        storageBucket: 'drafts',
+        storageKey: 'org-1/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+        presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
+        fileHash: 'sha256fakehash',
+        correlationId: 'test-corr-123',
+      }),
+    };
+
+    const gateway = createComplianceGateway({ broker: mockBroker as any });
 
     app.use('/compliance/api/v1', gateway);
     app.use('/api/v1', gateway);
@@ -61,7 +65,6 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
   });
 
   afterAll(async () => {
-    vi.unstubAllGlobals();
     if (server) {
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));

@@ -14,7 +14,8 @@ describe('Compliance Service Provider Verification', () => {
 
   beforeAll(async () => {
     // Mount routes for testing since server.ts skips bootstrapApplicationServer() when NODE_ENV === 'test'
-    const complianceGateway = createComplianceGateway();
+    const mockBroker = { request: vi.fn() };
+    const complianceGateway = createComplianceGateway({ broker: mockBroker as any });
     app.use('/api/v1', complianceGateway);
 
     await new Promise<void>((resolve) => {

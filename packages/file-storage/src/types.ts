@@ -1,6 +1,11 @@
 // File: packages/file-storage/src/types.ts
 import type { Readable } from 'node:stream';
 
+export interface DocumentReader {
+  getFileStream(bucket: string, key: string): Promise<DownloadResult>;
+  getSignedDownloadUrl(bucket: string, key: string, expiresInSeconds?: number): Promise<string>;
+}
+
 export interface StorageConfig {
   endpoint: string;
   region: string;

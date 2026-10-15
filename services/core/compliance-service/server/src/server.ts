@@ -97,12 +97,13 @@ async function bootstrapApplicationServer() {
     const repository = new ComplianceDocumentRepository(pool);
 
     await broker.connect();
+
     const esignConsumer = new ESignEventConsumer(broker, repository);
     await esignConsumer.start();
     logger.info('NATS JetStream event consumer listening for esign events.');
 
-    // ✅ Instantiate routes ONLY after database and broker initialization completes, mounted at /api/v1
-    const complianceGateway = createComplianceGateway();
+    // ✅ Pass broker explicitly into the compliance gateway factory
+    const complianceGateway = createComplianceGateway({ broker });
     app.use('/api/v1', complianceGateway);
 
     server = app.listen(env.PORT, '0.0.0.0', () => {
