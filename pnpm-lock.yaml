@@ -484,22 +484,6 @@ importers:
         specifier: ~4.23.13
         version: 4.23.13
 
-  services/platform/pdf-generator/client:
-    dependencies:
-      react:
-        specifier: ~19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: ~19.2.8
-        version: 19.2.8(react@19.2.8)
-    devDependencies:
-      '@shared/ui-components':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
-      '@shared/vite-config':
-        specifier: workspace:*
-        version: link:../../../../packages/vite-config
-
   services/platform/pdf-generator/server:
     dependencies:
       '@contracts/pdf':
