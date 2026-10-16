@@ -1,22 +1,14 @@
 // File: services/platform/esignature-service/client/src/components/SignatureOverlay.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SignatureOverlay from './SignatureOverlay';
-import { signDocument } from '../api';
-
-vi.mock('../api/esignApi', () => ({
-  signDocument: vi.fn(),
-}));
 
 describe('SignatureOverlay Unit Tests', () => {
-  const mockOnSuccess = vi.fn();
+  const mockOnSign = vi.fn();
   const mockOnCancel = vi.fn();
 
   const defaultProps = {
-    pdfBlobUrl: 'blob:http://localhost/mock-pdf',
     documentId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    signerId: 'usr-actor-404',
-    entityId: 'org-armory-01',
-    onSuccess: mockOnSuccess,
+    onSign: mockOnSign,
     onCancel: mockOnCancel,
   };
 
@@ -59,8 +51,8 @@ describe('SignatureOverlay Unit Tests', () => {
     expect(screen.getByRole('button', { name: 'Submit & Sign PDF' })).toBeDisabled();
   });
 
-  it('handles full submission flow successfully', async () => {
-    vi.mocked(signDocument).mockResolvedValueOnce('blob:http://localhost/signed-result-pdf');
+  it('handles drawing and successfully invokes onSign callback', async () => {
+    mockOnSign.mockResolvedValueOnce(undefined);
 
     render(<SignatureOverlay {...defaultProps} />);
     const canvas = document.querySelector('canvas')!;
@@ -69,20 +61,13 @@ describe('SignatureOverlay Unit Tests', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Submit & Sign PDF' }));
 
     await waitFor(() => {
-      expect(signDocument).toHaveBeenCalledWith({
-        pdfBlobUrl: defaultProps.pdfBlobUrl,
-        signatureDataUrl: 'data:image/png;base64,mockSignatureData',
-        documentId: defaultProps.documentId,
-        signerId: defaultProps.signerId,
-        entityId: defaultProps.entityId,
-      });
-      expect(mockOnSuccess).toHaveBeenCalledWith('blob:http://localhost/signed-result-pdf');
+      expect(mockOnSign).toHaveBeenCalledWith('data:image/png;base64,mockSignatureData');
     });
   });
 
-  it('displays structured error message when backend submission fails', async () => {
-    vi.mocked(signDocument).mockRejectedValueOnce(
-      new Error('Signature Verification Engine Failure')
+  it('displays structured error message when onSign callback rejects', async () => {
+    mockOnSign.mockRejectedValueOnce(
+      new Error('Signature Processing Pipeline Failure')
     );
 
     render(<SignatureOverlay {...defaultProps} />);
@@ -92,7 +77,7 @@ describe('SignatureOverlay Unit Tests', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Submit & Sign PDF' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Signature Verification Engine Failure');
+      expect(screen.getByRole('alert')).toHaveTextContent('Signature Processing Pipeline Failure');
     });
   });
 });

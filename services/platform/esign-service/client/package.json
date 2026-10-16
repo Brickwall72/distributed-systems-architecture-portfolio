@@ -22,10 +22,10 @@
     "react-dom": "~19.2.8"
   },
   "dependencies": {
+    "@shared/ui-components": "workspace:*",
     "@contracts/esign": "workspace:*"
   },
   "devDependencies": {
-    "@shared/ui-components": "workspace:*",
     "@shared/vite-config": "workspace:*"
   }
 }

@@ -433,6 +433,9 @@ importers:
       '@contracts/esign':
         specifier: workspace:*
         version: link:../../../../packages/contracts/esign
+      '@shared/ui-components':
+        specifier: workspace:*
+        version: link:../../../../packages/ui
       react:
         specifier: ~19.2.8
         version: 19.2.8
@@ -440,9 +443,6 @@ importers:
         specifier: ~19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@shared/ui-components':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../../packages/vite-config
