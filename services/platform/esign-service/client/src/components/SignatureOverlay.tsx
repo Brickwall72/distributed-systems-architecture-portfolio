@@ -1,33 +1,25 @@
 // File: services/platform/esignature-service/client/src/components/SignatureOverlay.tsx
 import { useRef, useState, useEffect } from 'react';
-import { signDocument } from '../api';
+import { Button } from '@shared/ui-components';
 
 interface SignatureOverlayProps {
-  pdfBlobUrl: string;
-  documentId: string;
-  signerId: string;
-  entityId: string;
-  customPath?: string;
-  documentType?: string;
-  onSuccess: (signedPdfBlobUrl: string) => void;
+  isSubmitting?: boolean;
+  onSign: (signatureDataUrl: string) => Promise<void>;
   onCancel: () => void;
 }
 
 export default function SignatureOverlay({
-  pdfBlobUrl,
-  documentId,
-  signerId,
-  entityId,
-  customPath,
-  documentType,
-  onSuccess,
+  isSubmitting = false,
+  onSign,
   onCancel,
 }: Readonly<SignatureOverlayProps>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localSubmitting, setLocalSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const submitting = isSubmitting || localSubmitting;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -43,7 +35,7 @@ export default function SignatureOverlay({
   }, []);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isSubmitting) return;
+    if (submitting) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -58,7 +50,7 @@ export default function SignatureOverlay({
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || isSubmitting) return;
+    if (!isDrawing || submitting) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -75,7 +67,7 @@ export default function SignatureOverlay({
 
   const handleClear = () => {
     const canvas = canvasRef.current;
-    if (!canvas || isSubmitting) return;
+    if (!canvas || submitting) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -87,27 +79,17 @@ export default function SignatureOverlay({
     const canvas = canvasRef.current;
     if (!canvas || !hasDrawn) return;
 
-    setIsSubmitting(true);
+    setLocalSubmitting(true);
     setErrorMessage(null);
 
     try {
       const signatureDataUrl = canvas.toDataURL('image/png');
-      const signedPdfUrl = await signDocument({
-        pdfBlobUrl,
-        signatureDataUrl,
-        documentId,
-        signerId,
-        entityId,
-        customPath,
-        documentType,
-      });
-
-      onSuccess(signedPdfUrl);
+      await onSign(signatureDataUrl);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to sign document.';
       setErrorMessage(msg);
     } finally {
-      setIsSubmitting(false);
+      setLocalSubmitting(false);
     }
   };
 
@@ -116,13 +98,15 @@ export default function SignatureOverlay({
       <div className="w-full max-w-lg h-[420px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col justify-between p-6">
         <div className="flex justify-between items-center text-white">
           <span className="text-sm font-semibold tracking-wide">Draw Signature on Document</span>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onCancel}
-            disabled={isSubmitting}
-            className="text-xs text-slate-400 hover:text-white disabled:opacity-50 transition"
+            disabled={submitting}
+            className="text-xs text-slate-400 hover:text-white h-auto py-1 px-2"
           >
             Cancel
-          </button>
+          </Button>
         </div>
 
         {errorMessage && (
@@ -133,7 +117,7 @@ export default function SignatureOverlay({
 
         <div
           className={`flex-1 my-3 border-2 border-dashed border-blue-500/50 rounded-xl bg-white relative overflow-hidden ${
-            isSubmitting ? 'cursor-wait opacity-80' : 'cursor-crosshair'
+            submitting ? 'cursor-wait opacity-80' : 'cursor-crosshair'
           }`}
         >
           <div className="absolute left-8 right-8 top-[75%] border-b border-slate-600 pointer-events-none z-0" />
@@ -155,20 +139,25 @@ export default function SignatureOverlay({
         </div>
 
         <div className="flex justify-end items-center gap-3">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleClear}
-            disabled={!hasDrawn || isSubmitting}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 transition"
+            disabled={!hasDrawn || submitting}
+            className="bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs py-2 px-4"
           >
             Clear
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
-            disabled={!hasDrawn || isSubmitting}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 transition shadow-lg flex items-center gap-2"
+            isLoading={submitting}
+            disabled={!hasDrawn || submitting}
+            className="bg-blue-600 hover:bg-blue-500 text-xs py-2 px-4 shadow-lg"
           >
-            {isSubmitting ? 'Signing...' : 'Submit & Sign PDF'}
-          </button>
+            Submit & Sign PDF
+          </Button>
         </div>
       </div>
     </div>

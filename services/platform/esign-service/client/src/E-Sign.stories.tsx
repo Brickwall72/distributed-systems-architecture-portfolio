@@ -47,14 +47,9 @@ const mockHtmlContent = `
 
 export const IntegratedWithViewer: Story = {
   args: {
-    pdfBlobUrl: 'blob:http://localhost:3000/mock-document-blob-id',
-    documentId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    signerId: 'usr-actor-404',
-    entityId: 'org-armory-01',
-    documentType: 'DD-1149',
-    customPath: '/docs/signed',
-    onSuccess: (signedPdfBlobUrl: string) => {
-      console.log('Signature applied successfully. Signed Blob URL:', signedPdfBlobUrl);
+    onSign: async (signatureDataUrl: string) => {
+      console.log('Signature payload generated:', signatureDataUrl);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     },
     onCancel: () => {
       console.log('Signature cancelled');
@@ -85,20 +80,14 @@ export const IntegratedWithViewer: Story = {
           >
             {isSigning && (
               <SignatureOverlay 
-                pdfBlobUrl={args.pdfBlobUrl}
-                documentId={args.documentId}
-                signerId={args.signerId}
-                entityId={args.entityId}
-                documentType={args.documentType}
-                customPath={args.customPath}
                 onCancel={() => {
                   setIsSigning(false);
                   args.onCancel();
                 }} 
-                onSuccess={(signedPdfUrl) => {
+                onSign={async (signatureDataUrl) => {
+                  await args.onSign(signatureDataUrl);
                   setIsSigning(false);
-                  args.onSuccess(signedPdfUrl);
-                  alert('Signature submitted! Check console for signed PDF blob URL.');
+                  alert('Signature submitted successfully!');
                 }} 
               />
             )}
