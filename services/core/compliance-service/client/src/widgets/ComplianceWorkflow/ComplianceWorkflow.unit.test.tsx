@@ -1,15 +1,26 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
-import { useCompliancePdf } from '../../hooks';
+import { useGeneratePdf, useSignPdf } from '../../hooks';
 
-// Mock the custom compliance PDF hook
+// Mock the custom compliance hooks
 vi.mock('../../hooks', () => ({
-  useCompliancePdf: vi.fn(),
+  useGeneratePdf: vi.fn(),
+  useSignPdf: vi.fn(),
 }));
 
 vi.mock('esign-client', () => ({
-  SignatureOverlay: () => <div data-testid="mock-signature-overlay">Signature Overlay</div>,
+  SignatureOverlay: ({ onSign, onCancel }: any) => (
+    <div data-testid="mock-signature-overlay">
+      <button data-testid="mock-sign-submit" onClick={() => onSign('data:image/png;base64,sig')}>
+        Sign and Submit
+      </button>
+      <button data-testid="mock-sign-cancel" onClick={onCancel}>
+        Cancel Sign
+      </button>
+    </div>
+  ),
+  signDocument: vi.fn(),
 }));
 
 vi.mock('@shared/ui-components', async (importOriginal) => {
@@ -52,13 +63,27 @@ describe('ComplianceWorkflowWidget', () => {
     onSuccess('blob:mock-pdf-url');
   });
 
+  const mockSignPdf = vi.fn(async (_params: any, _sig: string, onSuccess: (blobUrl: string) => void): Promise<void> => {
+    onSuccess('blob:mock-signed-pdf-url');
+  });
+
+  const mockResetSigningState = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     
-    vi.mocked(useCompliancePdf).mockReturnValue({
+    vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
       isLoading: false,
       error: null,
+    });
+
+    vi.mocked(useSignPdf).mockReturnValue({
+      signPdf: mockSignPdf,
+      isSigning: false,
+      isSigned: false,
+      error: null,
+      resetSigningState: mockResetSigningState,
     });
   });
 
@@ -73,17 +98,14 @@ describe('ComplianceWorkflowWidget', () => {
   it('renders successfully and handles template selection and PDF generation workflow', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    // Verify label rendered by TemplateSelector mock
     expect(screen.getByText('Compliance Form')).toBeDefined();
     
     // Select a template via mock component trigger
     fireEvent.click(screen.getByTestId('mock-selector-trigger'));
 
-    // Verify template data is hydrated and "Generate PDF" becomes enabled
     const generateBtn = screen.getByText('Generate PDF');
     expect(generateBtn).not.toHaveProperty('disabled', true);
 
-    // Click generate PDF
     fireEvent.click(generateBtn);
 
     await waitFor(() => {
@@ -95,8 +117,31 @@ describe('ComplianceWorkflowWidget', () => {
       );
     });
 
-    // Verify document viewer receives the resulting blob URL
     const viewer = screen.getByTestId('document-viewer');
     expect(viewer.getAttribute('data-content')).toBe('blob:mock-pdf-url');
+  });
+
+  it('opens signature overlay and executes signing flow successfully', async () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} />);
+
+    // Select template and generate PDF first
+    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
+    fireEvent.click(screen.getByText('Generate PDF'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-pdf-url');
+    });
+
+    // Click 'Sign Document' button to open overlay
+    fireEvent.click(screen.getByText('Sign Document'));
+    expect(screen.getByTestId('mock-signature-overlay')).toBeDefined();
+
+    // Trigger signature submit
+    fireEvent.click(screen.getByTestId('mock-sign-submit'));
+
+    await waitFor(() => {
+      expect(mockSignPdf).toHaveBeenCalled();
+      expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-signed-pdf-url');
+    });
   });
 });

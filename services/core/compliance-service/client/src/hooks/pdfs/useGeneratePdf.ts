@@ -1,11 +1,11 @@
-// File: services/core/compliance-service/client/src/hooks/useCompliancePdf.ts
+// File: services/core/compliance-service/client/src/hooks/useGeneratePdf.ts
 import { useCallback, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
 
 let sequenceCounter = 1;
 
-export function useCompliancePdf() {
+export function useGeneratePdf() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
