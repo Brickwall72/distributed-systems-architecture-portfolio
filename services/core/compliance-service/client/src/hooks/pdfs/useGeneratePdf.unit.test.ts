@@ -1,6 +1,6 @@
-// File: services/core/compliance-service/client/src/hooks/useCompliancePdf.unit.test.ts
+// File: services/core/compliance-service/client/src/hooks/useGeneratePdf.unit.test.ts
 import { renderHook, act } from '@testing-library/react';
-import { useCompliancePdf } from './useCompliancePdf';
+import { useGeneratePdf } from './useGeneratePdf';
 import { apiClient } from '../../api/client';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
 
@@ -28,7 +28,7 @@ Object.defineProperty(window, 'URL', {
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe('useCompliancePdf', () => {
+describe('useGeneratePdf', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -43,14 +43,14 @@ describe('useCompliancePdf', () => {
   };
 
   it('initializes with default loading and error states', () => {
-    const { result } = renderHook(() => useCompliancePdf());
+    const { result } = renderHook(() => useGeneratePdf());
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
 
   it('does not invoke API if templateId is missing', async () => {
-    const { result } = renderHook(() => useCompliancePdf());
+    const { result } = renderHook(() => useGeneratePdf());
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
@@ -82,7 +82,7 @@ describe('useCompliancePdf', () => {
       blob: async () => mockBlob,
     });
 
-    const { result } = renderHook(() => useCompliancePdf());
+    const { result } = renderHook(() => useGeneratePdf());
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
@@ -131,7 +131,7 @@ describe('useCompliancePdf', () => {
       blob: async () => new Blob(['<html>MinIO console</html>'], { type: 'text/html' }),
     });
 
-    const { result } = renderHook(() => useCompliancePdf());
+    const { result } = renderHook(() => useGeneratePdf());
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
@@ -155,7 +155,7 @@ describe('useCompliancePdf', () => {
       headers: new Headers(),
     });
 
-    const { result } = renderHook(() => useCompliancePdf());
+    const { result } = renderHook(() => useGeneratePdf());
     const mockOnSuccess = vi.fn();
 
     await act(async () => {

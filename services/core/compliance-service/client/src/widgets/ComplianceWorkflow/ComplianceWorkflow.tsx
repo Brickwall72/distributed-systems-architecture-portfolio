@@ -1,12 +1,12 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.tsx
 import { useState, useMemo, useEffect } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
-import { SignatureOverlay, signDocument } from 'esign-client';
+import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { TemplateSelector } from '../../components'; 
 import { TemplateDTO } from 'compliance-shared';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { useCompliancePdf } from '../../hooks';
+import { useGeneratePdf, useSignPdf } from '../../hooks';
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
@@ -21,14 +21,16 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO>();
   const [selectedDate] = useState(new Date().toDateString());
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
-  const [isSigning, setIsSigning] = useState(false);
-  const [isSigned, setIsSigned] = useState(false);
+  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
+
+  const { generatePdf, isLoading: isGenerating, error: generatePdfError } = useGeneratePdf();
+  const { signPdf, isSigning, isSigned, error: signPdfError, resetSigningState } = useSignPdf();
 
   useEffect(() => {
     setPdfBlobUrl(null);
-    setIsSigning(false);
-    setIsSigned(false);
-  }, [selectedTemplate?.id]);
+    setShowSignatureOverlay(false);
+    resetSigningState();
+  }, [selectedTemplate?.id, resetSigningState]);
 
   const templatePayloadInput: PayloadParams = useMemo(() => ({
     templateId: selectedTemplate?.id,
@@ -37,8 +39,6 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
       selectedDate,
     }
   }), [entityData, selectedDate]);
-
-  const { generatePdf, isLoading, error } = useCompliancePdf();
 
   const displayPayload = useMemo(() => {
     if (!selectedTemplate?.id) return null;
@@ -58,30 +58,29 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     return hydrateTemplate(selectedTemplate.rawHTML, displayPayload);
   }, [selectedTemplate?.rawHTML, displayPayload]);
 
-  const signerId = 'usr_compliance_officer';
-  const entityId = 'org_unassigned';
   const [documentId] = useState(() => crypto.randomUUID());
-  const onWorkflowComplete = (signedPdfUrl: string) => console.log('Final Signed Document:', signedPdfUrl);
 
-  // Injected functionality handler
   const handleSign = async (signatureDataUrl: string) => {
-    if (!pdfBlobUrl) throw new Error('No PDF blob available to sign.');
+    if (!pdfBlobUrl) return;
 
-    const signedPdfUrl = await signDocument({
-      pdfBlobUrl,
+    await signPdf(
+      {
+        pdfBlobUrl,
+        documentId,
+        signerId: 'usr_compliance_officer',
+        entityId: 'org_unassigned',
+        customPath: `transfers/${selectedTemplate?.id || 'forms'}/document`,
+        documentType: selectedTemplate?.id,
+      },
       signatureDataUrl,
-      documentId,
-      signerId,
-      entityId,
-      customPath: `transfers/${selectedTemplate?.id || 'forms'}/document`,
-      documentType: selectedTemplate?.id,
-    });
-
-    setPdfBlobUrl(signedPdfUrl);
-    setIsSigned(true);
-    setIsSigning(false);
-    if (onWorkflowComplete) onWorkflowComplete(signedPdfUrl);
+      (signedPdfUrl) => {
+        setPdfBlobUrl(signedPdfUrl);
+        setShowSignatureOverlay(false);
+      }
+    );
   };
+
+  const activeError = generatePdfError || signPdfError;
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -105,7 +104,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           )}
 
           <Button
-            isLoading={isLoading}
+            isLoading={isGenerating}
             disabled={!isReadyForPdf || Boolean(pdfBlobUrl)}
             onClick={() => generatePdf(templatePayloadInput, setPdfBlobUrl)}
           >
@@ -114,9 +113,9 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
         </div>
       </div>
 
-      {error && (
+      {activeError && (
         <div className="bg-red-950 border border-red-800 text-red-200 px-4 py-2 rounded-lg text-sm">
-          {error}
+          {activeError}
         </div>
       )}
 
@@ -126,22 +125,22 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           contentType={pdfBlobUrl ? 'pdf' : 'html'}
           title="Document Workflow"
           className="w-full h-full"
-          isSigningActive={isSigning}
+          isSigningActive={showSignatureOverlay}
         >
           <div className="absolute bottom-4 right-4 z-10">
             <Button
-              disabled={!pdfBlobUrl || isSigned || isSigning}
-              onClick={() => setIsSigning(true)}
+              disabled={!pdfBlobUrl || isSigned || showSignatureOverlay}
+              onClick={() => setShowSignatureOverlay(true)}
               className="w-40 shadow"
             >
               {isSigned ? 'Signed' : 'Sign Document'}
             </Button>
           </div>
 
-          {isSigning && pdfBlobUrl && (
+          {showSignatureOverlay && pdfBlobUrl && (
             <SignatureOverlay
-              documentId={documentId}
-              onCancel={() => setIsSigning(false)}
+              isSubmitting={isSigning}
+              onCancel={() => setShowSignatureOverlay(false)}
               onSign={handleSign}
             />
           )}
