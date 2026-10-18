@@ -1,7 +1,7 @@
 // File: services/platform/pdf-generator/server/src/messaging/responder.ts
 import { EventBroker } from '@shared/messaging';
 import { createLogger } from '@shared/express';
-import { PDF_SUBJECTS, GeneratePdfRequestSchema, GeneratePdfResponseSchema } from '@contracts/pdf';
+import { PDF_SUBJECTS, GeneratePdfRequestSchema, GeneratePdfResponseSchema, GeneratePdfResponse } from '@contracts/pdf';
 import { generatePdfFromHtml, uploadGeneratedDocument, publicStorageClient } from '../services'; // Ensure storageClient is exported
 
 const logger = createLogger('pdf-server:messaging');
@@ -36,9 +36,12 @@ export function registerPdfResponder(broker: EventBroker): void {
     logger.info(`Successfully generated pre-signed URL for document [${documentId}]: ${presignedUrl}`, correlationId);
 
     // 4. Return contract response
-    const responsePayload = {
+    const now = new Date().toISOString();
+    const responsePayload: GeneratePdfResponse = {
       success: true,
-      documentId,
+      createdAt: now,
+      updatedAt: now,
+      id: documentId,
       s3Uri: storageMetadata.s3Uri,
       storageBucket: storageMetadata.bucket,
       storageKey: storageMetadata.key,

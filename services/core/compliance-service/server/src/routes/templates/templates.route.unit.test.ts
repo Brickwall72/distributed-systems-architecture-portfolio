@@ -123,7 +123,7 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
   });
 
   describe('POST /templates/:id/drafts (createTemplateDraft)', () => {
-    it('returns 201 with draftId and presignedUrl on successful NATS PDF generation', async () => {
+    it('returns 201 with StorageArtifact details and presignedUrl on successful NATS PDF generation', async () => {
       const mockTemplate: TemplateDTO = {
         id: 'asset-transfer-authorization',
         name: 'Asset Transfer Authorization',
@@ -133,14 +133,17 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
       vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
 
+      const nowIso = new Date().toISOString();
       const mockPdfResponse = {
         success: true,
-        documentId: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
+        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
         s3Uri: 's3://drafts/org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
         storageBucket: 'drafts',
         storageKey: 'org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
         presignedUrl: 'http://localhost:9000/drafts/test-document.pdf?signature=xyz',
-        fileHash: 'sha256fakehash',
+        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        createdAt: nowIso,
+        updatedAt: nowIso,
         correlationId: 'test-corr-789',
       };
 
@@ -156,9 +159,13 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
       expect(response.status).toBe(201);
       expect(response.body).toEqual({
-        draftId: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
+        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
+        storageBucket: 'drafts',
+        storageKey: 'org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        createdAt: nowIso,
+        updatedAt: nowIso,
         presignedUrl: 'http://localhost:9000/drafts/test-document.pdf?signature=xyz',
-        requisitionNumber: 'REQ-2026-0001',
       });
 
       expect(mockBroker.request).toHaveBeenCalledWith(
@@ -205,7 +212,7 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toMatchObject({
-        error: 'NATS request timeout', // Matches the dynamic error message thrown by the mock
+        error: 'NATS request timeout',
         code: 'INTERNAL_SERVER_ERROR',
       });
     });

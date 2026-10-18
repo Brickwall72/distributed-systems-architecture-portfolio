@@ -1,9 +1,9 @@
 // File: services/core/topology-service/client/src/hooks/useOrganizations/useOrganizations.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
 import { useOrganizations } from './useOrganizations';
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 
-vi.mock('../../api/client', () => ({
+vi.mock('../../api', () => ({
   apiClient: {
     getOrganizations: vi.fn(),
   },

@@ -12,14 +12,19 @@ vi.mock('../repositories', () => ({
   },
 }));
 
-// Mock sub-routers that execute database calls on mount/request
-vi.mock('./documents', () => {
-  const router = express.Router();
-  router.get('/', (_req, res) => {
-    res.status(200).json({ mock: 'documents-route-hit' });
-  });
-  return { default: router };
-});
+// Mock documents router with valid ts-rest route implementations
+vi.mock('./documents', () => ({
+  createDocumentsRouter: () => ({
+    getDocuments: async () => ({
+      status: 200 as const,
+      body: [{ mock: 'documents-route-hit' }],
+    }),
+    getDocumentById: async () => ({
+      status: 200 as const,
+      body: { mock: 'document-hit' },
+    }),
+  }),
+}));
 
 describe('createComplianceGateway (Route Accumulator Topology)', () => {
   let app: express.Express;
@@ -31,7 +36,6 @@ describe('createComplianceGateway (Route Accumulator Topology)', () => {
 
     const mockBroker = { request: vi.fn() };
 
-    // ✅ Pass mock broker explicitly into createComplianceGateway
     app.use('/api/v1', createComplianceGateway({ broker: mockBroker as any }));
   });
 
@@ -57,6 +61,6 @@ describe('createComplianceGateway (Route Accumulator Topology)', () => {
     const response = await supertest(app).get('/api/v1/documents');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ mock: 'documents-route-hit' });
+    expect(response.body).toEqual([{ mock: 'documents-route-hit' }]);
   });
 });

@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/server/src/pacts/templates.provider.contract.spec.ts
+// File: services/core/compliance-service/server/src/pacts/compliance.provider.contract.spec.ts
 import { Verifier } from '@pact-foundation/pact';
 import express from 'express';
 import type { Server } from 'node:http';
@@ -7,16 +7,43 @@ import { createComplianceGateway } from '../routes';
 
 vi.mock('../repositories', () => {
   return {
-    TemplateRepository: {
-      findAllManifests: (query?: { type?: string }) => {
+    ComplianceDocumentRepository: class {
+      async findAll() {
         return [
           {
-            id: 'asset-transfer-authorization',
-            name: 'Asset Transfer Authorization',
-            type: query?.type || 'AUTHORIZATION',
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            documentType: 'asset-transfer-authorization',
+            storageBucket: 'compliance-vault',
+            storageKey: '2026/dd1149.pdf',
+            status: 'SIGNED',
+            createdAt: '2026-09-15T14:32:00.000Z',
+            updatedAt: '2026-09-15T14:32:00.000Z',
           },
         ];
-      },
+      }
+      async findById(id: string) {
+        if (id === '123e4567-e89b-12d3-a456-426614174000') {
+          return {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            documentType: 'asset-transfer-authorization',
+            storageBucket: 'compliance-vault',
+            storageKey: '2026/dd1149.pdf',
+            status: 'SIGNED',
+            createdAt: '2026-09-15T14:32:00.000Z',
+            updatedAt: '2026-09-15T14:32:00.000Z',
+          };
+        }
+        return null;
+      }
+    },
+    TemplateRepository: {
+      findAllManifests: (query?: { type?: string }) => [
+        {
+          id: 't-123',
+          name: 'Asset Transfer Authorization',
+          type: query?.type || 'AUTHORIZATION',
+        },
+      ],
       findById: (id: string) => {
         if (id === 'asset-transfer-authorization') {
           return {
@@ -33,23 +60,26 @@ vi.mock('../repositories', () => {
   };
 });
 
-describe('Pact Provider Verification - Compliance Server (Templates)', () => {
+describe('Pact Provider Verification - Compliance Server (Unified)', () => {
   let server: Server;
-  const PORT = 8089;
+  let port: number;
 
   beforeAll(async () => {
     const app = express();
     app.use(express.json());
 
+    const nowIso = '2026-10-17T00:00:00.000Z';
     const mockBroker = {
       request: vi.fn().mockResolvedValue({
         success: true,
-        documentId: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9', // ✅ Must be a valid UUID
-        s3Uri: 's3://drafts/org-1/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
+        s3Uri: 's3://drafts/org-1/transfers/asset-transfer-authorization/document.pdf',
         storageBucket: 'drafts',
-        storageKey: 'org-1/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+        storageKey: 'org-1/transfers/asset-transfer-authorization/document.pdf',
+        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        createdAt: nowIso,
+        updatedAt: nowIso,
         presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
-        fileHash: 'sha256fakehash',
         correlationId: 'test-corr-123',
       }),
     };
@@ -60,9 +90,12 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
     app.use('/api/v1', gateway);
 
     await new Promise<void>((resolve) => {
-      server = app.listen(PORT, () => resolve());
+      server = app.listen(0, () => {
+        port = (server.address() as any).port;
+        resolve();
+      });
     });
-  });
+  }, 20000);
 
   afterAll(async () => {
     if (server) {
@@ -75,7 +108,7 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
   it('validates provider implementation against generated consumer pacts', async () => {
     const verifier = new Verifier({
       provider: 'compliance-server',
-      providerBaseUrl: `http://localhost:${PORT}`,
+      providerBaseUrl: `http://localhost:${port}`,
       pactUrls: [
         path.resolve(process.cwd(), '../shared/pacts/compliance-client-compliance-server.json'),
       ],
@@ -89,10 +122,12 @@ describe('Pact Provider Verification - Compliance Server (Templates)', () => {
         'templates exist in the system': async () => {},
         'template with ID asset-transfer-authorization exists': async () => {},
         'template with ID asset-transfer-authorization exists for drafting': async () => {},
+        'compliance documents exist in the database': async () => {},
+        'document with ID 123e4567-e89b-12d3-a456-426614174000 exists': async () => {},
       },
     });
 
     const result = await verifier.verifyProvider();
     expect(result).toBeTruthy();
-  });
+  }, 30000);
 });

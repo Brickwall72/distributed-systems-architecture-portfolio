@@ -63,7 +63,6 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         headers: { Accept: 'application/json' },
       })
       .willRespondWith({
-        status: 201, // updated from 200 or kept as 200 depending on contract
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: like({
@@ -90,7 +89,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
     });
   });
 
-  it('creates a template draft and returns pre-signed URL response', async () => {
+  it('creates a template draft and returns StorageArtifact response with pre-signed URL', async () => {
     const templateId = 'asset-transfer-authorization';
 
     provider
@@ -110,9 +109,13 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         status: 201,
         headers: { 'Content-Type': 'application/json' },
         body: like({
-          draftId: string('draft-uuid-123'),
+          id: string('3ef7a5e5-72d3-47df-a5d6-f3e871e34df9'),
+          storageBucket: string('drafts'),
+          storageKey: string('org-1/transfers/asset-transfer-authorization/document.pdf'),
+          fileHash: string('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
+          createdAt: string('2026-10-17T00:00:00.000Z'),
+          updatedAt: string('2026-10-17T00:00:00.000Z'),
           presignedUrl: string('http://localhost:9000/dsap/test-document.pdf?signature=xyz'),
-          requisitionNumber: string('REQ-2026-0001'),
         }),
       });
 
@@ -130,10 +133,16 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(201);
-      const body = response.body as { draftId: string; presignedUrl: string; requisitionNumber: string };
-      expect(body.draftId).toBe('draft-uuid-123');
+      const body = response.body as {
+        id: string;
+        storageBucket: string;
+        storageKey: string;
+        fileHash: string;
+        presignedUrl: string;
+      };
+      expect(body.id).toBe('3ef7a5e5-72d3-47df-a5d6-f3e871e34df9');
+      expect(body.storageBucket).toBe('drafts');
       expect(body.presignedUrl).toBeDefined();
-      expect(body.requisitionNumber).toBe('REQ-2026-0001');
     });
   });
 });

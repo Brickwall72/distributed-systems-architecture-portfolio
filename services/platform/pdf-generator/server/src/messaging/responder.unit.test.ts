@@ -37,7 +37,7 @@ describe('PDF Generator NATS Responder', () => {
   });
 
   it('registers successfully on the correct NATS subject', async () => {
-    await registerPdfResponder(mockBroker);
+    registerPdfResponder(mockBroker);
     expect(mockBroker.respond).toHaveBeenCalledWith(
       PDF_SUBJECTS.GENERATE_DRAFT,
       expect.any(Function)
@@ -63,7 +63,7 @@ describe('PDF Generator NATS Responder', () => {
       s3Uri: 's3://drafts/org-test/drafts/123e4567-e89b-12d3-a456-426614174000.pdf',
       bucket: 'drafts',
       key: 'org-test/drafts/123e4567-e89b-12d3-a456-426614174000.pdf',
-      fileHash: 'sha256hashabc',
+      fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // 64-char hex string
       uploadedAt: new Date().toISOString(),
     };
     vi.mocked(services.uploadGeneratedDocument).mockResolvedValue(mockUploadResult);
@@ -72,7 +72,7 @@ describe('PDF Generator NATS Responder', () => {
     vi.mocked(services.publicStorageClient.getSignedDownloadUrl).mockResolvedValue(mockPresignedUrl);
 
     // Act
-    await registerPdfResponder(mockBroker);
+    registerPdfResponder(mockBroker);
     const response = await registeredHandler(requestPayload);
 
     // Assert
@@ -92,18 +92,20 @@ describe('PDF Generator NATS Responder', () => {
 
     expect(response).toEqual({
       success: true,
-      documentId,
+      id: documentId,
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
       s3Uri: mockUploadResult.s3Uri,
       storageBucket: 'drafts',
       storageKey: mockUploadResult.key,
       presignedUrl: mockPresignedUrl,
-      fileHash: 'sha256hashabc',
+      fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
       correlationId: 'corr-123',
     });
   });
 
   it('throws validation error on malformed NATS request payloads', async () => {
-    await registerPdfResponder(mockBroker);
+    registerPdfResponder(mockBroker);
 
     // Missing required fields like documentId and html
     const invalidPayload = {

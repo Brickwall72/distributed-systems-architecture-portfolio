@@ -1,5 +1,5 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplateQuery.ts
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 import { useComplianceQuery } from '../useComplianceQuery';
 import type { TemplateDTO, TemplateId } from 'compliance-shared';
 

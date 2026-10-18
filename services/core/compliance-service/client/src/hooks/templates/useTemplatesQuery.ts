@@ -1,5 +1,5 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplatesQuery.ts
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 import { useComplianceQuery } from '../useComplianceQuery';
 import type { GetTemplatesQuery, TemplateManifest } from 'compliance-shared';
 

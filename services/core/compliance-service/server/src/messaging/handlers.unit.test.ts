@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/server/src/messaging/handlers.unit.test.ts
 import { handleDocumentSignedEvent, handleDocumentRejectedEvent } from './handlers.js';
-import { ComplianceDocumentRepository } from '../db/documents.repository.js';
+import { ComplianceDocumentRepository } from '../repositories';
 import { ESIGN_EVENT_TYPES } from '@contracts/esign';
 
 describe('Event Handlers', () => {

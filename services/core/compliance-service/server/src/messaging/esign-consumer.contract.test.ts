@@ -3,26 +3,27 @@ import { MessageConsumerPact, MatchersV3 } from '@pact-foundation/pact';
 import path from 'path';
 import { ESIGN_EVENT_TYPES } from '@contracts/esign';
 import { handleDocumentSignedEvent } from './handlers.js';
-import { ComplianceDocumentRepository } from '../db/documents.repository.js';
+import { ComplianceDocumentRepository } from '../repositories';
 
 const { uuid, string, regex } = MatchersV3;
 
 const pact = new MessageConsumerPact({
   consumer: 'compliance-server',
   provider: 'esign-server',
-  dir: path.resolve(process.cwd(), '../../../../pacts'),
+  dir: path.resolve(process.cwd(), '../../../pacts'),
 });
 
 describe('Compliance NATS Message Consumer Contract - esign-server', () => {
   it('processes valid document signed CloudEvents and records contract', async () => {
     // Mock database repository using Vitest's vi.fn()
     const mockRepository = {
-      create: vi.fn<ComplianceDocumentRepository['create']>().mockResolvedValue({
+      create: vi.fn().mockResolvedValue({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        document_type: 'DD-1149',
-        s3_uri: 's3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
-        status: 'Approved',
-        created_at: new Date().toISOString(),
+        documentType: 'asset-transfer-authorization',
+        storageBucket: 'dsap',
+        storageKey: 'asset-transfer-authorization/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+        status: 'SIGNED',
+        createdAt: new Date().toISOString(),
       }),
     } as unknown as ComplianceDocumentRepository;
 
@@ -42,11 +43,11 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
         correlationId: string('cid_test_88192'),
         data: {
           documentId: uuid('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),
-          documentType: string('DD-1149'),
+          documentType: string('asset-transfer-authorization'),
           signerId: string('usr_4412'),
           entityId: string('clr_9910'),
           status: 'SIGNED',
-          s3Uri: string('s3://dsap/DD-1149/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
+          s3Uri: string('s3://dsap/asset-transfer-authorization/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
           fileHash: string('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
           signedAt: regex(
             '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$',
@@ -71,7 +72,7 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
         expect(mockRepository.create).toHaveBeenCalledWith(
           expect.objectContaining({
             id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            document_type: 'DD-1149',
+            document_type: 'asset-transfer-authorization',
             status: 'Approved',
           })
         );

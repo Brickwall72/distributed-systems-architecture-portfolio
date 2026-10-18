@@ -1,5 +1,6 @@
 // File: packages/contracts/pdf/src/messaging/request-response.ts
 import { z } from 'zod';
+import { StorageArtifactSchema } from '@contracts/common';
 
 export const PDF_SUBJECTS = {
   GENERATE_DRAFT: 'pdf.command.generate-draft',
@@ -16,15 +17,15 @@ export const GeneratePdfRequestSchema = z.object({
 
 export type GeneratePdfRequest = z.infer<typeof GeneratePdfRequestSchema>;
 
-export const GeneratePdfResponseSchema = z.object({
+export const GeneratePdfResponseSchema = StorageArtifactSchema.extend({
   success: z.boolean(),
-  documentId: z.string().uuid(),
   s3Uri: z.string().min(1),
-  storageBucket: z.string().min(1),
-  storageKey: z.string().min(1),
-  presignedUrl: z.string().url(), // ✅ Added pre-signed download URL
-  fileHash: z.string().optional(),
+  presignedUrl: z.string().url(),
   correlationId: z.string().nullable().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  // Automatically generate the standardized s3Uri if missing
+  s3Uri: data.s3Uri || `s3://${data.storageBucket}/${data.storageKey}`,
+}));
 
 export type GeneratePdfResponse = z.infer<typeof GeneratePdfResponseSchema>;

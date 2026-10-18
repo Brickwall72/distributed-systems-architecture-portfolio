@@ -3,37 +3,42 @@ import { createElement } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import DocumentsTable from './DocumentsTable';
+import { apiClient } from '../../api/client';
+
+vi.mock('../../api/client', () => ({
+  apiClient: {
+    getDocuments: vi.fn(),
+  },
+}));
 
 describe('DocumentsTable', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  // Schema-compliant dataset (valid UUID v4 and status enum)
   const mockDocuments = [
     {
       id: '123e4567-e89b-12d3-a456-426614174000',
-      document_type: 'DD-1149',
-      s3_uri: 's3://compliance-vault/2026/dd1149.pdf',
-      status: 'Approved',
-      created_at: '2026-09-15T14:32:00Z',
+      documentType: 'asset-transfer-authorization' as const,
+      storageBucket: 'compliance-vault',
+      storageKey: '2026/dd1149.pdf',
+      status: 'SIGNED' as const,
+      createdAt: '2026-09-15T14:32:00.000Z',
+      updatedAt: '2026-09-15T14:32:00.000Z',
     },
     {
       id: '223e4567-e89b-12d3-a456-426614174001',
-      document_type: 'DD-250',
-      s3_uri: 's3://compliance-vault/2026/dd250.pdf',
-      status: 'Pending',
-      created_at: '2026-09-28T09:15:00Z',
+      documentType: 'asset-transfer-receipt' as const,
+      storageBucket: 'compliance-vault',
+      storageKey: '2026/dd250.pdf',
+      status: 'PENDING_SIGNATURE' as const,
+      createdAt: '2026-09-28T09:15:00.000Z',
+      updatedAt: '2026-09-28T09:15:00.000Z',
     },
   ];
 
   it('renders initial database twin query loading state', () => {
-    // Keep fetch pending indefinitely
-    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(apiClient.getDocuments).mockImplementation(() => new Promise(() => {}));
 
     render(createElement(DocumentsTable));
 
@@ -41,37 +46,35 @@ describe('DocumentsTable', () => {
   });
 
   it('fetches compliance documents, validates schema, and renders dataset', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockDocuments,
-    } as Response);
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
+      status: 200,
+      body: mockDocuments,
+      headers: new Headers(),
+    });
 
     render(createElement(DocumentsTable));
 
-    // Wait for loading pulse to disappear and table to render
     await waitFor(() => {
       expect(screen.getByText('2 Records Loaded')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Compliance Database Twin')).toBeInTheDocument();
-    expect(screen.getByText('DD-1149')).toBeInTheDocument();
-    expect(screen.getByText('DD-250')).toBeInTheDocument();
+    expect(screen.getByText('asset-transfer-authorization')).toBeInTheDocument();
+    expect(screen.getByText('asset-transfer-receipt')).toBeInTheDocument();
 
-    // Verify S3 storage path rendered with custom column formatting
     const s3Cell = screen.getByText('s3://compliance-vault/2026/dd1149.pdf');
     expect(s3Cell).toHaveClass('font-mono', 'text-xs', 'text-blue-400');
 
-    // Verify created_at rendered formatted locale date
-    const expectedDate = new Date('2026-09-15T14:32:00Z').toLocaleString();
+    const expectedDate = new Date('2026-09-15T14:32:00.000Z').toLocaleString();
     expect(screen.getByText(expectedDate)).toBeInTheDocument();
   });
 
   it('renders error UI when API returns HTTP error status', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: false,
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
       status: 500,
-      statusText: 'Internal Server Error',
-    } as Response);
+      body: { error: 'Internal Server Error' },
+      headers: new Headers(),
+    });
 
     render(createElement(DocumentsTable));
 
@@ -79,27 +82,27 @@ describe('DocumentsTable', () => {
       expect(screen.getByText('Failed to load dataset view')).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText('Failed to fetch documents dataset: 500 Internal Server Error')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
   });
 
   it('renders error UI when backend payload violates Zod schema contract', async () => {
-    // Malformed document payload (invalid UUID and invalid status string)
     const corruptData = [
       {
         id: 'non-uuid-string',
-        document_type: 'DD-1149',
-        s3_uri: 's3://vault/bad.pdf',
+        documentType: 'DD-1149',
+        storageBucket: 'vault',
+        storageKey: 'file.pdf',
         status: 'INVALID_STATUS',
-        created_at: 'invalid-date',
+        createdAt: 'invalid-date',
+        updatedAt: 'invalid-date',
       },
     ];
 
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => corruptData,
-    } as Response);
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
+      status: 200,
+      body: corruptData as unknown as typeof mockDocuments,
+      headers: new Headers(),
+    });
 
     render(createElement(DocumentsTable));
 
@@ -107,7 +110,6 @@ describe('DocumentsTable', () => {
       expect(screen.getByText('Failed to load dataset view')).toBeInTheDocument();
     });
 
-    // Zod throw will be caught and error message captured
-    expect(screen.getByText(/Invalid UUID/i)).toBeInTheDocument();
+    expect(screen.getByText(/Artifact ID must be a valid UUID/i)).toBeInTheDocument();
   });
 });
