@@ -1,21 +1,19 @@
 // File: services/core/compliance-service/client/src/api/documents/documents.ts
 import { z } from 'zod';
-import { ComplianceDocumentSchema, ComplianceDocument } from '@contracts/compliance';
-import { getApiBaseUrl } from '../client-config';
+import { apiClient } from '../client';
+import { Document, DocumentSchema } from 'compliance-shared';
 
 /**
- * Fetches and validates the raw dataset of compliance documents.
+ * Fetches and validates the raw dataset of documents via ts-rest apiClient.
  */
-export async function fetchDocuments(): Promise<ComplianceDocument[]> {
-  const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/compliance/api/v1/documents/`);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch documents dataset: ${response.status} ${response.statusText}`);
+export async function fetchDocuments(): Promise<Document[]> {
+  const response = await apiClient.getDocuments();
+
+  if (response.status !== 200) {
+    const errBody = response.body as { error?: string; message?: string };
+    throw new Error(errBody?.error || errBody?.message || `Failed to fetch documents dataset: HTTP ${response.status}`);
   }
-  
-  const data = await response.json();
-  
+
   // Enforces the contract at runtime
-  return z.array(ComplianceDocumentSchema).parse(data) as ComplianceDocument[];
+  return z.array(DocumentSchema).parse(response.body) as Document[];
 }

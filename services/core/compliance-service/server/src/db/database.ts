@@ -34,6 +34,7 @@ export const initDatabase = async () => {
         document_type VARCHAR(100) NOT NULL,
         s3_uri TEXT NOT NULL,
         status VARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);

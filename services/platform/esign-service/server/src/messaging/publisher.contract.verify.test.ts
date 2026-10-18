@@ -25,7 +25,7 @@ describe('ESign NATS Provider Contract Verification', () => {
       provider: 'esign-server',
       pactUrls: [
         // Resolves consumer-generated Pact contract file stored in the workspace root pacts directory
-        path.resolve(process.cwd(), '../../../../pacts/compliance-server-esign-server.json'),
+        path.resolve(process.cwd(), '../../../pacts/compliance-server-esign-server.json'),
       ],
     });
 

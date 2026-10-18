@@ -7,7 +7,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@shared/express';
 
-const logger = createLogger('esignature-service');
+const logger = createLogger('esign-server:signing');
 
 export interface SignDocumentParams {
   pdfBase64: string;

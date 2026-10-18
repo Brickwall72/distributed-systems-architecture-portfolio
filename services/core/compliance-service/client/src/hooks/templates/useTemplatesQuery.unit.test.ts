@@ -1,9 +1,9 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplatesQuery.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
 import { useTemplatesQuery } from './useTemplatesQuery';
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 
-vi.mock('../../api/client', () => ({
+vi.mock('../../api', () => ({
   apiClient: {
     getTemplates: vi.fn(),
   },

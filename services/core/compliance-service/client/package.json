@@ -17,13 +17,14 @@
     "@ts-rest/core": "~3.52.1"
   },
   "dependencies": {
-    "react": "~19.2.8",
-    "react-dom": "~19.2.8",
     "@shared/ui-components": "workspace:*",
+    "@contracts/common": "workspace:*",
     "@contracts/compliance": "workspace:*",
     "@contracts/topology": "workspace:*",
     "esign-client": "workspace:*",
     "compliance-shared": "workspace:*",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8",
     "zod": "~3.24.1"
   },
   "devDependencies": {

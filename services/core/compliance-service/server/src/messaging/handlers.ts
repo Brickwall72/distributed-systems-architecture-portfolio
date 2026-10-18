@@ -6,7 +6,7 @@ import {
   DocumentRejectedEvent,
 } from '@contracts/esign';
 import { CreateComplianceDocumentSchema } from '@contracts/compliance';
-import { ComplianceDocumentRepository } from '../db/documents.repository.js';
+import { ComplianceDocumentRepository } from '../repositories';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('compliance-server:messaging');
@@ -55,7 +55,7 @@ export async function handleDocumentSignedEvent(
   const record = await repository.create(createPayload);
 
   logger.info(
-    `[CID: ${correlationId}] Successfully indexed '${record.document_type}' (${record.id}) for signer ${signerId} (Entity: ${entityId}, Checksum: ${fileHash || 'N/A'}).`
+    `[CID: ${correlationId}] Successfully indexed '${record.documentType}' (${record.id}) for signer ${signerId} (Entity: ${entityId}, Checksum: ${fileHash || 'N/A'}).`
   );
 }
 
@@ -87,6 +87,6 @@ export async function handleDocumentRejectedEvent(
   const record = await repository.create(createPayload);
 
   logger.warn(
-    `[CID: ${correlationId}] Recorded rejection status for '${record.document_type}' (${record.id}) from signer ${signerId}. Reason: "${reason}"`
+    `[CID: ${correlationId}] Recorded rejection status for '${record.documentType}' (${record.id}) from signer ${signerId}. Reason: "${reason}"`
   );
 }

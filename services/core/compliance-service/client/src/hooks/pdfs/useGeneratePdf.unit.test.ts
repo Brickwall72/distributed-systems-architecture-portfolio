@@ -1,11 +1,11 @@
 // File: services/core/compliance-service/client/src/hooks/useGeneratePdf.unit.test.ts
 import { renderHook, act } from '@testing-library/react';
 import { useGeneratePdf } from './useGeneratePdf';
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
 
 // Mock external dependencies
-vi.mock('../../api/client', () => ({
+vi.mock('../../api', () => ({
   apiClient: {
     createTemplateDraft: vi.fn(),
   },
@@ -42,11 +42,22 @@ describe('useGeneratePdf', () => {
     },
   };
 
-  it('initializes with default loading and error states', () => {
+  const mockStorageArtifact = {
+    id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
+    storageBucket: 'drafts',
+    storageKey: 'org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
+    fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
+  };
+
+  it('initializes with default loading, error, and storageArtifact states', () => {
     const { result } = renderHook(() => useGeneratePdf());
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.storageArtifact).toBeNull();
   });
 
   it('does not invoke API if templateId is missing', async () => {
@@ -59,17 +70,14 @@ describe('useGeneratePdf', () => {
 
     expect(apiClient.createTemplateDraft).not.toHaveBeenCalled();
     expect(mockOnSuccess).not.toHaveBeenCalled();
+    expect(result.current.storageArtifact).toBeNull();
   });
 
-  it('successfully generates draft, fetches via pre-signed URL, converts to Blob, and triggers onSuccess', async () => {
-    // 1. Mock backend response returning pre-signed URL
+  it('successfully generates draft, fetches via pre-signed URL, converts to Blob, and sets storageArtifact', async () => {
+    // 1. Mock backend response returning StorageArtifact + pre-signed URL
     vi.mocked(apiClient.createTemplateDraft).mockResolvedValueOnce({
       status: 201,
-      body: {
-        draftId: 'draft-123',
-        presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
-        requisitionNumber: 'REQ-2026-0001',
-      },
+      body: mockStorageArtifact,
       headers: new Headers(),
     });
 
@@ -104,11 +112,19 @@ describe('useGeneratePdf', () => {
     });
 
     // Verifies fetch was called with the pre-signed URL
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:9000/dsap/test-document.pdf?signature=xyz');
+    expect(mockFetch).toHaveBeenCalledWith(mockStorageArtifact.presignedUrl);
 
-    // Verifies blob creation and success callback trigger
+    // Verifies blob creation, storageArtifact state update, and success callback trigger
     expect(mockCreateObjectURL).toHaveBeenCalledWith(mockBlob);
     expect(mockOnSuccess).toHaveBeenCalledWith('blob:test-pdf-url');
+    expect(result.current.storageArtifact).toEqual({
+      id: mockStorageArtifact.id,
+      storageBucket: mockStorageArtifact.storageBucket,
+      storageKey: mockStorageArtifact.storageKey,
+      fileHash: mockStorageArtifact.fileHash,
+      createdAt: mockStorageArtifact.createdAt,
+      updatedAt: mockStorageArtifact.updatedAt,
+    });
     expect(result.current.error).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
@@ -116,11 +132,7 @@ describe('useGeneratePdf', () => {
   it('reports an HTML storage response instead of displaying it as a blank PDF', async () => {
     vi.mocked(apiClient.createTemplateDraft).mockResolvedValueOnce({
       status: 201,
-      body: {
-        draftId: 'draft-123',
-        presignedUrl: 'http://minio.localhost:8081/dsap/test-document.pdf?signature=xyz',
-        requisitionNumber: 'REQ-2026-0001',
-      },
+      body: mockStorageArtifact,
       headers: new Headers(),
     });
 
@@ -166,5 +178,6 @@ describe('useGeneratePdf', () => {
     expect(mockFetch).not.toHaveBeenCalled();
     expect(mockOnSuccess).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
+    expect(result.current.storageArtifact).toBeNull();
   });
 });

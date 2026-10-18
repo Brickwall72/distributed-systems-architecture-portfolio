@@ -4,7 +4,7 @@ import { createExpressEndpoints } from '@ts-rest/express';
 import { createHealthCheck } from '@shared/express';
 import { complianceContract } from 'compliance-shared';
 import { createTemplatesRouter } from './templates';
-import documentsRouter from './documents';
+import { createDocumentsRouter } from './documents';
 import { EventBroker } from '@shared/messaging';
 
 interface ComplianceGatewayDeps {
@@ -18,16 +18,16 @@ export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   router.get('/health', createHealthCheck('compliance-server'));
 
   const templatesRouter = createTemplatesRouter({ broker: deps.broker });
+  const documentsRouter = createDocumentsRouter();
 
   createExpressEndpoints(
     complianceContract,
     {
       ...templatesRouter,
+      ...documentsRouter,
     },
     router
   );
-
-  router.use('/documents', documentsRouter);
 
   return router;
 }

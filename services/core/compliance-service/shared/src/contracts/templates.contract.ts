@@ -1,13 +1,19 @@
 // File: services/core/compliance-service/shared/src/contracts/templates.contract.ts
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { ApiErrorResponseSchema } from '@contracts/common';
+import { ApiErrorResponseSchema, StorageArtifactSchema } from '@contracts/common';
 import { TemplateDTOSchema, GetTemplatesQuerySchema } from '../schemas';
 
 const c = initContract();
 
 export const TemplateManifestSchema = TemplateDTOSchema.omit({ rawHTML: true });
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
+
+export const TemplateDraftResponseSchema = StorageArtifactSchema.extend({
+  presignedUrl: z.string().url(),
+});
+
+export type TemplateDraftResponse = z.infer<typeof TemplateDraftResponseSchema>;
 
 export const templatesRoutes = {
   getTemplates: c.query({
@@ -39,11 +45,7 @@ export const templatesRoutes = {
     pathParams: z.object({ id: TemplateDTOSchema.shape.id }),
     body: z.record(z.unknown()),
     responses: {
-      201: z.object({
-        draftId: z.string().uuid(),
-        presignedUrl: z.string().url(), // ✅ Replaced pdfBase64 with pre-signed MinIO download URL
-        requisitionNumber: z.string(),
-      }),
+      201: TemplateDraftResponseSchema,
       400: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,

@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/templates/templates.route.ts
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
-import { templatesRoutes } from 'compliance-shared';
+import { templatesRoutes, TemplateDraftResponseSchema } from 'compliance-shared';
 import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
 import { EventBroker } from '@shared/messaging';
@@ -123,15 +123,13 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           throw new Error('PDF generator service returned an unsuccessful response status');
         }
 
-        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${pdfResponse.documentId}]`, correlationId);
+        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${pdfResponse.id}]`, correlationId);
+
+        const response = TemplateDraftResponseSchema.parse(pdfResponse);
 
         return {
           status: 201 as const,
-          body: {
-            draftId: pdfResponse.documentId,
-            presignedUrl: pdfResponse.presignedUrl,
-            requisitionNumber: typeof reqNum === 'string' ? reqNum : '',
-          },
+          body: response,
         };
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -139,7 +137,6 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
 
         logger.error(`Failed to create template draft PDF: ${message}`, correlationId);
 
-        // ✅ Expose the exact error during tests so we can see what's failing instantly
         return {
           status: 500 as const,
           body: {

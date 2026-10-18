@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/messaging/consumer.unit.test.ts
 import { ESignEventConsumer } from './consumer.js';
 import { EventBroker } from '@shared/messaging';
-import { ComplianceDocumentRepository } from '../db/documents.repository.js';
+import { ComplianceDocumentRepository } from '../repositories';
 import { ESIGN_SUBJECTS } from '@contracts/esign';
 import { handleDocumentSignedEvent } from './handlers.js';
 

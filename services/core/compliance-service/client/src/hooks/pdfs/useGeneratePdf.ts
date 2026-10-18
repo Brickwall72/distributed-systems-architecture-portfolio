@@ -1,13 +1,15 @@
 // File: services/core/compliance-service/client/src/hooks/useGeneratePdf.ts
 import { useCallback, useState } from 'react';
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
+import { StorageArtifactSchema, StorageArtifact } from '@contracts/common';
 
 let sequenceCounter = 1;
 
 export function useGeneratePdf() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [storageArtifact, setStorageArtifact] = useState<StorageArtifact | null>(null);
 
   const generatePdf = useCallback(async (payloadParams: PayloadParams, onSuccess: (blobUrl: string) => void) => {
     if (!payloadParams.templateId) return;
@@ -51,8 +53,8 @@ export function useGeneratePdf() {
 
         const blob = await pdfRes.blob();
         const blobUrl = URL.createObjectURL(blob);
-        
         onSuccess(blobUrl);
+        setStorageArtifact(StorageArtifactSchema.parse(response.body));
       } else {
         const errBody = response.body as { error?: string; message?: string };
         setError(errBody?.error || errBody?.message || 'Failed to generate PDF draft');
@@ -68,5 +70,6 @@ export function useGeneratePdf() {
     generatePdf,
     isLoading: isGenerating,
     error,
+    storageArtifact,
   };
 }

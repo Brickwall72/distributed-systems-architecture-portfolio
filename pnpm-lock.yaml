@@ -251,6 +251,9 @@ importers:
 
   services/core/compliance-service/client:
     dependencies:
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/common
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance

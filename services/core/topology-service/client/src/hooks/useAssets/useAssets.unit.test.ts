@@ -1,9 +1,9 @@
 // File: services/core/topology-service/client/src/hooks/useAssets/useAssets.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAssets } from '../useAssets';
-import { apiClient } from '../../api/client';
+import { apiClient } from '../../api';
 
-vi.mock('../../api/client', () => ({
+vi.mock('../../api', () => ({
   apiClient: {
     getAssets: vi.fn(),
   },

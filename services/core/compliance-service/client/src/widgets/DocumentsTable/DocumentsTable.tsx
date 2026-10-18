@@ -1,27 +1,31 @@
 // File: services/core/compliance-service/client/src/widgets/DocumentsTable.tsx
 import { useEffect, useState } from 'react';
-import { ComplianceDocument } from '@contracts/compliance';
+import { Document } from 'compliance-shared';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
-import { fetchDocuments } from '../../api/documents';
+import { fetchDocuments } from '../../api';
 
-const columns: TableColumn<ComplianceDocument>[] = [
+const columns: TableColumn<Document>[] = [
   { key: 'id', header: 'Document ID' },
-  { key: 'document_type', header: 'Document Type' },
+  { key: 'documentType', header: 'Document Type' },
   { 
-    key: 's3_uri', 
+    key: 'storageKey', 
     header: 'Storage Path (MinIO)',
-    render: (val) => <span className="font-mono text-xs text-blue-400">{String(val)}</span>
+    render: (_val, row) => (
+      <span className="font-mono text-xs text-blue-400">
+        s3://{row.storageBucket}/{row.storageKey}
+      </span>
+    )
   },
   { key: 'status', header: 'Status' },
   { 
-    key: 'created_at', 
+    key: 'createdAt', 
     header: 'Created At',
     render: (val) => new Date(String(val)).toLocaleString()
   },
 ];
 
 export default function DocumentsTable() {
-  const [documents, setDocuments] = useState<ComplianceDocument[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
