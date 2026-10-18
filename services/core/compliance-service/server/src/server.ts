@@ -2,10 +2,10 @@
 import express from 'express';
 import { ZodError } from 'zod';
 import { createComplianceGateway } from './routes';
-import { initDatabase, pool } from './db/database';
+import { initDatabase, pool } from './db';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
-import { ESignEventConsumer } from './messaging/consumer';
+import { ESignEventConsumer } from './messaging';
 import { ComplianceDocumentRepository } from './repositories';
 import { env } from './config';
 

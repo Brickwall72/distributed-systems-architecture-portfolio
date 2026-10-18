@@ -38,7 +38,7 @@ describe('Database Configuration and Initialization', () => {
     const queryArg = mockQuery.mock.calls[0][0];
     expect(queryArg).toContain('CREATE TABLE IF NOT EXISTS compliance_documents');
     expect(queryArg).toContain('id UUID PRIMARY KEY');
-    expect(queryArg).toContain('status VARCHAR(20)');
+    expect(queryArg).toContain('status VARCHAR(30)');
   });
 
   it('initDatabase catches and rethrows errors when query execution fails', async () => {

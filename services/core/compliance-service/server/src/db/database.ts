@@ -31,12 +31,21 @@ export const initDatabase = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS compliance_documents (
         id UUID PRIMARY KEY,
-        document_type VARCHAR(100) NOT NULL,
-        s3_uri TEXT NOT NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        document_type VARCHAR(100) NOT NULL, -- Maps to TemplateIdSchema (e.g., 'asset-transfer-authorization')
+        bucket VARCHAR(100) NOT NULL,
+        object_key TEXT NOT NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'PENDING_SIGNATURE' CHECK (status IN ('PENDING_SIGNATURE', 'SIGNED', 'REJECTED', 'SUPERSEDED')),
+        signer_id VARCHAR(100),
+        entity_id VARCHAR(100),
+        transfer_event_id UUID, -- Foreign key link to your topology/transfer event graph
+        document_hash VARCHAR(64), -- SHA-256 hash of the immutable PDF artifact for verification
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE INDEX idx_compliance_docs_transfer ON compliance_documents(transfer_event_id);
+      CREATE INDEX idx_compliance_docs_status ON compliance_documents(status);
+      CREATE INDEX idx_compliance_docs_created_at ON compliance_documents(created_at);
     `);
     logger.info('Compliance database schema initialized successfully.');
   } catch (error) {

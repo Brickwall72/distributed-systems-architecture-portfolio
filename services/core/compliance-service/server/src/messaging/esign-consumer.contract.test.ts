@@ -17,7 +17,7 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
   it('processes valid document signed CloudEvents and records contract', async () => {
     // Mock database repository using Vitest's vi.fn()
     const mockRepository = {
-      create: vi.fn().mockResolvedValue({
+      upsert: vi.fn().mockResolvedValue({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         documentType: 'asset-transfer-authorization',
         storageBucket: 'dsap',
@@ -47,6 +47,8 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
           signerId: string('usr_4412'),
           entityId: string('clr_9910'),
           status: 'SIGNED',
+          storageBucket: string('dsap'),
+          storageKey: string('asset-transfer-authorization/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
           s3Uri: string('s3://dsap/asset-transfer-authorization/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf'),
           fileHash: string('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
           signedAt: regex(
@@ -68,12 +70,14 @@ describe('Compliance NATS Message Consumer Contract - esign-server', () => {
           handleDocumentSignedEvent(payload, mockRepository)
         ).resolves.not.toThrow();
 
-        // Verify repo persistence received expected transformed data
-        expect(mockRepository.create).toHaveBeenCalledWith(
+        // Verify repo persistence received expected transformed upsert data
+        expect(mockRepository.upsert).toHaveBeenCalledWith(
           expect.objectContaining({
             id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            document_type: 'asset-transfer-authorization',
-            status: 'Approved',
+            documentType: 'asset-transfer-authorization',
+            bucket: 'dsap',
+            objectKey: 'asset-transfer-authorization/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.pdf',
+            status: 'SIGNED',
           })
         );
       });

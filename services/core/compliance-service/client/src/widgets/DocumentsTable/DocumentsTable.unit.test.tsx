@@ -3,13 +3,15 @@ import { createElement } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import DocumentsTable from './DocumentsTable';
-import { apiClient } from '../../api/client';
+import * as hooks from '../../hooks';
 
-vi.mock('../../api/client', () => ({
-  apiClient: {
-    getDocuments: vi.fn(),
-  },
-}));
+vi.mock('../../hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof hooks>();
+  return {
+    ...actual,
+    useDocuments: vi.fn(),
+  };
+});
 
 describe('DocumentsTable', () => {
   beforeEach(() => {
@@ -38,18 +40,24 @@ describe('DocumentsTable', () => {
   ];
 
   it('renders initial database twin query loading state', () => {
-    vi.mocked(apiClient.getDocuments).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [],
+      loading: true,
+      error: null,
+      refetch: vi.fn(),
+    });
 
     render(createElement(DocumentsTable));
 
     expect(screen.getByText(/Querying compliance-db database twin\.\.\./i)).toBeInTheDocument();
   });
 
-  it('fetches compliance documents, validates schema, and renders dataset', async () => {
-    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
-      status: 200,
-      body: mockDocuments,
-      headers: new Headers(),
+  it('renders dataset when documents are successfully loaded via hook', async () => {
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: mockDocuments,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
     });
 
     render(createElement(DocumentsTable));
@@ -69,11 +77,12 @@ describe('DocumentsTable', () => {
     expect(screen.getByText(expectedDate)).toBeInTheDocument();
   });
 
-  it('renders error UI when API returns HTTP error status', async () => {
-    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
-      status: 500,
-      body: { error: 'Internal Server Error' },
-      headers: new Headers(),
+  it('renders error UI when hook returns an error state', async () => {
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [],
+      loading: false,
+      error: 'Failed to fetch documents dataset: HTTP 500',
+      refetch: vi.fn(),
     });
 
     render(createElement(DocumentsTable));
@@ -82,34 +91,6 @@ describe('DocumentsTable', () => {
       expect(screen.getByText('Failed to load dataset view')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
-  });
-
-  it('renders error UI when backend payload violates Zod schema contract', async () => {
-    const corruptData = [
-      {
-        id: 'non-uuid-string',
-        documentType: 'DD-1149',
-        storageBucket: 'vault',
-        storageKey: 'file.pdf',
-        status: 'INVALID_STATUS',
-        createdAt: 'invalid-date',
-        updatedAt: 'invalid-date',
-      },
-    ];
-
-    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
-      status: 200,
-      body: corruptData as unknown as typeof mockDocuments,
-      headers: new Headers(),
-    });
-
-    render(createElement(DocumentsTable));
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to load dataset view')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/Artifact ID must be a valid UUID/i)).toBeInTheDocument();
+    expect(screen.getByText('Failed to fetch documents dataset: HTTP 500')).toBeInTheDocument();
   });
 });

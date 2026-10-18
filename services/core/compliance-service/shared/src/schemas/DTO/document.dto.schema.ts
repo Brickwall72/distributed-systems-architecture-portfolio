@@ -17,7 +17,7 @@ export const DocumentSchema = StorageArtifactSchema.extend({
   status: DocumentStatusSchema,
   signerId: z.string().optional(),
   entityId: z.string().optional(),
-  transferEventId: z.string().uuid().optional(),
+  transferEventId: z.string().uuid().nullable().optional(),
 });
 
 export type Document = z.infer<typeof DocumentSchema>;

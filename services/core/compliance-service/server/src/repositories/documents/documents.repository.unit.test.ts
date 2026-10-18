@@ -9,8 +9,13 @@ describe('ComplianceDocumentRepository', () => {
   const mockDbRow = {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     document_type: 'DD-1149',
-    s3_uri: 's3://dsap/org_armory_01/doc_101.pdf',
-    status: 'Pending',
+    bucket: 'dsap',
+    object_key: 'org_armory_01/doc_101.pdf',
+    status: 'PENDING_SIGNATURE',
+    signer_id: null,
+    entity_id: null,
+    transfer_event_id: null,
+    document_hash: null,
     created_at: '2026-09-17T12:00:00.000Z',
     updated_at: '2026-09-17T12:00:00.000Z',
   };
@@ -37,23 +42,34 @@ describe('ComplianceDocumentRepository', () => {
     repository = new ComplianceDocumentRepository(mockPool as unknown as Pool);
   });
 
-  describe('create', () => {
-    it('successfully persists a new compliance document and returns the parsed record', async () => {
+  describe('upsert', () => {
+    it('successfully persists or updates a compliance document and returns the parsed record', async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [mockDbRow] });
 
       const input = {
         id: mockDbRow.id,
-        document_type: mockDbRow.document_type,
-        s3_uri: mockDbRow.s3_uri,
-        status: 'Pending' as const,
+        documentType: mockDbRow.document_type,
+        bucket: mockDbRow.bucket,
+        objectKey: mockDbRow.object_key,
+        status: 'PENDING_SIGNATURE' as const,
       };
 
-      const result = await repository.create(input);
+      const result = await repository.upsert(input);
 
       expect(mockPool.query).toHaveBeenCalledTimes(1);
       const [query, values] = mockPool.query.mock.calls[0];
       expect(query).toContain('INSERT INTO compliance_documents');
-      expect(values).toEqual([input.id, input.document_type, input.s3_uri, input.status]);
+      expect(values).toEqual([
+        input.id,
+        input.documentType,
+        input.bucket,
+        input.objectKey,
+        input.status,
+        null,
+        null,
+        null,
+        null,
+      ]);
       expect(result).toEqual(expectedMappedDocument);
     });
   });
