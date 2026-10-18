@@ -1,6 +1,6 @@
 // File: packages/contracts/esign/src/events.ts
 import { z } from 'zod';
-import { createCloudEventSchema } from '@contracts/common';
+import { createCloudEventSchema, S3ReferenceSchema } from '@contracts/common';
 
 export const ESIGN_EVENT_TYPES = {
   DOCUMENT_SIGNED: 'com.system.esign.document.signed',
@@ -15,24 +15,27 @@ export const ESIGN_SUBJECTS = {
 } as const;
 
 /**
- * Payload schema for com.system.esign.document.signed
+ * Common base metadata shared by all document workflow events.
  */
-export const DocumentSignedDataSchema = z.object({
+export const BaseDocumentEventDataSchema = z.object({
   documentId: z.string().uuid('documentId must be a valid UUID'),
   documentType: z.string().min(1, 'documentType is required'),
   signerId: z.string().min(1, 'signerId is required'),
   entityId: z.string().min(1, 'entityId is required'),
+});
+
+/**
+ * Payload schema for com.system.esign.document.signed
+ */
+export const DocumentSignedDataSchema = BaseDocumentEventDataSchema.merge(S3ReferenceSchema).extend({
   status: z.literal('SIGNED'),
 
-  // Domain & Infrastructure Timestamps (Strict ISO 8601 UTC)
+  // Domain Timestamps
   signedAt: z.string().datetime({ message: 'signedAt must be a valid ISO 8601 timestamp' }),
   uploadedAt: z.string().datetime({ message: 'uploadedAt must be a valid ISO 8601 timestamp' }).optional(),
 
-  // Claim-check storage references
+  // Optional legacy string fallback
   s3Uri: z.string().optional(),
-  storageBucket: z.string().optional(),
-  storageKey: z.string().optional(),
-  fileHash: z.string().optional(),
 });
 
 export type DocumentSignedData = z.infer<typeof DocumentSignedDataSchema>;
@@ -43,11 +46,7 @@ export type DocumentSignedEvent = z.infer<typeof DocumentSignedEventSchema>;
 /**
  * Payload schema for com.system.esign.document.rejected
  */
-export const DocumentRejectedDataSchema = z.object({
-  documentId: z.string().uuid('documentId must be a valid UUID'),
-  documentType: z.string().min(1, 'documentType is required'),
-  signerId: z.string().min(1, 'signerId is required'),
-  entityId: z.string().min(1, 'entityId is required'),
+export const DocumentRejectedDataSchema = BaseDocumentEventDataSchema.extend({
   status: z.literal('REJECTED'),
   reason: z.string().min(1, 'Rejection reason is required'),
 

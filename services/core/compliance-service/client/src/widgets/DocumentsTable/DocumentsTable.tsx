@@ -1,8 +1,7 @@
 // File: services/core/compliance-service/client/src/widgets/DocumentsTable.tsx
-import { useEffect, useState } from 'react';
 import { Document } from 'compliance-shared';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
-import { fetchDocuments } from '../../api';
+import { useDocuments } from '../../hooks';
 
 const columns: TableColumn<Document>[] = [
   { key: 'id', header: 'Document ID' },
@@ -18,43 +17,14 @@ const columns: TableColumn<Document>[] = [
   },
   { key: 'status', header: 'Status' },
   { 
-    key: 'createdAt', 
-    header: 'Created At',
-    render: (val) => new Date(String(val)).toLocaleString()
+    key: 'updatedAt', 
+    header: 'Updated At',
+    render: (val) => val ? new Date(String(val)).toLocaleString() : 'N/A'
   },
 ];
 
 export default function DocumentsTable() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadComplianceData() {
-      try {
-        const data = await fetchDocuments();
-        if (isMounted) {
-          setDocuments(data);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to retrieve dataset');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadComplianceData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { documents, loading, error } = useDocuments();
 
   if (loading) {
     return (

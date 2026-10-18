@@ -5,7 +5,6 @@ import {
   DocumentRejectedEventSchema,
   DocumentRejectedEvent,
 } from '@contracts/esign';
-import { CreateComplianceDocumentSchema } from '@contracts/compliance';
 import { ComplianceDocumentRepository } from '../repositories';
 import { createLogger } from '@shared/express';
 
@@ -18,44 +17,48 @@ export async function handleDocumentSignedEvent(
   rawPayload: unknown,
   repository: ComplianceDocumentRepository
 ): Promise<void> {
-  // 1. Ingress Gate: Parse raw CloudEvent against @contracts/esign schema
   const event: DocumentSignedEvent = DocumentSignedEventSchema.parse(rawPayload);
-
   const {
     documentId,
     documentType,
     signerId,
     entityId,
-    s3Uri,
     storageBucket,
     storageKey,
     fileHash,
+    s3Uri,
   } = event.data;
 
   const correlationId = event.correlationId || 'N/A';
 
-  // 2. Resolve S3 URI from Claim-Check storage references
-  let resolvedS3Uri = s3Uri;
-  if (!resolvedS3Uri && storageBucket && storageKey) {
-    resolvedS3Uri = `s3://${storageBucket}/${storageKey.replace(/^\/+/, '')}`;
-  }
-  if (!resolvedS3Uri) {
-    resolvedS3Uri = `s3://dsap/${documentType}/${documentId}.pdf`;
+  // Fallback bucket/key parsing if only s3Uri is present
+  let bucket = storageBucket;
+  let objectKey = storageKey;
+
+  if ((!bucket || !objectKey) && s3Uri) {
+    const match = /^s3:\/\/([^/]+)\/(.+)$/.exec(s3Uri);
+    if (match) {
+      bucket = match[1];
+      objectKey = match[2];
+    } else {
+      bucket = 'compliance-vault';
+      objectKey = s3Uri;
+    }
   }
 
-  // 3. Contract Gate: Validate against CreateComplianceDocumentSchema
-  const createPayload = CreateComplianceDocumentSchema.parse({
+  await repository.upsert({
     id: documentId,
-    document_type: documentType,
-    s3_uri: resolvedS3Uri,
-    status: 'Approved',
+    documentType,
+    bucket: bucket || 'compliance-vault',
+    objectKey: objectKey || `${documentType}/${documentId}.pdf`,
+    status: 'SIGNED',
+    signerId,
+    entityId,
+    documentHash: fileHash,
   });
 
-  // 4. Persist to PostgreSQL
-  const record = await repository.create(createPayload);
-
   logger.info(
-    `[CID: ${correlationId}] Successfully indexed '${record.documentType}' (${record.id}) for signer ${signerId} (Entity: ${entityId}, Checksum: ${fileHash || 'N/A'}).`
+    `[CID: ${correlationId}] Successfully indexed SIGNED document '${documentType}' (${documentId}) for signer ${signerId}.`
   );
 }
 
@@ -66,27 +69,21 @@ export async function handleDocumentRejectedEvent(
   rawPayload: unknown,
   repository: ComplianceDocumentRepository
 ): Promise<void> {
-  // 1. Ingress Gate: Parse raw CloudEvent against @contracts/esign schema
   const event: DocumentRejectedEvent = DocumentRejectedEventSchema.parse(rawPayload);
-
-  const { documentId, documentType, signerId, reason } = event.data;
+  const { documentId, documentType, signerId, entityId, reason } = event.data;
   const correlationId = event.correlationId || 'N/A';
 
-  // Fallback URI satisfying CreateComplianceDocumentSchema's s3:// requirement
-  const fallbackS3Uri = `s3://dsap/${documentType}/${documentId}.pdf`;
-
-  // 2. Contract Gate: Validate against CreateComplianceDocumentSchema
-  const createPayload = CreateComplianceDocumentSchema.parse({
+  await repository.upsert({
     id: documentId,
-    document_type: documentType,
-    s3_uri: fallbackS3Uri,
-    status: 'Rejected',
+    documentType,
+    bucket: 'compliance-vault',
+    objectKey: `${documentType}/${documentId}-rejected.pdf`,
+    status: 'REJECTED',
+    signerId,
+    entityId,
   });
 
-  // 3. Persist to PostgreSQL
-  const record = await repository.create(createPayload);
-
   logger.warn(
-    `[CID: ${correlationId}] Recorded rejection status for '${record.documentType}' (${record.id}) from signer ${signerId}. Reason: "${reason}"`
+    `[CID: ${correlationId}] Recorded REJECTED status for document '${documentType}' (${documentId}) from signer ${signerId}. Reason: "${reason}"`
   );
 }
