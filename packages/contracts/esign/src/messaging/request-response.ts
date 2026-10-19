@@ -20,6 +20,10 @@ export type SignDocumentCommand = z.infer<typeof SignDocumentCommandSchema>;
 
 export const SignDocumentResponseSchema = StorageArtifactSchema.extend({
   success: z.boolean(),
+  documentType: z.string().min(1),
+  signerId: z.string().min(1),
+  entityId: z.string().min(1),
+  status: z.literal('SIGNED'),
   s3Uri: z.string().min(1),
   presignedUrl: z.string().url(),
   signedAt: z.string().datetime(),

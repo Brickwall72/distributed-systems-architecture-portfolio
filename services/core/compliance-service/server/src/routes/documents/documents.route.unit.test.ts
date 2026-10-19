@@ -28,6 +28,9 @@ vi.mock('../../repositories', () => ({
     async findById(id: string) {
       return mockFindById(id);
     }
+    async upsert() {
+      return Promise.resolve();
+    }
   },
 }));
 
@@ -173,6 +176,10 @@ describe('Documents Router Unit Tests', () => {
       const mockSignResponse = {
         success: true,
         id: docId,
+        documentType: 'asset-transfer-authorization',
+        signerId: 'usr_1',
+        entityId: 'org_1',
+        status: 'SIGNED' as const,
         createdAt: '2026-10-18T21:00:00.000Z',
         updatedAt: '2026-10-18T21:00:00.000Z',
         storageBucket: 'dsap',

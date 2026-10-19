@@ -38,6 +38,9 @@ vi.mock('../repositories', () => {
           updatedAt: '2026-09-15T14:32:00.000Z',
         };
       }
+      async upsert() {
+        return Promise.resolve();
+      }
     },
     TemplateRepository: {
       findAllManifests: (query?: { type?: string }) => [
@@ -76,6 +79,10 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
       request: vi.fn().mockResolvedValue({
         success: true,
         id: '123e4567-e89b-12d3-a456-426614174000',
+        documentType: 'asset-transfer-authorization',
+        signerId: 'usr_1',
+        entityId: 'org_1',
+        status: 'SIGNED',
         s3Uri: 's3://dsap/test.pdf',
         storageBucket: 'dsap',
         storageKey: 'test.pdf',

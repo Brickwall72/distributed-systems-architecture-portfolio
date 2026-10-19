@@ -1,9 +1,9 @@
 // File: services/core/compliance-service/server/src/messaging/handlers.ts
 import {
-  DocumentSignedEventSchema,
-  DocumentSignedEvent,
   DocumentRejectedEventSchema,
   DocumentRejectedEvent,
+  SignDocumentResponseSchema,
+  SignDocumentResponse,
 } from '@contracts/esign';
 import { ComplianceDocumentRepository } from '../repositories';
 import { createLogger } from '@shared/express';
@@ -11,15 +11,15 @@ import { createLogger } from '@shared/express';
 const logger = createLogger('compliance-server:messaging');
 
 /**
- * Handles com.system.esign.document.signed events
+ * Handles synchronous sign document response indexing
  */
 export async function handleDocumentSignedEvent(
   rawPayload: unknown,
   repository: ComplianceDocumentRepository
 ): Promise<void> {
-  const event: DocumentSignedEvent = DocumentSignedEventSchema.parse(rawPayload);
+  const payload: SignDocumentResponse = SignDocumentResponseSchema.parse(rawPayload);
   const {
-    documentId,
+    id,
     documentType,
     signerId,
     entityId,
@@ -27,9 +27,9 @@ export async function handleDocumentSignedEvent(
     storageKey,
     fileHash,
     s3Uri,
-  } = event.data;
+  } = payload;
 
-  const correlationId = event.correlationId || 'N/A';
+  const correlationId = payload.correlationId || 'N/A';
 
   // Fallback bucket/key parsing if only s3Uri is present
   let bucket = storageBucket;
@@ -47,10 +47,10 @@ export async function handleDocumentSignedEvent(
   }
 
   await repository.upsert({
-    id: documentId,
+    id,
     documentType,
     bucket: bucket || 'compliance-vault',
-    objectKey: objectKey || `${documentType}/${documentId}.pdf`,
+    objectKey: objectKey || `${documentType}/${id}.pdf`,
     status: 'SIGNED',
     signerId,
     entityId,
@@ -58,7 +58,7 @@ export async function handleDocumentSignedEvent(
   });
 
   logger.info(
-    `[CID: ${correlationId}] Successfully indexed SIGNED document '${documentType}' (${documentId}) for signer ${signerId}.`
+    `[CID: ${correlationId}] Successfully indexed SIGNED document '${documentType}' (${id}) for signer ${signerId}.`
   );
 }
 
