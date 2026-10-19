@@ -76,6 +76,12 @@ describe('ComplianceWorkflowWidget', () => {
       generatePdf: mockGeneratePdf,
       isLoading: false,
       error: null,
+      storageArtifact: {
+        storageBucket: 'dsap',
+        storageKey: 'tenant-123/source.pdf',
+        fileHash: 'a'.repeat(64),
+        s3Uri: 's3://dsap/tenant-123/source.pdf',
+      },
     });
 
     vi.mocked(useSignPdf).mockReturnValue({

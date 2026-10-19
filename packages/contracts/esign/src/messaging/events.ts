@@ -7,7 +7,7 @@ export const ESIGN_EVENT_TYPES = {
   DOCUMENT_REJECTED: 'com.system.esign.document.rejected',
 } as const;
 
-export const ESIGN_SUBJECTS = {
+export const ESIGN_EVENT_SUBJECTS = {
   DOCUMENT_SIGNED: 'events.esign.compliance.document.signed',
   DOCUMENT_REJECTED: 'events.esign.compliance.document.rejected',
   STREAM_NAME: 'ESIGN_EVENTS',

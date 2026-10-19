@@ -2,9 +2,12 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
+import { SignDocumentCommandSchema } from '@contracts/esign';
 import { DocumentSchema } from '../schemas';
 
 const c = initContract();
+
+export const SignDocumentApiRequestSchema = SignDocumentCommandSchema;
 
 export const documentsRoutes = {
   getDocuments: c.query({
@@ -28,6 +31,17 @@ export const documentsRoutes = {
       500: ApiErrorResponseSchema,
     },
     summary: 'Retrieve a single document by UUID.',
+  }),
+  signDocument: c.mutation({
+    method: 'POST',
+    path: '/documents/sign',
+    body: SignDocumentApiRequestSchema,
+    responses: {
+      200: DocumentSchema,
+      400: ApiErrorResponseSchema,
+      500: ApiErrorResponseSchema,
+    },
+    summary: 'Sign a compliance document via NATS request-response to esign-service.',
   }),
 };
 

@@ -1,5 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.unit.test.ts
 import { createDocumentsRouter } from './documents.route';
+import { EventBroker } from '@shared/messaging';
+import { ESIGN_COMMAND_SUBJECTS } from '@contracts/esign';
 
 // Mock database pool and logger dependencies
 vi.mock('../../db', () => ({
@@ -31,10 +33,14 @@ vi.mock('../../repositories', () => ({
 
 describe('Documents Router Unit Tests', () => {
   let router: ReturnType<typeof createDocumentsRouter>;
+  let mockBroker: EventBroker;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    router = createDocumentsRouter();
+    mockBroker = {
+      request: vi.fn(),
+    } as unknown as EventBroker;
+    router = createDocumentsRouter({ broker: mockBroker });
   });
 
   describe('GET /documents', () => {
@@ -153,6 +159,92 @@ describe('Documents Router Unit Tests', () => {
         expect.objectContaining({
           error: 'Query timeout',
           code: 'INTERNAL_SERVER_ERROR',
+          timestamp: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('POST /documents/sign', () => {
+    it('returns 200 with signed document and presignedUrl on successful broker request', async () => {
+      const docId = '123e4567-e89b-12d3-a456-426614174000';
+      const validHash = 'a'.repeat(64);
+
+      const mockSignResponse = {
+        success: true,
+        id: docId,
+        createdAt: '2026-10-18T21:00:00.000Z',
+        updatedAt: '2026-10-18T21:00:00.000Z',
+        storageBucket: 'dsap',
+        storageKey: `${docId}.pdf`,
+        s3Uri: `s3://dsap/${docId}.pdf`,
+        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=123',
+        fileHash: validHash,
+        signedAt: '2026-10-18T21:00:00.000Z',
+        uploadedAt: '2026-10-18T21:00:00.000Z',
+        correlationId: 'test-corr-2',
+      };
+
+      vi.mocked(mockBroker.request).mockResolvedValueOnce(mockSignResponse);
+      mockFindById.mockResolvedValueOnce(null);
+
+      const result = await router.signDocument({
+        body: {
+          storageBucket: 'dsap',
+          storageKey: 'source.pdf',
+          fileHash: validHash,
+          signatureImageBase64: 'base64sig',
+          documentId: docId,
+          documentType: 'asset-transfer-authorization',
+          signerId: 'usr_1',
+          entityId: 'org_1',
+        },
+        query: {},
+        params: {},
+        req: {
+          headers: { 'x-correlation-id': 'test-corr-2' },
+        },
+      } as any);
+
+      expect(result.status).toBe(200);
+      expect(mockBroker.request).toHaveBeenCalledWith(
+        ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
+        expect.objectContaining({ documentId: docId, correlationId: 'test-corr-2' }),
+        { timeout: 10000, correlationId: 'test-corr-2' }
+      );
+      expect(result.body).toMatchObject({
+        id: docId,
+        storageBucket: 'dsap',
+        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=123',
+      });
+    });
+
+    it('returns 500 when broker request throws or fails', async () => {
+      vi.mocked(mockBroker.request).mockRejectedValueOnce(new Error('NATS timeout'));
+
+      const result = await router.signDocument({
+        body: {
+          storageBucket: 'dsap',
+          storageKey: 'source.pdf',
+          fileHash: 'a'.repeat(64),
+          signatureImageBase64: 'base64sig',
+          documentId: '123e4567-e89b-12d3-a456-426614174000',
+          documentType: 'asset-transfer-authorization',
+          signerId: 'usr_1',
+          entityId: 'org_1',
+        },
+        query: {},
+        params: {},
+        req: {
+          headers: {},
+        },
+      } as any);
+
+      expect(result.status).toBe(500);
+      expect(result.body).toEqual(
+        expect.objectContaining({
+          error: 'NATS timeout',
+          code: 'SIGNATURE_PROCESSING_FAILED',
           timestamp: expect.any(String),
         })
       );

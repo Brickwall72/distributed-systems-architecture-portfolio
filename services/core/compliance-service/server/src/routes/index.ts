@@ -18,7 +18,7 @@ export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   router.get('/health', createHealthCheck('compliance-server'));
 
   const templatesRouter = createTemplatesRouter({ broker: deps.broker });
-  const documentsRouter = createDocumentsRouter();
+  const documentsRouter = createDocumentsRouter({ broker: deps.broker });
 
   createExpressEndpoints(
     complianceContract,

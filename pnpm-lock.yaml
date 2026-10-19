@@ -342,6 +342,9 @@ importers:
       '@contracts/common':
         specifier: workspace:*
         version: link:../../../../packages/contracts/common
+      '@contracts/esign':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/esign
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)

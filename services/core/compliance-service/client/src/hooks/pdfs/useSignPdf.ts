@@ -1,9 +1,10 @@
-// File: services/platform/compliance/client/src/hooks/useSignPdf.ts
+// File: services/platform/compliance/client/src/hooks/pdfs/useSignPdf.ts
 import { useCallback, useState } from 'react';
-import { signDocument } from 'esign-client';
+import { apiClient } from '../../api';
+import { StorageArtifact } from '@contracts/common';
 
 export interface SignPdfParams {
-  pdfBlobUrl: string;
+  storageArtifact: StorageArtifact;
   documentId: string;
   signerId: string;
   entityId: string;
@@ -21,8 +22,8 @@ export function useSignPdf() {
     signatureDataUrl: string,
     onSuccess: (signedBlobUrl: string) => void
   ) => {
-    if (!params.pdfBlobUrl) {
-      setError('No PDF blob available to sign.');
+    if (!params.storageArtifact) {
+      setError('No storage artifact available to sign.');
       return;
     }
 
@@ -30,15 +31,42 @@ export function useSignPdf() {
       setIsSigning(true);
       setError(null);
 
-      const signedPdfUrl = await signDocument({
-        pdfBlobUrl: params.pdfBlobUrl,
-        signatureDataUrl,
-        documentId: params.documentId,
-        signerId: params.signerId,
-        entityId: params.entityId,
-        customPath: params.customPath,
-        documentType: params.documentType,
+      const signatureImageBase64 = signatureDataUrl.includes(',')
+        ? signatureDataUrl.split(',')[1]
+        : signatureDataUrl;
+
+      const response = await apiClient.signDocument({
+        body: {
+          storageBucket: params.storageArtifact.storageBucket,
+          storageKey: params.storageArtifact.storageKey,
+          fileHash: params.storageArtifact.fileHash,
+          signatureImageBase64,
+          documentId: params.documentId,
+          documentType: params.documentType || 'forms',
+          signerId: params.signerId,
+          entityId: params.entityId,
+          customPath: params.customPath,
+        },
       });
+
+      if (response.status !== 200) {
+        const errBody = response.body as { error?: string };
+        throw new Error(errBody?.error || `Failed to sign document: HTTP ${response.status}`);
+      }
+
+      // Fetch the newly signed PDF binary directly from Minio using the returned pre-signed URL
+      const responseBody = response.body as { presignedUrl?: string };
+      if (!responseBody.presignedUrl) {
+        throw new Error('No pre-signed URL returned for signed document.');
+      }
+
+      const pdfRes = await fetch(responseBody.presignedUrl);
+      if (!pdfRes.ok) {
+        throw new Error(`Failed to download signed PDF from storage (HTTP ${pdfRes.status})`);
+      }
+
+      const blob = await pdfRes.blob();
+      const signedPdfUrl = URL.createObjectURL(blob);
 
       setIsSigned(true);
       onSuccess(signedPdfUrl);

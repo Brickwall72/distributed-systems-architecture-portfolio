@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/messaging/factories.ts
+// File: services/platform/esignature-service/server/src/messaging/asynchronous/factories.ts
 import { DocumentSignedEvent, ESIGN_EVENT_TYPES, DocumentSignedData } from '@contracts/esign';
 
 export interface DocumentSignedEventOptions {
@@ -29,8 +29,8 @@ export function createDocumentSignedEvent(
     status: 'SIGNED',
     signedAt: options.signedAt ?? '2026-09-27T12:00:00.000Z',
     ...(options.s3Uri && { s3Uri: options.s3Uri }),
-    ...(options.storageBucket && { storageBucket: options.storageBucket }),
-    ...(options.storageKey && { storageKey: options.storageKey }),
+    storageBucket: options.storageBucket ?? 'test-bucket',
+    storageKey: options.storageKey ?? `documents/${documentId}.pdf`,
     ...(options.fileHash && { fileHash: options.fileHash }),
   };
 

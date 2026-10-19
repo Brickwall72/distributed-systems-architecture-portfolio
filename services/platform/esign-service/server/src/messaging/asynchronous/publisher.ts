@@ -1,8 +1,8 @@
-// File: services/platform/esignature-service/server/src/messaging/publisher.ts
+// File: services/platform/esignature-service/server/src/messaging/asynchronous/publisher.ts
 import crypto from 'node:crypto';
 import { EventBroker } from '@shared/messaging';
 import {
-  ESIGN_SUBJECTS,
+  ESIGN_EVENT_SUBJECTS,
   ESIGN_EVENT_TYPES,
   DocumentSignedEvent,
   DocumentSignedEventSchema,
@@ -26,8 +26,8 @@ export class ESignPublisher {
   constructor(private readonly broker: EventBroker) {}
 
   public async init(): Promise<void> {
-    await this.broker.ensureStream(ESIGN_SUBJECTS.STREAM_NAME, [
-      ESIGN_SUBJECTS.WILDCARD_ALL,
+    await this.broker.ensureStream(ESIGN_EVENT_SUBJECTS.STREAM_NAME, [
+      ESIGN_EVENT_SUBJECTS.WILDCARD_ALL,
     ]);
   }
 
@@ -52,7 +52,7 @@ export class ESignPublisher {
     const validatedEvent = DocumentSignedEventSchema.parse(rawEvent);
 
     await this.broker.publish(
-      ESIGN_SUBJECTS.DOCUMENT_SIGNED,
+      ESIGN_EVENT_SUBJECTS.DOCUMENT_SIGNED,
       validatedEvent,
       correlationId
     );
@@ -79,7 +79,7 @@ export class ESignPublisher {
     const validatedEvent = DocumentRejectedEventSchema.parse(rawEvent);
 
     await this.broker.publish(
-      ESIGN_SUBJECTS.DOCUMENT_REJECTED,
+      ESIGN_EVENT_SUBJECTS.DOCUMENT_REJECTED,
       validatedEvent,
       correlationId
     );
