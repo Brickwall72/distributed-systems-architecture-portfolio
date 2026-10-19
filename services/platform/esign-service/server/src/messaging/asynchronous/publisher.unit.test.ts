@@ -1,8 +1,8 @@
-// File: services/platform/esign-service/server/src/messaging/publisher.unit.test.ts
+// File: services/platform/esignature-service/server/src/messaging/asynchronous/publisher.unit.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventBroker } from '@shared/messaging';
 import {
-  ESIGN_SUBJECTS,
+  ESIGN_EVENT_SUBJECTS,
   ESIGN_EVENT_TYPES,
   DocumentSignedData,
   DocumentRejectedData,
@@ -72,8 +72,8 @@ describe('ESignPublisher', () => {
 
       expect(mockBroker.ensureStream).toHaveBeenCalledTimes(1);
       expect(mockBroker.ensureStream).toHaveBeenCalledWith(
-        ESIGN_SUBJECTS.STREAM_NAME,
-        [ESIGN_SUBJECTS.WILDCARD_ALL]
+        ESIGN_EVENT_SUBJECTS.STREAM_NAME,
+        [ESIGN_EVENT_SUBJECTS.WILDCARD_ALL]
       );
     });
   });
@@ -93,7 +93,7 @@ describe('ESignPublisher', () => {
         mockBroker.publish as ReturnType<typeof vi.fn>
       ).mock.calls[0];
 
-      expect(subject).toBe(ESIGN_SUBJECTS.DOCUMENT_SIGNED);
+      expect(subject).toBe(ESIGN_EVENT_SUBJECTS.DOCUMENT_SIGNED);
       expect(correlationIdParam).toBe(customCorrelationId);
 
       expect(publishedEvent).toMatchObject({
@@ -155,7 +155,7 @@ describe('ESignPublisher', () => {
         mockBroker.publish as ReturnType<typeof vi.fn>
       ).mock.calls[0];
 
-      expect(subject).toBe(ESIGN_SUBJECTS.DOCUMENT_REJECTED);
+      expect(subject).toBe(ESIGN_EVENT_SUBJECTS.DOCUMENT_REJECTED);
       expect(correlationIdParam).toBe(correlationId);
 
       expect(publishedEvent).toMatchObject({

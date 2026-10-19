@@ -5,22 +5,23 @@ import {
   type UploadResult,
   type DownloadResult,
 } from '@shared/filestore';
+import { env } from '../../config';
 
-const S3_ENDPOINT = process.env.S3_ENDPOINT || 'http://minio:9000';
-const S3_REGION = process.env.S3_REGION || 'us-east-1';
-const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY;
-const S3_SECRET_KEY = process.env.S3_SECRET_KEY;
+// 1. Internal client for container-to-container communication (Docker network: minio:9000)
+export const internalStorageClient: StorageProvider = new ObjectStorageClient({
+  endpoint: env.S3_ENDPOINT,
+  region: env.S3_REGION,
+  accessKeyId: env.S3_ACCESS_KEY,
+  secretAccessKey: env.S3_SECRET_KEY,
+  forcePathStyle: true,
+});
 
-if (!S3_ACCESS_KEY || !S3_SECRET_KEY) {
-  throw new Error('FATAL: S3_ACCESS_KEY and S3_SECRET_KEY must be provided via environment variables.');
-}
-
-// Type the singleton against the interface contract
-export const storageClient: StorageProvider = new ObjectStorageClient({
-  endpoint: S3_ENDPOINT,
-  region: S3_REGION,
-  accessKeyId: S3_ACCESS_KEY,
-  secretAccessKey: S3_SECRET_KEY,
+// 2. Public client strictly for generating pre-signed URLs reachable by the browser
+export const publicStorageClient: StorageProvider = new ObjectStorageClient({
+  endpoint: env.S3_PUBLIC_ENDPOINT,
+  region: env.S3_REGION,
+  accessKeyId: env.S3_ACCESS_KEY,
+  secretAccessKey: env.S3_SECRET_KEY,
   forcePathStyle: true,
 });
 
@@ -34,12 +35,15 @@ export interface UploadDocumentOptions {
 
 export const uploadSignedDocument = (
   options: UploadDocumentOptions,
-  client: StorageProvider = storageClient // Optional injection for testing
+  client: StorageProvider = internalStorageClient // Defaults to internal network client
 ): Promise<UploadResult> => {
   const { pdfBuffer, entityId, documentId, customPath, correlationId } = options;
-  const cleanPrefix = customPath ? customPath.replace(/^\/+/, '').replace(/\/+$/, '') : entityId;
-  const bucket = process.env.DOCUMENT_BUCKET || 'dsap'; 
-  const objectKey = `${cleanPrefix}/${documentId}.pdf`;
+  const sanitizedPath = customPath ? customPath.replace(/^\/+|\/+$/g, '') : '';
+  const objectKey = sanitizedPath
+    ? `${entityId}/${sanitizedPath}/${documentId}.pdf`
+    : `${entityId}/${documentId}.pdf`;
+
+  const bucket = process.env.DOCUMENT_BUCKET || 'dsap';  
 
   const metadata: Record<string, string> = {
     'entity-id': entityId,
@@ -66,7 +70,7 @@ export interface DownloadDocumentOptions {
 
 export const downloadDocumentStream = (
   { bucket, key }: DownloadDocumentOptions,
-  client: StorageProvider = storageClient // Optional injection for testing
+  client: StorageProvider = internalStorageClient // Defaults to internal network client
 ): Promise<DownloadResult> => {
   const targetBucket = bucket || process.env.DOCUMENT_BUCKET || 'dsap';
   return client.getFileStream(targetBucket, key);

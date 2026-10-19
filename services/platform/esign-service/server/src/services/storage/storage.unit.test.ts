@@ -1,4 +1,4 @@
-// services/platform/esign-service/server/src/services/storage/storage.unit.test.ts
+// File: services/platform/esign-service/server/src/services/storage/storage.unit.test.ts
 import { InMemoryStorageClient } from '@shared/filestore';
 
 describe('esignature-service storage wrapper', () => {
@@ -11,15 +11,13 @@ describe('esignature-service storage wrapper', () => {
   });
 
   describe('Initialization & Fail-Fast Behavior', () => {
-    it('throws fatal error on import if credentials are missing', async () => {
+    it('throws validation error on import if credentials are missing', async () => {
       vi.stubEnv('S3_ACCESS_KEY', '');
       vi.stubEnv('S3_SECRET_KEY', '');
 
       vi.resetModules();
 
-      await expect(import('./storage')).rejects.toThrow(
-        'FATAL: S3_ACCESS_KEY and S3_SECRET_KEY must be provided via environment variables.'
-      );
+      await expect(import('./storage')).rejects.toThrow();
     });
   });
 
@@ -44,7 +42,7 @@ describe('esignature-service storage wrapper', () => {
       );
 
       const storedItem = inMemoryStorage.storage.get(
-        'dsap/custom/folder/doc-456.pdf'
+        'dsap/tenant-123/custom/folder/doc-456.pdf'
       );
 
       expect(storedItem).toBeDefined();

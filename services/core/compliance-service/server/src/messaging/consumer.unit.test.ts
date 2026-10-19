@@ -2,7 +2,7 @@
 import { ESignEventConsumer } from './consumer.js';
 import { EventBroker } from '@shared/messaging';
 import { ComplianceDocumentRepository } from '../repositories';
-import { ESIGN_SUBJECTS } from '@contracts/esign';
+import { ESIGN_EVENT_SUBJECTS } from '@contracts/esign';
 import { handleDocumentSignedEvent } from './handlers.js';
 
 vi.mock('./handlers.js', () => ({
@@ -36,8 +36,8 @@ describe('ESignEventConsumer', () => {
 
       expect(mockBroker.ensureStream).toHaveBeenCalledTimes(1);
       expect(mockBroker.ensureStream).toHaveBeenCalledWith(
-        ESIGN_SUBJECTS.STREAM_NAME,
-        [ESIGN_SUBJECTS.WILDCARD_ALL]
+        ESIGN_EVENT_SUBJECTS.STREAM_NAME,
+        [ESIGN_EVENT_SUBJECTS.WILDCARD_ALL]
       );
     });
 
@@ -46,10 +46,10 @@ describe('ESignEventConsumer', () => {
 
       expect(mockBroker.subscribe).toHaveBeenCalledTimes(1);
       expect(mockBroker.subscribe).toHaveBeenCalledWith(
-        ESIGN_SUBJECTS.STREAM_NAME,
+        ESIGN_EVENT_SUBJECTS.STREAM_NAME,
         'compliance-server-document-signed-consumer',
         expect.any(Function),
-        ESIGN_SUBJECTS.DOCUMENT_SIGNED
+        ESIGN_EVENT_SUBJECTS.DOCUMENT_SIGNED
       );
     });
 

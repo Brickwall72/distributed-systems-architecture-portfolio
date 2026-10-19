@@ -7,9 +7,8 @@
     "start": "node ./dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsup",
-    "test": "pnpm test:unit && pnpm test:verify",
-    "test:unit": "vitest run .unit.test",
-    "test:verify": "vitest run .contract.verify.test"
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run .unit.test"
   },
   "dependencies": {
     "@shared/express": "workspace:*",

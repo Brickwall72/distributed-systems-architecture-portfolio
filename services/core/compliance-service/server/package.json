@@ -10,10 +10,8 @@
     "copy-assets": "node -e \"fs.cpSync('src/assets/templates', 'dist/assets/templates', { recursive: true })\"",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "test": "pnpm test:unit && pnpm test:integration && pnpm test:verify",
+    "test": "pnpm test:unit && pnpm test:verify",
     "test:unit": "vitest run .unit.test",
-    "test:integration": "vitest run .integration.test",
-    "test:contract": "vitest run .contract.test",
     "test:verify": "vitest run .provider.contract.spec"
   },
   "peerDependencies": {

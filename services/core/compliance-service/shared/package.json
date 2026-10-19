@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@contracts/common": "workspace:*",
+    "@contracts/esign": "workspace:*",
     "zod": "~3.24.1"
   }
 }

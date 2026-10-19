@@ -23,7 +23,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
 
-  const { generatePdf, isLoading: isGenerating, error: generatePdfError } = useGeneratePdf();
+  const { generatePdf, isLoading: isGenerating, error: generatePdfError, storageArtifact } = useGeneratePdf();
   const { signPdf, isSigning, isSigned, error: signPdfError, resetSigningState } = useSignPdf();
 
   useEffect(() => {
@@ -61,11 +61,11 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [documentId] = useState(() => crypto.randomUUID());
 
   const handleSign = async (signatureDataUrl: string) => {
-    if (!pdfBlobUrl) return;
+    if (!storageArtifact || !pdfBlobUrl) return;
 
     await signPdf(
       {
-        pdfBlobUrl,
+        storageArtifact,
         documentId,
         signerId: 'usr_compliance_officer',
         entityId: 'org_unassigned',

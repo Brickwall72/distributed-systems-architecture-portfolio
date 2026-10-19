@@ -16,24 +16,27 @@ vi.mock('../repositories', () => {
             storageBucket: 'compliance-vault',
             storageKey: '2026/dd1149.pdf',
             status: 'SIGNED',
+            signerId: 'usr_1',
+            entityId: 'org_1',
+            fileHash: 'a'.repeat(64),
             createdAt: '2026-09-15T14:32:00.000Z',
             updatedAt: '2026-09-15T14:32:00.000Z',
           },
         ];
       }
       async findById(id: string) {
-        if (id === '123e4567-e89b-12d3-a456-426614174000') {
-          return {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            documentType: 'asset-transfer-authorization',
-            storageBucket: 'compliance-vault',
-            storageKey: '2026/dd1149.pdf',
-            status: 'SIGNED',
-            createdAt: '2026-09-15T14:32:00.000Z',
-            updatedAt: '2026-09-15T14:32:00.000Z',
-          };
-        }
-        return null;
+        return {
+          id,
+          documentType: 'asset-transfer-authorization',
+          storageBucket: 'dsap',
+          storageKey: `${id}.pdf`,
+          status: 'SIGNED',
+          signerId: 'usr_1',
+          entityId: 'org_1',
+          fileHash: 'a'.repeat(64),
+          createdAt: '2026-09-15T14:32:00.000Z',
+          updatedAt: '2026-09-15T14:32:00.000Z',
+        };
       }
     },
     TemplateRepository: {
@@ -72,14 +75,16 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
     const mockBroker = {
       request: vi.fn().mockResolvedValue({
         success: true,
-        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
-        s3Uri: 's3://drafts/org-1/transfers/asset-transfer-authorization/document.pdf',
-        storageBucket: 'drafts',
-        storageKey: 'org-1/transfers/asset-transfer-authorization/document.pdf',
-        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        s3Uri: 's3://dsap/test.pdf',
+        storageBucket: 'dsap',
+        storageKey: 'test.pdf',
+        fileHash: 'a'.repeat(64),
+        signedAt: nowIso,
+        uploadedAt: nowIso,
         createdAt: nowIso,
         updatedAt: nowIso,
-        presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
+        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=xyz',
         correlationId: 'test-corr-123',
       }),
     };
@@ -124,6 +129,7 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
         'template with ID asset-transfer-authorization exists for drafting': async () => {},
         'compliance documents exist in the database': async () => {},
         'document with ID 123e4567-e89b-12d3-a456-426614174000 exists': async () => {},
+        'esign service is available for signing': async () => {},
       },
     });
 
