@@ -2,7 +2,7 @@
 import express from 'express';
 import { createLogger, createErrorHandler, createHealthCheck } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
-import { ESignPublisher, setESignPublisher, registerESignResponder } from './messaging';
+import { registerESignResponder } from './messaging';
 import { env } from './config';
 
 const app = express();
@@ -19,14 +19,8 @@ if (process.env.NODE_ENV !== 'test') {
   const broker = new EventBroker(env.NATS_URL, logger);
   await broker.connect();
 
-  const publisher = new ESignPublisher(broker);
-  await publisher.init();
-
-  registerESignResponder(broker, publisher);
-  
-  // Register instance cleanly without exporting a mutable binding
-  setESignPublisher(publisher);
-  logger.info('NATS JetStream ESign Publisher initialized.');
+  registerESignResponder(broker);
+  logger.info('NATS Event Broker connected and responder created.');
 
   const server = app.listen(env.PORT, '0.0.0.0', () => {
     logger.info(`E-Sign Microservice running on port ${env.PORT}`);

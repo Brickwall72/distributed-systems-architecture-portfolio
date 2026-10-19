@@ -8,11 +8,10 @@ import {
   SignDocumentResponse 
 } from '@contracts/esign';
 import { signDocumentFromStorage, uploadSignedDocument, publicStorageClient } from '../../services';
-import { ESignPublisher } from '../asynchronous';
 
 const logger = createLogger('esign-server:messaging');
 
-export function registerESignResponder(broker: EventBroker, publisher: ESignPublisher): void {
+export function registerESignResponder(broker: EventBroker): void {
   broker.respond(ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT, async (rawPayload) => {
     const request = SignDocumentCommandSchema.parse(rawPayload);
     const { 
@@ -48,27 +47,9 @@ export function registerESignResponder(broker: EventBroker, publisher: ESignPubl
       correlationId,
     });
 
-    // 3. Publish asynchronous domain event over NATS JetStream (Pub/Sub) for auditing / compliance sync
-    await publisher.publishDocumentSigned({
-      data: {
-        documentId,
-        documentType,
-        signerId,
-        entityId,
-        status: 'SIGNED',
-        s3Uri: storageMetadata.s3Uri,
-        storageBucket: storageMetadata.bucket,
-        storageKey: storageMetadata.key,
-        fileHash: storageMetadata.fileHash,
-        signedAt,
-        uploadedAt: storageMetadata.uploadedAt,
-      },
-      correlationId,
-    });
+    logger.info(`Successfully signed and uploaded document [${documentId}]`, correlationId);
 
-    logger.info(`Successfully signed and published document signed event for [${documentId}]`, correlationId);
-
-    // Generate browser-reachable pre-signed download URL using publicStorageClient
+    // 3. Generate browser-reachable pre-signed download URL using publicStorageClient
     const presignedUrl = await publicStorageClient.getSignedDownloadUrl(
       storageMetadata.bucket,
       storageMetadata.key,
@@ -80,6 +61,10 @@ export function registerESignResponder(broker: EventBroker, publisher: ESignPubl
     const responsePayload: SignDocumentResponse = {
       success: true,
       id: documentId,
+      documentType,
+      signerId,
+      entityId,
+      status: 'SIGNED',
       createdAt: now,
       updatedAt: now,
       storageBucket: storageMetadata.bucket,

@@ -6,6 +6,7 @@ import { ComplianceDocumentRepository } from '../../repositories';
 import { pool } from '../../db';
 import { EventBroker } from '@shared/messaging';
 import { ESIGN_COMMAND_SUBJECTS, SignDocumentResponseSchema } from '@contracts/esign';
+import { handleDocumentSignedEvent } from '../../messaging';
 
 const logger = createLogger('compliance-server:documents');
 const s = initServer();
@@ -85,6 +86,9 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         if (!parsedSignResponse.success) {
           throw new Error('Remote signature generation failed.');
         }
+
+        // Await upsert indexing before querying repository
+        await handleDocumentSignedEvent(parsedSignResponse, repository);
 
         const document = await repository.findById(body.documentId);
         
