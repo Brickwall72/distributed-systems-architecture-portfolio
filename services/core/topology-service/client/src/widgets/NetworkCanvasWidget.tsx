@@ -3,8 +3,23 @@ import { useEffect, useRef, useState } from 'react';
 import * as vis from 'vis-network';
 import { DataSet } from 'vis-data';
 import { TOPOLOGY_MUTATION_EVENT } from './ConnectionFormWidget';
-import { CustodyTransferRecord, EntityDirectoryResponsePayload } from '@shared/interfaces'; // Import from shared package
 import '@shared/styles';
+
+interface TopologyGraphPayload {
+  timestamp: string;
+  organizations: Array<{ id: string; name: string; type: string }>;
+  assets: Array<{ id: string; nomenclature: string; serialNumber: string; status: string }>;
+  activeTransfers: Array<{
+    requisitionNumber: string;
+    date: string;
+    status: string;
+    senderOrgId: string;
+    receiverOrgId: string;
+    assetId: string;
+    invStatus: string;
+  }>;
+  custodyLinks: Array<{ orgId: string; assetId: string }>;
+}
 
 export default function NetworkCanvasWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,68 +35,82 @@ export default function NetworkCanvasWidget() {
       });
 
       if (!response.ok) throw new Error(`Server returned error status: ${response.status}`);
-      const payload: EntityDirectoryResponsePayload = await response.json();
-      const transfers: CustodyTransferRecord[] = payload.transfers || [];
+      const payload: TopologyGraphPayload = await response.json();
 
       const rawNodes: any[] = [];
       const rawEdges: any[] = [];
       const trackedNodeIds = new Set<string>();
 
-      // Transform Event Node model into Vis.js nodes and edges
-      transfers.forEach((transfer) => {
-        // 1. Sender Organization Node
-        if (!trackedNodeIds.has(transfer.senderOrgId)) {
-          trackedNodeIds.add(transfer.senderOrgId);
-          rawNodes.push({ 
-            id: transfer.senderOrgId, 
-            label: transfer.senderName, 
-            shape: 'box', 
-            color: '#3b82f6', 
-            font: { color: '#ffffff' } 
+      // 1. Render Organizations (Blue boxes)
+      payload.organizations.forEach((org) => {
+        if (!trackedNodeIds.has(org.id)) {
+          trackedNodeIds.add(org.id);
+          rawNodes.push({
+            id: org.id,
+            label: org.name,
+            shape: 'box',
+            color: '#3b82f6',
+            font: { color: '#ffffff' }
           });
         }
+      });
 
-        // 2. Transfer Event Node (DD-1149 Requisition)
-        if (!trackedNodeIds.has(transfer.requisitionNumber)) {
+      // 2. Render Assets (Indigo dots)
+      payload.assets.forEach((asset) => {
+        if (!trackedNodeIds.has(asset.id)) {
+          trackedNodeIds.add(asset.id);
+          rawNodes.push({
+            id: asset.id,
+            label: `${asset.nomenclature}\nS/N: ${asset.serialNumber}\n[${asset.status}]`,
+            shape: 'dot',
+            color: asset.status === 'IN_TRANSIT' ? '#f97316' : '#6366f1',
+            font: { size: 11 }
+          });
+        }
+      });
+
+      // 3. Render Active Transfer Events (Amber diamonds) & In-Transit Connections
+      payload.activeTransfers.forEach((transfer) => {
+        if (transfer.requisitionNumber && !trackedNodeIds.has(transfer.requisitionNumber)) {
           trackedNodeIds.add(transfer.requisitionNumber);
-          rawNodes.push({ 
-            id: transfer.requisitionNumber, 
-            label: `DD-1149: ${transfer.requisitionNumber}\n(${transfer.transferDate})`, 
-            shape: 'diamond', 
+          rawNodes.push({
+            id: transfer.requisitionNumber,
+            label: `Transfer: ${transfer.requisitionNumber}\n(${transfer.date})`,
+            shape: 'diamond',
             color: '#f59e0b',
             font: { size: 10 }
           });
+
+          if (transfer.senderOrgId) {
+            rawEdges.push({ from: transfer.senderOrgId, to: transfer.requisitionNumber, label: 'INITIATED', arrows: 'to' });
+          }
+          if (transfer.receiverOrgId) {
+            rawEdges.push({ from: transfer.requisitionNumber, to: transfer.receiverOrgId, label: 'DELIVERED_TO', arrows: 'to' });
+          }
         }
 
-        // 3. Receiver Organization Node
-        if (!trackedNodeIds.has(transfer.receiverOrgId)) {
-          trackedNodeIds.add(transfer.receiverOrgId);
-          rawNodes.push({ 
-            id: transfer.receiverOrgId, 
-            label: transfer.receiverName, 
-            shape: 'box', 
-            color: '#10b981', 
-            font: { color: '#ffffff' } 
+        // Connect active/in-transit assets to the transfer event
+        if (transfer.assetId && transfer.requisitionNumber && transfer.invStatus === 'IN_TRANSIT') {
+          rawEdges.push({
+            from: transfer.requisitionNumber,
+            to: transfer.assetId,
+            label: 'IN_TRANSIT',
+            color: { color: '#f97316' },
+            arrows: 'to',
+            dashes: true
           });
         }
+      });
 
-        // 4. Asset Node
-        if (!trackedNodeIds.has(transfer.assetId)) {
-          trackedNodeIds.add(transfer.assetId);
-          rawNodes.push({ 
-            id: transfer.assetId, 
-            label: `${transfer.assetNomenclature}\nS/N: ${transfer.serialNumber}`, 
-            shape: 'dot', 
-            color: '#6366f1' 
-          });
-        }
-
-        // Build Event-Based Edges
-        rawEdges.push(
-          { from: transfer.senderOrgId, to: transfer.requisitionNumber, label: 'INITIATED', arrows: 'to' },
-          { from: transfer.requisitionNumber, to: transfer.receiverOrgId, label: 'DELIVERED_TO', arrows: 'to' },
-          { from: transfer.requisitionNumber, to: transfer.assetId, label: 'INVOLVES', arrows: 'to' }
-        );
+      // 4. Render Current Custody Edges
+      payload.custodyLinks.forEach((link) => {
+        rawEdges.push({
+          from: link.orgId,
+          to: link.assetId,
+          label: 'HAS_CUSTODY',
+          color: { color: '#10b981' },
+          arrows: 'to'
+        });
       });
 
       const visNodes = new DataSet(rawNodes);
@@ -91,10 +120,10 @@ export default function NetworkCanvasWidget() {
         if (networkInstance) networkInstance.destroy();
         
         const newInstance = new vis.Network(
-          containerRef.current, 
-          { nodes: visNodes, edges: visEdges }, 
+          containerRef.current,
+          { nodes: visNodes, edges: visEdges },
           {
-            physics: { barnesHut: { gravitationalConstant: -3000, centralGravity: 0.4, springLength: 180 } },
+            physics: { barnesHut: { gravitationalConstant: -3500, centralGravity: 0.3, springLength: 200 } },
             interaction: { hover: true, dragNodes: true, zoomView: true, dragView: true }
           }
         );

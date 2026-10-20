@@ -19,7 +19,7 @@ import { z } from 'zod';
 export const OrganizationDTOSchema = z.object({
   id: z.string().trim().min(1, 'Organization ID is required'),
   name: z.string().trim().min(1, 'Organization name is required'),
-  type: z.enum(['CONTRACTOR', 'GOV', 'MILITARY_BRANCH']),
+  type: z.enum(['CONTRACTOR', 'GOV_AGENCY']),
   addressLine1: z
     .string()
     .trim()

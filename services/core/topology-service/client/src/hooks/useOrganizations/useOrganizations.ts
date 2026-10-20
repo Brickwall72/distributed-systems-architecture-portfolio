@@ -1,8 +1,7 @@
 // File: services/core/topology-service/client/src/hooks/useOrganizations/useOrganizations.ts
 import { apiClient } from '../../api';
 import { useTopologyQuery } from '../useTopologyQuery';
-import { OrganizationDTO } from '@contracts/topology';
-import type { GetOrganizationsQuery } from 'topology-shared';
+import { OrganizationDTO, GetOrganizationsQuery } from '@contracts/topology';
 
 export function useOrganizations(params?: GetOrganizationsQuery) {
   return useTopologyQuery<GetOrganizationsQuery, OrganizationDTO>({

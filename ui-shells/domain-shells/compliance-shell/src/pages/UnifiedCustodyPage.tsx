@@ -42,6 +42,7 @@ export default function UnifiedCustodyPage() {
               excludeOrgId={targetOrg?.id}
               filterOwnedId={assets[0]?.id}
               onSelect={handleSourceOrgSelect}
+              requireActiveAssets={true}
             />
           </Suspense>
         </FederatedErrorBoundary>

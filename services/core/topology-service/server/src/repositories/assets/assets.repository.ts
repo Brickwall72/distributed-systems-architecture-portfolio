@@ -2,10 +2,12 @@
 import { BaseRepository } from '../base.repository';
 import { mapRecordToAssetEntity } from '../../mappers';
 import type { AssetEntity } from '../../domain';
-import type { GetAssetsQuery } from 'topology-shared';
+import type { GetAssetsQuery } from '@contracts/topology';
 
 export class AssetsRepository extends BaseRepository {
-  async findAssets(filters: GetAssetsQuery = {}): Promise<AssetEntity[]> {
+  async findAssets(filters: GetAssetsQuery): Promise<AssetEntity[]> {
+    const includeInTransit = filters.includeInTransit;
+
     const cypher = `
       MATCH (a:Asset)
       WHERE ($filterOwnerId IS NULL OR EXISTS {
@@ -14,6 +16,7 @@ export class AssetsRepository extends BaseRepository {
       AND ($excludeOwnerId IS NULL OR NOT EXISTS {
         MATCH (eo:Organization {id: $excludeOwnerId})-[:HAS_CUSTODY]->(a)
       })
+      AND ($includeInTransit = true OR a.status <> 'IN_TRANSIT')
       RETURN 
         a.id AS id,
         a.nomenclature AS nomenclature,
@@ -27,6 +30,7 @@ export class AssetsRepository extends BaseRepository {
       {
         filterOwnerId: filters.filterOwnerId ?? null,
         excludeOwnerId: filters.excludeOwnerId ?? null,
+        includeInTransit,
       },
       mapRecordToAssetEntity
     );

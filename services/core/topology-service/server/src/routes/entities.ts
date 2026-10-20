@@ -2,10 +2,6 @@
 import { Router, Request, Response } from 'express';
 import { createLogger } from '@shared/express';
 import { getDatabaseClient } from '../topologyDatabase';
-import {
-  EntityDirectoryResponsePayload,
-  CustodyTransferRecord
-} from '@shared/interfaces';
 
 const router = Router();
 const logger = createLogger('topology/entities');
@@ -17,59 +13,83 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
   try {
     const query = `
-      MATCH (sender:Organization)-[:INITIATED]->(event:TransferEvent)-[:DELIVERED_TO]->(receiver:Organization)
-      MATCH (event)-[inv:INVOLVES]->(asset:Asset)
-      RETURN 
-        event.requisitionNumber AS requisitionNumber,
-        event.date AS transferDate,
-        sender.id AS senderOrgId,
-        sender.name AS senderName,
-        sender.type AS senderType,
-        sender.address1 AS senderAddress1,
-        sender.address2 AS senderAddress2,
-        receiver.id AS receiverOrgId,
-        receiver.name AS receiverName,
-        receiver.type AS receiverType,
-        receiver.address1 AS receiverAddress1,
-        receiver.address2 AS receiverAddress2,
-        asset.id AS assetId,
-        asset.nomenclature AS assetNomenclature,
-        asset.serialNumber AS serialNumber
-      ORDER BY event.date DESC, requisitionNumber
+      // 1. Gather all Organizations
+      MATCH (o:Organization)
+      WITH collect(DISTINCT {
+        id: o.id,
+        name: o.name,
+        type: o.type,
+        addressLine1: o.addressLine1,
+        addressLine2: o.addressLine2
+      }) as organizations
+
+      // 2. Gather all Assets
+      MATCH (a:Asset)
+      WITH organizations, collect(DISTINCT {
+        id: a.id,
+        name: a.name,
+        nomenclature: a.nomenclature,
+        serialNumber: a.serialNumber,
+        type: a.type,
+        status: a.status
+      }) as assets
+
+      // 3. Gather active/in-transit Transfer Events and their links
+      MATCH (e:TransferEvent)
+      WHERE e.status = 'PARTIALLY_COMPLETED' OR e.status = 'IN_TRANSIT'
+      OPTIONAL MATCH (sender:Organization)-[:DELIVERED_FROM]->(e)
+      OPTIONAL MATCH (e)-[:DELIVERED_TO]->(receiver:Organization)
+      OPTIONAL MATCH (e)-[inv:INVOLVES]->(asset:Asset)
+      WITH organizations, assets, collect(DISTINCT {
+        requisitionNumber: e.requisitionNumber,
+        date: e.date,
+        type: e.type,
+        status: e.status,
+        senderOrgId: sender.id,
+        senderName: sender.name,
+        receiverOrgId: receiver.id,
+        receiverName: receiver.name,
+        assetId: asset.id,
+        assetNomenclature: asset.nomenclature,
+        serialNumber: asset.serialNumber,
+        invStatus: inv.status
+      }) as activeTransfers
+
+      // 4. Gather current HAS_CUSTODY relationships, omitting assets currently in-transit
+      MATCH (org:Organization)-[:HAS_CUSTODY]->(ast:Asset)
+      WHERE NOT (
+        ()-[:INVOLVES { status: 'IN_TRANSIT' }]->(ast)
+      )
+      WITH organizations, assets, activeTransfers, collect(DISTINCT {
+        orgId: org.id,
+        assetId: ast.id
+      }) as custodyLinks
+
+      RETURN {
+        organizations: organizations,
+        assets: assets,
+        activeTransfers: activeTransfers,
+        custodyLinks: custodyLinks
+      } AS topologyGraph
     `;
 
     const result = await session.executeRead((tx) => tx.run(query));
-    
-    const transfers: CustodyTransferRecord[] = result.records.map((record) => ({
-      requisitionNumber: record.get('requisitionNumber'),
-      transferDate: record.get('transferDate'),
-      senderOrgId: record.get('senderOrgId'),
-      senderName: record.get('senderName'),
-      senderType: record.get('senderType'),
-      senderAddress1: record.get('senderAddress1'),
-      senderAddress2: record.get('senderAddress2'),
-      receiverOrgId: record.get('receiverOrgId'),
-      receiverName: record.get('receiverName'),
-      receiverType: record.get('receiverType'),
-      receiverAddress1: record.get('senderName'),
-      receiverAddress2: record.get('receiverAddress2'),
-      assetId: record.get('assetId'),
-      assetNomenclature: record.get('assetNomenclature'),
-      serialNumber: record.get('serialNumber')
-    }));
-
-    const responsePayload: EntityDirectoryResponsePayload = {
-      timestamp: new Date().toISOString(),
-      transfers
+    const rawData = result.records[0]?.get('topologyGraph') || {
+      organizations: [],
+      assets: [],
+      activeTransfers: [],
+      custodyLinks: []
     };
 
-    logger.debug(`Directory inventory data enumerated across [${transfers.length}] transfer record(s).`, correlationId);
-    res.status(200).json(responsePayload);
+    res.status(200).json({
+      timestamp: new Date().toISOString(),
+      ...rawData
+    });
   } catch (caughtError: unknown) {
-    logger.error(`Topology entity catalog extraction loop failed: ${String(caughtError)}`, correlationId);
+    logger.error(`Topology graph data extraction failed: ${String(caughtError)}`, correlationId);
     res.status(500).json({
       errorCode: 'TOPOLOGY_ENTITY_QUERY_FAILURE',
-      message: 'The topology graph engine could not cleanly enumerate asset custody records.',
+      message: 'The topology graph engine could not cleanly enumerate network nodes.',
       timestamp: new Date().toISOString()
     });
   } finally {

@@ -3,24 +3,42 @@ import { z } from 'zod';
 import { type OrganizationDTO } from '../outputs';
 
 /**
- * Runtime input configuration passed from Shell -> OrganizationSelector MFE Widget.
+ * Reusable base organization query parameters.
+ * Defined once here as the single source of truth for organization filtering.
  */
-export const OrganizationSelectorInputSchema = z.object({
-  label: z.string().trim().min(1).optional(),
+export const GetOrganizationsQuerySchema = z.object({
   filterOwnedId: z.string().trim().min(1).optional(),
+  requireActiveAssets: z.preprocess(
+    (val) => {
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      return val;
+    },
+    z.boolean().optional().default(false)
+  ),
+});
+
+export type GetOrganizationsQuery = z.infer<typeof GetOrganizationsQuerySchema>;
+
+/**
+ * Runtime input configuration passed from Shell -> OrganizationSelector MFE Widget.
+ * Combines the base query parameters with MFE-specific UI presentation props.
+ */
+export const OrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({
+  label: z.string().trim().min(1).optional(),
   excludeOrgId: z.string().trim().min(1).optional(),
   multiSelect: z.boolean().default(false),
 });
 
 /*
  * ============================================================================
- *       HOST SHELL INGRESS CONTRACT (Unparsed Inputs & External Props)
+ *        HOST SHELL INGRESS CONTRACT (Unparsed Inputs & External Props)
  * ============================================================================
  */
 
 /**
  * Raw input shape expected from the Shell caller.
- * `multiSelect` is optional (`boolean | undefined`).
+ * `multiSelect` and `requireActiveAssets` are optional.
  */
 export type OrganizationSelectorInputs = z.input<typeof OrganizationSelectorInputSchema>;
 

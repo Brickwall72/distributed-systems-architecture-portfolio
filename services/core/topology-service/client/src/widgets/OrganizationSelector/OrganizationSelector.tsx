@@ -13,9 +13,9 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   if (!parsedInputs.success) {
     console.warn('[OrganizationSelector MFE] Invalid props received:', parsedInputs.error);
   }
-  const { label, filterOwnedId, excludeOrgId } = parsedInputs.success
+  const { label, filterOwnedId, excludeOrgId, requireActiveAssets } = parsedInputs.success
     ? parsedInputs.data
-    : { label: undefined, filterOwnedId: undefined, excludeOrgId: undefined };
+    : { label: undefined, filterOwnedId: undefined, excludeOrgId: undefined, requireActiveAssets: false };
 
   const { onSelect } = props;
 
@@ -48,7 +48,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   }
 
   // 3. Query Data Access Layer
-  const { items, isLoading, error } = useOrganizations({ filterOwnedId });
+  const { items, isLoading, error } = useOrganizations({ filterOwnedId, requireActiveAssets });
 
   // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {

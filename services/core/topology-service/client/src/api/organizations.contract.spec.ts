@@ -16,12 +16,13 @@ describe('Topology Client -> Topology Server Contract (Organizations API)', () =
   it('receives a valid OrganizationDTO collection via production apiClient', async () => {
     provider
       .given('organizations exist for asset ast-101')
-      .uponReceiving('a request to fetch organizations owning asset ast-101')
+      .uponReceiving('a request to fetch organizations owning asset ast-101 with active assets filter')
       .withRequest({
         method: 'GET',
         path: '/topology/api/v1/organizations',
         query: {
           filterOwnedId: 'ast-101',
+          requireActiveAssets: 'true',
         },
       })
       .willRespondWith({
@@ -33,7 +34,7 @@ describe('Topology Client -> Topology Server Contract (Organizations API)', () =
           like({
             id: string('org-101'),
             name: string('Space Systems Command'),
-            type: regex('(CONTRACTOR|GOV|MILITARY_BRANCH)', 'MILITARY_BRANCH'),
+            type: regex('(CONTRACTOR|GOV_AGENCY)', 'GOV_AGENCY'),
             addressLine1: string('Building 2730'),
             addressLine2: string('El Segundo, CA'),
           })
@@ -42,7 +43,10 @@ describe('Topology Client -> Topology Server Contract (Organizations API)', () =
 
     await provider.executeTest(async (mockServer) => {
       const response = await apiClient.getOrganizations({
-        query: { filterOwnedId: 'ast-101' },
+        query: {
+          filterOwnedId: 'ast-101',
+          requireActiveAssets: true,
+        },
         overrideClientOptions: {
           baseUrl: `${mockServer.url}/topology/api/v1`,
         },
