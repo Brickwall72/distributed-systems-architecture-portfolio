@@ -13,17 +13,17 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   if (!parsedInputs.success) {
     console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
   }
-  const { label, filterOwnerId, excludeOwnerId } = parsedInputs.success
+  const { label, filterOwnerId, excludeOwnerId, includeInTransit } = parsedInputs.success
     ? parsedInputs.data
-    : { label: undefined, filterOwnerId: undefined, excludeOwnerId: undefined };
+    : { label: undefined, filterOwnerId: undefined, excludeOwnerId: undefined, includeInTransit: false };
 
   const { onSelect } = props;
 
   // 2. Local Selection State
   const [selectedId, setSelectedId] = useState<string>('');
 
-  // 3. Query Data Access Layer
-  const { items, isLoading, error } = useAssets({ filterOwnerId, excludeOwnerId });
+  // 3. Query Data Access Layer (Passing includeInTransit through)
+  const { items, isLoading, error } = useAssets({ filterOwnerId, excludeOwnerId, includeInTransit });
 
   // 4. Synchronize Selection: Clear selection if active asset is filtered out by prop changes
   useEffect(() => {

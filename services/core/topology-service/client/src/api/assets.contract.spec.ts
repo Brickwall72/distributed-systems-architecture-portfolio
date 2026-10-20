@@ -16,12 +16,13 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
   it('receives a valid AssetDTO collection via production apiClient', async () => {
     provider
       .given('assets exist for organization org-1')
-      .uponReceiving('a request to fetch assets for org-1')
+      .uponReceiving('a request to fetch assets for org-1 with includeInTransit filter')
       .withRequest({
         method: 'GET',
         path: '/topology/api/v1/assets',
         query: {
           filterOwnerId: 'org-1',
+          includeInTransit: 'true',
         },
       })
       .willRespondWith({
@@ -42,7 +43,10 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
 
     await provider.executeTest(async (mockServer) => {
       const response = await apiClient.getAssets({
-        query: { filterOwnerId: 'org-1' },
+        query: {
+          filterOwnerId: 'org-1',
+          includeInTransit: true,
+        },
         overrideClientOptions: {
           baseUrl: `${mockServer.url}/topology/api/v1`,
         },

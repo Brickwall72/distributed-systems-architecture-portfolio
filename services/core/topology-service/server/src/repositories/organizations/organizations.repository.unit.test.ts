@@ -16,32 +16,33 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
     mockDriver = { session: vi.fn().mockReturnValue(mockSession as Session) };
   });
 
-  it('passes normalized null filters to Cypher execution when optional params are omitted', async () => {
+  it('passes normalized null filters and default requireActiveAssets to Cypher execution when optional params are omitted', async () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
 
     const repo = new OrganizationsRepository(mockDriver as Driver);
-    await repo.findOrganizations({});
+    await repo.findOrganizations({ requireActiveAssets: true });
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('MATCH (o:Organization)'),
       {
         filterOwnedId: null,
+        requireActiveAssets: true,
       }
     );
   });
 
   it('maps raw Neo4j record fields to OrganizationEntity domain shape', async () => {
     const mockRecord: Partial<Neo4jRecord> = {
-      get: vi.fn((key: string) => {
+      get: vi.fn((key: string | number) => {
         const data: Record<string, string> = {
           id: 'org-101',
           name: 'Space Systems Command',
-          type: 'MILITARY_BRANCH',
+          type: 'GOV_AGENCY',
           addressLine1: 'Building 2730',
           addressLine2: 'El Segundo, CA',
         };
-        return data[key];
-      }),
+        return data[String(key)];
+      }) as unknown as Neo4jRecord['get'],
     };
 
     vi.mocked(mockTx.run!).mockResolvedValue({
@@ -50,13 +51,16 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
     });
 
     const repo = new OrganizationsRepository(mockDriver as Driver);
-    const results = await repo.findOrganizations({ filterOwnedId: 'ast-101' });
+    const results = await repo.findOrganizations({
+      filterOwnedId: 'ast-101',
+      requireActiveAssets: true,
+    });
 
     expect(results).toEqual([
       {
         id: 'org-101',
         name: 'Space Systems Command',
-        type: 'MILITARY_BRANCH',
+        type: 'GOV_AGENCY',
         addressLine1: 'Building 2730',
         addressLine2: 'El Segundo, CA',
       },

@@ -8,7 +8,7 @@ describe('organizationEntityToDTO', () => {
     const entity: OrganizationEntity = {
       id: 'org-101',
       name: 'US Space Force',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: 'Pentagon Rm 4C1000',
       addressLine2: 'Washington, DC',
     };
@@ -19,7 +19,7 @@ describe('organizationEntityToDTO', () => {
     expect(dto).toEqual({
       id: 'org-101',
       name: 'US Space Force',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: 'Pentagon Rm 4C1000',
       addressLine2: 'Washington, DC',
     });
@@ -32,7 +32,7 @@ describe('organizationEntityToDTO', () => {
     const entity: OrganizationEntity = {
       id: 'org-202',
       name: 'Cyber Command',
-      type: 'GOV',
+      type: 'GOV_AGENCY',
     };
 
     const dto = organizationEntityToDTO(entity);
@@ -40,7 +40,7 @@ describe('organizationEntityToDTO', () => {
     expect(dto).toEqual({
       id: 'org-202',
       name: 'Cyber Command',
-      type: 'GOV',
+      type: 'GOV_AGENCY',
       addressLine1: undefined,
       addressLine2: undefined,
     });
@@ -56,7 +56,7 @@ describe('organizationEntityToDTO', () => {
       type: 'INVALID_ENUM_VALUE',
     };
 
-    expect(() => organizationEntityToDTO(entity)).toThrowError(
+    expect(() => organizationEntityToDTO(entity)).toThrow(
       'Domain validation error: Invalid organization type "INVALID_ENUM_VALUE" for organization ID "org-303"'
     );
   });

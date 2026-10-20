@@ -94,7 +94,7 @@ describe('ComplianceWorkflowWidget', () => {
   });
 
   const defaultProps = {
-    sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' as const },
+    sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV_AGENCY' as const },
     targetOrg: { id: 'org-2', name: 'Target Bravo', type: 'CONTRACTOR' as const },
     assets: [
       { id: 'ast-1', name: 'Widget Alpha', serialNumber: 'SN-12345', nomenclature: 'Test Asset' },

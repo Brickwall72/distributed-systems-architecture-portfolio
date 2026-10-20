@@ -1,14 +1,21 @@
 // File: services/core/topology-service/server/src/repositories/organizations/organizations.repository.ts
 import { BaseRepository } from '../base.repository';
 import { mapRecordToOrganizationEntity } from '../../mappers';
-import type { GetOrganizationsQuery, OrganizationEntity } from 'topology-shared';
+import type { GetOrganizationsQuery } from '@contracts/topology';
+import type { OrganizationEntity } from '../../domain';
 
 export class OrganizationsRepository extends BaseRepository {
-  async findOrganizations(filters: GetOrganizationsQuery = {}): Promise<OrganizationEntity[]> {
+  async findOrganizations(filters: GetOrganizationsQuery): Promise<OrganizationEntity[]> {
+    const requireActiveAssets = filters.requireActiveAssets ?? true;
+
     const cypher = `
       MATCH (o:Organization)
       WHERE ($filterOwnedId IS NULL OR EXISTS {
         MATCH (o)-[:HAS_CUSTODY]->(a:Asset { id: $filterOwnedId })
+      })
+      AND ($requireActiveAssets = false OR EXISTS {
+        MATCH (o)-[:HAS_CUSTODY]->(activeAsset:Asset)
+        WHERE activeAsset.status <> 'IN_TRANSIT'
       })
       RETURN 
         o.id AS id,
@@ -23,6 +30,7 @@ export class OrganizationsRepository extends BaseRepository {
       cypher,
       {
         filterOwnedId: filters.filterOwnedId ?? null,
+        requireActiveAssets,
       },
       mapRecordToOrganizationEntity
     );

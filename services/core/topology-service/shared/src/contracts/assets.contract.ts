@@ -1,7 +1,6 @@
 // File: services/core/topology-service/shared/src/contracts/assets.contract.ts
 import { initContract } from '@ts-rest/core';
-import { GetAssetsQuerySchema } from '../schemas';
-import { AssetDTOListSchema } from '@contracts/topology';
+import { AssetDTOListSchema, GetAssetsQuerySchema } from '@contracts/topology';
 import { ApiErrorResponseSchema } from '@contracts/common';
 
 const c = initContract();
