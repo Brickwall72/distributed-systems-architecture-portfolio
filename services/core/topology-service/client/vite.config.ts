@@ -6,7 +6,7 @@ export default createRemoteConfig({
   concern: 'client',
   exposes: {
     './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
-    './widget/NetworkCanvas': './src/widgets/NetworkCanvasWidget.tsx',
+    './NetworkCanvas': './src/widgets/NetworkCanvas',
     './AssetSelector': './src/widgets/AssetSelector',
     './OrganizationSelector': './src/widgets/OrganizationSelector'
   }

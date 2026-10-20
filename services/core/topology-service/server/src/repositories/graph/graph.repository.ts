@@ -1,17 +1,9 @@
-// File: services/core/topology-service/server/src/routes/entities.ts
-import { Router, Request, Response } from 'express';
-import { createLogger } from '@shared/express';
-import { getDatabaseClient } from '../topologyDatabase';
+// File: services/core/topology-service/server/src/repositories/graph/graph.repository.ts
+import { BaseRepository } from '../base.repository';
+import type { GraphDTO } from 'topology-shared';
 
-const router = Router();
-const logger = createLogger('topology/entities');
-const correlationHeader = 'X-Correlation-ID';
-
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  const correlationId = req.header(correlationHeader) || 'UNKNOWN';
-  const session = getDatabaseClient().session();
-
-  try {
+export class GraphRepository extends BaseRepository {
+  async getGraph(): Promise<GraphDTO> {
     const query = `
       // 1. Gather all Organizations
       MATCH (o:Organization)
@@ -23,23 +15,28 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         addressLine2: o.addressLine2
       }) as organizations
 
-      // 2. Gather all Assets
+      // 2. Gather all Assets with Status
       MATCH (a:Asset)
       WITH organizations, collect(DISTINCT {
         id: a.id,
         name: a.name,
         nomenclature: a.nomenclature,
         serialNumber: a.serialNumber,
-        type: a.type,
         status: a.status
       }) as assets
 
-      // 3. Gather active/in-transit Transfer Events and their links
+      // 3. Gather active/in-transit Transfer Events, aggregating their involved assets into an array
       MATCH (e:TransferEvent)
       WHERE e.status = 'PARTIALLY_COMPLETED' OR e.status = 'IN_TRANSIT'
       OPTIONAL MATCH (sender:Organization)-[:DELIVERED_FROM]->(e)
       OPTIONAL MATCH (e)-[:DELIVERED_TO]->(receiver:Organization)
       OPTIONAL MATCH (e)-[inv:INVOLVES]->(asset:Asset)
+      WITH organizations, assets, e, sender, receiver, collect(DISTINCT {
+        assetId: asset.id,
+        assetNomenclature: asset.nomenclature,
+        serialNumber: asset.serialNumber,
+        invStatus: inv.status
+      }) as transferAssets
       WITH organizations, assets, collect(DISTINCT {
         requisitionNumber: e.requisitionNumber,
         date: e.date,
@@ -49,10 +46,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         senderName: sender.name,
         receiverOrgId: receiver.id,
         receiverName: receiver.name,
-        assetId: asset.id,
-        assetNomenclature: asset.nomenclature,
-        serialNumber: asset.serialNumber,
-        invStatus: inv.status
+        assets: [item IN transferAssets WHERE item.assetId IS NOT NULL]
       }) as activeTransfers
 
       // 4. Gather current HAS_CUSTODY relationships, omitting assets currently in-transit
@@ -73,28 +67,17 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       } AS topologyGraph
     `;
 
-    const result = await session.executeRead((tx) => tx.run(query));
-    const rawData = result.records[0]?.get('topologyGraph') || {
+    const result = await this.executeReadQuery(query, {}, (record) => record.get('topologyGraph'));
+    const rawGraph = result[0] || {
       organizations: [],
       assets: [],
       activeTransfers: [],
-      custodyLinks: []
+      custodyLinks: [],
     };
 
-    res.status(200).json({
+    return {
       timestamp: new Date().toISOString(),
-      ...rawData
-    });
-  } catch (caughtError: unknown) {
-    logger.error(`Topology graph data extraction failed: ${String(caughtError)}`, correlationId);
-    res.status(500).json({
-      errorCode: 'TOPOLOGY_ENTITY_QUERY_FAILURE',
-      message: 'The topology graph engine could not cleanly enumerate network nodes.',
-      timestamp: new Date().toISOString()
-    });
-  } finally {
-    await session.close();
+      ...rawGraph,
+    };
   }
-});
-
-export { router as entitiesRouter };
+}

@@ -6,7 +6,7 @@ import '@shared/styles';
 
 // Dynamically resolve autonomous widgets at runtime (now backed by populated registerRemotes)
 const ConnectionFormWidget = lazy(() => loadRemote<any>('topology_client/widget/ConnectionForm'));
-const NetworkCanvasWidget = lazy(() => loadRemote<any>('topology_client/widget/NetworkCanvas'));
+const NetworkCanvas = lazy(() => loadRemote<any>('topology_client/NetworkCanvas'));
 
 export default function TopologyDashboard() {
   return (
@@ -28,13 +28,13 @@ export default function TopologyDashboard() {
           </Suspense>
         </FederatedErrorBoundary>
 
-        <FederatedErrorBoundary remoteName="topology_client/widget/NetworkCanvas">
+        <FederatedErrorBoundary remoteName="topology_client/NetworkCanvas">
           <Suspense fallback={
             <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl animate-pulse text-slate-500 font-mono text-xs">
               Loading Network Canvas...
             </div>
           }>
-            <NetworkCanvasWidget />
+            <NetworkCanvas />
           </Suspense>
         </FederatedErrorBoundary>
       </div>

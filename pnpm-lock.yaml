@@ -173,8 +173,6 @@ importers:
         specifier: ~3.1151.0
         version: 3.1151.0
 
-  packages/interfaces: {}
-
   packages/messaging:
     dependencies:
       '@nats-io/jetstream':
@@ -357,9 +355,6 @@ importers:
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../../packages/contracts/topology
-      '@shared/interfaces':
-        specifier: workspace:*
-        version: link:../../../../packages/interfaces
       '@shared/ui-components':
         specifier: workspace:*
         version: link:../../../../packages/ui
@@ -397,9 +392,6 @@ importers:
       '@shared/express':
         specifier: workspace:*
         version: link:../../../../packages/express
-      '@shared/interfaces':
-        specifier: workspace:*
-        version: link:../../../../packages/interfaces
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
