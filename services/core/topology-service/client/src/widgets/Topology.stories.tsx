@@ -4,7 +4,6 @@ import { http, HttpResponse } from 'msw';
 import { AssetDTOList, OrganizationDTOList } from '@contracts/topology';
 import { 
   ConnectionFormWidget, 
-  NetworkCanvasWidget 
 } from './';
 
 const meta: Meta = {
@@ -24,7 +23,7 @@ type Story = StoryObj<typeof meta>;
 // Mock Dataset
 const MOCK_ORGANIZATIONS: OrganizationDTOList = [
   { id: 'org-1', name: 'Alpha Command', type: 'CONTRACTOR', addressLine1: '123 Base Rd', addressLine2: 'Suite 100' },
-  { id: 'org-2', name: 'Bravo Logistics', type: 'GOV', addressLine1: '456 Depot Way', addressLine2: '' },
+  { id: 'org-2', name: 'Bravo Logistics', type: 'GOV_AGENCY', addressLine1: '456 Depot Way', addressLine2: '' },
 ];
 
 const MOCK_ASSETS: AssetDTOList = [
@@ -83,29 +82,5 @@ export const ConnectionForm: Story = {
   ),
   beforeEach: ({ msw }) => {
     msw.use(handlers[1]);
-  },
-};
-
-// ------------------------------------------------------------------
-// 2. Isolated Canvas Widget (Success State)
-// ------------------------------------------------------------------
-export const NetworkCanvasSuccess: Story = {
-  render: () => <NetworkCanvasWidget />,
-  beforeEach: ({ msw }) => {
-    msw.use(handlers[0]);
-  },
-};
-
-// ------------------------------------------------------------------
-// 3. Isolated Canvas Widget (Error State)
-// ------------------------------------------------------------------
-export const NetworkCanvasFailure: Story = {
-  render: () => <NetworkCanvasWidget />,
-  beforeEach: ({ msw }) => {
-    msw.use(
-      http.get('/topology/api/v1/entities', () => {
-        return new HttpResponse(null, { status: 500, statusText: 'Database Connection Lost' });
-      })
-    );
   },
 };

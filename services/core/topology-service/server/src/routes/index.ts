@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { createExpressEndpoints } from '@ts-rest/express';
 import { createOrganizationsRouter } from './organizations';
 import { createAssetsRouter } from './assets';
-import { entitiesRouter } from './entities';
+import { createGraphRouter } from './graph/graph.route';
 import { createHealthCheck } from '@shared/express';
 import { topologyContract } from 'topology-shared';
 
@@ -14,20 +14,19 @@ export function createTopologyGateway(): Router {
    * service is alive before routing real business traffic through the validation gate. */
   router.get('/health', createHealthCheck('topology-server'));
   
-  // router.use('/authorizations', authorizationsRouter);
   const organizationsRouter = createOrganizationsRouter();
-  // Defer router creation until this factory function is invoked
   const assetsRouter = createAssetsRouter();
+  const graphRouter = createGraphRouter();
+
   createExpressEndpoints(
     topologyContract,
     {
       ...assetsRouter,
       ...organizationsRouter,
+      ...graphRouter,
     },
     router
   );
-
-  router.use('/entities', entitiesRouter);
 
   return router;
 }

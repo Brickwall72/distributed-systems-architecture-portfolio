@@ -12,6 +12,7 @@ vi.mock('../repositories', () => {
         return [
           {
             id: 'ast-101',
+            name: 'AN/PRC-117G',
             nomenclature: 'AN/PRC-117G',
             serialNumber: 'SN-9982',
             currentOwnerId: 'org-1',
@@ -30,6 +31,45 @@ vi.mock('../repositories', () => {
             addressLine2: 'El Segundo, CA',
           },
         ];
+      }
+    },
+    GraphRepository: class MockGraphRepository {
+      async getGraph() {
+        return {
+          timestamp: new Date().toISOString(),
+          organizations: [
+            {
+              id: 'org-1',
+              name: 'Alpha Command',
+              type: 'CONTRACTOR',
+              addressLine1: 'Pad 39-B',
+            },
+          ],
+          assets: [
+            {
+              id: 'asset-1',
+              name: 'Probe Mk I',
+              nomenclature: 'Probe Mk I',
+              serialNumber: 'KSP-01',
+              status: 'AVAILABLE',
+              currentOwnerId: 'org-1',
+            },
+          ],
+          activeTransfers: [
+            {
+              requisitionNumber: 'REQ-001',
+              date: '20261020',
+              type: 'PHYSICAL_TRANSFER',
+              status: 'IN_TRANSIT',
+            },
+          ],
+          custodyLinks: [
+            {
+              orgId: 'org-1',
+              assetId: 'asset-1',
+            },
+          ],
+        };
       }
     },
   };
@@ -74,6 +114,9 @@ describe('Pact Provider Verification - Topology Server', () => {
           // Repository is mocked; no state setup required
         },
         'organizations exist for asset ast-101': async () => {
+          // Repository is mocked; no state setup required
+        },
+        'topology graph network nodes exist': async () => {
           // Repository is mocked; no state setup required
         },
       },
