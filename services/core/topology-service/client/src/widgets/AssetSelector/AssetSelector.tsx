@@ -1,7 +1,7 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
-import { useAssets } from '../../hooks';
+import { useGetAssets } from '../../hooks';
 import {
   AssetSelectorInputSchema,
   type AssetSelectorProps,
@@ -23,7 +23,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   const [selectedId, setSelectedId] = useState<string>('');
 
   // 3. Query Data Access Layer (Passing includeInTransit through)
-  const { items, isLoading, error } = useAssets({ filterOwnerId, excludeOwnerId, includeInTransit });
+  const { items, isLoading, error } = useGetAssets({ filterOwnerId, excludeOwnerId, includeInTransit });
 
   // 4. Synchronize Selection: Clear selection if active asset is filtered out by prop changes
   useEffect(() => {

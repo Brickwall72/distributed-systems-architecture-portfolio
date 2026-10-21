@@ -1,7 +1,7 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector/OrganizationSelector.tsx
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
-import { useOrganizations } from '../../hooks';
+import { useGetOrganizations } from '../../hooks';
 import {
   OrganizationSelectorInputSchema,
   type OrganizationSelectorProps,
@@ -48,7 +48,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   }
 
   // 3. Query Data Access Layer
-  const { items, isLoading, error } = useOrganizations({ filterOwnedId, requireActiveAssets });
+  const { items, isLoading, error } = useGetOrganizations({ filterOwnedId, requireActiveAssets });
 
   // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {

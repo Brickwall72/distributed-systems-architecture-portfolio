@@ -9,6 +9,7 @@ export function assetEntityToDTO(entity: AssetEntity): AssetDTO {
     name: effectiveNomenclature,
     nomenclature: effectiveNomenclature,
     serialNumber: entity.serialNumber,
-    currentOwnerId: entity.currentOwnerId || undefined,
+    currentOwnerId: entity.currentOwnerId,
+    status: entity.status,
   };
 }

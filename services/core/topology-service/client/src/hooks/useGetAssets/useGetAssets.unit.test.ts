@@ -1,6 +1,6 @@
-// File: services/core/topology-service/client/src/hooks/useAssets/useAssets.unit.test.ts
+// File: services/core/topology-service/client/src/hooks/useGetAssets/useGetAssets.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
-import { useAssets } from '../useAssets';
+import { useGetAssets } from '.';
 import { apiClient } from '../../api';
 
 vi.mock('../../api', () => ({
@@ -9,7 +9,7 @@ vi.mock('../../api', () => ({
   },
 }));
 
-describe('useAssets (Contract Routing)', () => {
+describe('useGetAssets (Contract Routing)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -22,7 +22,7 @@ describe('useAssets (Contract Routing)', () => {
     });
 
     const query = { filterOwnerId: 'org-10' };
-    const { result } = renderHook(() => useAssets(query));
+    const { result } = renderHook(() => useGetAssets(query));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

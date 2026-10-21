@@ -1,19 +1,49 @@
 // File: services/core/topology-service/client/src/widgets/NetworkCanvas/NetworkCanvas.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as vis from 'vis-network';
 import { DataSet } from 'vis-data';
-import { TOPOLOGY_MUTATION_EVENT } from '../ConnectionFormWidget';
+import { TOPOLOGY_MUTATION_EVENT } from '../AssetRegistration/AssetRegistration';
 import { useGraph } from '../../hooks';
-import '@shared/styles';
+import { Button } from '@shared/ui-components';
 
 export default function NetworkCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [networkInstance, setNetworkInstance] = useState<vis.Network | null>(null);
-  
-  const { graphData, isLoading, error } = useGraph();
+  const networkInstanceRef = useRef<vis.Network | null>(null);
+  const nodesDataSetRef = useRef<DataSet<any> | null>(null);
+  const edgesDataSetRef = useRef<DataSet<any> | null>(null);
 
-  const hydrateGraph = () => {
-    if (!graphData) return;
+  const { graphData, isLoading, error, refetch } = useGraph();
+
+  // 1. Initialize vis-network ONCE on mount
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    nodesDataSetRef.current = new DataSet([]);
+    edgesDataSetRef.current = new DataSet([]);
+
+    const newInstance = new vis.Network(
+      containerRef.current,
+      { nodes: nodesDataSetRef.current, edges: edgesDataSetRef.current },
+      {
+        physics: { 
+          barnesHut: { gravitationalConstant: -3500, centralGravity: 0.3, springLength: 200 },
+          stabilization: { enabled: true, iterations: 500 }
+        },
+        interaction: { hover: true, dragNodes: true, zoomView: true, dragView: true },
+      }
+    );
+
+    networkInstanceRef.current = newInstance;
+
+    return () => {
+      newInstance.destroy();
+      networkInstanceRef.current = null;
+    };
+  }, []);
+
+  // 2. Update existing datasets in-place when graphData changes to preserve node positions
+  useEffect(() => {
+    if (!graphData || !nodesDataSetRef.current || !edgesDataSetRef.current) return;
 
     const rawNodes: any[] = [];
     const rawEdges: any[] = [];
@@ -47,7 +77,7 @@ export default function NetworkCanvas() {
       }
     });
 
-    // 3. Render Active Transfer Events (Amber diamonds) & In-Transit Connections for each asset in the array
+    // 3. Render Active Transfer Events (Amber diamonds) & In-Transit Connections
     graphData.activeTransfers.forEach((transfer) => {
       if (transfer.requisitionNumber && !trackedNodeIds.has(transfer.requisitionNumber)) {
         trackedNodeIds.add(transfer.requisitionNumber);
@@ -92,49 +122,49 @@ export default function NetworkCanvas() {
       });
     });
 
-    const visNodes = new DataSet(rawNodes);
-    const visEdges = new DataSet(rawEdges);
+    // Sync nodes in-place: update existing ones (preserving positions) and remove stale ones
+    const currentNodeIds = nodesDataSetRef.current.get().map((n: any) => n.id);
+    const newNodeIds = new Set(rawNodes.map((n) => n.id));
+    const staleNodeIds = currentNodeIds.filter((id) => !newNodeIds.has(id));
 
-    if (containerRef.current) {
-      if (networkInstance) networkInstance.destroy();
-
-      const newInstance = new vis.Network(
-        containerRef.current,
-        { nodes: visNodes, edges: visEdges },
-        {
-          physics: { barnesHut: { gravitationalConstant: -3500, centralGravity: 0.3, springLength: 200 } },
-          interaction: { hover: true, dragNodes: true, zoomView: true, dragView: true },
-        }
-      );
-      setNetworkInstance(newInstance);
+    if (staleNodeIds.length > 0) {
+      nodesDataSetRef.current.remove(staleNodeIds);
     }
-  };
+    nodesDataSetRef.current.update(rawNodes);
 
-  useEffect(() => {
-    hydrateGraph();
+    // Sync edges in-place
+    const currentEdgeIds = edgesDataSetRef.current.get().map((e: any) => e.id);
+    if (currentEdgeIds.length > 0) {
+      edgesDataSetRef.current.remove(currentEdgeIds);
+    }
+    edgesDataSetRef.current.add(rawEdges);
+
   }, [graphData]);
 
+  // Listen for registration mutations
   useEffect(() => {
     const handleMutation = () => {
-      window.location.reload();
+      refetch();
     };
     window.addEventListener(TOPOLOGY_MUTATION_EVENT, handleMutation);
     return () => {
       window.removeEventListener(TOPOLOGY_MUTATION_EVENT, handleMutation);
-      if (networkInstance) networkInstance.destroy();
     };
-  }, [networkInstance]);
+  }, [refetch]);
 
   return (
     <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
       <div className="absolute top-6 right-6 z-10 flex gap-2">
-        <button
+        <Button
           type="button"
-          onClick={() => window.location.reload()}
-          className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 shadow-sm text-xs font-semibold flex items-center gap-1.5 transition active:scale-95"
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          isLoading={isLoading}
+          className="bg-white text-gray-700 shadow-sm font-semibold"
         >
           🔄 Resync Live DB
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -143,7 +173,7 @@ export default function NetworkCanvas() {
         </div>
       )}
 
-      {isLoading && (
+      {isLoading && !graphData && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20 font-semibold text-gray-500 rounded-xl">
           Traversing Space Custody Network Threads...
         </div>

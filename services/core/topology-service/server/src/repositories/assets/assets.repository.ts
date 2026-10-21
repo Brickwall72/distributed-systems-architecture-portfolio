@@ -2,7 +2,7 @@
 import { BaseRepository } from '../base.repository';
 import { mapRecordToAssetEntity } from '../../mappers';
 import type { AssetEntity } from '../../domain';
-import type { GetAssetsQuery } from '@contracts/topology';
+import type { GetAssetsQuery, AssetDTO } from '@contracts/topology';
 
 export class AssetsRepository extends BaseRepository {
   async findAssets(filters: GetAssetsQuery): Promise<AssetEntity[]> {
@@ -21,6 +21,7 @@ export class AssetsRepository extends BaseRepository {
         a.id AS id,
         a.nomenclature AS nomenclature,
         a.serialNumber AS serialNumber,
+        a.status AS status,
         [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId
       ORDER BY currentOwnerId ASC, a.nomenclature ASC
     `;
@@ -34,5 +35,45 @@ export class AssetsRepository extends BaseRepository {
       },
       mapRecordToAssetEntity
     );
+  }
+
+  async createAsset(dto: AssetDTO): Promise<AssetEntity> {
+    const cypher = `
+      MATCH (o:Organization {id: $currentOwnerId})
+      CREATE (a:Asset {
+        id: $id,
+        name: $name,
+        nomenclature: $nomenclature,
+        serialNumber: $serialNumber,
+        status: $status
+      })
+      CREATE (o)-[:HAS_CUSTODY]->(a)
+      RETURN 
+        a.id AS id,
+        a.name AS name,
+        a.nomenclature AS nomenclature,
+        a.serialNumber AS serialNumber,
+        a.status AS status,
+        $currentOwnerId AS currentOwnerId
+    `;
+
+    const records = await this.executeWriteQuery(
+      cypher,
+      {
+        id: dto.id,
+        name: dto.name,
+        nomenclature: dto.nomenclature,
+        serialNumber: dto.serialNumber,
+        status: dto.status ?? 'AVAILABLE',
+        currentOwnerId: dto.currentOwnerId,
+      },
+      mapRecordToAssetEntity
+    );
+
+    if (!records[0]) {
+      throw new Error(`Failed to create asset ${dto.id} or organization ${dto.currentOwnerId} was not found.`);
+    }
+
+    return records[0];
   }
 }

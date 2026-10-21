@@ -1,5 +1,5 @@
 // File: services/core/topology-service/client/src/hooks/useGraph/useGraph.ts
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api';
 import type { GraphDTO } from 'topology-shared';
 
@@ -7,6 +7,11 @@ export function useGraph() {
   const [graphData, setGraphData] = useState<GraphDTO | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
+  const refetch = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,7 +55,7 @@ export function useGraph() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [refreshTrigger]);
 
-  return { graphData, isLoading, error };
+  return { graphData, isLoading, error, refetch };
 }

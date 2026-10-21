@@ -1,9 +1,9 @@
-// File: services/core/topology-service/client/src/hooks/useOrganizations/useOrganizations.ts
+// File: services/core/topology-service/client/src/hooks/useGetOrganizations/useGetOrganizations.ts
 import { apiClient } from '../../api';
 import { useTopologyQuery } from '../useTopologyQuery';
 import { OrganizationDTO, GetOrganizationsQuery } from '@contracts/topology';
 
-export function useOrganizations(params?: GetOrganizationsQuery) {
+export function useGetOrganizations(params?: GetOrganizationsQuery) {
   return useTopologyQuery<GetOrganizationsQuery, OrganizationDTO>({
     params,
     fetcher: (queryParams, options) =>

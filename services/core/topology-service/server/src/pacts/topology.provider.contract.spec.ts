@@ -15,9 +15,21 @@ vi.mock('../repositories', () => {
             name: 'AN/PRC-117G',
             nomenclature: 'AN/PRC-117G',
             serialNumber: 'SN-9982',
+            status: 'AVAILABLE',
             currentOwnerId: 'org-1',
           },
         ];
+      }
+
+      async createAsset(dto: any) {
+        return {
+          id: dto.id,
+          name: dto.name,
+          nomenclature: dto.nomenclature,
+          serialNumber: dto.serialNumber,
+          status: dto.status ?? 'AVAILABLE',
+          currentOwnerId: dto.currentOwnerId,
+        };
       }
     },
     OrganizationsRepository: class MockOrganizationsRepository {
@@ -61,6 +73,7 @@ vi.mock('../repositories', () => {
               date: '20261020',
               type: 'PHYSICAL_TRANSFER',
               status: 'IN_TRANSIT',
+              assets: [],
             },
           ],
           custodyLinks: [
@@ -111,6 +124,9 @@ describe('Pact Provider Verification - Topology Server', () => {
       ],
       stateHandlers: {
         'assets exist for organization org-1': async () => {
+          // Repository is mocked; no state setup required
+        },
+        'organization org-1 exists': async () => {
           // Repository is mocked; no state setup required
         },
         'organizations exist for asset ast-101': async () => {

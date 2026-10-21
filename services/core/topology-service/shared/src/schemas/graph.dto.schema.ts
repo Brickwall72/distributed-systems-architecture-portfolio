@@ -11,7 +11,7 @@ export const CustodyLinkDTOSchema = z.object({
 export const GraphDTOSchema = z.object({
   timestamp: z.string(),
   organizations: z.array(OrganizationDTOSchema),
-  assets: z.array(AssetDTOSchema.extend({ status: z.string() })),
+  assets: z.array(AssetDTOSchema),
   activeTransfers: z.array(TransferEventDTOSchema),
   custodyLinks: z.array(CustodyLinkDTOSchema),
 });
