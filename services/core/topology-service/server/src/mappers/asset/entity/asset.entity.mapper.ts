@@ -9,10 +9,16 @@ export function mapRecordToAssetEntity(record: Neo4jRecord): AssetEntity {
     throw new Error('Database integrity error: Neo4j record missing string "id" property');
   }
 
+  const nomenclature = record.get('nomenclature');
+  const serialNumber = record.get('serialNumber');
+  const currentOwnerId = record.get('currentOwnerId');
+  const status = record.get('status');
+
   return {
     id,
-    nomenclature: String(record.get('nomenclature') ?? ''),
-    serialNumber: String(record.get('serialNumber') ?? ''),
-    currentOwnerId: record.get('currentOwnerId') ?? undefined,
+    nomenclature: typeof nomenclature === 'string' ? nomenclature : '',
+    serialNumber: typeof serialNumber === 'string' ? serialNumber : '',
+    currentOwnerId: typeof currentOwnerId === 'string' ? currentOwnerId : '',
+    status: typeof status === 'string' ? (status as any) : 'AVAILABLE',
   };
 }

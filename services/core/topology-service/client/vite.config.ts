@@ -5,7 +5,7 @@ export default createRemoteConfig({
   domain: 'topology',
   concern: 'client',
   exposes: {
-    './widget/ConnectionForm': './src/widgets/ConnectionFormWidget.tsx',
+    './AssetRegistration': './src/widgets/AssetRegistration',
     './NetworkCanvas': './src/widgets/NetworkCanvas',
     './AssetSelector': './src/widgets/AssetSelector',
     './OrganizationSelector': './src/widgets/OrganizationSelector'

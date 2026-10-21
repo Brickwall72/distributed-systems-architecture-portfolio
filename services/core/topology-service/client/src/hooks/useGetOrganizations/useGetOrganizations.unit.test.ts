@@ -1,6 +1,6 @@
-// File: services/core/topology-service/client/src/hooks/useOrganizations/useOrganizations.unit.test.ts
+// File: services/core/topology-service/client/src/hooks/useGetOrganizations/useGetOrganizations.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
-import { useOrganizations } from './useOrganizations';
+import { useGetOrganizations } from './useGetOrganizations';
 import { apiClient } from '../../api';
 
 vi.mock('../../api', () => ({
@@ -9,7 +9,7 @@ vi.mock('../../api', () => ({
   },
 }));
 
-describe('useOrganizations (Contract Routing)', () => {
+describe('useGetOrganizations (Contract Routing)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -22,7 +22,7 @@ describe('useOrganizations (Contract Routing)', () => {
     });
 
     const query = { filterOwnedId: 'ast-101' };
-    const { result } = renderHook(() => useOrganizations(query));
+    const { result } = renderHook(() => useGetOrganizations(query));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

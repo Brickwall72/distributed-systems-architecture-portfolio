@@ -5,7 +5,7 @@ import { FederatedErrorBoundary } from '@shared/ui-components';
 import '@shared/styles';
 
 // Dynamically resolve autonomous widgets at runtime (now backed by populated registerRemotes)
-const ConnectionFormWidget = lazy(() => loadRemote<any>('topology_client/widget/ConnectionForm'));
+const AssetRegistration = lazy(() => loadRemote<any>('topology_client/AssetRegistration'));
 const NetworkCanvas = lazy(() => loadRemote<any>('topology_client/NetworkCanvas'));
 
 export default function TopologyDashboard() {
@@ -18,13 +18,13 @@ export default function TopologyDashboard() {
 
       {/* Layout engine assembling federated client widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <FederatedErrorBoundary remoteName="topology_client/widget/ConnectionForm">
+        <FederatedErrorBoundary remoteName="topology_client/AssetRegistration">
           <Suspense fallback={
             <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl animate-pulse text-slate-500 font-mono text-xs">
               Loading Connection Form...
             </div>
           }>
-            <ConnectionFormWidget />
+            <AssetRegistration />
           </Suspense>
         </FederatedErrorBoundary>
 

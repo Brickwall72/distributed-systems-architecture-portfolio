@@ -5,6 +5,18 @@ import { http, HttpResponse } from 'msw';
 import NetworkCanvas from './NetworkCanvas';
 import type { GraphDTO } from 'topology-shared';
 
+// Mock vis-network correctly as a constructor function
+vi.mock('vis-network', () => {
+  return {
+    Network: function () {
+      return {
+        destroy: vi.fn(),
+        fit: vi.fn(),
+      };
+    },
+  };
+});
+
 const mockGraphData: GraphDTO = {
   timestamp: new Date().toISOString(),
   organizations: [
@@ -31,10 +43,14 @@ const mockGraphData: GraphDTO = {
       senderName: 'Lockheed Martin Space',
       receiverOrgId: 'org-2222-ussf',
       receiverName: 'Space Systems Command (USSF)',
-      assetId: 'asset-3333-gps3',
-      assetNomenclature: 'GPS III Space Vehicle 11',
-      serialNumber: 'GPS-III-SV11-001',
-      invStatus: 'IN_TRANSIT',
+      assets: [
+        {
+          assetId: 'asset-3333-gps3',
+          assetNomenclature: 'GPS III Space Vehicle 11',
+          serialNumber: 'GPS-III-SV11-001',
+          invStatus: 'IN_TRANSIT',
+        },
+      ],
     },
   ],
   custodyLinks: [],

@@ -20,4 +20,21 @@ export abstract class BaseRepository {
       await session.close();
     }
   }
+
+  /**
+   * Executes a write transaction with guaranteed session cleanup to prevent socket leaks.
+   */
+  protected async executeWriteQuery<TDomainEntity>(
+    cypher: string,
+    params: Record<string, unknown>,
+    mapper: (record: Neo4jRecord) => TDomainEntity
+  ): Promise<TDomainEntity[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.executeWrite((tx) => tx.run(cypher, params));
+      return result.records.map(mapper);
+    } finally {
+      await session.close();
+    }
+  }
 }

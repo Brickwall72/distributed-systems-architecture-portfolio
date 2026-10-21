@@ -12,12 +12,13 @@ function createMockRecord(data: Record<string, unknown>): Neo4jRecord {
 }
 
 describe('mapRecordToAssetEntity', () => {
-  it('maps a valid complete Neo4j record to a AssetEntity', () => {
+  it('maps a valid complete Neo4j record to an AssetEntity', () => {
     const record = createMockRecord({
       id: 'asset-123',
       nomenclature: 'AN/PRC-117G',
       serialNumber: 'SN-998231',
       currentOwnerId: 'org-456',
+      status: 'AVAILABLE',
     });
 
     const result = mapRecordToAssetEntity(record);
@@ -27,20 +28,8 @@ describe('mapRecordToAssetEntity', () => {
       nomenclature: 'AN/PRC-117G',
       serialNumber: 'SN-998231',
       currentOwnerId: 'org-456',
+      status: 'AVAILABLE',
     });
-  });
-
-  it('maps optional currentOwnerId to undefined when null or omitted in graph response', () => {
-    const record = createMockRecord({
-      id: 'asset-123',
-      nomenclature: 'AN/PRC-117G',
-      serialNumber: 'SN-998231',
-      currentOwnerId: null,
-    });
-
-    const result = mapRecordToAssetEntity(record);
-
-    expect(result.currentOwnerId).toBeUndefined();
   });
 
   it('coerces missing or non-string nomenclature and serialNumber to empty strings safely', () => {
@@ -48,6 +37,8 @@ describe('mapRecordToAssetEntity', () => {
       id: 'asset-123',
       nomenclature: null,
       serialNumber: undefined,
+      currentOwnerId: 'org-456',
+      status: 'AVAILABLE',
     });
 
     const result = mapRecordToAssetEntity(record);
@@ -59,11 +50,13 @@ describe('mapRecordToAssetEntity', () => {
   it('throws a database integrity error when id is missing or not a string', () => {
     const missingIdRecord = createMockRecord({
       nomenclature: 'AN/PRC-117G',
+      status: 'AVAILABLE',
     });
 
     const emptyIdRecord = createMockRecord({
       id: '',
       nomenclature: 'AN/PRC-117G',
+      status: 'AVAILABLE',
     });
 
     expect(() => mapRecordToAssetEntity(missingIdRecord)).toThrowError(

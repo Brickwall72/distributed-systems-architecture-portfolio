@@ -2,6 +2,7 @@
 import { Document } from 'compliance-shared';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
 import { useDocuments } from '../../hooks';
+import '@shared/styles';
 
 const columns: TableColumn<Document>[] = [
   { key: 'id', header: 'Document ID' },

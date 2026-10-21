@@ -1,12 +1,12 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector/OrganizationSelector.unit.test.tsx
 import { render, screen, fireEvent } from '@testing-library/react';
 import OrganizationSelector from './OrganizationSelector';
-import { useOrganizations } from '../../hooks';
+import { useGetOrganizations } from '../../hooks';
 import type { OrganizationDTOList } from '@contracts/topology';
 
 // Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({
-  useOrganizations: vi.fn(),
+  useGetOrganizations: vi.fn(),
 }));
 
 describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)', () => {
@@ -32,7 +32,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('renders loading state when data layer is fetching', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [],
       isLoading: true,
       error: null,
@@ -44,7 +44,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('renders error state when hook returns an API error', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [],
       isLoading: false,
       error: 'Failed to fetch organizations from gateway',
@@ -56,7 +56,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('maps OrganizationDTO items into select options when multiple options exist', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,
       isLoading: false,
       error: null,
@@ -74,7 +74,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('filters out excluded organization and auto-selects when only one option remains', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,
       isLoading: false,
       error: null,
@@ -90,7 +90,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('bypasses excludeOrgId when filterOwnedId returns exactly one holding organization (Precedence Rule)', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [mockOrgList[0]], // Only org-001 owns this asset
       isLoading: false,
       error: null,
@@ -110,7 +110,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('emits OrganizationBase[] array payload to Shell on explicit user selection', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,
       isLoading: false,
       error: null,
@@ -125,7 +125,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   });
 
   it('allows explicit user deselection and prevents re-auto-selection', () => {
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [mockOrgList[0]], // Single item pool
       isLoading: false,
       error: null,
@@ -147,7 +147,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
 
   it('suppresses auto-selection when clearing a filter (broadening context)', () => {
     // Start with a single item loaded for asset-3333
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [mockOrgList[0]],
       isLoading: false,
       error: null,
@@ -173,7 +173,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
 
   it('resets selection and auto-selects new valid option when active organization disappears', () => {
     // 1. Initial render with 2 items
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,
       isLoading: false,
       error: null,
@@ -186,7 +186,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
 
     // 2. Data updates (org-001 filtered out, leaving only org-002)
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [mockOrgList[1]],
       isLoading: false,
       error: null,
@@ -202,7 +202,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
   it('safely handles invalid props from Host Shell without crashing render tree', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    vi.mocked(useOrganizations).mockReturnValue({
+    vi.mocked(useGetOrganizations).mockReturnValue({
       items: [],
       isLoading: false,
       error: null,

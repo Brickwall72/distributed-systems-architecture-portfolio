@@ -80,7 +80,8 @@ describe('ComplianceWorkflowWidget', () => {
         storageBucket: 'dsap',
         storageKey: 'tenant-123/source.pdf',
         fileHash: 'a'.repeat(64),
-        s3Uri: 's3://dsap/tenant-123/source.pdf',
+        id: 'artifact-1',
+        createdAt: '2024-01-01T00:00:00.000Z',
       },
     });
 
@@ -97,7 +98,14 @@ describe('ComplianceWorkflowWidget', () => {
     sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV_AGENCY' as const },
     targetOrg: { id: 'org-2', name: 'Target Bravo', type: 'CONTRACTOR' as const },
     assets: [
-      { id: 'ast-1', name: 'Widget Alpha', serialNumber: 'SN-12345', nomenclature: 'Test Asset' },
+      { 
+        id: 'ast-1', 
+        name: 'Widget Alpha', 
+        serialNumber: 'SN-12345', 
+        nomenclature: 'Test Asset',
+        status: 'AVAILABLE' as const,
+        currentOwnerId: 'org-1',
+      },
     ],
   };
 

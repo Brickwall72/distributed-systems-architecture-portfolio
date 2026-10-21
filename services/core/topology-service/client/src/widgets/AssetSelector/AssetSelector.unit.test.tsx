@@ -1,12 +1,12 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.unit.test.tsx
 import { render, screen, fireEvent } from '@testing-library/react';
 import AssetSelector from './AssetSelector';
-import { useAssets } from '../../hooks';
+import { useGetAssets } from '../../hooks';
 import type { AssetDTOList } from '@contracts/topology';
 
 // Mock the data hook layer to test UI state transitions in isolation
 vi.mock('../../hooks', () => ({
-  useAssets: vi.fn(),
+  useGetAssets: vi.fn(),
 }));
 
 describe('AssetSelector Widget (UI Boundary)', () => {
@@ -34,7 +34,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('renders loading state when data layer is fetching', () => {
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: [],
       isLoading: true,
       error: null,
@@ -46,7 +46,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('renders error state when hook returns an API error', () => {
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: [],
       isLoading: false,
       error: 'Failed to fetch assets from gateway',
@@ -59,7 +59,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('maps AssetDTO items into formatted select options', () => {
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: mockAssetList,
       isLoading: false,
       error: null,
@@ -76,7 +76,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('emits AssetDTO[] array payload to Shell on user selection', () => {
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: mockAssetList,
       isLoading: false,
       error: null,
@@ -100,7 +100,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('clears selection and emits empty array when asset is deselected', () => {
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: mockAssetList,
       isLoading: false,
       error: null,
@@ -117,7 +117,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   it('safely handles invalid props from Host Shell without crashing render tree', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: [],
       isLoading: false,
       error: null,
@@ -144,7 +144,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     const { rerender } = render(<AssetSelector onSelect={mockOnSelect} />);
 
     // 1. Initial render with 2 items
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: mockAssetList,
       isLoading: false,
       error: null,
@@ -158,7 +158,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
 
     // 2. Data updates (ast-001 filtered out)
-    vi.mocked(useAssets).mockReturnValue({
+    vi.mocked(useGetAssets).mockReturnValue({
       items: [mockAssetList[1]], // Only ast-002 remains
       isLoading: false,
       error: null,

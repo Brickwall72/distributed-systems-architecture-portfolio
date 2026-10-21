@@ -11,10 +11,8 @@ const logger = createLogger('topology/assets');
 const s = initServer();
 
 export function createAssetsRouter(repository?: AssetsRepository) {
-  // Safe: Executes only when called inside server.ts after DB initialization completes
   const assetRepository = repository ?? new AssetsRepository(getDatabaseClient());
 
-  // ✅ Bind directly to raw assetsRoutes to preserve type inference
   return s.router(assetsRoutes, {
     getAssets: async ({ query }) => {
       try {
@@ -27,11 +25,31 @@ export function createAssetsRouter(repository?: AssetsRepository) {
         };
       } catch (error: unknown) {
         logger.error(`Failed to fetch assets: ${error}`);
-
         return {
           status: 500,
           body: {
             error: 'Internal server error while fetching assets',
+            code: 'INTERNAL_SERVER_ERROR',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+    },
+    createAsset: async ({ body }) => {
+      try {
+        const entity = await assetRepository.createAsset(body);
+        const dto = assetEntityToDTO(entity);
+
+        return {
+          status: 201,
+          body: dto,
+        };
+      } catch (error: unknown) {
+        logger.error(`Failed to create asset: ${error}`);
+        return {
+          status: 500,
+          body: {
+            error: 'Internal server error while creating asset',
             code: 'INTERNAL_SERVER_ERROR',
             timestamp: new Date().toISOString(),
           },
