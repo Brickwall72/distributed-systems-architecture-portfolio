@@ -1,7 +1,7 @@
-// File: services/platform/esign-service/server/src/services/storage/storage.unit.test.ts
-import { InMemoryStorageClient } from '@shared/filestore';
+import { InMemoryStorageClient, uploadFileRequestSchema, uploadFileResultSchema } from '@shared/filestore';
+import { mockFromSchema } from '@shared/testing';
 
-describe('esignature-service storage wrapper', () => {
+describe('esign-service storage wrapper', () => {
   let inMemoryStorage: InMemoryStorageClient;
 
   beforeEach(() => {
@@ -22,35 +22,24 @@ describe('esignature-service storage wrapper', () => {
   });
 
   describe('uploadSignedDocument', () => {
-    it('sanitizes customPath and attaches correlationId metadata', async () => {
+    it('uploads the schema-generated payload as a PDF through the supplied client', async () => {
       vi.stubEnv('S3_ACCESS_KEY', 'test-access-key');
       vi.stubEnv('S3_SECRET_KEY', 'test-secret-key');
 
-      // Re-evaluate storage.ts in an isolated module scope after setting env variables
       vi.resetModules();
-      const { uploadSignedDocument } = await import('./storage');
+      const { uploadSignedDocument, uploadSignedDocumentParamsSchema } = await import('./storage');
 
-      await uploadSignedDocument(
-        {
-          pdfBuffer: Buffer.from('test pdf'),
-          entityId: 'tenant-123',
-          documentId: 'doc-456',
-          customPath: '///custom/folder///',
-          correlationId: 'corr-789',
-        },
-        inMemoryStorage
-      );
-
-      const storedItem = inMemoryStorage.storage.get(
-        'dsap/tenant-123/custom/folder/doc-456.pdf'
-      );
-
-      expect(storedItem).toBeDefined();
-      expect(storedItem?.metadata).toEqual({
-        'entity-id': 'tenant-123',
-        'document-id': 'doc-456',
-        'correlation-id': 'corr-789',
+      const request = mockFromSchema(uploadFileRequestSchema.omit({ contentType: true }), {
+        pdfBuffer: Buffer.from('test pdf'),
       });
+      const params = uploadSignedDocumentParamsSchema.parse({ ...request, client: inMemoryStorage });
+
+      const result = await uploadSignedDocument(params);
+
+      expect(uploadFileResultSchema.parse(result)).toEqual(result);
+      const storedItem = inMemoryStorage.storage.get(`${request.storageBucket}/${request.storageKey}`);
+      expect(storedItem?.contentType).toBe('application/pdf');
+      expect(storedItem?.metadata).toEqual(request.metadata);
     });
   });
 });

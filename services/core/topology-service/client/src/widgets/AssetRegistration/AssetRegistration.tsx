@@ -47,7 +47,6 @@ export default function AssetRegistrationWidget() {
       setNomenclature('');
       setSerialNumber('');
       setStatus('AVAILABLE');
-      setCurrentOwnerId('');
     }
   };
 

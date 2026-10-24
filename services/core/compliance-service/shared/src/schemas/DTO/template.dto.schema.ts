@@ -1,5 +1,6 @@
 // File: services/core/compliance-service/shared/src/schemas/DTO/template.dto.schema.ts
 import { z } from 'zod';
+import { transferTypeEnum } from '@contracts/common';
 
 // ==========================================
 //    COMPLIANCE INTRA-SERVICE TEMPLATE CONTRACT
@@ -8,23 +9,20 @@ import { z } from 'zod';
 /**
  * Canonical template identifier enum governing valid system forms.
  */
-export const TemplateIdSchema = z.enum([
+export const formNameEnum = z.enum([
   'asset-transfer-authorization',
   'asset-transfer-receipt',
   'contract-test-bare',
 ]);
 
-export type TemplateId = z.infer<typeof TemplateIdSchema>;
+export type FormName = z.infer<typeof formNameEnum>;
 
 /**
  * Domain classification enum for official compliance templates.
  */
-export const TemplateTypeSchema = z.enum([
-  'AUTHORIZATION',
-  'RECEIPT',
-]);
+export const formTypeEnum = z.enum(['AUTHORIZATION', 'RECEIPT']);
 
-export type TemplateType = z.infer<typeof TemplateTypeSchema>;
+export type FormType = z.infer<typeof formTypeEnum>;
 
 /**
  * Intra-service contract representing a compliance form template layout and metadata.
@@ -38,9 +36,10 @@ export type TemplateType = z.infer<typeof TemplateTypeSchema>;
  * @property rawHTML - Raw Handlebars template string evaluated and rendered within document workspace viewers
  */
 export const TemplateDTOSchema = z.object({
-  id: TemplateIdSchema,
+  id: formNameEnum,
   name: z.string().trim().min(1, 'Template name is required'),
-  type: TemplateTypeSchema,
+  type: formTypeEnum,
+  transferType: transferTypeEnum,
   rawHTML: z.string().min(1, 'Raw HTML string is required'),
 });
 

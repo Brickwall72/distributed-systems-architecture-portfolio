@@ -103,7 +103,7 @@ describe('TemplateSelector Component', () => {
 
     vi.mocked(useTemplateQuery).mockImplementation((id) => {
       return {
-        data: id === 't2' ? mockDto2 : { id: 't1', name: 'Template One', rawHTML: '<p>1</p>' },
+        data: (id as string) === 't2' ? mockDto2 : { id: 't1', name: 'Template One', rawHTML: '<p>1</p>' },
         isLoading: false,
         error: null,
       } as any;

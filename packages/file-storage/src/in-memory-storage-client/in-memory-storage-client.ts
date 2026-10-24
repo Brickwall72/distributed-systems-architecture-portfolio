@@ -2,10 +2,12 @@
 import { Readable } from 'node:stream';
 import crypto from 'node:crypto';
 import type {
-  UploadRequest,
-  UploadResult,
-  DownloadResult,
+  UploadFileRequest,
+  UploadFileResult,
+  GetFileStreamResult,
   StorageProvider,
+  GetFileStreamRequest,
+  GetSignedDownloadUrlRequest,
 } from '../types';
 
 interface StoredObject {
@@ -21,31 +23,28 @@ export class InMemoryStorageClient implements StorageProvider {
     return `${bucket}/${key}`;
   }
 
-  uploadFile(request: UploadRequest): Promise<UploadResult> {
-    const fileHash = crypto.createHash('sha256').update(request.fileBuffer).digest('hex');
-    const storageKey = this.getObjectKey(request.bucket, request.key);
+  uploadFile(request: UploadFileRequest): Promise<UploadFileResult> {
+    const fileHash = crypto.createHash('sha256').update(request.pdfBuffer).digest('hex');
+    const storageKey = this.getObjectKey(request.storageBucket, request.storageKey);
 
     this.storage.set(storageKey, {
-      buffer: request.fileBuffer,
+      buffer: request.pdfBuffer,
       contentType: request.contentType,
       metadata: request.metadata,
     });
 
     return Promise.resolve({
-      s3Uri: `s3://${request.bucket}/${request.key}`,
-      bucket: request.bucket,
-      key: request.key,
       fileHash,
       uploadedAt: new Date().toISOString(),
     });
   }
 
-  getFileStream(bucket: string, key: string): Promise<DownloadResult> {
-    const storageKey = this.getObjectKey(bucket, key);
-    const item = this.storage.get(storageKey);
+  getFileStream({storageBucket, storageKey}: GetFileStreamRequest): Promise<GetFileStreamResult> {
+    const memoryStorageKey = this.getObjectKey(storageBucket, storageKey);
+    const item = this.storage.get(memoryStorageKey);
 
     if (!item) {
-      return Promise.reject(new Error(`File not found or empty: s3://${bucket}/${key}`));
+      return Promise.reject(new Error(`File not found or empty: s3://${storageBucket}/${storageKey}`));
     }
 
     return Promise.resolve({
@@ -54,8 +53,8 @@ export class InMemoryStorageClient implements StorageProvider {
     });
   }
 
-  getSignedDownloadUrl(bucket: string, key: string): Promise<string> {
-    return Promise.resolve(`http://localhost:9000/${bucket}/${key}?mock-presigned=true`);
+  getSignedDownloadUrl({storageBucket, storageKey}: GetSignedDownloadUrlRequest): Promise<string> {
+    return Promise.resolve(`http://localhost:9000/${storageBucket}/${storageKey}?mock-presigned=true`);
   }
 
   /**

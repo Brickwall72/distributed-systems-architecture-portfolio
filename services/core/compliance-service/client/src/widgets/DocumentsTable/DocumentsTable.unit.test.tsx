@@ -1,9 +1,10 @@
-// File: services/core/compliance-service/client/src/widgets/DocumentsTable.unit.test.tsx
 import { createElement } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import DocumentsTable from './DocumentsTable';
 import * as hooks from '../../hooks';
+import { DocumentSchema } from 'compliance-shared';
+import { mockFromSchema } from '@shared/testing';
 
 vi.mock('../../hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof hooks>();
@@ -18,25 +19,9 @@ describe('DocumentsTable', () => {
     vi.clearAllMocks();
   });
 
-  const mockDocuments = [
-    {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      documentType: 'asset-transfer-authorization' as const,
-      storageBucket: 'compliance-vault',
-      storageKey: '2026/dd1149.pdf',
-      status: 'SIGNED' as const,
-      createdAt: '2026-09-15T14:32:00.000Z',
-      updatedAt: '2026-09-15T14:32:00.000Z',
-    },
-    {
-      id: '223e4567-e89b-12d3-a456-426614174001',
-      documentType: 'asset-transfer-receipt' as const,
-      storageBucket: 'compliance-vault',
-      storageKey: '2026/dd250.pdf',
-      status: 'PENDING_SIGNATURE' as const,
-      createdAt: '2026-09-28T09:15:00.000Z',
-      updatedAt: '2026-09-28T09:15:00.000Z',
-    },
+  const mockDocuments = () => [
+    mockFromSchema(DocumentSchema, { requisitionNumber: 'REQ-0001', updatedAt: '2026-09-15T14:32:00.000Z' }),
+    mockFromSchema(DocumentSchema, { requisitionNumber: 'REQ-0002', updatedAt: '2026-09-28T09:15:00.000Z' }),
   ];
 
   it('renders initial database twin query loading state', () => {
@@ -53,8 +38,9 @@ describe('DocumentsTable', () => {
   });
 
   it('renders dataset when documents are successfully loaded via hook', async () => {
+    const documents = mockDocuments();
     vi.mocked(hooks.useDocuments).mockReturnValue({
-      documents: mockDocuments,
+      documents,
       loading: false,
       error: null,
       refetch: vi.fn(),
@@ -67,14 +53,10 @@ describe('DocumentsTable', () => {
     });
 
     expect(screen.getByText('Compliance Database Twin')).toBeInTheDocument();
-    expect(screen.getByText('asset-transfer-authorization')).toBeInTheDocument();
-    expect(screen.getByText('asset-transfer-receipt')).toBeInTheDocument();
-
-    const s3Cell = screen.getByText('s3://compliance-vault/2026/dd1149.pdf');
-    expect(s3Cell).toHaveClass('font-mono', 'text-xs', 'text-blue-400');
-
-    const expectedDate = new Date('2026-09-15T14:32:00.000Z').toLocaleString();
-    expect(screen.getByText(expectedDate)).toBeInTheDocument();
+    for (const doc of documents) {
+      expect(screen.getByText(doc.requisitionNumber)).toBeInTheDocument();
+      expect(screen.getByText(new Date(doc.updatedAt).toLocaleString())).toBeInTheDocument();
+    }
   });
 
   it('renders error UI when hook returns an error state', async () => {

@@ -20,12 +20,12 @@ async function getBrowser(): Promise<Browser> {
   return browserInstance;
 }
 
-export async function generatePdfFromHtml(html: string, correlationId: string | null = null): Promise<Buffer> {
+export async function generatePdfFromHtml(html: string): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   
   try {
-    logger.debug('Setting HTML content for PDF generation', correlationId);
+    logger.debug('Setting HTML content for PDF generation');
     
     // Load the raw HTML directly into the headless browser
     await page.setContent(html, { waitUntil: 'domcontentloaded' });

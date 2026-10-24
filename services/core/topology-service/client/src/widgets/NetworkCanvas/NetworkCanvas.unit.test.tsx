@@ -45,10 +45,10 @@ const mockGraphData: GraphDTO = {
       receiverName: 'Space Systems Command (USSF)',
       assets: [
         {
-          assetId: 'asset-3333-gps3',
-          assetNomenclature: 'GPS III Space Vehicle 11',
+          id: 'asset-3333-gps3',
+          nomenclature: 'GPS III Space Vehicle 11',
           serialNumber: 'GPS-III-SV11-001',
-          invStatus: 'IN_TRANSIT',
+          status: 'IN_TRANSIT',
         },
       ],
     },

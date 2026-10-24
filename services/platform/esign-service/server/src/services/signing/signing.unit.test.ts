@@ -4,7 +4,7 @@ import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
 import { SignPdf } from '@signpdf/signpdf';
 import { PDFDocument } from 'pdf-lib';
-import { signDocument } from './signing.js';
+import { signDocument, signDocumentParamsSchema } from './signing.js';
 
 // vi.hoisted guarantees mock variables are initialized before module factories run
 const { mockFirstPage, mockPdfDoc, mockSign, mockLogger } = vi.hoisted(() => {
@@ -73,12 +73,11 @@ vi.mock('pdf-lib', async (importOriginal) => {
 });
 
 describe('signDocument', () => {
-  const validParams = {
-    pdfBase64: Buffer.from('%PDF-1.7 Base Document').toString('base64'),
+  const validParams = signDocumentParamsSchema.parse({
+    pdfBuffer: Buffer.from('%PDF-1.7 Base Document'),
     signatureImageBase64:
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    correlationId: 'cid_sign_test_100',
-  };
+  });
 
   const originalEnv = process.env;
 
@@ -144,8 +143,7 @@ describe('signDocument', () => {
     const result = await signDocument(validParams);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('P12 certificate seal skipped (ENOENT: no such file or directory)'),
-      'cid_sign_test_100'
+      expect.stringContaining('P12 certificate seal skipped (ENOENT: no such file or directory)')
     );
 
     expect(result.pdfBuffer.toString()).toBe('%PDF-1.7 Visual Elements Added');

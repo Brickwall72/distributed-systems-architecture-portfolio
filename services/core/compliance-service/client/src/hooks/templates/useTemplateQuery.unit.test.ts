@@ -2,7 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useTemplateQuery } from './useTemplateQuery';
 import { apiClient } from '../../api';
-import type { TemplateId } from 'compliance-shared';
+import type { FormName } from 'compliance-shared';
 
 vi.mock('../../api', () => ({
   apiClient: {
@@ -16,7 +16,7 @@ describe('useTemplateQuery', () => {
   });
 
   it('fetches full template DTO when ID is provided', async () => {
-    const validTemplateId: TemplateId = 'asset-transfer-authorization';
+    const validTemplateId: FormName = 'asset-transfer-authorization';
     const mockDto = { id: validTemplateId, name: 'Form A', rawHTML: '<p>HTML</p>', type: 'AUTHORIZATION' };
     
     vi.mocked(apiClient.getTemplate).mockResolvedValue({

@@ -6,7 +6,7 @@ import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps
 import { TemplateSelector } from '../../components'; 
 import { TemplateDTO } from 'compliance-shared';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { useGeneratePdf, useSignPdf } from '../../hooks';
+import { useGeneratePdf, useSignPdf, signPdfParamsSchema } from '../../hooks';
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
@@ -23,7 +23,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
 
-  const { generatePdf, isLoading: isGenerating, error: generatePdfError, storageArtifact } = useGeneratePdf();
+  const { generatePdf, isLoading: isGenerating, error: generatePdfError, unsignedDocumentData } = useGeneratePdf();
   const { signPdf, isSigning, isSigned, error: signPdfError, resetSigningState } = useSignPdf();
 
   useEffect(() => {
@@ -58,26 +58,21 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     return hydrateTemplate(selectedTemplate.rawHTML, displayPayload);
   }, [selectedTemplate?.rawHTML, displayPayload]);
 
-  const [documentId] = useState(() => crypto.randomUUID());
-
   const handleSign = async (signatureDataUrl: string) => {
-    if (!storageArtifact || !pdfBlobUrl) return;
+    if (!unsignedDocumentData || !pdfBlobUrl) return;
 
-    await signPdf(
-      {
-        storageArtifact,
-        documentId,
+    await signPdf({
+      params: signPdfParamsSchema.parse({
+        ...unsignedDocumentData,
         signerId: 'usr_compliance_officer',
-        entityId: 'org_unassigned',
-        customPath: `transfers/${selectedTemplate?.id || 'forms'}/document`,
-        documentType: selectedTemplate?.id,
-      },
-      signatureDataUrl,
-      (signedPdfUrl) => {
+        customPath: `compliance/transfers/${unsignedDocumentData.documentType || 'forms'}`,
+        signatureDataUrl,
+      }),
+      onSuccess: (signedPdfUrl: string) => {
         setPdfBlobUrl(signedPdfUrl);
         setShowSignatureOverlay(false);
-      }
-    );
+      },
+    });
   };
 
   const activeError = generatePdfError || signPdfError;

@@ -1,10 +1,10 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplateQuery.ts
 import { apiClient } from '../../api';
 import { useComplianceQuery } from '../useComplianceQuery';
-import type { TemplateDTO, TemplateId } from 'compliance-shared';
+import type { TemplateDTO, FormName } from 'compliance-shared';
 
-export function useTemplateQuery(id?: TemplateId) {
-  return useComplianceQuery<TemplateId | undefined, TemplateDTO>({
+export function useTemplateQuery(id?: FormName) {
+  return useComplianceQuery<FormName | undefined, TemplateDTO>({
     params: id,
     fetcher: (queryParams, options) => {
       // Guard against undefined so we don't accidentally fire requests with empty IDs

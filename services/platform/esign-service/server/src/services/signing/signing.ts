@@ -6,31 +6,33 @@ import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@shared/express';
+import { z } from 'zod';
+
+export const signDocumentParamsSchema = z.object({
+  pdfBuffer: z.instanceof(Buffer),
+  signatureImageBase64: z.string(),
+});
+
+type signDocumentParams = z.infer<typeof signDocumentParamsSchema>;
 
 const logger = createLogger('esign-server:signing');
 
-export interface SignDocumentParams {
-  pdfBase64: string;
-  signatureImageBase64: string;
-  correlationId?: string | null;
-}
+export const signDocumentReturnSchema = z.object({
+  pdfBuffer: z.instanceof(Buffer),
+  signedAt: z.string(),
+})
 
-export interface SignDocumentResult {
-  pdfBuffer: Buffer;
-  signedAt: string; // UTC ISO 8601 timestamp (e.g., "2026-09-29T22:00:00.120Z")
-}
+type SignDocumentReturn = z.infer<typeof signDocumentReturnSchema>
 
 export async function signDocument({
-  pdfBase64,
+  pdfBuffer,
   signatureImageBase64,
-  correlationId = null,
-}: SignDocumentParams): Promise<SignDocumentResult> {
+}: signDocumentParams): Promise<SignDocumentReturn> {
   // Capture UTC ISO timestamp for compliance contract and legal non-repudiation
   const now = new Date();
   const signedAt = now.toISOString();
 
   // 1. Load PDF into pdf-lib
-  let pdfBuffer = Buffer.from(pdfBase64, 'base64');
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const pages = pdfDoc.getPages();
   const firstPage = pages[0];
@@ -67,7 +69,7 @@ export async function signDocument({
 
   try {
     const p12Buffer = await fs.readFile(certPath);
-    logger.debug('Applying P12 cryptographic certificate seal.', correlationId);
+    logger.debug('Applying P12 cryptographic certificate seal.');
 
     pdflibAddPlaceholder({
       pdfDoc,
@@ -89,7 +91,7 @@ export async function signDocument({
     // If cert file does not exist or fails, fall back to unsigned PDF save
     pdfBuffer = Buffer.from(await pdfDoc.save());
     const msg = err instanceof Error ? err.message : 'File not found';
-    logger.warn(`P12 certificate seal skipped (${msg}).`, correlationId);
+    logger.warn(`P12 certificate seal skipped (${msg}).`);
   }
 
   return { pdfBuffer, signedAt };

@@ -1,12 +1,12 @@
 // File: services/platform/compliance/client/src/registry/resolveTemplateData.ts
-import { TemplateId } from 'compliance-shared';
+import { FormName } from 'compliance-shared';
 import { parseTransferAuthorizationPayload, parseTransferReceiptPayload } from './parsers';
 import { ParserInput } from './types';
 
 
 type ParserFn = (input: ParserInput) => Record<string, unknown>;
 
-const TEMPLATE_PARSERS: Record<TemplateId, ParserFn> = {
+const TEMPLATE_PARSERS: Record<FormName, ParserFn> = {
   'asset-transfer-authorization': parseTransferAuthorizationPayload,
   'asset-transfer-receipt': parseTransferReceiptPayload,
   'contract-test-bare': ({input, usePlaceholders}) => ({
@@ -16,7 +16,7 @@ const TEMPLATE_PARSERS: Record<TemplateId, ParserFn> = {
 };
 
 export interface PayloadParams extends ParserInput {
-  templateId?: TemplateId,
+  templateId?: FormName,
   usePlaceholders?: boolean
 }
 

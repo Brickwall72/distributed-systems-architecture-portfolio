@@ -3,7 +3,8 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { Readable } from 'node:stream';
 import crypto from 'node:crypto';
 import { ObjectStorageClient } from './s3-storage-client';
-import type { StorageConfig } from '../types';
+import { zocker } from 'zocker';
+import { uploadFileRequestSchema, uploadFileResultSchema, type StorageConfig } from '../types';
 
 describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
   const mockConfig: StorageConfig = {
@@ -25,42 +26,32 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
 
   describe('uploadFile', () => {
     it('computes sha256 checksum and issues PutObjectCommand with metadata', async () => {
-      const fileBuffer = Buffer.from('unit test file contents');
-      const expectedHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      const pdfBuffer = Buffer.from('unit test file contents');
+      const expectedHash = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
 
       sendSpy.mockResolvedValueOnce({} as never);
 
-      const result = await storageClient.uploadFile({
-        bucket: 'compliance-docs',
-        key: 'tenant-1/doc-100.pdf',
-        fileBuffer,
-        contentType: 'application/pdf',
-        metadata: {
-          'entity-id': 'tenant-1',
-        },
-      });
+      const request = zocker(uploadFileRequestSchema)
+        .supply(uploadFileRequestSchema.shape.pdfBuffer, pdfBuffer)
+        .generate();
+      const result = await storageClient.uploadFile(request);
 
       expect(sendSpy).toHaveBeenCalledTimes(1);
       const command = sendSpy.mock.calls[0][0];
       expect(command).toBeInstanceOf(PutObjectCommand);
       expect(command.input).toEqual({
-        Bucket: 'compliance-docs',
-        Key: 'tenant-1/doc-100.pdf',
-        Body: fileBuffer,
-        ContentType: 'application/pdf',
+        Bucket: request.storageBucket,
+        Key: request.storageKey,
+        Body: pdfBuffer,
+        ContentType: request.contentType,
         Metadata: {
-          'entity-id': 'tenant-1',
+          ...request.metadata,
           'sha256-checksum': expectedHash,
         },
       });
 
-      expect(result).toEqual({
-        s3Uri: 's3://compliance-docs/tenant-1/doc-100.pdf',
-        bucket: 'compliance-docs',
-        key: 'tenant-1/doc-100.pdf',
-        fileHash: expectedHash,
-        uploadedAt: expect.any(String),
-      });
+      expect(uploadFileResultSchema.parse(result)).toEqual(result);
+      expect(result.fileHash).toBe(expectedHash);
       expect(new Date(result.uploadedAt).getTime()).not.toBeNaN();
     });
 
@@ -69,10 +60,11 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
 
       await expect(
         storageClient.uploadFile({
-          bucket: 'compliance-docs',
-          key: 'test.pdf',
-          fileBuffer: Buffer.from('test'),
+          storageBucket: 'compliance-docs',
+          storageKey: 'test.pdf',
+          pdfBuffer: Buffer.from('test'),
           contentType: 'application/pdf',
+          metadata: {}
         })
       ).rejects.toThrow('S3 service unavailable');
     });
@@ -86,7 +78,10 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
         ContentType: 'application/pdf',
       } as never);
 
-      const result = await storageClient.getFileStream('compliance-docs', 'tenant-1/doc-100.pdf');
+      const result = await storageClient.getFileStream({
+        storageBucket:'compliance-docs', 
+        storageKey: 'tenant-1/doc-100.pdf'
+      });
 
       expect(sendSpy).toHaveBeenCalledTimes(1);
       const command = sendSpy.mock.calls[0][0];
@@ -106,7 +101,7 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
       } as never);
 
       await expect(
-        storageClient.getFileStream('compliance-docs', 'missing.pdf')
+        storageClient.getFileStream({storageBucket: 'compliance-docs', storageKey: 'missing.pdf}'})
       ).rejects.toThrow('File not found or empty: s3://compliance-docs/missing.pdf');
     });
   });

@@ -5,7 +5,7 @@ import { templatesRoutes, TemplateDraftResponseSchema } from 'compliance-shared'
 import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
 import { EventBroker } from '@shared/messaging';
-import { PDF_SUBJECTS, GeneratePdfRequestSchema, GeneratePdfResponseSchema } from '@contracts/pdf';
+import { PDF_SUBJECTS, generatePdfCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
 
 const logger = createLogger('compliance-server:templates');
 const s = initServer();
@@ -88,48 +88,59 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           };
         }
 
-        const bodyObj = (body as Record<string, unknown>) || {};
-        const inputObj = bodyObj.input as Record<string, unknown> | undefined;
-        const targetOrg = inputObj?.targetOrg as Record<string, unknown> | undefined;
-        const entityId = (targetOrg?.id as string) || (bodyObj.entityId as string) || 'org-unassigned';
-        const reqNum = bodyObj.requisitionNumber;
+        // 1. Generate the authoritative backend requisition number
+        const authoritativeReqNum = `REQ-2026-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
 
-        const hydratedHtml = hydrateTemplate(template.rawHTML, bodyObj);
+        // 2. Normalize incoming body and force-overwrite requisitionNumber across input data structures
+        const bodyObj = (body.data as Record<string, unknown>) || {};
+        const inputObj = (bodyObj.input as Record<string, unknown> | undefined) ?? {};
+
+        const sanitizedBody = {
+          ...bodyObj,
+          requisitionNumber: authoritativeReqNum,
+          input: {
+            ...inputObj,
+            requisitionNumber: authoritativeReqNum, // Guarantees parsers pick up the server ID
+          },
+        };
+
+        // 3. Hydrate template using the backend-enforced payload
+        const hydratedHtml = hydrateTemplate(template.rawHTML, sanitizedBody);
         const documentId = crypto.randomUUID();
-
+        
         const broker = deps.broker;
         if (!broker) {
           throw new Error('EventBroker dependency is not available');
         }
 
-        const requestPayload = GeneratePdfRequestSchema.parse({
-          html: hydratedHtml,
+        const documentData = {
           documentId,
-          documentType: id,
-          entityId,
-          customPath: `transfers/${id}/${typeof reqNum === 'string' ? reqNum : 'draft'}`,
-          correlationId: correlationId || undefined,
-        });
+          documentName: template.id,
+          documentType: template.type,
+          transferType: template.transferType,
+          requisitionNumber: authoritativeReqNum,
+          customPath: 'compliance/drafts',
+          html: hydratedHtml,
+        };
 
-        const rawResponse = await broker.request(
-          PDF_SUBJECTS.GENERATE_DRAFT,
-          requestPayload,
+        const pdfResponse = generatePdfResponseSchema.parse(await broker.request(
+          PDF_SUBJECTS.GENERATE_PDF,
+          generatePdfCommandSchema.parse(documentData),
           { correlationId: correlationId || undefined, timeout: 15000 }
-        );
-
-        const pdfResponse = GeneratePdfResponseSchema.parse(rawResponse);
+        ));
 
         if (!pdfResponse.success) {
           throw new Error('PDF generator service returned an unsuccessful response status');
         }
+        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${documentData.documentId}]`, correlationId);
 
-        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${pdfResponse.id}]`, correlationId);
-
-        const response = TemplateDraftResponseSchema.parse(pdfResponse);
-
+        // 4. Return the storage artifact along with the authoritative requisition number to the client
         return {
           status: 201 as const,
-          body: response,
+          body: TemplateDraftResponseSchema.parse({
+            ...documentData,
+            ...pdfResponse,
+          }),
         };
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);

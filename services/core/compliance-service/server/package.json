@@ -15,7 +15,8 @@
     "test:verify": "vitest run .provider.contract.spec"
   },
   "peerDependencies": {
-    "@contracts/common": "workspace:*"
+    "@contracts/common": "workspace:*",
+    "@contracts/topology": "workspace:*"
   },
   "dependencies": {
     "@shared/ui-components": "workspace:*",

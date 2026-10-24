@@ -1,6 +1,8 @@
-// File: services/platform/compliance/client/src/hooks/useSignPdf.unit.test.ts
 import { renderHook, act } from '@testing-library/react';
-import { useSignPdf, SignPdfParams } from './useSignPdf';
+import { SignDocumentResponseSchema } from '@contracts/esign';
+import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { mockFromSchema, SHA256_HEX } from '@shared/testing';
+import { useSignPdf, signPdfParamsSchema } from './useSignPdf';
 import { apiClient } from '../../api';
 
 vi.mock('../../api', () => ({
@@ -9,26 +11,28 @@ vi.mock('../../api', () => ({
   },
 }));
 
-// Mock global fetch and URL.createObjectURL
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-global.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/signed-result-pdf');
+URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/signed-result-pdf');
+
+const SIGNATURE_BASE64 = 'sigData';
 
 describe('useSignPdf Hook', () => {
-  const defaultParams: SignPdfParams = {
-    storageArtifact: {
-      storageBucket: 'dsap',
-      storageKey: 'tenant-123/source.pdf',
-      fileHash: 'a'.repeat(64),
-      id: 'artifact-001',
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-    documentId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    signerId: 'usr-actor-404',
-    entityId: 'org-armory-01',
-    customPath: 'transfers/forms/document',
-    documentType: 'DD-1149',
-  };
+  const buildParams = () =>
+    mockFromSchema(signPdfParamsSchema, {
+      fileHash: SHA256_HEX,
+      signerId: 'usr_1',
+      documentName: 'asset-transfer-authorization',
+      documentType: 'AUTHORIZATION',
+      signatureDataUrl: `data:image/png;base64,${SIGNATURE_BASE64}`,
+    });
+
+  const signedResponse = () =>
+    mockFromSchema(SignDocumentResponseSchema, {
+      success: true,
+      fileHash: SHA256_HEX,
+      presignedUrl: 'http://localhost:9000/dsap/signed.pdf?signature=123',
+    });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,116 +48,93 @@ describe('useSignPdf Hook', () => {
     expect(typeof result.current.resetSigningState).toBe('function');
   });
 
-  it('handles successful signing flow and invokes onSuccess callback', async () => {
-    const mockPresignedUrl = 'http://localhost:9000/dsap/signed.pdf?signature=123';
-    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({
-      status: 200,
-      body: {
-        id: defaultParams.documentId,
-        storageBucket: 'dsap',
-        storageKey: 'tenant-123/signed.pdf',
-        presignedUrl: mockPresignedUrl,
-      },
-    } as any);
-
+  it('sends a body valid against the shared request schema, then invokes onSuccess', async () => {
+    const params = buildParams();
+    const response = signedResponse();
+    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({ status: 200, body: response, headers: new Headers() } as never);
     mockFetch.mockResolvedValueOnce({
       ok: true,
       blob: vi.fn().mockResolvedValue(new Blob(['pdf-bytes'], { type: 'application/pdf' })),
     });
 
-    const mockOnSuccess = vi.fn();
+    const onSuccess = vi.fn();
     const { result } = renderHook(() => useSignPdf());
 
     await act(async () => {
-      await result.current.signPdf(defaultParams, 'data:image/png;base64,sigData', mockOnSuccess);
+      await result.current.signPdf({ params, onSuccess });
     });
 
-    expect(apiClient.signDocument).toHaveBeenCalledWith({
-      body: {
-        storageBucket: defaultParams.storageArtifact.storageBucket,
-        storageKey: defaultParams.storageArtifact.storageKey,
-        fileHash: defaultParams.storageArtifact.fileHash,
-        signatureImageBase64: 'sigData',
-        documentId: defaultParams.documentId,
-        documentType: defaultParams.documentType,
-        signerId: defaultParams.signerId,
-        entityId: defaultParams.entityId,
-        customPath: defaultParams.customPath,
-      },
+    const { body } = vi.mocked(apiClient.signDocument).mock.calls[0][0] as { body: unknown };
+    expect(signDocumentApiRequestSchema.parse(body)).toMatchObject({
+      documentId: params.documentId,
+      storageKey: params.storageKey,
+      signatureImageBase64: SIGNATURE_BASE64,
     });
-
-    expect(mockFetch).toHaveBeenCalledWith(mockPresignedUrl);
+    expect(body).not.toHaveProperty('signatureDataUrl');
+    expect(mockFetch).toHaveBeenCalledWith(response.presignedUrl);
     expect(result.current.isSigning).toBe(false);
     expect(result.current.isSigned).toBe(true);
     expect(result.current.error).toBeNull();
-    expect(mockOnSuccess).toHaveBeenCalledWith('blob:http://localhost/signed-result-pdf');
+    expect(onSuccess).toHaveBeenCalledWith('blob:http://localhost/signed-result-pdf');
   });
 
-  it('sets error and aborts if storageArtifact is missing', async () => {
-    const mockOnSuccess = vi.fn();
+  it('rejects params that fail the request schema without calling the API', async () => {
+    const onSuccess = vi.fn();
     const { result } = renderHook(() => useSignPdf());
+    const invalid = { ...buildParams(), documentName: 'not-a-form' } as never;
 
-    await act(async () => {
-      await result.current.signPdf(
-        { ...defaultParams, storageArtifact: undefined as any },
-        'data:image/png;base64,sigData',
-        mockOnSuccess
-      );
-    });
-
-    expect(apiClient.signDocument).not.toHaveBeenCalled();
-    expect(result.current.error).toBe('No storage artifact available to sign.');
-    expect(result.current.isSigning).toBe(false);
-    expect(result.current.isSigned).toBe(false);
-    expect(mockOnSuccess).not.toHaveBeenCalled();
-  });
-
-  it('captures error, sets error message, and rethrows when apiClient.signDocument fails', async () => {
-    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({
-      status: 500,
-      body: { error: 'Remote signature generation failed.' },
-    } as any);
-
-    const mockOnSuccess = vi.fn();
-    const { result } = renderHook(() => useSignPdf());
-
-    let thrownError: unknown;
+    let thrown: unknown;
     await act(async () => {
       try {
-        await result.current.signPdf(defaultParams, 'data:image/png;base64,sigData', mockOnSuccess);
+        await result.current.signPdf({ params: invalid, onSuccess });
       } catch (err) {
-        thrownError = err;
+        thrown = err;
       }
     });
 
-    expect(thrownError).toEqual(new Error('Remote signature generation failed.'));
+    expect(thrown).toBeDefined();
+    expect(apiClient.signDocument).not.toHaveBeenCalled();
+    expect(result.current.error).toBeTypeOf('string');
+    expect(result.current.isSigned).toBe(false);
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('captures the error message and rethrows when the API responds with a failure', async () => {
+    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({
+      status: 500,
+      body: { error: 'Remote signature generation failed.' },
+    } as never);
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() => useSignPdf());
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.signPdf({ params: buildParams(), onSuccess });
+      } catch (err) {
+        thrown = err;
+      }
+    });
+
+    expect(thrown).toEqual(new Error('Remote signature generation failed.'));
     expect(result.current.error).toBe('Remote signature generation failed.');
     expect(result.current.isSigning).toBe(false);
     expect(result.current.isSigned).toBe(false);
-    expect(mockOnSuccess).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('resets signing state correctly', async () => {
-    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({
-      status: 200,
-      body: { presignedUrl: 'http://localhost:9000/dsap/signed.pdf' },
-    } as any);
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      blob: vi.fn().mockResolvedValue(new Blob(['pdf'])),
-    });
+    vi.mocked(apiClient.signDocument).mockResolvedValueOnce({ status: 200, body: signedResponse() } as never);
+    mockFetch.mockResolvedValueOnce({ ok: true, blob: vi.fn().mockResolvedValue(new Blob(['pdf'])) });
 
     const { result } = renderHook(() => useSignPdf());
-
     await act(async () => {
-      await result.current.signPdf(defaultParams, 'data:image/png;base64,sigData', vi.fn());
+      await result.current.signPdf({ params: buildParams(), onSuccess: vi.fn() });
     });
-
     expect(result.current.isSigned).toBe(true);
 
-    act(() => {
-      result.current.resetSigningState();
-    });
+    act(() => result.current.resetSigningState());
 
     expect(result.current.isSigning).toBe(false);
     expect(result.current.isSigned).toBe(false);

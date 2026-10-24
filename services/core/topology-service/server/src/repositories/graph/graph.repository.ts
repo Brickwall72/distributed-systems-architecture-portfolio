@@ -32,10 +32,10 @@ export class GraphRepository extends BaseRepository {
       OPTIONAL MATCH (e)-[:DELIVERED_TO]->(receiver:Organization)
       OPTIONAL MATCH (e)-[inv:INVOLVES]->(asset:Asset)
       WITH organizations, assets, e, sender, receiver, collect(DISTINCT {
-        assetId: asset.id,
-        assetNomenclature: asset.nomenclature,
+        id: asset.id,
+        nomenclature: asset.nomenclature,
         serialNumber: asset.serialNumber,
-        invStatus: inv.status
+        status: inv.status
       }) as transferAssets
       WITH organizations, assets, collect(DISTINCT {
         requisitionNumber: e.requisitionNumber,
@@ -46,7 +46,7 @@ export class GraphRepository extends BaseRepository {
         senderName: sender.name,
         receiverOrgId: receiver.id,
         receiverName: receiver.name,
-        assets: [item IN transferAssets WHERE item.assetId IS NOT NULL]
+        assets: [item IN transferAssets WHERE item.id IS NOT NULL]
       }) as activeTransfers
 
       // 4. Gather current HAS_CUSTODY relationships, omitting assets currently in-transit

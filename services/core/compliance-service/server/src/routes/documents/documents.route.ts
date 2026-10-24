@@ -1,12 +1,16 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.ts
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
-import { documentsRoutes, TemplateId } from 'compliance-shared';
-import { ComplianceDocumentRepository } from '../../repositories';
+import { documentsRoutes, DocumentSchema } from 'compliance-shared';
+import { ComplianceDocumentRepository, insertInputSchema } from '../../repositories';
 import { pool } from '../../db';
 import { EventBroker } from '@shared/messaging';
-import { ESIGN_COMMAND_SUBJECTS, SignDocumentResponseSchema } from '@contracts/esign';
-import { handleDocumentSignedEvent } from '../../messaging';
+import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
+import { 
+  CompliancePublisher, 
+  complianceTransferInitiatedDataSchema, 
+  complianceTransferReceivedDataSchema 
+} from '../../messaging';
 
 const logger = createLogger('compliance-server:documents');
 const s = initServer();
@@ -14,6 +18,7 @@ const repository = new ComplianceDocumentRepository(pool);
 
 interface DocumentsRouterDeps {
   broker: EventBroker;
+  publisher: CompliancePublisher;
 }
 
 export function createDocumentsRouter(deps: DocumentsRouterDeps) {
@@ -24,7 +29,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
 
       try {
         const documents = await repository.findAll();
-        return { status: 200 as const, body: documents };
+        return { status: 200 as const, body: documents.map(doc => DocumentSchema.parse(doc)) };
       } catch (error) {
         logger.error(`Database query failed in GET /documents: ${error}`, correlationId);
         return {
@@ -56,7 +61,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
           };
         }
 
-        return { status: 200 as const, body: document };
+        return { status: 200 as const, body: DocumentSchema.parse(document) };
       } catch (error) {
         logger.error(`Database query failed in GET /documents/:id: ${error}`, correlationId);
         return {
@@ -71,44 +76,43 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
     },
 
     signDocument: async ({ body, req }) => {
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+      const correlationId = (req.headers['x-correlation-id'] as string);
       logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
-      const broker = deps.broker;
+      const { broker, publisher } = deps;
       try {
-        const responseData = await broker.request(
+        const responseData = SignDocumentResponseSchema.parse(await broker.request(
           ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
-          { ...body, correlationId },
+          SignDocumentCommandSchema.parse(body),
           { timeout: 10000, correlationId }
-        );
+        ));
 
-        const parsedSignResponse = SignDocumentResponseSchema.parse(responseData);
-
-        if (!parsedSignResponse.success) {
+        if (!responseData.success) {
           throw new Error('Remote signature generation failed.');
         }
 
         // Await upsert indexing before querying repository
-        await handleDocumentSignedEvent(parsedSignResponse, repository);
+        const document = await repository.insert(insertInputSchema.parse({...body, ...responseData, status: 'SIGNED'}));
 
-        const document = await repository.findById(body.documentId);
+        if(document.type === 'AUTHORIZATION'){
+          const data = complianceTransferInitiatedDataSchema.parse({
+            ...body, 
+            ...responseData,
+            ...document,
+            date: document.createdAt,
+          });
+          void publisher.publishTransferInitiated(data, correlationId)
+        } else if (document.type === 'RECEIPT') {
+          const data = complianceTransferReceivedDataSchema.parse({
+            ...body, 
+            ...responseData,
+            ...document,
+          });
+          void publisher.publishTransferReceived(data, correlationId)
+        }
         
         return {
           status: 200 as const,
-          body: {
-            ...(document || {
-              id: body.documentId,
-              documentType: body.documentType as TemplateId,
-              storageBucket: parsedSignResponse.storageBucket,
-              storageKey: parsedSignResponse.storageKey,
-              status: 'SIGNED',
-              signerId: body.signerId,
-              entityId: body.entityId,
-              fileHash: parsedSignResponse.fileHash,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-            presignedUrl: parsedSignResponse.presignedUrl,
-          },
+          body: { presignedUrl: responseData.presignedUrl },
         };
       } catch (error) {
         logger.error(`Signature request failed in POST /documents/sign: ${error}`, correlationId);

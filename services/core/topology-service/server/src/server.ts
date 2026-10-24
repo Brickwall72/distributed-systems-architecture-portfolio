@@ -1,8 +1,11 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
 import { createLogger } from '@shared/express';
+import { EventBroker } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
-import { initializeDatabaseConnection, terminateDatabaseClient } from './topologyDatabase';
+import { initializeDatabaseConnection, terminateDatabaseClient, getDatabaseClient } from './topologyDatabase';
+import { TransfersRepository } from './repositories';
+import { ComplianceEventConsumer } from './messaging';
 
 const app = express();
 const PORT = 8080;
@@ -23,33 +26,65 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 /**
- * Starts the server lifecycle after the graph driver has been initialized.
+ * Starts the server lifecycle after the graph driver and NATS broker have been initialized.
  */
 async function bootstrapApplicationServer() {
+  const natsUrl = process.env.NATS_URL || 'nats://localhost:4222';
+  const broker = new EventBroker(natsUrl, logger);
+  let server: ReturnType<typeof app.listen>;
+
+  const shutdown = async (signal: string) => {
+    logger.info(`Received ${signal}. Initializing graceful shutdown...`);
+    try {
+      await broker.disconnect();
+      logger.info('NATS broker connection closed cleanly.');
+
+      await terminateDatabaseClient();
+      logger.info('Database client terminated.');
+
+      if (server) {
+        server.close(() => {
+          logger.info('HTTP server closed.');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    } catch (err) {
+      logger.error(`Error during shutdown cleanup: ${err}`);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+
   try {
     if (process.env.NODE_ENV !== 'test') {
       await initializeDatabaseConnection();
     }
 
-    // ✅ Instantiate routes ONLY after database connection initialization completes
+    // Connect NATS Event Broker and start Topology Event Consumer
+    await broker.connect();
+    logger.info('NATS broker connected.');
+
+    const transfersRepository = new TransfersRepository(getDatabaseClient());
+    const topologyConsumer = new ComplianceEventConsumer(broker, transfersRepository);
+    await topologyConsumer.start();
+    logger.info('Topology event consumer started and listening for transfer events.');
+
+    // ✅ Instantiate routes ONLY after dependencies initialize successfully
     const topologyGateway = createTopologyGateway();
     app.use('/api/v1', topologyGateway);
 
-    app.listen(Number(PORT), '0.0.0.0', () => {
+    server = app.listen(Number(PORT), '0.0.0.0', () => {
       logger.info(`Safe isolated execution thread pool listening on port ${PORT}`);
     });
   } catch (error_: any) {
-    logger.error(`Subsystem container failed to boot cleanly: ${error_.message}`);
+    logger.error(`Subsystem container failed to boot cleanly: ${error_?.message || error_}`);
     process.exit(1);
   }
 }
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('Intercepted SIGTERM container kill signal. Initializing graceful exit sequence...');
-  await terminateDatabaseClient();
-  process.exit(0);
-});
 
 if (process.env.NODE_ENV !== 'test') {
   await bootstrapApplicationServer();

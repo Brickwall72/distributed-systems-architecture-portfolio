@@ -2,9 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
 import { useTemplatesQuery, useTemplateQuery } from '../../hooks';
-import type { TemplateDTO, TemplateType, TemplateId } from 'compliance-shared';
+import type { TemplateDTO, FormType, FormName } from 'compliance-shared';
 
-export type TemplateTypeFilter = TemplateType | 'ALL';
+export type FormTypeFilter = FormType | 'ALL';
 
 export interface TemplateSelectorProps {
   /**
@@ -19,7 +19,7 @@ export interface TemplateSelectorProps {
    *
    * @default 'ALL'
    */
-  readonly typeFilter?: TemplateTypeFilter;
+  readonly typeFilter?: FormTypeFilter;
 
   /**
    * Event callback triggered when a compliance template is fetched and loaded into active memory.
@@ -34,14 +34,14 @@ export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
   const { label = 'Template Select', typeFilter = 'ALL', onSelect } = props;
 
   // Local selection state
-  const [selectedId, setSelectedId] = useState<TemplateId>();
+  const [selectedId, setSelectedId] = useState<FormName>();
 
   // 1. Fetch manifest options based on type filter
   const queryParams = typeFilter === 'ALL' ? undefined : { type: typeFilter };
   const { data: manifests = [], isLoading: isListLoading, error: listError } = useTemplatesQuery(queryParams);
 
   // 2. Fetch full DTO content for the actively selected template ID
-  const { data: activeTemplate, isLoading: isContentLoading, error: contentError } = useTemplateQuery(selectedId as TemplateId);
+  const { data: activeTemplate, isLoading: isContentLoading, error: contentError } = useTemplateQuery(selectedId as FormName);
 
   // Synchronize and auto-select template on manifest or filter changes
   useEffect(() => {
@@ -76,7 +76,7 @@ export function TemplateSelector(props: Readonly<TemplateSelectorProps>) {
       options={options}
       isLoading={isListLoading || isContentLoading}
       error={listError || contentError}
-      onSelection={(id) => setSelectedId(id as TemplateId)}
+      onSelection={(id) => setSelectedId(id as FormName)}
       loadingText={`Loading ${typeFilter} templates...`}
       placeholderText="-- Select Template --"
     />

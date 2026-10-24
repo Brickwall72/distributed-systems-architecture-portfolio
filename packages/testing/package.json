@@ -12,9 +12,13 @@
     "./setup": "./src/setup.ts"
   },
   "scripts": {
-    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly" 
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly"
   },
   "peerDependencies": {
-    "express": "~5.2.1"
+    "express": "~5.2.1",
+    "zod": "~3.24.1"
+  },
+  "dependencies": {
+    "zocker": "~3.0.0"
   }
 }

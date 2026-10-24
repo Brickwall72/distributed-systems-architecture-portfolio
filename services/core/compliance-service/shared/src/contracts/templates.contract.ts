@@ -1,16 +1,22 @@
 // File: services/core/compliance-service/shared/src/contracts/templates.contract.ts
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { ApiErrorResponseSchema, StorageArtifactSchema } from '@contracts/common';
-import { TemplateDTOSchema, GetTemplatesQuerySchema } from '../schemas';
+import { ApiErrorResponseSchema, transferTypeEnum } from '@contracts/common';
+import { SignDocumentCommandSchema } from '@contracts/esign';
+import { TemplateDTOSchema, GetTemplatesQuerySchema, formTypeEnum } from '../schemas';
 
 const c = initContract();
 
 export const TemplateManifestSchema = TemplateDTOSchema.omit({ rawHTML: true });
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
 
-export const TemplateDraftResponseSchema = StorageArtifactSchema.extend({
+export const TemplateDraftResponseSchema = SignDocumentCommandSchema.omit({
+  customPath: true, signatureImageBase64: true, signerId: true
+}).extend({
   presignedUrl: z.string().url(),
+  requisitionNumber: z.string(),
+  documentType: formTypeEnum,
+  transferType: transferTypeEnum,
 });
 
 export type TemplateDraftResponse = z.infer<typeof TemplateDraftResponseSchema>;
@@ -43,7 +49,9 @@ export const templatesRoutes = {
     method: 'POST',
     path: '/templates/:id/drafts',
     pathParams: z.object({ id: TemplateDTOSchema.shape.id }),
-    body: z.record(z.unknown()),
+    body: z.object({
+      data: z.record(z.unknown()),
+    }),
     responses: {
       201: TemplateDraftResponseSchema,
       400: ApiErrorResponseSchema,

@@ -2,11 +2,13 @@
   "asset-transfer-authorization": {
     "name": "Asset Transfer Authorization",
     "fileName": "transfer-authorization.hbs",
+    "transferType": "PHYSICAL_TRANSFER",
     "type": "AUTHORIZATION"
   },
   "asset-transfer-receipt": {
     "name": "Asset Transfer Receipt",
     "fileName": "transfer-receipt.hbs",
+    "transferType": "PHYSICAL_TRANSFER",
     "type": "RECEIPT"
   },
   "contract-test-bare": {

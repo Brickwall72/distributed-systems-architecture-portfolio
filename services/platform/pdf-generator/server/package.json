@@ -16,6 +16,7 @@
     "@shared/messaging": "workspace:*",
     "@shared/express": "workspace:*",
     "@shared/filestore": "workspace:*",
+    "@shared/zod": "workspace:*",
     "express": "~5.2.1",
     "puppeteer": "~25.10.0",
     "cors": "~2.8.6",

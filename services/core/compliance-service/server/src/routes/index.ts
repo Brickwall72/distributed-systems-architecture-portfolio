@@ -6,9 +6,11 @@ import { complianceContract } from 'compliance-shared';
 import { createTemplatesRouter } from './templates';
 import { createDocumentsRouter } from './documents';
 import { EventBroker } from '@shared/messaging';
+import { CompliancePublisher } from '../messaging';
 
 interface ComplianceGatewayDeps {
   broker: EventBroker;
+  publisher: CompliancePublisher
 }
 
 export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
@@ -18,7 +20,7 @@ export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   router.get('/health', createHealthCheck('compliance-server'));
 
   const templatesRouter = createTemplatesRouter({ broker: deps.broker });
-  const documentsRouter = createDocumentsRouter({ broker: deps.broker });
+  const documentsRouter = createDocumentsRouter(deps);
 
   createExpressEndpoints(
     complianceContract,

@@ -1,21 +1,23 @@
-// File: services/platform/compliance/client/src/registry/parsers/transfers/receipt/transferReceipt.parser.unit.test.ts
 import { parseTransferReceiptPayload } from './transferReceipt.parser';
-import { OrganizationDTO, AssetDTO } from '@contracts/topology';
+import { OrganizationDTOSchema, AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
 
 describe('parseReceiptPayload', () => {
-  const mockOrg: OrganizationDTO = {
+  const mockOrg = mockFromSchema(OrganizationDTOSchema, {
     id: 'org_2',
     name: 'Bravo Depot',
-    type: 'MILITARY_BRANCH',
+    type: 'GOV_AGENCY',
     addressLine1: '456 Supply Rd',
-  };
+    addressLine2: undefined,
+  });
 
-  const mockAsset: AssetDTO = {
+  const mockAsset = mockFromSchema(AssetDTOSchema, {
     id: 'ast_2',
+    currentOwnerId: 'org_1',
     name: 'Night Vision Goggle',
     nomenclature: 'AN/PVS-14',
     serialNumber: 'SN-112233',
-  };
+  });
 
   it('maps complete input data correctly without placeholders', () => {
     const result = parseTransferReceiptPayload({

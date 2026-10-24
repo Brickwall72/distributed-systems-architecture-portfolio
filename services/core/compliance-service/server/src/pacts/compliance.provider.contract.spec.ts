@@ -1,67 +1,50 @@
-// File: services/core/compliance-service/server/src/pacts/compliance.provider.contract.spec.ts
 import { Verifier } from '@pact-foundation/pact';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'node:path';
+import type { AddressInfo } from 'node:net';
 import { createComplianceGateway } from '../routes';
+import type { CompliancePublisher } from '../messaging';
+import type { EventBroker } from '@shared/messaging';
+import { PDF_SUBJECTS, generatePdfResponseSchema } from '@contracts/pdf';
+import { SignDocumentResponseSchema } from '@contracts/esign';
+import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
-vi.mock('../repositories', () => {
+vi.mock('../db', () => ({ pool: {} }));
+
+vi.mock('../repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../repositories')>();
+  const { mockFromSchema, SHA256_HEX } = await import('@shared/testing');
+  // Same seed as the consumer specs so optional keys line up with the committed pact examples.
+  const seed = { seed: 1 };
+  const { TemplateDTOSchema, TemplateManifestSchema } = await import('compliance-shared');
+
+  // Resolved lazily: '../domain' imports '../repositories', which is mid-mock while this factory runs.
+  const entity = async (overrides = {}) => {
+    const { documentEntitySchema } = await import('../domain');
+    return mockFromSchema(documentEntitySchema, { fileHash: SHA256_HEX, signerId: 'usr_1', ...overrides }, seed);
+  };
+
   return {
+    ...actual,
     ComplianceDocumentRepository: class {
-      async findAll() {
-        return [
-          {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            documentType: 'asset-transfer-authorization',
-            storageBucket: 'compliance-vault',
-            storageKey: '2026/dd1149.pdf',
-            status: 'SIGNED',
-            signerId: 'usr_1',
-            entityId: 'org_1',
-            fileHash: 'a'.repeat(64),
-            createdAt: '2026-09-15T14:32:00.000Z',
-            updatedAt: '2026-09-15T14:32:00.000Z',
-          },
-        ];
-      }
-      async findById(id: string) {
-        return {
-          id,
-          documentType: 'asset-transfer-authorization',
-          storageBucket: 'dsap',
-          storageKey: `${id}.pdf`,
-          status: 'SIGNED',
-          signerId: 'usr_1',
-          entityId: 'org_1',
-          fileHash: 'a'.repeat(64),
-          createdAt: '2026-09-15T14:32:00.000Z',
-          updatedAt: '2026-09-15T14:32:00.000Z',
-        };
-      }
-      async upsert() {
-        return Promise.resolve();
-      }
+      findAll = () => entity().then((doc) => [doc]);
+      findById = (id: string) => entity({ id });
+      insert = () => entity({ type: 'AUTHORIZATION', name: 'asset-transfer-authorization' });
     },
     TemplateRepository: {
-      findAllManifests: (query?: { type?: string }) => [
-        {
-          id: 't-123',
-          name: 'Asset Transfer Authorization',
-          type: query?.type || 'AUTHORIZATION',
-        },
+      findAllManifests: (query?: { type?: 'AUTHORIZATION' | 'RECEIPT' }) => [
+        mockFromSchema(TemplateManifestSchema, { name: 'Asset Transfer Authorization', type: query?.type ?? 'AUTHORIZATION' }, seed),
       ],
-      findById: (id: string) => {
-        if (id === 'asset-transfer-authorization') {
-          return {
-            id: 'asset-transfer-authorization',
-            name: 'Asset Transfer Authorization',
-            type: 'AUTHORIZATION',
-            version: 1,
-            rawHTML: '<div>Authorization Form HTML</div>',
-          };
-        }
-        return null;
-      },
+      findById: (id: string) =>
+        id === 'asset-transfer-authorization'
+          ? mockFromSchema(TemplateDTOSchema, {
+              id,
+              name: 'Asset Transfer Authorization',
+              type: 'AUTHORIZATION',
+              rawHTML: '<div>Authorization Form HTML</div>',
+            }, seed)
+          : null,
     },
   };
 });
@@ -74,36 +57,31 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
     const app = express();
     app.use(express.json());
 
-    const nowIso = '2026-10-17T00:00:00.000Z';
     const mockBroker = {
-      request: vi.fn().mockResolvedValue({
-        success: true,
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        documentType: 'asset-transfer-authorization',
-        signerId: 'usr_1',
-        entityId: 'org_1',
-        status: 'SIGNED',
-        s3Uri: 's3://dsap/test.pdf',
-        storageBucket: 'dsap',
-        storageKey: 'test.pdf',
-        fileHash: 'a'.repeat(64),
-        signedAt: nowIso,
-        uploadedAt: nowIso,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=xyz',
-        correlationId: 'test-corr-123',
+      request: vi.fn((subject: string) => {
+        if (subject === PDF_SUBJECTS.GENERATE_PDF) {
+          return Promise.resolve(
+            mockFromSchema(generatePdfResponseSchema, { success: true, fileHash: SHA256_HEX }, { seed: 1 }),
+          );
+        }
+        return Promise.resolve(
+          mockFromSchema(SignDocumentResponseSchema, { success: true, fileHash: SHA256_HEX }, { seed: 1 }),
+        );
       }),
     };
+    const mockPublisher = { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() };
 
-    const gateway = createComplianceGateway({ broker: mockBroker as any });
+    const gateway = createComplianceGateway({
+      broker: mockBroker as unknown as EventBroker,
+      publisher: mockPublisher as unknown as CompliancePublisher,
+    });
 
     app.use('/compliance/api/v1', gateway);
     app.use('/api/v1', gateway);
 
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => {
-        port = (server.address() as any).port;
+        port = (server.address() as AddressInfo).port;
         resolve();
       });
     });

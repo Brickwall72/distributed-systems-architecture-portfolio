@@ -40,10 +40,6 @@ services:
       DB_PORT: ${DB_PORT}
       POSTGRES_DB: compliance
       NATS_URL: nats://nats:4222
-      S3_ENDPOINT: ${S3_ENDPOINT}
-      S3_REGION: ${S3_REGION}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
     depends_on:
       compliance-db:
         condition: service_healthy

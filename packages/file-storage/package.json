@@ -16,8 +16,12 @@
     "test": "pnpm test:unit",
     "test:unit": "vitest run .unit.test"
   },
+  "peerDependencies": {
+    "zod": "~3.24.1"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "~3.1151.0",
-    "@aws-sdk/s3-request-presigner": "~3.1151.0"
+    "@aws-sdk/s3-request-presigner": "~3.1151.0",
+    "@contracts/common": "workspace:*"
   }
 }

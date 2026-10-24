@@ -2,30 +2,26 @@
 import { useCallback, useState } from 'react';
 import { apiClient } from '../../api';
 import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { StorageArtifactSchema, StorageArtifact } from '@contracts/common';
+import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { z } from 'zod';
 
-let sequenceCounter = 1;
+const unsignedDocumentDataSchema = signDocumentApiRequestSchema.omit({signatureImageBase64: true, customPath: true, signerId: true});
+type UnsignedDocumentData = z.infer<typeof unsignedDocumentDataSchema>;
 
 export function useGeneratePdf() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [storageArtifact, setStorageArtifact] = useState<StorageArtifact | null>(null);
+  const [unsignedDocumentData, setUnsignedDocumentData] = useState<UnsignedDocumentData | null>(null);
 
   const generatePdf = useCallback(async (payloadParams: PayloadParams, onSuccess: (blobUrl: string) => void) => {
-    if (!payloadParams.templateId) return;
+    if (!payloadParams.templateId || !payloadParams.input.sourceOrg) return;
 
     try {
       setIsGenerating(true);
       setError(null);
-
-      const requisitionNumber = `REQ-2026-${String(sequenceCounter++).padStart(4, '0')}`;
       
       const executionParams: PayloadParams = {
         ...payloadParams,
-        input: {
-          ...payloadParams.input,
-          requisitionNumber,
-        },
         usePlaceholders: false,
       };
 
@@ -34,7 +30,7 @@ export function useGeneratePdf() {
       // Hit the backend draft endpoint returning JSON containing the pre-signed URL
       const response = await apiClient.createTemplateDraft({
         params: { id: payloadParams.templateId },
-        body: productionPayload,
+        body: {data: productionPayload},
       });
 
       if (response.status === 201) {
@@ -54,7 +50,13 @@ export function useGeneratePdf() {
         const blob = await pdfRes.blob();
         const blobUrl = URL.createObjectURL(blob);
         onSuccess(blobUrl);
-        setStorageArtifact(StorageArtifactSchema.parse(response.body));
+        setUnsignedDocumentData(unsignedDocumentDataSchema.parse({
+          ...payloadParams.input, 
+          ...response.body,
+          senderOrgId :payloadParams.input.sourceOrg.id, 
+          receiverOrgId: payloadParams.input.targetOrg?.id, 
+          assetIds: payloadParams.input.assets?.map(a => a.id),
+        }));
       } else {
         const errBody = response.body as { error?: string; message?: string };
         setError(errBody?.error || errBody?.message || 'Failed to generate PDF draft');
@@ -70,6 +72,6 @@ export function useGeneratePdf() {
     generatePdf,
     isLoading: isGenerating,
     error,
-    storageArtifact,
+    unsignedDocumentData,
   };
 }

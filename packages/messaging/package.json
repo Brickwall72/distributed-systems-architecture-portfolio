@@ -17,7 +17,12 @@
     "test:unit": "vitest run .unit.test"
   },
   "dependencies": {
+    "@contracts/common": "workspace:*",
     "@nats-io/transport-node": "~3.4.0",
     "@nats-io/jetstream": "~3.4.0"
+  },
+  "devDependencies": {
+    "zod": "~3.24.1",
+    "zocker": "~3.0.0"
   }
 }

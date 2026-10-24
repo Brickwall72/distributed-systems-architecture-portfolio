@@ -1,25 +1,15 @@
 // File: services/core/topology-service/shared/src/schemas/transfer-event.dto.schema.ts
 import { z } from 'zod';
+import { BaseTransferSchema } from '@contracts/topology';
 
-export const TransferEventAssetItemSchema = z.object({
-  assetId: z.string(),
-  assetNomenclature: z.string(),
-  serialNumber: z.string(),
-  invStatus: z.string(),
-});
+export const TransferStatusEnum = z.enum(['IN_TRANSIT', 'PARTIALLY_COMPLETED', 'COMPLETED' ]);
+export type TransferStatus = z.infer<typeof TransferStatusEnum>;
 
-export type TransferEventAssetItemDTO = z.infer<typeof TransferEventAssetItemSchema>;
-
-export const TransferEventDTOSchema = z.object({
-  requisitionNumber: z.string(),
-  date: z.string(),
+export const TransferEventDTOSchema = BaseTransferSchema.extend({
   type: z.string(),
-  status: z.string(),
-  senderOrgId: z.string().optional(),
+  status: TransferStatusEnum,
   senderName: z.string().optional(),
-  receiverOrgId: z.string().optional(),
   receiverName: z.string().optional(),
-  assets: z.array(TransferEventAssetItemSchema),
 });
 
 export type TransferEventDTO = z.infer<typeof TransferEventDTOSchema>;
