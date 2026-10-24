@@ -1,12 +1,12 @@
 // File: services/core/compliance-service/shared/src/schemas/API/templates.api.schema.ts
 import { z } from 'zod';
-import { TemplateTypeSchema } from '../DTO';
+import { formTypeEnum } from '../DTO';
 
 /**
  * Shared HTTP GET /templates Query Parameters Schema
  */
 export const GetTemplatesQuerySchema = z.object({
-  type: TemplateTypeSchema.optional(),
+  type: formTypeEnum.optional(),
   search: z.string().trim().min(1).optional(),
 });
 

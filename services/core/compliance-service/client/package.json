@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "pnpm test:unit && pnpm test:contract",
     "test:unit": "vitest run .unit.test",
-    "test:contract": "vitest run .contract.test && vitest run .contract.spec"
+    "test:contract": "vitest run .contract.spec"
   },
   "peerDependencies": {
     "@ts-rest/core": "~3.52.1"
@@ -28,6 +28,8 @@
     "zod": "~3.24.1"
   },
   "devDependencies": {
-    "@shared/vite-config": "workspace:*"
+    "@shared/vite-config": "workspace:*",
+    "@shared/testing": "workspace:*",
+    "@contracts/esign": "workspace:*"
   }
 }

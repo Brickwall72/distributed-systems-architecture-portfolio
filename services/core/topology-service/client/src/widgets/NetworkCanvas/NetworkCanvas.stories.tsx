@@ -46,16 +46,16 @@ const MOCK_GRAPH_DATA: GraphDTO = {
       receiverName: 'Bravo Logistics',
       assets: [
         {
-          assetId: 'asset-2',
-          assetNomenclature: 'Night Vision Goggles',
+          id: 'asset-2',
+          nomenclature: 'Night Vision Goggles',
           serialNumber: 'NVG-554433',
-          invStatus: 'IN_TRANSIT',
+          status: 'IN_TRANSIT',
         },
         {
-          assetId: 'asset-3',
-          assetNomenclature: 'Secure Satellite Terminal',
+          id: 'asset-3',
+          nomenclature: 'Secure Satellite Terminal',
           serialNumber: 'SST-778899',
-          invStatus: 'IN_TRANSIT',
+          status: 'IN_TRANSIT',
         },
       ],
     },

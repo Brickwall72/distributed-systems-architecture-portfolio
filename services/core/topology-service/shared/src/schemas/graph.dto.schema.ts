@@ -1,7 +1,7 @@
 // File: services/core/topology-service/shared/src/contracts/outputs/graph.dto.schema.ts
 import { z } from 'zod';
-import { OrganizationDTOSchema, AssetDTOSchema } from '@contracts/topology';
-import { TransferEventDTOSchema } from './transfer-event.dto.schema';
+import { OrganizationDTOListSchema, AssetDTOListSchema } from '@contracts/topology';
+import { TransferEventDTOListSchema } from './transfer-event.dto.schema';
 
 export const CustodyLinkDTOSchema = z.object({
   orgId: z.string(),
@@ -10,9 +10,9 @@ export const CustodyLinkDTOSchema = z.object({
 
 export const GraphDTOSchema = z.object({
   timestamp: z.string(),
-  organizations: z.array(OrganizationDTOSchema),
-  assets: z.array(AssetDTOSchema),
-  activeTransfers: z.array(TransferEventDTOSchema),
+  organizations: OrganizationDTOListSchema,
+  assets: AssetDTOListSchema,
+  activeTransfers: TransferEventDTOListSchema,
   custodyLinks: z.array(CustodyLinkDTOSchema),
 });
 

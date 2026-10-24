@@ -5,3 +5,4 @@
  */
 export { runStandardRouteTests } from './route-tester.js';
 export { createPactTestHelper } from './pact.js';
+export { mockFromSchema, SHA256_HEX } from './schema-mock.js';

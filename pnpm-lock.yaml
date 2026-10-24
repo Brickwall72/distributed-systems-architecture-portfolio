@@ -112,6 +112,9 @@ importers:
       vitest:
         specifier: ~4.1.11
         version: 4.1.11(@types/node@26.2.0)(happy-dom@20.11.15)(msw@2.15.0(@types/node@26.2.0)(typescript@7.0.2))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+      zocker:
+        specifier: ~3.0.0
+        version: 3.0.0(zod@3.25.76)
 
   packages/contracts/common:
     dependencies:
@@ -121,6 +124,9 @@ importers:
 
   packages/contracts/compliance:
     dependencies:
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../common
       '@contracts/topology':
         specifier: workspace:*
         version: link:../topology
@@ -172,15 +178,31 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ~3.1151.0
         version: 3.1151.0
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../contracts/common
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
   packages/messaging:
     dependencies:
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../contracts/common
       '@nats-io/jetstream':
         specifier: ~3.4.0
         version: 3.4.0
       '@nats-io/transport-node':
         specifier: ~3.4.0
         version: 3.4.0
+    devDependencies:
+      zocker:
+        specifier: ~3.0.0
+        version: 3.0.0(zod@3.25.76)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
   packages/mf-runtime:
     dependencies:
@@ -195,6 +217,12 @@ importers:
       express:
         specifier: ~5.2.1
         version: 5.2.1(supports-color@7.2.0)
+      zocker:
+        specifier: ~3.0.0
+        version: 3.0.0(zod@3.25.76)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
   packages/tsconfig: {}
 
@@ -247,6 +275,12 @@ importers:
         specifier: ~8.2.2
         version: 8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)
 
+  packages/zod:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+
   services/core/compliance-service/client:
     dependencies:
       '@contracts/common':
@@ -280,6 +314,12 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@contracts/esign':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/esign
+      '@shared/testing':
+        specifier: workspace:*
+        version: link:../../../../packages/testing
       '@shared/vite-config':
         specifier: workspace:*
         version: link:../../../../packages/vite-config
@@ -298,6 +338,9 @@ importers:
       '@contracts/pdf':
         specifier: workspace:*
         version: link:../../../../packages/contracts/pdf
+      '@contracts/topology':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/topology
       '@nats-io/jetstream':
         specifier: ~3.4.0
         version: 3.4.0
@@ -340,9 +383,15 @@ importers:
       '@contracts/common':
         specifier: workspace:*
         version: link:../../../../packages/contracts/common
+      '@contracts/compliance':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/compliance
       '@contracts/esign':
         specifier: workspace:*
         version: link:../../../../packages/contracts/esign
+      '@contracts/topology':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/topology
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
@@ -386,12 +435,18 @@ importers:
       '@contracts/common':
         specifier: workspace:*
         version: link:../../../../packages/contracts/common
+      '@contracts/compliance':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/compliance
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../../packages/contracts/topology
       '@shared/express':
         specifier: workspace:*
         version: link:../../../../packages/express
+      '@shared/messaging':
+        specifier: workspace:*
+        version: link:../../../../packages/messaging
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.2.0)(zod@3.25.76)
@@ -410,6 +465,10 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.25.76
+    devDependencies:
+      '@shared/testing':
+        specifier: workspace:*
+        version: link:../../../../packages/testing
 
   services/core/topology-service/shared:
     dependencies:
@@ -459,6 +518,9 @@ importers:
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
+      '@shared/zod':
+        specifier: 'workspace:* '
+        version: link:../../../../packages/zod
       '@signpdf/placeholder-pdf-lib':
         specifier: ~3.3.0
         version: 3.3.0(pdf-lib@1.17.1)
@@ -496,6 +558,9 @@ importers:
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
+      '@shared/zod':
+        specifier: workspace:*
+        version: link:../../../../packages/zod
       cors:
         specifier: ~2.8.6
         version: 2.8.6
@@ -1084,6 +1149,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@faker-js/faker@10.6.0':
+    resolution: {integrity: sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@inquirer/ansi@2.0.8':
     resolution: {integrity: sha512-WpQM+Ti6Z40EFwwt+uL2p4UabT+W179zHp6HhLVOzfbwnVn05IPO/eXIZXGNqcT1jbQ15SujNLzQ39k4QPPxBQ==}
@@ -4505,6 +4574,11 @@ packages:
     resolution: {integrity: sha512-2rAgRKu54VsHkqI0/tYkmluGXHD4KW7yZoycuqDQ15QOTnc2VVfy0nN/1eMhnQLO00A+dwtK20xuCnc1YGeUyg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
+  zocker@3.0.0:
+    resolution: {integrity: sha512-xSJz2M9AELZKzgpuuZPbTQdMv9263p/zSHDIj81B58X3334Xl6iJ/C3u6OQiOlsrWAoJSJsveBcIdz1eEPL0EA==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -4995,6 +5069,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@faker-js/faker@10.6.0': {}
 
   '@inquirer/ansi@2.0.8': {}
 
@@ -8208,5 +8284,11 @@ snapshots:
       string-width: 8.2.2
       y18n: 5.0.8
       yargs-parser: 22.0.0
+
+  zocker@3.0.0(zod@3.25.76):
+    dependencies:
+      '@faker-js/faker': 10.6.0
+      randexp: 0.5.3
+      zod: 3.25.76
 
   zod@3.25.76: {}

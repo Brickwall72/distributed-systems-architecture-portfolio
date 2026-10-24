@@ -1,13 +1,18 @@
-// File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
+import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 import { useGeneratePdf, useSignPdf } from '../../hooks';
 
 // Mock the custom compliance hooks
-vi.mock('../../hooks', () => ({
-  useGeneratePdf: vi.fn(),
-  useSignPdf: vi.fn(),
-}));
+vi.mock('../../hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../hooks')>();
+  return {
+    ...actual,
+    useGeneratePdf: vi.fn(),
+    useSignPdf: vi.fn(),
+  };
+});
 
 vi.mock('esign-client', () => ({
   SignatureOverlay: ({ onSign, onCancel }: any) => (
@@ -63,7 +68,7 @@ describe('ComplianceWorkflowWidget', () => {
     onSuccess('blob:mock-pdf-url');
   });
 
-  const mockSignPdf = vi.fn(async (_params: any, _sig: string, onSuccess: (blobUrl: string) => void): Promise<void> => {
+  const mockSignPdf = vi.fn(async ({ onSuccess }: { params: unknown; onSuccess: (blobUrl: string) => void }): Promise<void> => {
     onSuccess('blob:mock-signed-pdf-url');
   });
 
@@ -76,13 +81,11 @@ describe('ComplianceWorkflowWidget', () => {
       generatePdf: mockGeneratePdf,
       isLoading: false,
       error: null,
-      storageArtifact: {
-        storageBucket: 'dsap',
-        storageKey: 'tenant-123/source.pdf',
-        fileHash: 'a'.repeat(64),
-        id: 'artifact-1',
-        createdAt: '2024-01-01T00:00:00.000Z',
-      },
+      unsignedDocumentData: mockFromSchema(signDocumentApiRequestSchema.omit({ signatureImageBase64: true, customPath: true, signerId: true }), {
+        fileHash: SHA256_HEX,
+        documentName: 'asset-transfer-authorization',
+        documentType: 'AUTHORIZATION',
+      }),
     });
 
     vi.mocked(useSignPdf).mockReturnValue({
@@ -154,7 +157,7 @@ describe('ComplianceWorkflowWidget', () => {
     fireEvent.click(screen.getByTestId('mock-sign-submit'));
 
     await waitFor(() => {
-      expect(mockSignPdf).toHaveBeenCalled();
+      expect(mockSignPdf).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-signed-pdf-url');
     });
   });

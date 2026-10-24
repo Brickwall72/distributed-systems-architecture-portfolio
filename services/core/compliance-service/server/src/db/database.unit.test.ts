@@ -11,6 +11,7 @@ vi.mock('pg', () => ({
     },
     types: {
       setTypeParser: mockSetTypeParser,
+      builtins: { TIMESTAMP: 1114, TIMESTAMPTZ: 1184 },
     },
   },
 }));
@@ -22,14 +23,14 @@ describe('Database Configuration and Initialization', () => {
   });
 
   it('registers custom type parsers for TIMESTAMP (1114) and TIMESTAMPTZ (1184) on load', async () => {
-    await import('./database.js');
+    await import('./index');
 
     expect(mockSetTypeParser).toHaveBeenCalledWith(1114, expect.any(Function));
     expect(mockSetTypeParser).toHaveBeenCalledWith(1184, expect.any(Function));
   });
 
   it('initDatabase successfully executes the table creation query', async () => {
-    const { initDatabase } = await import('./database.js');
+    const { initDatabase } = await import('./index');
     mockQuery.mockResolvedValueOnce({ rows: [] });
 
     await expect(initDatabase()).resolves.toBeUndefined();
@@ -42,7 +43,7 @@ describe('Database Configuration and Initialization', () => {
   });
 
   it('initDatabase catches and rethrows errors when query execution fails', async () => {
-    const { initDatabase } = await import('./database.js');
+    const { initDatabase } = await import('./index');
     const dbError = new Error('Connection refused');
     mockQuery.mockRejectedValueOnce(dbError);
 
@@ -51,7 +52,7 @@ describe('Database Configuration and Initialization', () => {
   });
 
   it('exports a valid pool instance', async () => {
-    const { pool } = await import('./database.js');
+    const { pool } = await import('./index');
     expect(pool).toBeDefined();
     expect(typeof pool.query).toBe('function');
   });

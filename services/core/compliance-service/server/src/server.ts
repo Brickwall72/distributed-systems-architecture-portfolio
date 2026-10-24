@@ -5,14 +5,11 @@ import { createComplianceGateway } from './routes';
 import { initDatabase, pool } from './db';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
-import { ESignEventConsumer } from './messaging';
-import { ComplianceDocumentRepository } from './repositories';
+import { CompliancePublisher } from './messaging';
 import { env } from './config';
 
 const app = express();
 const logger = createLogger('compliance-server');
-
-let isReady = false;
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '10mb' }));
@@ -45,14 +42,13 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 /**
- * Boots application dependencies (DB pool, JetStream consumer) and instantiates gateway routes.
+ * Boots application dependencies (DB pool, NATS stream/consumer/publisher) and instantiates gateway routes.
  */
 async function bootstrapApplicationServer() {
   const broker = new EventBroker(env.NATS_URL, logger);
   let server: ReturnType<typeof app.listen>;
 
   const shutdown = (signal: string) => {
-    isReady = false;
     logger.info(`Received ${signal}. Initiating graceful shutdown...`);
 
     const forceExitTimeout = setTimeout(() => {
@@ -94,20 +90,18 @@ async function bootstrapApplicationServer() {
     await initDatabase();
     logger.info('Compliance database connection established.');
 
-    const repository = new ComplianceDocumentRepository(pool);
-
     await broker.connect();
 
-    const esignConsumer = new ESignEventConsumer(broker, repository);
-    await esignConsumer.start();
-    logger.info('NATS JetStream event consumer listening for esign events.');
+    // 1. Initialize Outbound Compliance Event Publisher
+    const publisher = new CompliancePublisher(broker);
+    await publisher.init();
+    logger.info('Compliance event publisher initialized.');
 
-    // ✅ Pass broker explicitly into the compliance gateway factory
-    const complianceGateway = createComplianceGateway({ broker });
+    // 2. Inject publisher into gateway factory routes
+    const complianceGateway = createComplianceGateway({ broker, publisher });
     app.use('/api/v1', complianceGateway);
 
     server = app.listen(env.PORT, '0.0.0.0', () => {
-      isReady = true;
       logger.info(`Compliance Server running on port ${env.PORT}`);
     });
   } catch (err) {

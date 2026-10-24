@@ -3,11 +3,17 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
-import { DocumentSchema } from '../schemas';
+import { TransferInitiatedDataSchema, TransferReceivedDataSchema } from '@contracts/compliance';
+import { DocumentSchema, formNameEnum, formTypeEnum  } from '../schemas';
 
 const c = initContract();
 
-export const SignDocumentApiRequestSchema = SignDocumentCommandSchema;
+export const signDocumentApiRequestSchema = SignDocumentCommandSchema.extend({
+  ...TransferInitiatedDataSchema.omit({date: true}).shape,
+  ...TransferReceivedDataSchema.shape,
+  documentName: formNameEnum,
+  documentType:formTypeEnum
+});
 
 export const documentsRoutes = {
   getDocuments: c.query({
@@ -35,9 +41,9 @@ export const documentsRoutes = {
   signDocument: c.mutation({
     method: 'POST',
     path: '/documents/sign',
-    body: SignDocumentApiRequestSchema,
+    body: signDocumentApiRequestSchema,
     responses: {
-      200: DocumentSchema,
+      200: z.object({ presignedUrl: z.string() }),
       400: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },

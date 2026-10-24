@@ -36,7 +36,10 @@ describe('createComplianceGateway (Route Accumulator Topology)', () => {
 
     const mockBroker = { request: vi.fn() };
 
-    app.use('/api/v1', createComplianceGateway({ broker: mockBroker as any }));
+    app.use('/api/v1', createComplianceGateway({
+      broker: mockBroker as any,
+      publisher: { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() } as any,
+    }));
   });
 
   it('mounts the /health check endpoint with service health payload', async () => {

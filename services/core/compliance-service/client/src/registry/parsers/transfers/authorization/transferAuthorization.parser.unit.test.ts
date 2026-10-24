@@ -1,21 +1,23 @@
-// File: services/platform/compliance/client/src/registry/parsers/transfers/authorization/transferAuthorization.parser.unittest.ts
 import { parseTransferAuthorizationPayload } from './transferAuthorization.parser';
-import { OrganizationDTO, AssetDTO } from '@contracts/topology';
+import { OrganizationDTOSchema, AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
 
 describe('parseAuthorizationPayload', () => {
-  const mockOrg: OrganizationDTO = {
+  const mockOrg = mockFromSchema(OrganizationDTOSchema, {
     id: 'org_1',
     name: 'Alpha Logistics',
-    type: 'GOV',
+    type: 'GOV_AGENCY',
     addressLine1: '123 Depot St',
-  };
+    addressLine2: undefined,
+  });
 
-  const mockAsset: AssetDTO = {
+  const mockAsset = mockFromSchema(AssetDTOSchema, {
     id: 'ast_1',
+    currentOwnerId: 'org_1',
     name: 'Radio',
     nomenclature: 'AN/PRC-152',
     serialNumber: 'SN-998877',
-  };
+  });
 
   it('maps complete input data correctly without placeholders', () => {
     const result = parseTransferAuthorizationPayload({

@@ -1,259 +1,189 @@
-// File: services/core/compliance-service/server/src/routes/documents/documents.route.unit.test.ts
 import { createDocumentsRouter } from './documents.route';
+import { insertInputSchema } from '../../repositories';
+import { documentEntitySchema } from '../../domain';
+import { complianceTransferInitiatedDataSchema, complianceTransferReceivedDataSchema, type CompliancePublisher } from '../../messaging';
 import { EventBroker } from '@shared/messaging';
-import { ESIGN_COMMAND_SUBJECTS } from '@contracts/esign';
+import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
+import { TransferInitiatedDataSchema, TransferReceivedDataSchema } from '@contracts/compliance';
+import { DocumentSchema, signDocumentApiRequestSchema } from 'compliance-shared';
+import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
-// Mock database pool and logger dependencies
-vi.mock('../../db', () => ({
-  pool: {},
-}));
+vi.mock('../../db', () => ({ pool: {} }));
 
 vi.mock('@shared/express', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const mockFindAll = vi.fn();
 const mockFindById = vi.fn();
+const mockInsert = vi.fn();
 
-vi.mock('../../repositories', () => ({
-  ComplianceDocumentRepository: class {
-    async findAll() {
-      return mockFindAll();
-    }
-    async findById(id: string) {
-      return mockFindById(id);
-    }
-    async upsert() {
-      return Promise.resolve();
-    }
-  },
-}));
+vi.mock('../../repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../repositories')>();
+  return {
+    ...actual,
+    ComplianceDocumentRepository: class {
+      findAll = () => mockFindAll();
+      findById = (id: string) => mockFindById(id);
+      insert = (data: unknown) => mockInsert(data);
+    },
+  };
+});
+
+const mockEntity = (overrides: Partial<Parameters<typeof documentEntitySchema.parse>[0]> = {}) =>
+  mockFromSchema(documentEntitySchema, overrides);
+
+const request = (headers: Record<string, string> = {}, extra: object = {}) =>
+  ({ query: {}, params: {}, req: { headers }, ...extra }) as never;
 
 describe('Documents Router Unit Tests', () => {
   let router: ReturnType<typeof createDocumentsRouter>;
-  let mockBroker: EventBroker;
+  let mockBroker: { request: ReturnType<typeof vi.fn> };
+  let mockPublisher: { publishTransferInitiated: ReturnType<typeof vi.fn>; publishTransferReceived: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockBroker = {
-      request: vi.fn(),
-    } as unknown as EventBroker;
-    router = createDocumentsRouter({ broker: mockBroker });
+    mockBroker = { request: vi.fn() };
+    mockPublisher = { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() };
+    router = createDocumentsRouter({
+      broker: mockBroker as unknown as EventBroker,
+      publisher: mockPublisher as unknown as CompliancePublisher,
+    });
   });
 
   describe('GET /documents', () => {
-    it('returns 200 with list of documents when repository succeeds', async () => {
-      const mockDocs = [
-        {
-          id: '123e4567-e89b-12d3-a456-426614174000',
-          documentType: 'asset-transfer-authorization',
-          storageBucket: 'compliance-vault',
-          storageKey: '2026/dd1149.pdf',
-          status: 'SIGNED',
-          createdAt: '2026-09-15T14:32:00.000Z',
-          updatedAt: '2026-09-15T14:32:00.000Z',
-        },
-      ];
-      mockFindAll.mockResolvedValueOnce(mockDocs);
+    it('returns 200 with API-contract documents when repository succeeds', async () => {
+      const docs = [mockEntity(), mockEntity()];
+      mockFindAll.mockResolvedValueOnce(docs);
 
-      const result = await router.getDocuments({
-        query: {},
-        params: {},
-        req: {
-          headers: { 'x-correlation-id': 'test-corr-1' },
-        },
-      } as any);
+      const result = await router.getDocuments(request({ 'x-correlation-id': 'test-corr-1' }));
 
       expect(result.status).toBe(200);
-      expect(result.body).toEqual(mockDocs);
-      expect(mockFindAll).toHaveBeenCalledOnce();
+      expect(result.body).toEqual(docs.map((doc) => DocumentSchema.parse(doc)));
     });
 
     it('returns 500 with structured error payload when repository throws', async () => {
       mockFindAll.mockRejectedValueOnce(new Error('Database connection failed'));
 
-      const result = await router.getDocuments({
-        query: {},
-        params: {},
-        req: {
-          headers: {},
-        },
-      } as any);
+      const result = await router.getDocuments(request());
 
       expect(result.status).toBe(500);
       expect(result.body).toEqual(
-        expect.objectContaining({
-          error: 'Database connection failed',
-          code: 'INTERNAL_SERVER_ERROR',
-          timestamp: expect.any(String),
-        })
+        expect.objectContaining({ error: 'Database connection failed', code: 'INTERNAL_SERVER_ERROR', timestamp: expect.any(String) }),
       );
     });
   });
 
   describe('GET /documents/:id', () => {
-    it('returns 200 with document DTO when found by ID', async () => {
-      const docId = '123e4567-e89b-12d3-a456-426614174000';
-      const mockDoc = {
-        id: docId,
-        documentType: 'asset-transfer-authorization',
-        storageBucket: 'compliance-vault',
-        storageKey: '2026/dd1149.pdf',
-        status: 'SIGNED',
-        createdAt: '2026-09-15T14:32:00.000Z',
-        updatedAt: '2026-09-15T14:32:00.000Z',
-      };
-      mockFindById.mockResolvedValueOnce(mockDoc);
+    it('returns 200 with the document DTO when found by ID', async () => {
+      const doc = mockEntity();
+      mockFindById.mockResolvedValueOnce(doc);
 
-      const result = await router.getDocumentById({
-        params: { id: docId },
-        query: {},
-        req: {
-          headers: {},
-        },
-      } as any);
+      const result = await router.getDocumentById(request({}, { params: { id: doc.id } }));
 
       expect(result.status).toBe(200);
-      expect(result.body).toEqual(mockDoc);
-      expect(mockFindById).toHaveBeenCalledWith(docId);
+      expect(result.body).toEqual(DocumentSchema.parse(doc));
+      expect(mockFindById).toHaveBeenCalledWith(doc.id);
     });
 
     it('returns 404 when document is not found in repository', async () => {
-      const missingId = '999e4567-e89b-12d3-a456-426614174999';
+      const missingId = mockEntity().id;
       mockFindById.mockResolvedValueOnce(null);
 
-      const result = await router.getDocumentById({
-        params: { id: missingId },
-        query: {},
-        req: {
-          headers: {},
-        },
-      } as any);
+      const result = await router.getDocumentById(request({}, { params: { id: missingId } }));
 
       expect(result.status).toBe(404);
       expect(result.body).toEqual(
-        expect.objectContaining({
-          error: `Document with ID '${missingId}' was not found.`,
-          code: 'NOT_FOUND',
-          timestamp: expect.any(String),
-        })
+        expect.objectContaining({ error: `Document with ID '${missingId}' was not found.`, code: 'NOT_FOUND' }),
       );
     });
 
     it('returns 500 when repository lookup throws an unexpected error', async () => {
-      const docId = '123e4567-e89b-12d3-a456-426614174000';
       mockFindById.mockRejectedValueOnce(new Error('Query timeout'));
 
-      const result = await router.getDocumentById({
-        params: { id: docId },
-        query: {},
-        req: {
-          headers: {},
-        },
-      } as any);
+      const result = await router.getDocumentById(request({}, { params: { id: mockEntity().id } }));
 
       expect(result.status).toBe(500);
-      expect(result.body).toEqual(
-        expect.objectContaining({
-          error: 'Query timeout',
-          code: 'INTERNAL_SERVER_ERROR',
-          timestamp: expect.any(String),
-        })
-      );
+      expect(result.body).toEqual(expect.objectContaining({ error: 'Query timeout', code: 'INTERNAL_SERVER_ERROR' }));
     });
   });
 
   describe('POST /documents/sign', () => {
-    it('returns 200 with signed document and presignedUrl on successful broker request', async () => {
-      const docId = '123e4567-e89b-12d3-a456-426614174000';
-      const validHash = 'a'.repeat(64);
-
-      const mockSignResponse = {
-        success: true,
-        id: docId,
-        documentType: 'asset-transfer-authorization',
+    const signBody = (overrides = {}) =>
+      mockFromSchema(signDocumentApiRequestSchema, {
         signerId: 'usr_1',
-        entityId: 'org_1',
-        status: 'SIGNED' as const,
-        createdAt: '2026-10-18T21:00:00.000Z',
-        updatedAt: '2026-10-18T21:00:00.000Z',
-        storageBucket: 'dsap',
-        storageKey: `${docId}.pdf`,
-        s3Uri: `s3://dsap/${docId}.pdf`,
-        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=123',
-        fileHash: validHash,
-        signedAt: '2026-10-18T21:00:00.000Z',
-        uploadedAt: '2026-10-18T21:00:00.000Z',
-        correlationId: 'test-corr-2',
-      };
+        documentName: 'asset-transfer-authorization',
+        documentType: 'AUTHORIZATION',
+        ...overrides,
+      });
 
-      vi.mocked(mockBroker.request).mockResolvedValueOnce(mockSignResponse);
-      mockFindById.mockResolvedValueOnce(null);
+    const signResponse = (overrides = {}) =>
+      mockFromSchema(SignDocumentResponseSchema, { success: true, fileHash: SHA256_HEX, ...overrides });
 
-      const result = await router.signDocument({
-        body: {
-          storageBucket: 'dsap',
-          storageKey: 'source.pdf',
-          fileHash: validHash,
-          signatureImageBase64: 'base64sig',
-          documentId: docId,
-          documentType: 'asset-transfer-authorization',
-          signerId: 'usr_1',
-          entityId: 'org_1',
-        },
-        query: {},
-        params: {},
-        req: {
-          headers: { 'x-correlation-id': 'test-corr-2' },
-        },
-      } as any);
+    it('sends a globally-contracted command, persists, publishes a contract-valid event, and returns the presigned URL', async () => {
+      const body = signBody();
+      const response = signResponse();
+      mockBroker.request.mockResolvedValueOnce(response);
+      mockInsert.mockResolvedValueOnce(mockEntity({ type: 'AUTHORIZATION' }));
+
+      const result = await router.signDocument(request({ 'x-correlation-id': 'test-corr-2' }, { body }));
 
       expect(result.status).toBe(200);
-      expect(mockBroker.request).toHaveBeenCalledWith(
-        ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
-        expect.objectContaining({ documentId: docId, correlationId: 'test-corr-2' }),
-        { timeout: 10000, correlationId: 'test-corr-2' }
-      );
-      expect(result.body).toMatchObject({
-        id: docId,
-        storageBucket: 'dsap',
-        presignedUrl: 'http://localhost:9000/dsap/test.pdf?signature=123',
-      });
+      expect(result.body).toEqual({ presignedUrl: response.presignedUrl });
+
+      const [subject, payload, options] = mockBroker.request.mock.calls[0];
+      expect(subject).toBe(ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT);
+      expect(SignDocumentCommandSchema.parse(payload)).toEqual(payload);
+      expect(options).toEqual({ timeout: 10000, correlationId: 'test-corr-2' });
+
+      expect(insertInputSchema.parse(mockInsert.mock.calls[0][0])).toMatchObject({ status: 'SIGNED', fileHash: response.fileHash });
+
+      const [eventData, correlationId] = mockPublisher.publishTransferInitiated.mock.calls[0];
+      expect(complianceTransferInitiatedDataSchema.parse(eventData)).toEqual(eventData);
+      expect(TransferInitiatedDataSchema.parse(eventData)).toEqual(eventData);
+      expect(correlationId).toBe('test-corr-2');
+      expect(mockPublisher.publishTransferReceived).not.toHaveBeenCalled();
     });
 
-    it('returns 500 when broker request throws or fails', async () => {
-      vi.mocked(mockBroker.request).mockRejectedValueOnce(new Error('NATS timeout'));
+    it('publishes a transfer-received event for RECEIPT documents', async () => {
+      mockBroker.request.mockResolvedValueOnce(signResponse());
+      mockInsert.mockResolvedValueOnce(mockEntity({ type: 'RECEIPT' }));
 
-      const result = await router.signDocument({
-        body: {
-          storageBucket: 'dsap',
-          storageKey: 'source.pdf',
-          fileHash: 'a'.repeat(64),
-          signatureImageBase64: 'base64sig',
-          documentId: '123e4567-e89b-12d3-a456-426614174000',
-          documentType: 'asset-transfer-authorization',
-          signerId: 'usr_1',
-          entityId: 'org_1',
-        },
-        query: {},
-        params: {},
-        req: {
-          headers: {},
-        },
-      } as any);
+      const result = await router.signDocument(request({}, { body: signBody({ documentType: 'RECEIPT' }) }));
+
+      expect(result.status).toBe(200);
+      const [eventData] = mockPublisher.publishTransferReceived.mock.calls[0];
+      expect(complianceTransferReceivedDataSchema.parse(eventData)).toEqual(eventData);
+      expect(TransferReceivedDataSchema.parse(eventData)).toEqual(eventData);
+    });
+
+    it('returns 500 when the esign service reports failure', async () => {
+      mockBroker.request.mockResolvedValueOnce(signResponse({ success: false }));
+
+      const result = await router.signDocument(request({}, { body: signBody() }));
+
+      expect(result.status).toBe(500);
+      expect(result.body).toMatchObject({ error: 'Remote signature generation failed.', code: 'SIGNATURE_PROCESSING_FAILED' });
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it('returns 500 when the esign reply violates the shared response contract', async () => {
+      mockBroker.request.mockResolvedValueOnce({ success: true });
+
+      const result = await router.signDocument(request({}, { body: signBody() }));
+
+      expect(result.status).toBe(500);
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it('returns 500 when broker request throws', async () => {
+      mockBroker.request.mockRejectedValueOnce(new Error('NATS timeout'));
+
+      const result = await router.signDocument(request({}, { body: signBody() }));
 
       expect(result.status).toBe(500);
       expect(result.body).toEqual(
-        expect.objectContaining({
-          error: 'NATS timeout',
-          code: 'SIGNATURE_PROCESSING_FAILED',
-          timestamp: expect.any(String),
-        })
+        expect.objectContaining({ error: 'NATS timeout', code: 'SIGNATURE_PROCESSING_FAILED', timestamp: expect.any(String) }),
       );
     });
   });

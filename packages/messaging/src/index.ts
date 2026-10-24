@@ -8,6 +8,7 @@ import {
   AckPolicy,
   Consumer
 } from '@nats-io/jetstream';
+import { CloudEvent } from '@contracts/common';
 
 /**
  * Structural logging contract required by EventBroker.
@@ -24,7 +25,7 @@ export class EventBroker {
   private js!: JetStreamClient;
   private jsm!: JetStreamManager;
 
-  constructor(private readonly natsUrl: string, readonly logger: Logger) {
+  constructor(private readonly natsUrl: string, readonly logger?: Logger) {
     if (!natsUrl) {
       throw new Error('EventBroker initialization failed: NATS URL is required but was undefined or empty.');
     }
@@ -34,7 +35,7 @@ export class EventBroker {
    * Establishes TCP connection with exponential reconnect policy and initializes JetStream context.
    */
   async connect() {
-    this.logger.info(`Attempting connection to NATS Broker at ${this.natsUrl}`);
+    this.logger?.info(`Attempting connection to NATS Broker at ${this.natsUrl}`);
     
     this.nc = await connect({ 
       servers: this.natsUrl,
@@ -45,7 +46,7 @@ export class EventBroker {
 
     this.js = jetstream(this.nc);
     this.jsm = await jetstreamManager(this.nc);
-    this.logger.info(`Successfully connected to NATS Broker at ${this.natsUrl}`);
+    this.logger?.info(`Successfully connected to NATS Broker at ${this.natsUrl}`);
   }
 
   /**
@@ -54,7 +55,7 @@ export class EventBroker {
   async disconnect() {
     if (this.nc) {
       await this.nc.close();
-      this.logger.info('Disconnected from NATS Broker');
+      this.logger?.info('Disconnected from NATS Broker');
     }
   }
 
@@ -64,9 +65,9 @@ export class EventBroker {
   async ensureStream(streamName: string, subjects: string[]) {
     try {
       await this.jsm.streams.add({ name: streamName, subjects });
-      this.logger.debug(`Ensured JetStream '${streamName}' exists for subjects: ${subjects.join(', ')}`);
+      this.logger?.debug(`Ensured JetStream '${streamName}' exists for subjects: ${subjects.join(', ')}`);
     } catch (err) {
-      this.logger.warn(`Stream check warning (might already exist): ${(err as Error).message}`);
+      this.logger?.warn(`Stream check warning (might already exist): ${(err as Error).message}`);
     }
   }
 
@@ -81,15 +82,15 @@ export class EventBroker {
     const { timeout = 10000, correlationId = null } = options;
     try {
       const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
-      this.logger.debug(`Sending NATS request to ${subject}`, correlationId);
+      this.logger?.debug(`Sending NATS request to ${subject}`, correlationId);
 
       const responseMsg = await this.nc.request(subject, encodedPayload, { timeout });
       const decodedResponse = JSON.parse(new TextDecoder().decode(responseMsg.data));
 
-      this.logger.debug(`Received NATS reply from ${subject}`, correlationId);
+      this.logger?.debug(`Received NATS reply from ${subject}`, correlationId);
       return decodedResponse as TResponse;
     } catch (err) {
-      this.logger.error(`NATS request failed on ${subject}: ${(err as Error).message}`, correlationId);
+      this.logger?.error(`NATS request failed on ${subject}: ${(err as Error).message}`, correlationId);
       throw err;
     }
   }
@@ -102,7 +103,7 @@ export class EventBroker {
     handler: (payload: any) => Promise<unknown>
   ): void {
     const subscription = this.nc.subscribe(subject);
-    this.logger.info(`Listening for NATS requests on subject '${subject}'`);
+    this.logger?.info(`Listening for NATS requests on subject '${subject}'`);
 
     void (async () => {
       for await (const msg of subscription) {
@@ -115,7 +116,7 @@ export class EventBroker {
             msg.respond(encodedReply);
           }
         } catch (err) {
-          this.logger.error(`Error handling request on ${msg.subject}: ${(err as Error).message}`);
+          this.logger?.error(`Error handling request on ${msg.subject}: ${(err as Error).message}`);
           if (msg.reply) {
             const errorReply = new TextEncoder().encode(
               JSON.stringify({ error: (err as Error).message })
@@ -130,13 +131,13 @@ export class EventBroker {
   /**
    * Publishes an event payload to a target subject using native TextEncoder serialization.
    */
-  async publish(subject: string, payload: unknown, correlationId: string | null = null) {
+  async publish(subject: string, payload: CloudEvent<unknown>) {
     try {
       const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
       await this.js.publish(subject, encodedPayload);
-      this.logger.debug(`Published event to ${subject}`, correlationId);
+      this.logger?.debug(`Published event to ${subject}`, payload.correlationId);
     } catch (err) {
-      this.logger.error(`Failed to publish to ${subject}: ${(err as Error).message}`, correlationId);
+      this.logger?.error(`Failed to publish to ${subject}: ${(err as Error).message}`, payload.correlationId);
       throw err;
     }
   }
@@ -170,7 +171,7 @@ export class EventBroker {
     }
 
     const messages = await consumer.consume();
-    this.logger.info(`Subscribed to stream '${streamName}' as durable consumer '${durableName}'`);
+    this.logger?.info(`Subscribed to stream '${streamName}' as durable consumer '${durableName}'`);
 
     void (async () => {
       try {
@@ -179,12 +180,12 @@ export class EventBroker {
             const payload = msg.json();
             await handler(payload, () => msg.ack());
           } catch (err) {
-            this.logger.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
+            this.logger?.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
             msg.nak();
           }
         }
       } catch (streamErr) {
-        this.logger.error(`Fatal stream iterator error in messaging consumer loop: ${(streamErr as Error).message}`);
+        this.logger?.error(`Fatal stream iterator error in messaging consumer loop: ${(streamErr as Error).message}`);
       }
     })();
   }

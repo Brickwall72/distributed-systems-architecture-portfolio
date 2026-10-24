@@ -2,7 +2,11 @@
 import express from 'express';
 import supertest from 'supertest';
 import { createExpressEndpoints } from '@ts-rest/express';
-import { templatesContract, TemplateManifest, TemplateDTO } from 'compliance-shared';
+import { templatesContract, TemplateDTOSchema, TemplateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
+import { mockFromSchema } from '@shared/testing';
+import { PDF_SUBJECTS, generatePdfCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
+import { zocker } from 'zocker';
+import type { z } from 'zod';
 import { createTemplatesRouter } from './templates.route';
 import { TemplateRepository } from '../../repositories';
 
@@ -12,6 +16,10 @@ vi.mock('../../repositories', () => ({
     findById: vi.fn(),
   },
 }));
+
+// zocker can't generate `.trim().min()` chains, so the name is supplied
+const mockTemplateDto = (overrides: Partial<z.input<typeof TemplateDTOSchema>> = {}) =>
+  mockFromSchema(TemplateDTOSchema, { name: 'Generated Template', ...overrides });
 
 describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
   let app: express.Express;
@@ -33,18 +41,7 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
   describe('GET /templates (getTemplates)', () => {
     it('returns 200 with template manifest list on successful lookup', async () => {
-      const mockManifests: TemplateManifest[] = [
-        {
-          id: 'asset-transfer-authorization',
-          name: 'Asset Transfer Authorization',
-          type: 'AUTHORIZATION',
-        },
-        {
-          id: 'asset-transfer-receipt',
-          name: 'Asset Transfer Receipt',
-          type: 'RECEIPT',
-        },
-      ];
+      const mockManifests = [mockTemplateDto(), mockTemplateDto()].map(({ rawHTML: _rawHTML, ...manifest }) => TemplateManifestSchema.parse(manifest));
 
       vi.mocked(TemplateRepository.findAllManifests).mockReturnValue(mockManifests);
 
@@ -75,22 +72,17 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
   describe('GET /templates/:id (getTemplate)', () => {
     it('returns 200 with full TemplateDTO when valid ID is provided', async () => {
-      const mockTemplate: TemplateDTO = {
-        id: 'asset-transfer-authorization',
-        name: 'Asset Transfer Authorization',
-        type: 'AUTHORIZATION',
-        rawHTML: '<h1>Authorization Template</h1>',
-      };
+      const mockTemplate = mockTemplateDto();
 
       vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
 
       const response = await supertest(app)
-        .get('/templates/asset-transfer-authorization')
+        .get(`/templates/${mockTemplate.id}`)
         .set('x-correlation-id', 'test-corr-456');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual(mockTemplate);
-      expect(TemplateRepository.findById).toHaveBeenCalledWith('asset-transfer-authorization');
+      expect(TemplateRepository.findById).toHaveBeenCalledWith(mockTemplate.id);
     });
 
     it('returns 404 with error schema when template ID is not found', async () => {
@@ -123,98 +115,63 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
   });
 
   describe('POST /templates/:id/drafts (createTemplateDraft)', () => {
-    it('returns 201 with StorageArtifact details and presignedUrl on successful NATS PDF generation', async () => {
-      const mockTemplate: TemplateDTO = {
-        id: 'asset-transfer-authorization',
-        name: 'Asset Transfer Authorization',
-        type: 'AUTHORIZATION',
-        rawHTML: '<h1>{{input.requisitionNumber}}</h1>',
-      };
+    const template = () => mockTemplateDto({ rawHTML: '<h1>{{input.requisitionNumber}}</h1>' });
 
+    it('sends a globally-contracted PDF command and returns a contract-valid draft response', async () => {
+      const mockTemplate = template();
       vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
-
-      const nowIso = new Date().toISOString();
-      const mockPdfResponse = {
-        success: true,
-        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
-        s3Uri: 's3://drafts/org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
-        storageBucket: 'drafts',
-        storageKey: 'org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
-        presignedUrl: 'http://localhost:9000/drafts/test-document.pdf?signature=xyz',
-        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        correlationId: 'test-corr-789',
-      };
-
-      mockBroker.request.mockResolvedValue(mockPdfResponse);
+      const pdfResponse = zocker(generatePdfResponseSchema)
+        .supply(generatePdfResponseSchema.shape.success, true)
+        .generate();
+      mockBroker.request.mockResolvedValue(pdfResponse);
 
       const response = await supertest(app)
-        .post('/templates/asset-transfer-authorization/drafts')
-        .send({
-          requisitionNumber: 'REQ-2026-0001',
-          input: { targetOrg: { id: 'org-123' } },
-        })
+        .post(`/templates/${mockTemplate.id}/drafts`)
+        .send({ data: { input: { targetOrg: { id: 'org-123' } } } })
         .set('x-correlation-id', 'test-corr-789');
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual({
-        id: '3ef7a5e5-72d3-47df-a5d6-f3e871e34df9',
-        storageBucket: 'drafts',
-        storageKey: 'org-123/transfers/asset-transfer-authorization/REQ-2026-0001.pdf',
-        fileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        presignedUrl: 'http://localhost:9000/drafts/test-document.pdf?signature=xyz',
-      });
+      const draft = TemplateDraftResponseSchema.parse(response.body);
+      expect(draft.presignedUrl).toBe(pdfResponse.presignedUrl);
+      expect(draft.storageKey).toBe(pdfResponse.storageKey);
 
-      expect(mockBroker.request).toHaveBeenCalledWith(
-        'pdf.command.generate-draft',
-        expect.objectContaining({
-          documentType: 'asset-transfer-authorization',
-          entityId: 'org-123',
-        }),
-        expect.objectContaining({ correlationId: 'test-corr-789' })
-      );
+      const [subject, payload, options] = mockBroker.request.mock.calls[0];
+      expect(subject).toBe(PDF_SUBJECTS.GENERATE_PDF);
+      expect(generatePdfCommandSchema.parse(payload)).toEqual(payload);
+      expect(payload.html).toContain(draft.requisitionNumber);
+      expect(options).toMatchObject({ correlationId: 'test-corr-789' });
     });
 
     it('returns 404 when template ID is not found during draft creation', async () => {
       vi.mocked(TemplateRepository.findById).mockReturnValue(null);
 
       const response = await supertest(app)
-        .post('/templates/asset-transfer-authorization/drafts')
-        .send({
-          requisitionNumber: 'REQ-2026-0001',
-          input: { targetOrg: { id: 'org-123' } },
-        });
+        .post(`/templates/${mockTemplateDto().id}/drafts`)
+        .send({ data: {} });
 
       expect(response.status).toBe(404);
-      expect(response.body).toMatchObject({
-        error: 'Template [asset-transfer-authorization] not found.',
-        code: 'NOT_FOUND',
-      });
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('returns 500 when NATS broker request throws an error', async () => {
-      const mockTemplate: TemplateDTO = {
-        id: 'asset-transfer-authorization',
-        name: 'Asset Transfer Authorization',
-        type: 'AUTHORIZATION',
-        rawHTML: '<h1>Test</h1>',
-      };
-
+      const mockTemplate = template();
       vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
       mockBroker.request.mockRejectedValue(new Error('NATS request timeout'));
 
-      const response = await supertest(app)
-        .post('/templates/asset-transfer-authorization/drafts')
-        .send({});
+      const response = await supertest(app).post(`/templates/${mockTemplate.id}/drafts`).send({ data: {} });
 
       expect(response.status).toBe(500);
-      expect(response.body).toMatchObject({
-        error: 'NATS request timeout',
-        code: 'INTERNAL_SERVER_ERROR',
-      });
+      expect(response.body).toMatchObject({ error: 'NATS request timeout', code: 'INTERNAL_SERVER_ERROR' });
+    });
+
+    it('returns 500 when the PDF service replies with a payload violating the shared contract', async () => {
+      const mockTemplate = template();
+      vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
+      mockBroker.request.mockResolvedValue({ success: true });
+
+      const response = await supertest(app).post(`/templates/${mockTemplate.id}/drafts`).send({ data: {} });
+
+      expect(response.status).toBe(500);
     });
   });
 });

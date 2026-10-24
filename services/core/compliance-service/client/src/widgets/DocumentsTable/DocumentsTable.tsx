@@ -5,17 +5,9 @@ import { useDocuments } from '../../hooks';
 import '@shared/styles';
 
 const columns: TableColumn<Document>[] = [
-  { key: 'id', header: 'Document ID' },
-  { key: 'documentType', header: 'Document Type' },
-  { 
-    key: 'storageKey', 
-    header: 'Storage Path (MinIO)',
-    render: (_val, row) => (
-      <span className="font-mono text-xs text-blue-400">
-        s3://{row.storageBucket}/{row.storageKey}
-      </span>
-    )
-  },
+  { key: 'requisitionNumber', header: 'Requisition Number' },
+  { key: 'transferType', header: 'Transfer Type' },
+  { key: 'type', header: 'Document Type' },
   { key: 'status', header: 'Status' },
   { 
     key: 'updatedAt', 
@@ -58,7 +50,7 @@ export default function DocumentsTable() {
       <DatabaseTwinTable 
         data={documents}
         columns={columns}
-        rowKey="id"
+        rowKey="requisitionNumber"
       />
     </div>
   );

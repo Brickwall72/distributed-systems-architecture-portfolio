@@ -38,6 +38,7 @@ services:
       DB_URI: bolt://topology-db:7687
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      NATS_URL: nats://nats:4222
     depends_on:
       topology-db:
         condition: service_healthy

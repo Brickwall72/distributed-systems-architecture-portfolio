@@ -1,11 +1,26 @@
 // File: services/platform/esignature-service/server/src/services/storage/storage.ts
 import {
   ObjectStorageClient,
-  type StorageProvider,
-  type UploadResult,
-  type DownloadResult,
+  StorageProvider,
+  UploadFileResult,
+  GetFileStreamResult,
+  getFileStreamRequestSchema,
+  uploadFileRequestSchema,
 } from '@shared/filestore';
 import { env } from '../../config';
+import { z } from 'zod';
+
+export const downloadDocumentStreamParamsSchema = getFileStreamRequestSchema.extend({
+  client: z.custom<StorageProvider>((val) => typeof val === 'object' && val !== null).default(() => internalStorageClient),
+});
+
+type DownloadDocumentStreamParams = z.infer<typeof downloadDocumentStreamParamsSchema>;
+
+export const uploadSignedDocumentParamsSchema = uploadFileRequestSchema.omit({ contentType: true }).extend({
+  client: z.custom<StorageProvider>((val) => typeof val === 'object' && val !== null).default(() => internalStorageClient),
+});
+
+type UploadSignedDocumentParams = z.infer<typeof uploadSignedDocumentParamsSchema>;
 
 // 1. Internal client for container-to-container communication (Docker network: minio:9000)
 export const internalStorageClient: StorageProvider = new ObjectStorageClient({
@@ -25,53 +40,18 @@ export const publicStorageClient: StorageProvider = new ObjectStorageClient({
   forcePathStyle: true,
 });
 
-export interface UploadDocumentOptions {
-  pdfBuffer: Buffer;
-  entityId: string;
-  documentId: string;
-  customPath?: string;
-  correlationId?: string | null;
-}
-
 export const uploadSignedDocument = (
-  options: UploadDocumentOptions,
-  client: StorageProvider = internalStorageClient // Defaults to internal network client
-): Promise<UploadResult> => {
-  const { pdfBuffer, entityId, documentId, customPath, correlationId } = options;
-  const sanitizedPath = customPath ? customPath.replace(/^\/+|\/+$/g, '') : '';
-  const objectKey = sanitizedPath
-    ? `${entityId}/${sanitizedPath}/${documentId}.pdf`
-    : `${entityId}/${documentId}.pdf`;
+  params: UploadSignedDocumentParams,
+): Promise<UploadFileResult> => {
 
-  const bucket = process.env.DOCUMENT_BUCKET || 'dsap';  
-
-  const metadata: Record<string, string> = {
-    'entity-id': entityId,
-    'document-id': documentId,
-  };
-  
-  if (correlationId) {
-    metadata['correlation-id'] = correlationId;
-  }
-
-  return client.uploadFile({
-    bucket,
-    key: objectKey,
-    fileBuffer: pdfBuffer,
+  return params.client.uploadFile(uploadFileRequestSchema.parse({
+    ...params,
     contentType: 'application/pdf',
-    metadata,
-  });
+  }));
 };
 
-export interface DownloadDocumentOptions {
-  bucket?: string;
-  key: string;
-}
-
 export const downloadDocumentStream = (
-  { bucket, key }: DownloadDocumentOptions,
-  client: StorageProvider = internalStorageClient // Defaults to internal network client
-): Promise<DownloadResult> => {
-  const targetBucket = bucket || process.env.DOCUMENT_BUCKET || 'dsap';
-  return client.getFileStream(targetBucket, key);
+  params: DownloadDocumentStreamParams,
+): Promise<GetFileStreamResult> => {
+  return params.client.getFileStream(getFileStreamRequestSchema.parse(params));
 };

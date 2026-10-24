@@ -1,3 +1,2 @@
 // File: packages/contracts/esign/src/messaging/index.ts
-export * from './request-response';
-export * from './events';
+export * from './request-response.schema';

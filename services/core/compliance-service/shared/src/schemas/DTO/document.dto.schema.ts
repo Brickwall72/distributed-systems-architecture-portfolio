@@ -1,23 +1,24 @@
 // File: services/core/compliance-service/shared/src/schemas/DTO/document.dto.schema.ts
 import { z } from 'zod';
-import { StorageArtifactSchema } from '@contracts/common';
-import { TemplateIdSchema } from './template.dto.schema';
+import { transferTypeEnum } from '@contracts/common';
+import { formNameEnum, formTypeEnum } from './template.dto.schema';
 
 export const DocumentStatusSchema = z.enum([
-  'PENDING_SIGNATURE',
   'SIGNED',
-  'REJECTED',
-  'SUPERSEDED',
+  'IN_PROGRESS',
+  'PARTIALLY_COMPLETED',
+  'COMPLETED',
 ]);
 
 export type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
 
-export const DocumentSchema = StorageArtifactSchema.extend({
-  documentType: TemplateIdSchema,
+export const DocumentSchema = z.object({
+  name: formNameEnum,
+  type: formTypeEnum,
+  transferType: transferTypeEnum,
+  requisitionNumber: z.string(),
   status: DocumentStatusSchema,
-  signerId: z.string().optional(),
-  entityId: z.string().optional(),
-  transferEventId: z.string().uuid().nullable().optional(),
+  updatedAt: z.string().datetime(),
 });
 
 export type Document = z.infer<typeof DocumentSchema>;

@@ -98,10 +98,10 @@ export default function NetworkCanvas() {
       }
 
       transfer.assets.forEach((assetItem) => {
-        if (assetItem.assetId && transfer.requisitionNumber && assetItem.invStatus === 'IN_TRANSIT') {
+        if (assetItem.id && transfer.requisitionNumber && assetItem.status === 'IN_TRANSIT') {
           rawEdges.push({
             from: transfer.requisitionNumber,
-            to: assetItem.assetId,
+            to: assetItem.id,
             label: 'IN_TRANSIT',
             color: { color: '#f97316' },
             arrows: 'to',

@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  TemplateId,
+  FormName,
   TemplateDTO,
-  TemplateType,
+  FormType,
   TemplateManifest,
   GetTemplatesQuery,
 } from 'compliance-shared';
@@ -13,7 +13,8 @@ import {
 interface TemplateMetadata {
   name: string;
   fileName: string;
-  type: TemplateType;
+  type: FormType;
+  transferType: TemplateDTO['transferType'];
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,13 +41,13 @@ const getTemplateDirectory = (): string => {
 const TEMPLATES_DIR = getTemplateDirectory();
 
 // Load metadata from the JSON config alongside the assets
-const loadMetadata = (): Record<TemplateId, TemplateMetadata> => {
+const loadMetadata = (): Record<FormName, TemplateMetadata> => {
   const metadataPath = path.join(TEMPLATES_DIR, 'templates.json');
   if (fs.existsSync(metadataPath)) {
     const rawData = fs.readFileSync(metadataPath, 'utf-8');
-    return JSON.parse(rawData) as Record<TemplateId, TemplateMetadata>;
+    return JSON.parse(rawData) as Record<FormName, TemplateMetadata>;
   }
-  return {} as Record<TemplateId, TemplateMetadata>;
+  return {} as Record<FormName, TemplateMetadata>;
 };
 
 const templateCache = new Map<string, TemplateDTO>();
@@ -57,7 +58,7 @@ export const TemplateRepository = {
     if (!Object.prototype.hasOwnProperty.call(metadata, id)) {
       return null;
     }
-    const templateId = id as TemplateId;
+    const templateId = id as FormName;
 
     if (templateCache.has(templateId)) {
       return templateCache.get(templateId)!;
@@ -75,6 +76,7 @@ export const TemplateRepository = {
       id: templateId,
       name: meta.name,
       type: meta.type,
+      transferType: meta.transferType,
       rawHTML: html,
     };
 
@@ -85,14 +87,15 @@ export const TemplateRepository = {
   findAllManifests: (query?: GetTemplatesQuery): TemplateManifest[] => {
     const metadata = loadMetadata();
     
-    let manifests: TemplateManifest[] = Object.keys(metadata)
+    let manifests: TemplateManifest[] = (Object.keys(metadata) as FormName[])
       .filter((id) => id !== 'contract-test-bare')
       .map((id) => {
-        const meta = metadata[id as TemplateId];
+        const meta = metadata[id];
         return {
           id,
           name: meta.name,
           type: meta.type,
+          transferType: meta.transferType,
         };
       });
 

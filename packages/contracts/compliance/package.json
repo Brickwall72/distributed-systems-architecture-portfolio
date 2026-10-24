@@ -15,6 +15,7 @@
     "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly"
   },
   "dependencies": {
+    "@contracts/common": "workspace:*",
     "@contracts/topology": "workspace:*"
   },
   "peerDependencies": {

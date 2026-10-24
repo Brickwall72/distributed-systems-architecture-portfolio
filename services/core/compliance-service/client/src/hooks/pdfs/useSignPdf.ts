@@ -1,15 +1,16 @@
 // File: services/platform/compliance/client/src/hooks/pdfs/useSignPdf.ts
 import { useCallback, useState } from 'react';
 import { apiClient } from '../../api';
-import { StorageArtifact } from '@contracts/common';
+import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { z } from 'zod';
 
-export interface SignPdfParams {
-  storageArtifact: StorageArtifact;
-  documentId: string;
-  signerId: string;
-  entityId: string;
-  customPath?: string;
-  documentType?: string;
+export const signPdfParamsSchema = signDocumentApiRequestSchema.omit({signatureImageBase64: true}).extend({
+  signatureDataUrl: z.string(),
+});
+
+type SignPdfParams = {
+  params: z.infer<typeof signPdfParamsSchema>
+  readonly onSuccess: (signedBlobUrl: string) => void
 }
 
 export function useSignPdf() {
@@ -17,36 +18,18 @@ export function useSignPdf() {
   const [isSigned, setIsSigned] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const signPdf = useCallback(async (
-    params: SignPdfParams,
-    signatureDataUrl: string,
-    onSuccess: (signedBlobUrl: string) => void
-  ) => {
-    if (!params.storageArtifact) {
-      setError('No storage artifact available to sign.');
-      return;
-    }
+  const signPdf = useCallback(async ({params, onSuccess}: SignPdfParams) => {
 
     try {
       setIsSigning(true);
       setError(null);
 
-      const signatureImageBase64 = signatureDataUrl.includes(',')
-        ? signatureDataUrl.split(',')[1]
-        : signatureDataUrl;
-
+      const signatureImageBase64 = params.signatureDataUrl.includes(',')
+        ? params.signatureDataUrl.split(',')[1]
+        : params.signatureDataUrl;
+        
       const response = await apiClient.signDocument({
-        body: {
-          storageBucket: params.storageArtifact.storageBucket,
-          storageKey: params.storageArtifact.storageKey,
-          fileHash: params.storageArtifact.fileHash,
-          signatureImageBase64,
-          documentId: params.documentId,
-          documentType: params.documentType || 'forms',
-          signerId: params.signerId,
-          entityId: params.entityId,
-          customPath: params.customPath,
-        },
+        body: signDocumentApiRequestSchema.parse({...params, signatureImageBase64}),
       });
 
       if (response.status !== 200) {

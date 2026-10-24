@@ -18,12 +18,17 @@
   },
   "dependencies": {
     "@shared/express": "workspace:*",
+    "@shared/messaging": "workspace:*",
     "@contracts/topology": "workspace:*",
+    "@contracts/compliance": "workspace:*",
     "topology-shared": "workspace:*",
     "@ts-rest/core": "~3.52.1",
     "@ts-rest/express": "~3.52.1",
     "neo4j-driver": "~6.2.0",
     "zod": "~3.24.1",
     "express": "^4.0.0"
+  },
+  "devDependencies": {
+    "@shared/testing": "workspace:*"
   }
 }

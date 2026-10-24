@@ -1,9 +1,9 @@
-// File: services/core/compliance-service/client/src/hooks/documents/useDocuments.unit.test.ts
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { DocumentSchema } from 'compliance-shared';
+import { mockFromSchema } from '@shared/testing';
 import { useDocuments } from './useDocuments';
 import { apiClient } from '../../api';
 
-// Mock the apiClient module
 vi.mock('../../api', () => ({
   apiClient: {
     getDocuments: vi.fn(),
@@ -11,25 +11,15 @@ vi.mock('../../api', () => ({
 }));
 
 describe('useDocuments Hook', () => {
-  const mockValidDocument = {
-    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    documentType: 'asset-transfer-authorization',
-    storageBucket: 'compliance-vault',
-    storageKey: 'doc.pdf',
-    status: 'SIGNED',
-    createdAt: '2026-09-27T12:00:00.000Z',
-    updatedAt: '2026-09-27T12:00:00.000Z',
-  };
+  const mockDocument = () => mockFromSchema(DocumentSchema);
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('successfully fetches, validates, and returns documents on mount', async () => {
-    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
-      status: 200,
-      body: [mockValidDocument],
-    } as any);
+  it('fetches, validates, and returns documents on mount', async () => {
+    const docs = [mockDocument(), mockDocument()];
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({ status: 200, body: docs } as never);
 
     const { result } = renderHook(() => useDocuments());
 
@@ -38,7 +28,7 @@ describe('useDocuments Hook', () => {
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBeNull();
-      expect(result.current.documents).toEqual([mockValidDocument]);
+      expect(result.current.documents).toEqual(docs);
     });
 
     expect(apiClient.getDocuments).toHaveBeenCalledTimes(1);
@@ -48,7 +38,7 @@ describe('useDocuments Hook', () => {
     vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
       status: 500,
       body: { message: 'Internal server error' },
-    } as any);
+    } as never);
 
     const { result } = renderHook(() => useDocuments());
 
@@ -60,15 +50,9 @@ describe('useDocuments Hook', () => {
     expect(result.current.documents).toEqual([]);
   });
 
-  it('handles Zod validation failures when response body violates schema contract', async () => {
-    const invalidDocument = {
-      id: 'not-a-uuid', // Invalid schema shape
-    };
-
-    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
-      status: 200,
-      body: [invalidDocument],
-    } as any);
+  it('handles schema violations in the response body', async () => {
+    const invalid = { ...mockDocument(), status: 'NOT_A_STATUS' };
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({ status: 200, body: [invalid] } as never);
 
     const { result } = renderHook(() => useDocuments());
 
@@ -81,15 +65,10 @@ describe('useDocuments Hook', () => {
   });
 
   it('allows manual refetching via the refetch callback', async () => {
+    const docs = [mockDocument()];
     vi.mocked(apiClient.getDocuments)
-      .mockResolvedValueOnce({
-        status: 200,
-        body: [],
-      } as any)
-      .mockResolvedValueOnce({
-        status: 200,
-        body: [mockValidDocument],
-      } as any);
+      .mockResolvedValueOnce({ status: 200, body: [] } as never)
+      .mockResolvedValueOnce({ status: 200, body: docs } as never);
 
     const { result } = renderHook(() => useDocuments());
 
@@ -98,13 +77,12 @@ describe('useDocuments Hook', () => {
       expect(result.current.documents).toEqual([]);
     });
 
-    // Trigger refetch wrapped in act
     await act(async () => {
       await result.current.refetch();
     });
 
     await waitFor(() => {
-      expect(result.current.documents).toEqual([mockValidDocument]);
+      expect(result.current.documents).toEqual(docs);
       expect(result.current.error).toBeNull();
     });
 

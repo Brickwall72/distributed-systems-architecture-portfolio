@@ -2,8 +2,14 @@
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
+import { z } from 'zod';
+import { TemplateDTOSchema, TemplateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
+import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
-const { like, string, integer, arrayContaining } = MatchersV3;
+const { like, arrayContaining } = MatchersV3;
+
+const templateName = 'Asset Transfer Authorization';
+const PACT_SEED = 1;
 
 const provider = new PactV3({
   consumer: 'compliance-client',
@@ -27,11 +33,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: arrayContaining(
-          like({
-            id: string('t-123'),
-            name: string('Asset Transfer Authorization'),
-            type: string('AUTHORIZATION'),
-          })
+          like(mockFromSchema(TemplateManifestSchema, { name: templateName, type: 'AUTHORIZATION' }, { seed: PACT_SEED }))
         ),
       });
 
@@ -44,9 +46,8 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(200);
-      const body = response.body as Array<{ id: string; name: string; type: string }>;
+      const body = z.array(TemplateManifestSchema).parse(response.body);
       expect(body).toHaveLength(1);
-      expect(body[0].id).toBe('t-123');
       expect(body[0].type).toBe('AUTHORIZATION');
     });
   });
@@ -65,13 +66,14 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       .willRespondWith({
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: like({
-          id: string(templateId),
-          name: string('Asset Transfer Authorization'),
-          type: string('AUTHORIZATION'),
-          version: integer(1),
-          rawHTML: string('<div>Authorization Form HTML</div>'),
-        }),
+        body: like(
+          mockFromSchema(TemplateDTOSchema, {
+            id: templateId,
+            name: templateName,
+            type: 'AUTHORIZATION',
+            rawHTML: '<div>Authorization Form HTML</div>',
+          }, { seed: PACT_SEED }),
+        ),
       });
 
     await provider.executeTest(async (mockServer) => {
@@ -83,7 +85,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(200);
-      const body = response.body as { id: string; name: string; rawHTML: string };
+      const body = TemplateDTOSchema.parse(response.body);
       expect(body.id).toBe(templateId);
       expect(body.rawHTML).toContain('Authorization Form HTML');
     });
@@ -91,6 +93,14 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
 
   it('creates a template draft and returns StorageArtifact response with pre-signed URL', async () => {
     const templateId = 'asset-transfer-authorization';
+    const draftRequestBody = { data: { requisitionNumber: '', items: [] } };
+    const draftResponse = mockFromSchema(TemplateDraftResponseSchema, {
+      documentName: templateId,
+      // Optional in the schema; the pact must only require keys the provider guarantees to return.
+      jobId: undefined,
+      fileHash: SHA256_HEX,
+      presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
+    }, { seed: PACT_SEED });
 
     provider
       .given(`template with ID ${templateId} exists for drafting`)
@@ -99,49 +109,26 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         method: 'POST',
         path: `/compliance/api/v1/templates/${templateId}/drafts`,
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: like({
-          input: {
-            sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' },
-          },
-        }),
+        body: like(draftRequestBody),
       })
       .willRespondWith({
         status: 201,
         headers: { 'Content-Type': 'application/json' },
-        body: like({
-          id: string('3ef7a5e5-72d3-47df-a5d6-f3e871e34df9'),
-          storageBucket: string('drafts'),
-          storageKey: string('org-1/transfers/asset-transfer-authorization/document.pdf'),
-          fileHash: string('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
-          createdAt: string('2026-10-17T00:00:00.000Z'),
-          updatedAt: string('2026-10-17T00:00:00.000Z'),
-          presignedUrl: string('http://localhost:9000/dsap/test-document.pdf?signature=xyz'),
-        }),
+        body: like(draftResponse),
       });
 
     await provider.executeTest(async (mockServer) => {
       const response = await apiClient.createTemplateDraft({
         params: { id: templateId },
-        body: {
-          input: {
-            sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV' },
-          },
-        },
+        body: draftRequestBody,
         overrideClientOptions: {
           baseUrl: `${mockServer.url}/compliance/api/v1`,
         },
       });
 
       expect(response.status).toBe(201);
-      const body = response.body as {
-        id: string;
-        storageBucket: string;
-        storageKey: string;
-        fileHash: string;
-        presignedUrl: string;
-      };
-      expect(body.id).toBe('3ef7a5e5-72d3-47df-a5d6-f3e871e34df9');
-      expect(body.storageBucket).toBe('drafts');
+      const body = TemplateDraftResponseSchema.parse(response.body);
+      expect(body.documentName).toBe(templateId);
       expect(body.presignedUrl).toBeDefined();
     });
   });

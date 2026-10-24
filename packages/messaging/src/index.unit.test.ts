@@ -1,5 +1,12 @@
 // File: packages/messaging/src/index.unit.test.ts
 import { EventBroker, Logger } from './index.js';
+import { createCloudEventSchema, type CloudEvent } from '@contracts/common';
+import { z } from 'zod';
+import { zocker } from 'zocker';
+
+const eventSchema = createCloudEventSchema(z.object({ documentId: z.string().uuid() }));
+const mockEvent = (overrides: Partial<CloudEvent<{ documentId: string }>> = {}): CloudEvent<{ documentId: string }> =>
+  eventSchema.parse({ ...zocker(eventSchema).generate(), ...overrides });
 
 // Mocks for NATS transport and JetStream
 const mockNc = {
@@ -132,10 +139,10 @@ describe('EventBroker', () => {
 
     it('should encode payload as JSON and publish to target subject', async () => {
       const subject = 'events.esign.compliance.document.signed';
-      const payload = { documentId: '123e4567-e89b-12d3-a456-426614174000' };
-      const correlationId = 'cid_1002';
+      const payload = mockEvent({ type: subject, correlationId: 'cid_1002' });
+      const correlationId = payload.correlationId;
 
-      await broker.publish(subject, payload, correlationId);
+      await broker.publish(subject, payload);
 
       expect(mockJs.publish).toHaveBeenCalledTimes(1);
       const [pubSubject, pubPayload] = mockJs.publish.mock.calls[0];
@@ -153,7 +160,7 @@ describe('EventBroker', () => {
       mockJs.publish.mockRejectedValueOnce(error);
 
       await expect(
-        broker.publish('events.test', { foo: 'bar' }, 'cid_err')
+        broker.publish('events.test', mockEvent({ correlationId: 'cid_err' }))
       ).rejects.toThrow('Publish timeout');
 
       expect(logger.error).toHaveBeenCalledWith(

@@ -2,3 +2,4 @@
 export * from './types';
 export * from './s3-storage-client';
 export * from './in-memory-storage-client';
+export * from './storage-metadata';

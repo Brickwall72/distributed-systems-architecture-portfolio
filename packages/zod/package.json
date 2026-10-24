@@ -1,0 +1,22 @@
+{
+  "name": "@shared/zod",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run .unit.test"
+  },
+  "dependencies": {
+    "zod": "~3.24.1"
+  }
+}

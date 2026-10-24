@@ -1,18 +1,24 @@
 // File: services/core/compliance-service/server/src/repositories/documents/documents.repository.ts
 import { Pool } from 'pg';
 import { mapDbRowToDocument } from '../../mappers';
+import { formNameEnum, formTypeEnum } from 'compliance-shared';
+import { transferTypeEnum } from '@contracts/common';
+import { z } from 'zod';
 
-export interface UpsertComplianceDocumentInput {
-  id: string;
-  documentType: string;
-  bucket: string;
-  objectKey: string;
-  status: 'PENDING_SIGNATURE' | 'SIGNED' | 'REJECTED' | 'SUPERSEDED';
-  signerId?: string;
-  entityId?: string;
-  transferEventId?: string;
-  documentHash?: string;
-}
+export const insertInputSchema = z.object({
+  documentId: z.string().uuid(),
+  documentName: formNameEnum,
+  documentType: formTypeEnum,
+  transferType: transferTypeEnum,
+  requisitionNumber: z.string(),
+  storageBucket: z.string(),
+  storageKey: z.string(),
+  status: z.enum(['SIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED']),
+  signerId: z.string(),
+  fileHash: z.string(),
+})
+
+type InsertInputs = z.infer<typeof insertInputSchema>;
 
 export class ComplianceDocumentRepository {
   constructor(private readonly db: Pool) {}
@@ -32,34 +38,36 @@ export class ComplianceDocumentRepository {
     };
   }
 
-  async upsert(data: UpsertComplianceDocumentInput): Promise<ReturnType<typeof mapDbRowToDocument>> {
+  async insert(data: InsertInputs): Promise<ReturnType<typeof mapDbRowToDocument>> {
     const query = `
       INSERT INTO compliance_documents (
-        id, document_type, bucket, object_key, status, signer_id, entity_id, transfer_event_id, document_hash, updated_at
+        id, name, type, transfer_type, requisition_number, storage_bucket, storage_key, status, signer_id, file_hash
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (id) DO UPDATE SET
-        document_type = EXCLUDED.document_type,
-        bucket = EXCLUDED.bucket,
-        object_key = EXCLUDED.object_key,
+        name = EXCLUDED.name,
+        type = EXCLUDED.type,
+        transfer_type = EXCLUDED.transfer_type,
+        requisition_number = EXCLUDED.requisition_number,
+        storage_bucket = EXCLUDED.storage_bucket,
+        storage_key = EXCLUDED.storage_key,
         status = EXCLUDED.status,
-        signer_id = COALESCE(EXCLUDED.signer_id, compliance_documents.signer_id),
-        entity_id = COALESCE(EXCLUDED.entity_id, compliance_documents.entity_id),
-        document_hash = COALESCE(EXCLUDED.document_hash, compliance_documents.document_hash),
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING id, document_type, bucket, object_key, status, signer_id, entity_id, transfer_event_id, document_hash, created_at, updated_at;
+        signer_id = EXCLUDED.signer_id,
+        file_hash = EXCLUDED.file_hash
+      RETURNING *;
     `;
 
     const values = [
-      data.id,
+      data.documentId,
+      data.documentName,
       data.documentType,
-      data.bucket,
-      data.objectKey,
+      data.transferType,
+      data.requisitionNumber,
+      data.storageBucket,
+      data.storageKey,
       data.status,
-      data.signerId || null,
-      data.entityId || null,
-      data.transferEventId || null,
-      data.documentHash || null,
+      data.signerId,
+      data.fileHash,
     ];
 
     const { rows } = await this.db.query(query, values);
@@ -68,7 +76,7 @@ export class ComplianceDocumentRepository {
 
   async findAll(): Promise<ReturnType<typeof mapDbRowToDocument>[]> {
     const query = `
-      SELECT id, document_type, bucket, object_key, status, signer_id, entity_id, transfer_event_id, document_hash, created_at, updated_at
+      SELECT *
       FROM compliance_documents
       ORDER BY created_at DESC;
     `;
@@ -78,7 +86,7 @@ export class ComplianceDocumentRepository {
 
   async findById(id: string): Promise<ReturnType<typeof mapDbRowToDocument> | null> {
     const query = `
-      SELECT id, document_type, bucket, object_key, status, signer_id, entity_id, transfer_event_id, document_hash, created_at, updated_at
+      SELECT *
       FROM compliance_documents
       WHERE id = $1;
     `;
