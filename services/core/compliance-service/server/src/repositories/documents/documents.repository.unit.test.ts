@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { mockFromSchema } from '@shared/testing';
-import { ComplianceDocumentRepository, insertInputSchema } from './documents.repository';
+import { DocumentsRepository, insertDataSchema } from './documents.repository';
 import { documentEntitySchema, type DocumentEntity } from '../../domain';
 
 const toDbRow = (entity: DocumentEntity, overrides: Record<string, unknown> = {}) => ({
@@ -20,19 +20,19 @@ const toDbRow = (entity: DocumentEntity, overrides: Record<string, unknown> = {}
   ...overrides,
 });
 
-describe('ComplianceDocumentRepository', () => {
-  let repository: ComplianceDocumentRepository;
+describe('DocumentsRepository', () => {
+  let repository: DocumentsRepository;
   let mockPool: { query: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockPool = { query: vi.fn() };
-    repository = new ComplianceDocumentRepository(mockPool as unknown as Pool);
+    repository = new DocumentsRepository(mockPool as unknown as Pool);
   });
 
   describe('insert', () => {
     it('persists a schema-generated document and returns a valid entity', async () => {
-      const input = mockFromSchema(insertInputSchema);
+      const input = mockFromSchema(insertDataSchema);
       const entity = mockFromSchema(documentEntitySchema, {
         id: input.documentId,
         name: input.documentName,
@@ -62,6 +62,7 @@ describe('ComplianceDocumentRepository', () => {
         input.status,
         input.signerId,
         input.fileHash,
+        input.transferEventId ?? null,
       ]);
       expect(documentEntitySchema.parse(result)).toEqual(entity);
     });

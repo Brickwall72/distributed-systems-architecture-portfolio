@@ -1,72 +1,8 @@
-// File: services/core/topology-service/src/topologyDatabase.ts
-import neo4j, { Driver } from 'neo4j-driver';
+// File: services/core/topology-service/server/src/database/seed.ts
+import { Driver } from 'neo4j-driver';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('topology-service');
-
-const DB_URI = process.env.DB_URI || 'bolt://localhost:7687';
-const DB_USER = process.env.DB_USER || 'neo4j';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'password';
-
-let driverInstance: Driver | null = null;
-
-export async function initializeDatabaseConnection(
-  retries = Number.parseInt(process.env.DB_CONNECT_RETRIES || '30', 10),
-  delayMs = Number.parseInt(process.env.DB_CONNECT_RETRY_DELAY_MS || '3000', 10)
-): Promise<Driver> {
-  logger.info(`Attempting secure connection to graph infrastructure node at URI: [${DB_URI}]`);
-
-  const connect = async (attempt: number): Promise<Driver> => {
-    try {
-      driverInstance = neo4j.driver(DB_URI, neo4j.auth.basic(DB_USER, DB_PASSWORD), {
-        maxConnectionPoolSize: 50,
-        connectionTimeout: 5000
-      });
-
-      await driverInstance.verifyConnectivity();
-      logger.info('Successfully established connection to Neo4j graph cluster node.');
-
-      await seedSpaceCustodyGraphTopology();
-      return driverInstance;
-    } catch (caughtError: any) {
-      logger.warn(`Database connection handshake failed (Attempt ${attempt}/${retries}): ${caughtError.message}`);
-
-      if (driverInstance) {
-        await driverInstance.close();
-        driverInstance = null;
-      }
-
-      if (attempt === retries) {
-        logger.error('Critical: Max graph database connection attempts exhausted. Aborting startup.');
-        throw caughtError;
-      }
-
-      return new Promise<Driver>((resolve, reject) => {
-        setTimeout(() => {
-          connect(attempt + 1).then(resolve).catch(reject);
-        }, delayMs);
-      });
-    }
-  };
-
-  return connect(1);
-}
-
-export function getDatabaseClient(): Driver {
-  if (!driverInstance) {
-    throw new Error('Database client invoked before connection initialization sequence completed.');
-  }
-  return driverInstance;
-}
-
-export async function terminateDatabaseClient(): Promise<void> {
-  if (driverInstance) {
-    logger.info('Draining active graph database connection pool sockets safely...');
-    await driverInstance.close();
-    driverInstance = null;
-    logger.info('Database socket pool drained cleanly.');
-  }
-}
 
 /**
  * Seeds a comprehensive KSP custody network containing:
@@ -74,10 +10,8 @@ export async function terminateDatabaseClient(): Promise<void> {
  * 2. Multi-asset transfer events with partial completion states.
  * 3. Assets with multi-hop historical transfer trails over time.
  */
-async function seedSpaceCustodyGraphTopology(): Promise<void> {
-  if (!driverInstance) return;
-
-  const session = driverInstance.session();
+export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<void> {
+  const session = driver.session();
 
   try {
     logger.info('Executing programmatic advanced KSP custody node schema seeding...');
@@ -125,9 +59,9 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
       // ==========================================
       // 3. MULTI-ASSET TRANSFER EVENT (Partial Completion)
       // ==========================================
-      MERGE (multiEvent:TransferEvent { requisitionNumber: 'REQ-KSP-MULTI-001' })
+      MERGE (multiEvent:TransferEvent { id: 'REQ-KSP-MULTI-001' })
         ON CREATE SET 
-          multiEvent.id = 'REQ-KSP-MULTI-001',
+          multiEvent.requisitionNumber = 'REQ-KSP-MULTI-001',
           multiEvent.date = '20260915',
           multiEvent.type = 'PHYSICAL_TRANSFER',
           multiEvent.status = 'PARTIALLY_COMPLETED'
@@ -171,9 +105,9 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
           historicalAsset.status = 'AVAILABLE'
 
       // Hop 1: Reaction Engines -> Jeb's Junkyard (Past Event)
-      MERGE (eventHop1:TransferEvent { requisitionNumber: 'REQ-KSP-HIST-001' })
+      MERGE (eventHop1:TransferEvent { id: 'REQ-KSP-HIST-001' })
         ON CREATE SET 
-          eventHop1.id = 'REQ-KSP-HIST-001',
+          eventHop1.requisitionNumber = 'REQ-KSP-HIST-001',
           eventHop1.date = '20260110',
           eventHop1.type = 'PHYSICAL_TRANSFER',
           eventHop1.status = 'COMPLETED'
@@ -183,9 +117,9 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
       MERGE (eventHop1)-[:INVOLVES { itemNumber: '0001', status: 'RECEIVED' }]->(historicalAsset)
 
       // Hop 2: Jeb's Junkyard -> KSC (Most Recent Completed Event)
-      MERGE (eventHop2:TransferEvent { requisitionNumber: 'REQ-KSP-HIST-002' })
+      MERGE (eventHop2:TransferEvent { id: 'REQ-KSP-HIST-002' })
         ON CREATE SET 
-          eventHop2.id = 'REQ-KSP-HIST-002',
+          eventHop2.requisitionNumber = 'REQ-KSP-HIST-002',
           eventHop2.date = '20260801',
           eventHop2.type = 'PHYSICAL_TRANSFER',
           eventHop2.status = 'COMPLETED'
@@ -208,5 +142,3 @@ async function seedSpaceCustodyGraphTopology(): Promise<void> {
     await session.close();
   }
 }
-
-export { seedSpaceCustodyGraphTopology };

@@ -1,10 +1,11 @@
+// File: services/core/compliance-service/server/src/routes/documents/documents.route.unit.test.ts
 import { createDocumentsRouter } from './documents.route';
-import { insertInputSchema } from '../../repositories';
+import { DocumentsRepository, insertDataSchema } from '../../repositories';
 import { documentEntitySchema } from '../../domain';
-import { complianceTransferInitiatedDataSchema, complianceTransferReceivedDataSchema, type CompliancePublisher } from '../../messaging';
+import type { CompliancePublisher } from '../../messaging';
 import { EventBroker } from '@shared/messaging';
 import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
-import { TransferInitiatedDataSchema, TransferReceivedDataSchema } from '@contracts/compliance';
+import { transferInitiatedDataSchema } from '@contracts/compliance';
 import { DocumentSchema, signDocumentApiRequestSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
@@ -22,7 +23,7 @@ vi.mock('../../repositories', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../repositories')>();
   return {
     ...actual,
-    ComplianceDocumentRepository: class {
+    DocumentsRepository: class {
       findAll = () => mockFindAll();
       findById = (id: string) => mockFindById(id);
       insert = (data: unknown) => mockInsert(data);
@@ -40,14 +41,17 @@ describe('Documents Router Unit Tests', () => {
   let router: ReturnType<typeof createDocumentsRouter>;
   let mockBroker: { request: ReturnType<typeof vi.fn> };
   let mockPublisher: { publishTransferInitiated: ReturnType<typeof vi.fn>; publishTransferReceived: ReturnType<typeof vi.fn> };
+  let repository: DocumentsRepository;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockBroker = { request: vi.fn() };
     mockPublisher = { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() };
+    repository = new DocumentsRepository({} as never);
     router = createDocumentsRouter({
       broker: mockBroker as unknown as EventBroker,
       publisher: mockPublisher as unknown as CompliancePublisher,
+      repository,
     });
   });
 
@@ -136,26 +140,25 @@ describe('Documents Router Unit Tests', () => {
       expect(SignDocumentCommandSchema.parse(payload)).toEqual(payload);
       expect(options).toEqual({ timeout: 10000, correlationId: 'test-corr-2' });
 
-      expect(insertInputSchema.parse(mockInsert.mock.calls[0][0])).toMatchObject({ status: 'SIGNED', fileHash: response.fileHash });
+      expect(insertDataSchema.parse(mockInsert.mock.calls[0][0])).toMatchObject({ status: 'SIGNED', fileHash: response.fileHash });
 
       const [eventData, correlationId] = mockPublisher.publishTransferInitiated.mock.calls[0];
-      expect(complianceTransferInitiatedDataSchema.parse(eventData)).toEqual(eventData);
-      expect(TransferInitiatedDataSchema.parse(eventData)).toEqual(eventData);
+      expect(transferInitiatedDataSchema.parse(eventData)).toEqual(eventData);
       expect(correlationId).toBe('test-corr-2');
       expect(mockPublisher.publishTransferReceived).not.toHaveBeenCalled();
     });
 
-    it('publishes a transfer-received event for RECEIPT documents', async () => {
+    it('does not publish transfer-received for RECEIPT documents until the transferId lookup exists', async () => {
       mockBroker.request.mockResolvedValueOnce(signResponse());
       mockInsert.mockResolvedValueOnce(mockEntity({ type: 'RECEIPT' }));
 
       const result = await router.signDocument(request({}, { body: signBody({ documentType: 'RECEIPT' }) }));
 
       expect(result.status).toBe(200);
-      const [eventData] = mockPublisher.publishTransferReceived.mock.calls[0];
-      expect(complianceTransferReceivedDataSchema.parse(eventData)).toEqual(eventData);
-      expect(TransferReceivedDataSchema.parse(eventData)).toEqual(eventData);
+      expect(mockPublisher.publishTransferReceived).not.toHaveBeenCalled();
     });
+
+    it.todo('publishes a transfer-received event with the transferId looked up from the compliance database');
 
     it('returns 500 when the esign service reports failure', async () => {
       mockBroker.request.mockResolvedValueOnce(signResponse({ success: false }));

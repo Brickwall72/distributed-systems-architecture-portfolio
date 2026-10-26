@@ -74,7 +74,7 @@ export class ObjectStorageClient implements StorageProvider {
     };
   }
 
-  async getSignedDownloadUrl(
+  getSignedDownloadUrl(
     {storageBucket, storageKey, expiresInSeconds}: GetSignedDownloadUrlRequest
   ): Promise<string> {
     const command = new GetObjectCommand({

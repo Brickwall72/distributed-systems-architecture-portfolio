@@ -5,7 +5,9 @@ import { createComplianceGateway } from './routes';
 import { initDatabase, pool } from './db';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
-import { CompliancePublisher } from './messaging';
+import { TransferService } from './services';
+import { DocumentsRepository } from './repositories';
+import { CompliancePublisher, ComplianceEventConsumer } from './messaging';
 import { env } from './config';
 
 const app = express();
@@ -91,14 +93,17 @@ async function bootstrapApplicationServer() {
     logger.info('Compliance database connection established.');
 
     await broker.connect();
-
     // 1. Initialize Outbound Compliance Event Publisher
+    const repository = new DocumentsRepository(pool);
+    const transferService = new TransferService(repository);
+    const consumer = new ComplianceEventConsumer(broker, transferService);
+    await consumer.start();
     const publisher = new CompliancePublisher(broker);
     await publisher.init();
     logger.info('Compliance event publisher initialized.');
 
     // 2. Inject publisher into gateway factory routes
-    const complianceGateway = createComplianceGateway({ broker, publisher });
+    const complianceGateway = createComplianceGateway({broker, publisher, repository});
     app.use('/api/v1', complianceGateway);
 
     server = app.listen(env.PORT, '0.0.0.0', () => {

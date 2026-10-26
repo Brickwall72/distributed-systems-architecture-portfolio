@@ -3,9 +3,13 @@ import express from 'express';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
-import { initializeDatabaseConnection, terminateDatabaseClient, getDatabaseClient } from './topologyDatabase';
 import { TransfersRepository } from './repositories';
-import { ComplianceEventConsumer } from './messaging';
+import { TransferService } from './services';
+import { ComplianceEventConsumer, TopologyPublisher } from './messaging';
+import {
+  initializeDatabaseConnection, terminateDatabaseClient,
+  getDatabaseClient, seedSpaceCustodyGraphTopology
+} from './database';
 
 const app = express();
 const PORT = 8080;
@@ -61,7 +65,8 @@ async function bootstrapApplicationServer() {
 
   try {
     if (process.env.NODE_ENV !== 'test') {
-      await initializeDatabaseConnection();
+      const driver = await initializeDatabaseConnection();
+      await seedSpaceCustodyGraphTopology(driver);
     }
 
     // Connect NATS Event Broker and start Topology Event Consumer
@@ -69,7 +74,10 @@ async function bootstrapApplicationServer() {
     logger.info('NATS broker connected.');
 
     const transfersRepository = new TransfersRepository(getDatabaseClient());
-    const topologyConsumer = new ComplianceEventConsumer(broker, transfersRepository);
+    const publisher = new TopologyPublisher(broker);
+    await publisher.init();
+    const transferService = new TransferService(transfersRepository, publisher);
+    const topologyConsumer = new ComplianceEventConsumer(broker, transferService);
     await topologyConsumer.start();
     logger.info('Topology event consumer started and listening for transfer events.');
 

@@ -1,7 +1,8 @@
+// File: services/core/compliance-service/server/src/routes/documents/documents.route.contract-boundary.unit.test.ts
 import { zocker } from 'zocker';
 import { SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
 import { signDocumentApiRequestSchema } from 'compliance-shared';
-import { insertInputSchema } from '../../repositories';
+import { insertDataSchema } from '../../repositories';
 
 describe('compliance documents: HTTP/API schemas vs shared esign messaging contract', () => {
   it('the API request is a superset of the shared esign command', () => {
@@ -21,7 +22,7 @@ describe('compliance documents: HTTP/API schemas vs shared esign messaging contr
     const fromResponse = ['storageBucket', 'storageKey', 'fileHash'];
     for (const key of fromResponse) {
       expect(Object.keys(SignDocumentResponseSchema.shape)).toContain(key);
-      expect(Object.keys(insertInputSchema.shape)).toContain(key);
+      expect(Object.keys(insertDataSchema.shape)).toContain(key);
     }
   });
 });

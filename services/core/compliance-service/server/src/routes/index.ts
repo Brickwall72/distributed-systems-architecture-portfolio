@@ -3,15 +3,15 @@ import { Router } from 'express';
 import { createExpressEndpoints } from '@ts-rest/express';
 import { createHealthCheck } from '@shared/express';
 import { complianceContract } from 'compliance-shared';
-import { createTemplatesRouter } from './templates';
-import { createDocumentsRouter } from './documents';
-import { EventBroker } from '@shared/messaging';
-import { CompliancePublisher } from '../messaging';
+import { createTemplatesRouter, templatesRouterDepsSchema } from './templates';
+import { createDocumentsRouter, documentsRouterDepsSchema } from './documents';
+import { z } from 'zod';
 
-interface ComplianceGatewayDeps {
-  broker: EventBroker;
-  publisher: CompliancePublisher
-}
+export const complianceGatewayDepsSchema = z.object({
+  ...templatesRouterDepsSchema.shape,
+  ...documentsRouterDepsSchema.shape,
+})
+type ComplianceGatewayDeps = z.infer<typeof complianceGatewayDepsSchema>;
 
 export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   const router = Router();
@@ -19,8 +19,8 @@ export function createComplianceGateway(deps: ComplianceGatewayDeps): Router {
   /* Container health endpoint used by orchestrators and deployment monitors */
   router.get('/health', createHealthCheck('compliance-server'));
 
-  const templatesRouter = createTemplatesRouter({ broker: deps.broker });
-  const documentsRouter = createDocumentsRouter(deps);
+  const templatesRouter = createTemplatesRouter(templatesRouterDepsSchema.parse(deps));
+  const documentsRouter = createDocumentsRouter(documentsRouterDepsSchema.parse(deps));
 
   createExpressEndpoints(
     complianceContract,

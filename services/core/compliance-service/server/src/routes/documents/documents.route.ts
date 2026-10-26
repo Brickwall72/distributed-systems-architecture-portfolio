@@ -2,30 +2,30 @@
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
 import { documentsRoutes, DocumentSchema } from 'compliance-shared';
-import { ComplianceDocumentRepository, insertInputSchema } from '../../repositories';
-import { pool } from '../../db';
+import { DocumentsRepository, insertDataSchema } from '../../repositories';
 import { EventBroker } from '@shared/messaging';
 import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
-import { 
-  CompliancePublisher, 
-  complianceTransferInitiatedDataSchema, 
-  complianceTransferReceivedDataSchema 
+import {
+  CompliancePublisher, publishtransferInitiatedDataSchema,
 } from '../../messaging';
+import { z } from 'zod';
+
+export const documentsRouterDepsSchema = z.object({
+  broker: z.instanceof(EventBroker),
+  publisher: z.instanceof(CompliancePublisher),
+  repository: z.instanceof(DocumentsRepository),
+})
+type DocumentsRouterDeps = z.infer<typeof documentsRouterDepsSchema>;
 
 const logger = createLogger('compliance-server:documents');
 const s = initServer();
-const repository = new ComplianceDocumentRepository(pool);
-
-interface DocumentsRouterDeps {
-  broker: EventBroker;
-  publisher: CompliancePublisher;
-}
 
 export function createDocumentsRouter(deps: DocumentsRouterDeps) {
   return s.router(documentsRoutes, {
     getDocuments: async ({ req }) => {
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug('Retrieving all compliance records from database.', correlationId);
+      const { repository } = deps;
 
       try {
         const documents = await repository.findAll();
@@ -46,6 +46,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
     getDocumentById: async ({ params: { id }, req }) => {
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug(`Retrieving document record for ID: ${id}`, correlationId);
+      const { repository } = deps;
 
       try {
         const document = await repository.findById(id);
@@ -78,7 +79,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
     signDocument: async ({ body, req }) => {
       const correlationId = (req.headers['x-correlation-id'] as string);
       logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
-      const { broker, publisher } = deps;
+      const { broker, publisher, repository } = deps;
       try {
         const responseData = SignDocumentResponseSchema.parse(await broker.request(
           ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
@@ -91,25 +92,19 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         }
 
         // Await upsert indexing before querying repository
-        const document = await repository.insert(insertInputSchema.parse({...body, ...responseData, status: 'SIGNED'}));
+        const document = await repository.insert(insertDataSchema.parse({...body, ...responseData, status: 'SIGNED'}));
 
         if(document.type === 'AUTHORIZATION'){
-          const data = complianceTransferInitiatedDataSchema.parse({
-            ...body, 
+          const data = publishtransferInitiatedDataSchema.parse({
+            ...body,
             ...responseData,
             ...document,
-            date: document.createdAt,
           });
           void publisher.publishTransferInitiated(data, correlationId)
-        } else if (document.type === 'RECEIPT') {
-          const data = complianceTransferReceivedDataSchema.parse({
-            ...body, 
-            ...responseData,
-            ...document,
-          });
-          void publisher.publishTransferReceived(data, correlationId)
         }
-        
+        // TODO: publish transfer-received for RECEIPT documents once the transferId
+        // can be looked up from the compliance database (linked via topology's created event).
+
         return {
           status: 200 as const,
           body: { presignedUrl: responseData.presignedUrl },

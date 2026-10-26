@@ -2,7 +2,7 @@
 import { initServer } from '@ts-rest/express';
 import { graphRoutes } from 'topology-shared';
 import { GraphRepository } from '../../repositories';
-import { getDatabaseClient } from '../../topologyDatabase';
+import { getDatabaseClient } from '../../database';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('topology/graph');

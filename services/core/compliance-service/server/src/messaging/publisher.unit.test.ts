@@ -3,10 +3,15 @@ import type { EventBroker } from '@shared/messaging';
 import {
   COMPLIANCE_EVENT_SUBJECTS,
   COMPLIANCE_EVENT_TYPES,
-  TransferInitiatedEventSchema,
+  transferInitiatedEventSchema,
   TransferReceivedEventSchema,
+  transferReceivedDataSchema,
 } from '@contracts/compliance';
-import { CompliancePublisher, complianceTransferInitiatedDataSchema, complianceTransferReceivedDataSchema } from './publisher';
+import {
+  CompliancePublisher,
+  publishTransferInitiatedInputSchema,
+  publishtransferInitiatedDataSchema,
+} from './publisher';
 
 vi.mock('@shared/express', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
@@ -27,18 +32,23 @@ describe('CompliancePublisher', () => {
   });
 
   it('publishes a CloudEvent satisfying the shared transfer-initiated schema', async () => {
-    const data = zocker(complianceTransferInitiatedDataSchema).generate();
+    const input = zocker(publishTransferInitiatedInputSchema).generate();
+    const data = publishtransferInitiatedDataSchema.parse(input);
 
     await publisher.publishTransferInitiated(data, 'cid_test');
 
     const [subject, event] = broker.publish.mock.calls[0];
     expect(subject).toBe(COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED);
-    expect(TransferInitiatedEventSchema.parse(event)).toEqual(event);
-    expect(event).toMatchObject({ type: COMPLIANCE_EVENT_TYPES.TRANSFER_INITIATED, correlationId: 'cid_test', data });
+    expect(transferInitiatedEventSchema.parse(event)).toEqual(event);
+    expect(event).toMatchObject({
+      type: COMPLIANCE_EVENT_TYPES.TRANSFER_INITIATED,
+      correlationId: 'cid_test',
+      data,
+    });
   });
 
   it('publishes a CloudEvent satisfying the shared transfer-received schema and generates a correlation id when absent', async () => {
-    const data = zocker(complianceTransferReceivedDataSchema).generate();
+    const data = zocker(transferReceivedDataSchema).generate();
 
     await publisher.publishTransferReceived(data);
 

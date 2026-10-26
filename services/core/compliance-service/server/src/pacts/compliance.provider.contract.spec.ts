@@ -4,8 +4,10 @@ import type { Server } from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { createComplianceGateway } from '../routes';
-import type { CompliancePublisher } from '../messaging';
-import type { EventBroker } from '@shared/messaging';
+import { CompliancePublisher } from '../messaging';
+import { EventBroker } from '@shared/messaging';
+import { DocumentsRepository } from '../repositories';
+import type { Pool } from 'pg';
 import { PDF_SUBJECTS, generatePdfResponseSchema } from '@contracts/pdf';
 import { SignDocumentResponseSchema } from '@contracts/esign';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
@@ -27,7 +29,7 @@ vi.mock('../repositories', async (importOriginal) => {
 
   return {
     ...actual,
-    ComplianceDocumentRepository: class {
+    DocumentsRepository: class {
       findAll = () => entity().then((doc) => [doc]);
       findById = (id: string) => entity({ id });
       insert = () => entity({ type: 'AUTHORIZATION', name: 'asset-transfer-authorization' });
@@ -57,8 +59,8 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
     const app = express();
     app.use(express.json());
 
-    const mockBroker = {
-      request: vi.fn((subject: string) => {
+    const mockBroker = new EventBroker('nats://provider-test');
+    mockBroker.request = vi.fn((subject: string) => {
         if (subject === PDF_SUBJECTS.GENERATE_PDF) {
           return Promise.resolve(
             mockFromSchema(generatePdfResponseSchema, { success: true, fileHash: SHA256_HEX }, { seed: 1 }),
@@ -67,13 +69,16 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
         return Promise.resolve(
           mockFromSchema(SignDocumentResponseSchema, { success: true, fileHash: SHA256_HEX }, { seed: 1 }),
         );
-      }),
-    };
-    const mockPublisher = { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() };
+      }) as typeof mockBroker.request;
+    const mockPublisher = new CompliancePublisher(mockBroker);
+    mockPublisher.publishTransferInitiated = vi.fn();
+    mockPublisher.publishTransferReceived = vi.fn();
+    const repository = new DocumentsRepository({} as Pool);
 
     const gateway = createComplianceGateway({
-      broker: mockBroker as unknown as EventBroker,
-      publisher: mockPublisher as unknown as CompliancePublisher,
+      broker: mockBroker,
+      publisher: mockPublisher,
+      repository,
     });
 
     app.use('/compliance/api/v1', gateway);

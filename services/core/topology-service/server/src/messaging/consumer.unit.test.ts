@@ -1,8 +1,17 @@
+// File: services/core/topology-service/server/src/messaging/consumer.unit.test.ts
 import type { EventBroker } from '@shared/messaging';
-import { COMPLIANCE_EVENT_SUBJECTS, TransferInitiatedEventSchema, TransferReceivedEventSchema } from '@contracts/compliance';
-import { mockFromSchema } from '@shared/testing';
+import {
+  COMPLIANCE_EVENT_SUBJECTS,
+  transferInitiatedEventSchema,
+  TransferReceivedEventSchema,
+} from '@contracts/compliance';
+import { zocker } from 'zocker';
 import { ComplianceEventConsumer } from './consumer';
-import { handleTransferInitiatedParamsSchema, handleTransferReceivedParamsSchema, type TransfersRepository } from '../repositories';
+import {
+  handletransferReceivedDataSchema,
+  handleTransferInitiatedDataSchema,
+  type TransferService,
+} from '../services';
 
 vi.mock('@shared/express', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
@@ -12,22 +21,30 @@ type Handler = (event: unknown, ack: () => void) => Promise<void>;
 
 describe('ComplianceEventConsumer', () => {
   let broker: { ensureStream: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> };
-  let repo: { handleTransferInitiated: ReturnType<typeof vi.fn>; handleTransferReceived: ReturnType<typeof vi.fn> };
+  let transferService: {
+    handleTransferInitiated: ReturnType<typeof vi.fn>;
+    handleTransferReceived: ReturnType<typeof vi.fn>;
+  };
   const handlers: Record<string, Handler> = {};
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    delete handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED];
+    delete handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_RECEIVED];
     broker = {
       ensureStream: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn(async (_stream: string, _durable: string, handler: Handler, filter: string) => {
         handlers[filter] = handler;
       }),
     };
-    repo = {
+    transferService = {
       handleTransferInitiated: vi.fn().mockResolvedValue(undefined),
       handleTransferReceived: vi.fn().mockResolvedValue(undefined),
     };
-    await new ComplianceEventConsumer(broker as unknown as EventBroker, repo as unknown as TransfersRepository).start();
+    await new ComplianceEventConsumer(
+      broker as unknown as EventBroker,
+      transferService as unknown as TransferService,
+    ).start();
   });
 
   it('ensures the compliance stream and subscribes to both transfer subjects', () => {
@@ -40,52 +57,51 @@ describe('ComplianceEventConsumer', () => {
     ].sort());
   });
 
-  it('maps a globally-contracted initiated event onto the repository params and acks', async () => {
-    const event = mockFromSchema(TransferInitiatedEventSchema);
+  it('maps an initiated event for the transfer service and acks after it succeeds', async () => {
+    const event = zocker(transferInitiatedEventSchema).generate();
     const ack = vi.fn();
 
     await handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED](event, ack);
 
-    const [params] = repo.handleTransferInitiated.mock.calls[0];
-    expect(handleTransferInitiatedParamsSchema.parse(params)).toEqual({
-      requisitionNumber: event.data.requisitionNumber,
-      assetIds: event.data.assetIds,
-      date: event.data.date,
-      type: event.data.transferType,
-      senderOrgId: event.data.senderOrgId,
-      receiverOrgId: event.data.receiverOrgId,
-    });
+    expect(transferService.handleTransferInitiated).toHaveBeenCalledWith(
+      handleTransferInitiatedDataSchema.parse(event.data),
+    );
     expect(ack).toHaveBeenCalledTimes(1);
   });
 
-  it('passes a globally-contracted received event to the repository and acks', async () => {
-    const event = mockFromSchema(TransferReceivedEventSchema);
+  it('passes a received event to the transfer service and acks after it succeeds', async () => {
+    const event = zocker(TransferReceivedEventSchema).generate();
     const ack = vi.fn();
 
     await handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_RECEIVED](event, ack);
 
-    expect(repo.handleTransferReceived).toHaveBeenCalledWith(handleTransferReceivedParamsSchema.parse(event.data));
+    expect(transferService.handleTransferReceived).toHaveBeenCalledWith(
+      handletransferReceivedDataSchema.parse(event.data),
+    );
     expect(ack).toHaveBeenCalledTimes(1);
   });
 
   it('does not ack when the payload violates the local schema', async () => {
-    const event = mockFromSchema(TransferReceivedEventSchema);
+    const event = zocker(TransferReceivedEventSchema).generate();
     const ack = vi.fn();
 
     await expect(
       handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_RECEIVED]({ ...event, data: { assetIds: 'nope' } }, ack),
     ).rejects.toThrow();
-    expect(repo.handleTransferReceived).not.toHaveBeenCalled();
+    expect(transferService.handleTransferReceived).not.toHaveBeenCalled();
     expect(ack).not.toHaveBeenCalled();
   });
 
-  it('does not ack when the repository fails', async () => {
-    repo.handleTransferInitiated.mockRejectedValueOnce(new Error('neo4j down'));
+  it('does not ack when the transfer service fails', async () => {
+    transferService.handleTransferInitiated.mockRejectedValueOnce(new Error('transfer service failed'));
     const ack = vi.fn();
 
     await expect(
-      handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED](mockFromSchema(TransferInitiatedEventSchema), ack),
-    ).rejects.toThrow('neo4j down');
+      handlers[COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED](
+        zocker(transferInitiatedEventSchema).generate(),
+        ack,
+      ),
+    ).rejects.toThrow('transfer service failed');
     expect(ack).not.toHaveBeenCalled();
   });
 });

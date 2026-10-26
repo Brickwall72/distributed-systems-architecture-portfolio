@@ -4,7 +4,7 @@ import type { AssetDTOList } from '@contracts/topology';
 import { assetsRoutes } from 'topology-shared';
 import { AssetsRepository } from '../../repositories';
 import { assetEntityToDTO } from '../../mappers';
-import { getDatabaseClient } from '../../topologyDatabase';
+import { getDatabaseClient } from '../../database';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('topology/assets');
