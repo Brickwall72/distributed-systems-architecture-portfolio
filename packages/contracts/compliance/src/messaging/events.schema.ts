@@ -14,20 +14,22 @@ export const COMPLIANCE_EVENT_SUBJECTS = {
   WILDCARD_ALL: 'events.compliance.>',
 } as const;
 
-export const TransferReceivedDataSchema = z.object({
-  requisitionNumber: z.string(),
+export const transferReceivedDataSchema = z.object({
+  transferEventId: z.string().uuid(),
   assetIds: z.array(z.string()),
+  documentId: z.string().uuid(),
+  requisitionNumber: z.string(),
 })
 
-export const TransferInitiatedDataSchema = TransferReceivedDataSchema.extend({
+export const transferInitiatedDataSchema = transferReceivedDataSchema.omit({transferEventId: true, documentId: true}).extend({
   date: z.string().datetime(),
   transferType: transferTypeEnum,
   senderOrgId: z.string(),
   receiverOrgId: z.string(),
 });
 
-export const TransferInitiatedEventSchema = createCloudEventSchema(TransferInitiatedDataSchema);
-export type TransferInitiatedEvent = z.infer<typeof TransferInitiatedEventSchema>;
+export const transferInitiatedEventSchema = createCloudEventSchema(transferInitiatedDataSchema);
+export type TransferInitiatedEvent = z.infer<typeof transferInitiatedEventSchema>;
 
-export const TransferReceivedEventSchema = createCloudEventSchema(TransferReceivedDataSchema);
+export const TransferReceivedEventSchema = createCloudEventSchema(transferReceivedDataSchema);
 export type TransferReceivedEvent = z.infer<typeof TransferReceivedEventSchema>;

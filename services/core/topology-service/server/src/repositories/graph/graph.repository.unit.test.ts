@@ -1,4 +1,4 @@
-// File: services/core/topology-service/server/src/repositories/graph/graph.repository.spec.ts
+// File: services/core/topology-service/server/src/repositories/graph/graph.repository.unit.test.ts
 import { GraphRepository } from './graph.repository';
 import type { Driver, Session } from 'neo4j-driver';
 

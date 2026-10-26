@@ -2,10 +2,10 @@
 import { Pool } from 'pg';
 import { mapDbRowToDocument } from '../../mappers';
 import { formNameEnum, formTypeEnum } from 'compliance-shared';
-import { transferTypeEnum } from '@contracts/common';
+import { transferTypeEnum, transferStatusEnum } from '@contracts/common';
 import { z } from 'zod';
 
-export const insertInputSchema = z.object({
+export const insertDataSchema = z.object({
   documentId: z.string().uuid(),
   documentName: formNameEnum,
   documentType: formTypeEnum,
@@ -13,14 +13,25 @@ export const insertInputSchema = z.object({
   requisitionNumber: z.string(),
   storageBucket: z.string(),
   storageKey: z.string(),
-  status: z.enum(['SIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED']),
+  status: z.union([transferStatusEnum, z.literal('SIGNED')]),
   signerId: z.string(),
   fileHash: z.string(),
+  transferEventId: z.string().uuid().optional(),
 })
+type InsertData = z.infer<typeof insertDataSchema>;
 
-type InsertInputs = z.infer<typeof insertInputSchema>;
+export const updateForDocNumberDataSchema = z.object({
+  id: z.string().uuid(),
+  status: transferStatusEnum,
+})
+type UpdateForDocNumberData = z.infer<typeof updateForDocNumberDataSchema>;
 
-export class ComplianceDocumentRepository {
+export const updateForReqNumberDataSchema = updateForDocNumberDataSchema.omit(
+  {id: true}).extend({requisitionNumber: z.string(), transferEventId: z.string().uuid(),}
+);
+type UpdateForReqNumberData = z.infer<typeof updateForReqNumberDataSchema>;
+
+export class DocumentsRepository {
   constructor(private readonly db: Pool) {}
 
   private normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -38,12 +49,12 @@ export class ComplianceDocumentRepository {
     };
   }
 
-  async insert(data: InsertInputs): Promise<ReturnType<typeof mapDbRowToDocument>> {
+  async insert(data: InsertData): Promise<ReturnType<typeof mapDbRowToDocument>> {
     const query = `
       INSERT INTO compliance_documents (
-        id, name, type, transfer_type, requisition_number, storage_bucket, storage_key, status, signer_id, file_hash
+        id, name, type, transfer_type, requisition_number, storage_bucket, storage_key, status, signer_id, file_hash, transfer_event_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         type = EXCLUDED.type,
@@ -53,7 +64,8 @@ export class ComplianceDocumentRepository {
         storage_key = EXCLUDED.storage_key,
         status = EXCLUDED.status,
         signer_id = EXCLUDED.signer_id,
-        file_hash = EXCLUDED.file_hash
+        file_hash = EXCLUDED.file_hash,
+        transfer_event_id = COALESCE(EXCLUDED.transfer_event_id, compliance_documents.transfer_event_id)
       RETURNING *;
     `;
 
@@ -68,10 +80,60 @@ export class ComplianceDocumentRepository {
       data.status,
       data.signerId,
       data.fileHash,
+      data.transferEventId ?? null,
     ];
 
     const { rows } = await this.db.query(query, values);
     return mapDbRowToDocument(this.normalizeRow(rows[0]));
+  }
+
+  async updateForDocNumber(data: UpdateForDocNumberData) {
+    const query = `
+      UPDATE compliance_documents
+      SET status = $1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const { rows } = await this.db.query(query, [data.status, data.id]);
+    if (rows.length === 0) return null;
+    return mapDbRowToDocument(this.normalizeRow(rows[0]));
+  }
+
+  async updateForReqNumber(data: UpdateForReqNumberData) {
+    const query = `
+      UPDATE compliance_documents
+      SET transfer_event_id = $1,
+          status = CASE
+            WHEN (
+              CASE $2
+                WHEN 'SIGNED' THEN 1
+                WHEN 'IN_PROGRESS' THEN 2
+                WHEN 'PARTIALLY_COMPLETED' THEN 3
+                WHEN 'COMPLETED' THEN 4
+                ELSE 0
+              END
+            ) > (
+              CASE status
+                WHEN 'SIGNED' THEN 1
+                WHEN 'IN_PROGRESS' THEN 2
+                WHEN 'PARTIALLY_COMPLETED' THEN 3
+                WHEN 'COMPLETED' THEN 4
+                ELSE 0
+              END
+            ) THEN $2
+            ELSE status
+          END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE requisition_number = $3
+      RETURNING *;
+    `;
+    const { rows } = await this.db.query(query, [
+      data.transferEventId,
+      data.status,
+      data.requisitionNumber,
+    ]);
+    return rows.map((row) => mapDbRowToDocument(this.normalizeRow(row)));
   }
 
   async findAll(): Promise<ReturnType<typeof mapDbRowToDocument>[]> {
@@ -94,5 +156,17 @@ export class ComplianceDocumentRepository {
     if (rows.length === 0) return null;
 
     return mapDbRowToDocument(this.normalizeRow(rows[0]));
+  }
+
+  async getRequisitionNumberById(id: string): Promise<string | null> {
+    const query = `
+      SELECT requisition_number
+      FROM compliance_documents
+      WHERE id = $1;
+    `;
+    const { rows } = await this.db.query(query, [id]);
+    if (rows.length === 0) return null;
+
+    return rows[0].requisition_number as string;
   }
 }

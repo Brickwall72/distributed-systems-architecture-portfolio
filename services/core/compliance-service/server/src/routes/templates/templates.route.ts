@@ -6,13 +6,15 @@ import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
 import { EventBroker } from '@shared/messaging';
 import { PDF_SUBJECTS, generatePdfCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
+import { z } from 'zod';
+
+export const templatesRouterDepsSchema = z.object({
+  broker: z.instanceof(EventBroker),
+})
+type TemplatesRouterDeps = z.infer<typeof templatesRouterDepsSchema>;
 
 const logger = createLogger('compliance-server:templates');
 const s = initServer();
-
-interface TemplatesRouterDeps {
-  broker: EventBroker;
-}
 
 export function createTemplatesRouter(deps: TemplatesRouterDeps) {
   return s.router(templatesRoutes, {

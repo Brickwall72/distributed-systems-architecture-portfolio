@@ -1,48 +1,33 @@
-// File: services/core/compliance-service/server/src/routes/index.unit.test.ts
 import express from 'express';
 import supertest from 'supertest';
+import type { Pool } from 'pg';
+import { EventBroker } from '@shared/messaging';
+import { CompliancePublisher } from '../messaging';
+import { DocumentsRepository, TemplateRepository } from '../repositories';
 import { createComplianceGateway } from './index';
-import { TemplateRepository } from '../repositories';
 
-// Mock underlying repositories to prevent real disk I/O or DB execution during topology verification
-vi.mock('../repositories', () => ({
-  TemplateRepository: {
-    findAllManifests: vi.fn().mockReturnValue([]),
-    findById: vi.fn().mockReturnValue(null),
-  },
-}));
-
-// Mock documents router with valid ts-rest route implementations
-vi.mock('./documents', () => ({
-  createDocumentsRouter: () => ({
-    getDocuments: async () => ({
-      status: 200 as const,
-      body: [{ mock: 'documents-route-hit' }],
-    }),
-    getDocumentById: async () => ({
-      status: 200 as const,
-      body: { mock: 'document-hit' },
-    }),
-  }),
-}));
-
-describe('createComplianceGateway (Route Accumulator Topology)', () => {
+describe('createComplianceGateway', () => {
   let app: express.Express;
+  let findAllManifests: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    findAllManifests = vi.spyOn(TemplateRepository, 'findAllManifests').mockReturnValue([]);
+    vi.spyOn(TemplateRepository, 'findById').mockReturnValue(null);
+
     app = express();
     app.use(express.json());
 
-    const mockBroker = { request: vi.fn() };
+    const broker = new EventBroker('nats://localhost:4222');
+    const publisher = new CompliancePublisher(broker);
+    const repository = new DocumentsRepository({
+      query: vi.fn().mockResolvedValue({ rows: [] }),
+    } as unknown as Pool);
 
-    app.use('/api/v1', createComplianceGateway({
-      broker: mockBroker as any,
-      publisher: { publishTransferInitiated: vi.fn(), publishTransferReceived: vi.fn() } as any,
-    }));
+    app.use('/api/v1', createComplianceGateway({ broker, publisher, repository }));
   });
 
-  it('mounts the /health check endpoint with service health payload', async () => {
+  it('mounts the health check endpoint', async () => {
     const response = await supertest(app).get('/api/v1/health');
 
     expect(response.status).toBe(200);
@@ -53,17 +38,17 @@ describe('createComplianceGateway (Route Accumulator Topology)', () => {
     });
   });
 
-  it('binds ts-rest complianceContract template endpoints to the gateway', async () => {
+  it('binds the template endpoint to the gateway', async () => {
     const response = await supertest(app).get('/api/v1/templates');
 
     expect(response.status).toBe(200);
-    expect(TemplateRepository.findAllManifests).toHaveBeenCalledOnce();
+    expect(findAllManifests).toHaveBeenCalledOnce();
   });
 
-  it('correctly mounts sub-routers under expected path prefixes', async () => {
+  it('binds the documents endpoint to the injected repository', async () => {
     const response = await supertest(app).get('/api/v1/documents');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([{ mock: 'documents-route-hit' }]);
+    expect(response.body).toEqual([]);
   });
 });

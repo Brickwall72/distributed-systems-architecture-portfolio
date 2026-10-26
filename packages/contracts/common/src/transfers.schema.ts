@@ -4,3 +4,7 @@ import { z } from 'zod';
 export const transferTypeEnum = z.enum(['PHYSICAL_TRANSFER', 'C2_TRANSFER']);
 
 export type TransferType = z.infer<typeof transferTypeEnum>;
+
+export const transferStatusEnum = z.enum(['IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED'])
+
+export type TransferStatus = z.infer<typeof transferStatusEnum>;

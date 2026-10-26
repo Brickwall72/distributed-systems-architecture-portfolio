@@ -4,7 +4,7 @@ import { OrganizationDTOList } from '@contracts/topology';
 import { organizationsContract } from 'topology-shared';
 import { OrganizationsRepository } from '../../repositories';
 import { organizationEntityToDTO } from '../../mappers';
-import { getDatabaseClient } from '../../topologyDatabase';
+import { getDatabaseClient } from '../../database';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('topology/organizations');

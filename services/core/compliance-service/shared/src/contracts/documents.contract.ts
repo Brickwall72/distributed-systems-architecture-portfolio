@@ -3,14 +3,13 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
-import { TransferInitiatedDataSchema, TransferReceivedDataSchema } from '@contracts/compliance';
+import { transferInitiatedDataSchema } from '@contracts/compliance';
 import { DocumentSchema, formNameEnum, formTypeEnum  } from '../schemas';
 
 const c = initContract();
 
 export const signDocumentApiRequestSchema = SignDocumentCommandSchema.extend({
-  ...TransferInitiatedDataSchema.omit({date: true}).shape,
-  ...TransferReceivedDataSchema.shape,
+  ...transferInitiatedDataSchema.omit({date: true}).shape,
   documentName: formNameEnum,
   documentType:formTypeEnum
 });

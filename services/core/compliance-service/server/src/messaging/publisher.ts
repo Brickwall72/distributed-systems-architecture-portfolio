@@ -5,28 +5,46 @@ import { transferTypeEnum } from '@contracts/common';
 import {
   COMPLIANCE_EVENT_SUBJECTS,
   COMPLIANCE_EVENT_TYPES,
-  TransferInitiatedEventSchema,
+  transferInitiatedEventSchema,
   TransferReceivedEventSchema,
-  TransferInitiatedDataSchema,
-  TransferReceivedDataSchema,
+  transferInitiatedDataSchema,
+  transferReceivedDataSchema,
 } from '@contracts/compliance';
 import { z } from 'zod';
 import { createLogger } from '@shared/express';
 const logger = createLogger('compliance:publisher');
 
-export const complianceTransferReceivedDataSchema = z.object({
+export const publishTransferReceivedInputSchema = z.object({
+  id: z.string().uuid(),
   requisitionNumber: z.string(),
   assetIds: z.array(z.string()),
+  transferEventId: z.string().uuid(),
 });
-type complianceTransferReceivedData = z.infer<typeof complianceTransferReceivedDataSchema>;
 
-export const complianceTransferInitiatedDataSchema = complianceTransferReceivedDataSchema.extend({
-  date: z.string().datetime(),
+export const publishtransferReceivedDataSchema = publishTransferReceivedInputSchema.transform((
+  { id, ...rest }) => ({
+    ...rest,
+    documentId: id,
+  }
+)).pipe(transferReceivedDataSchema);
+type PublishtransferReceivedDataSchema = z.infer<typeof publishtransferReceivedDataSchema>;
+
+export const publishTransferInitiatedInputSchema = publishTransferReceivedInputSchema.omit(
+  {transferEventId: true, id: true}
+).extend({
+  createdAt: z.string().datetime(),
   transferType: transferTypeEnum,
   senderOrgId: z.string(),
   receiverOrgId: z.string(),
 });
-type complianceTransferInitiatedData = z.infer<typeof complianceTransferInitiatedDataSchema>;
+
+export const publishtransferInitiatedDataSchema = publishTransferInitiatedInputSchema.transform((
+  { createdAt, ...rest }) => ({
+    ...rest,
+    date: createdAt,
+  }
+)).pipe(transferInitiatedDataSchema);
+type PublishTransferInitiatedData = z.infer<typeof publishtransferInitiatedDataSchema>;
 
 export class CompliancePublisher {
   constructor(private readonly broker: EventBroker) {}
@@ -37,9 +55,9 @@ export class CompliancePublisher {
     ]);
   }
 
-  public async publishTransferInitiated(data: complianceTransferInitiatedData, correlationId?: string | null): Promise<void> {
+  public async publishTransferInitiated(data: PublishTransferInitiatedData, correlationId?: string | null): Promise<void> {
     const cid = correlationId || `cid_${crypto.randomUUID()}`;
-    const event = TransferInitiatedEventSchema.parse({
+    const event = transferInitiatedEventSchema.parse({
       specversion: '1.0',
       id: `evt_${crypto.randomUUID()}`,
       source: 'service:compliance-server',
@@ -47,13 +65,13 @@ export class CompliancePublisher {
       time: new Date().toISOString(),
       datacontenttype: 'application/json',
       correlationId: cid,
-      data: TransferInitiatedDataSchema.parse(data),
+      data: transferInitiatedDataSchema.parse(data),
     });
     logger.debug(`event: ${JSON.stringify(event)}`);
     await this.broker.publish(COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED, event);
   }
 
-  public async publishTransferReceived(data: complianceTransferReceivedData, correlationId?: string | null): Promise<void> {
+  public async publishTransferReceived(data: PublishtransferReceivedDataSchema, correlationId?: string | null): Promise<void> {
     const cid = correlationId || `cid_${crypto.randomUUID()}`;
     const event = TransferReceivedEventSchema.parse({
       specversion: '1.0',
@@ -63,7 +81,7 @@ export class CompliancePublisher {
       time: new Date().toISOString(),
       datacontenttype: 'application/json',
       correlationId: cid,
-      data: TransferReceivedDataSchema.parse(data),
+      data: transferReceivedDataSchema.parse(data),
     });
     await this.broker.publish(COMPLIANCE_EVENT_SUBJECTS.TRANSFER_RECEIVED, event);
   }
