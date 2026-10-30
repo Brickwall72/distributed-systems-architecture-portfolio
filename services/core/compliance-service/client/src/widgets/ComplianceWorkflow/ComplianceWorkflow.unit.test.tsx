@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
-import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { z } from 'zod';
+import { ComplianceWorkflowWidgetPropsSchema } from '@contracts/compliance';
+import { signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 import { useGeneratePdf, useSignPdf } from '../../hooks';
 
@@ -42,31 +44,41 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
   };
 });
 
+// Shared with the TemplateSelector mock, which can't close over variables created after hoisting
+const selectorMock = vi.hoisted(() => ({
+  template: undefined as unknown,
+  lastProps: undefined as Record<string, unknown> | undefined,
+}));
+
 vi.mock('../../components', () => ({
-  TemplateSelector: ({ label, onSelect }: any) => (
-    <div>
-      <label>{label}</label>
-      <button
-        data-testid="mock-selector-trigger"
-        onClick={() =>
-          onSelect({
-            id: 'asset-transfer-authorization',
-            name: 'Test Template',
-            type: 'AUTHORIZATION',
-            rawHTML: '<p>Hello {{requisitionNumber}}</p>',
-          })
-        }
-      >
-        Select Template
-      </button>
-    </div>
-  ),
+  TemplateSelector: (props: any) => {
+    selectorMock.lastProps = props;
+    return (
+      <div>
+        <label>{props.label}</label>
+        <button data-testid="mock-selector-trigger" onClick={() => props.onSelect(selectorMock.template)}>
+          Select Template
+        </button>
+      </div>
+    );
+  },
 }));
 
 describe('ComplianceWorkflowWidget', () => {
-  const mockGeneratePdf = vi.fn(async (_params: any, onSuccess: (blobUrl: string) => void): Promise<void> => {
+  const mockGeneratePdf = vi.fn(async ({ onSuccess }: { onSuccess: (blobUrl: string) => void }): Promise<void> => {
     onSuccess('blob:mock-pdf-url');
   });
+  const mockOnSelect = vi.fn();
+
+  // Stand-in parser so rendering doesn't depend on the real form schemas
+  const payloadSchema = z
+    .object({}).passthrough()
+    .pipe(z.object({}).passthrough().transform((data) => ({ ...data, parsedByTemplate: true })));
+  // zocker can't generate `.trim().min()` chains, so the name is supplied
+  const template = {
+    ...mockFromSchema(templateDTOSchema, { name: 'Test Template' }),
+    payloadSchema,
+  } as unknown as TemplateDTOwithPayloadSchema;
 
   const mockSignPdf = vi.fn(async ({ onSuccess }: { params: unknown; onSuccess: (blobUrl: string) => void }): Promise<void> => {
     onSuccess('blob:mock-signed-pdf-url');
@@ -76,6 +88,7 @@ describe('ComplianceWorkflowWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    selectorMock.template = template;
     
     vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
@@ -83,8 +96,8 @@ describe('ComplianceWorkflowWidget', () => {
       error: null,
       unsignedDocumentData: mockFromSchema(signDocumentApiRequestSchema.omit({ signatureImageBase64: true, customPath: true, signerId: true }), {
         fileHash: SHA256_HEX,
-        documentName: 'asset-transfer-authorization',
-        documentType: 'AUTHORIZATION',
+        documentName: template.id,
+        documentType: template.type,
       }),
     });
 
@@ -97,20 +110,16 @@ describe('ComplianceWorkflowWidget', () => {
     });
   });
 
-  const defaultProps = {
-    sourceOrg: { id: 'org-1', name: 'Source Alpha', type: 'GOV_AGENCY' as const },
-    targetOrg: { id: 'org-2', name: 'Target Bravo', type: 'CONTRACTOR' as const },
-    assets: [
-      { 
-        id: 'ast-1', 
-        name: 'Widget Alpha', 
-        serialNumber: 'SN-12345', 
-        nomenclature: 'Test Asset',
-        status: 'AVAILABLE' as const,
-        currentOwnerId: 'org-1',
-      },
-    ],
+  // Optional entities are sampled independently so the fixture always has both orgs and an asset
+  const sampleProps = () => {
+    for (let seed = 1; seed < 50; seed++) {
+      const generated = mockFromSchema(ComplianceWorkflowWidgetPropsSchema, {}, { seed });
+      if (generated.sourceOrg && generated.targetOrg && generated.assets.length > 0) return generated;
+    }
+    throw new Error('Could not generate populated widget props');
   };
+  const { transferType: _ignored, ...populated } = sampleProps();
+  const defaultProps = { ...populated, onSelect: mockOnSelect };
 
   it('renders successfully and handles template selection and PDF generation workflow', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
@@ -119,6 +128,7 @@ describe('ComplianceWorkflowWidget', () => {
     
     // Select a template via mock component trigger
     fireEvent.click(screen.getByTestId('mock-selector-trigger'));
+    expect(mockOnSelect).toHaveBeenCalledWith(template.transferType);
 
     const generateBtn = screen.getByText('Generate PDF');
     expect(generateBtn).not.toHaveProperty('disabled', true);
@@ -128,9 +138,13 @@ describe('ComplianceWorkflowWidget', () => {
     await waitFor(() => {
       expect(mockGeneratePdf).toHaveBeenCalledWith(
         expect.objectContaining({
-          templateId: 'asset-transfer-authorization',
-        }),
-        expect.any(Function)
+          template: expect.objectContaining({ id: template.id }),
+          payloadData: expect.objectContaining({
+            sourceOrg: expect.objectContaining({ id: defaultProps.sourceOrg?.id }),
+            targetOrg: expect.objectContaining({ id: defaultProps.targetOrg?.id }),
+          }),
+          onSuccess: expect.any(Function),
+        })
       );
     });
 
@@ -160,5 +174,21 @@ describe('ComplianceWorkflowWidget', () => {
       expect(mockSignPdf).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-signed-pdf-url');
     });
+  });
+
+  it('narrows the template selector by the transferType supplied by the host shell', () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} transferType="C2_TRANSFER" />);
+
+    expect(selectorMock.lastProps).toMatchObject({ typeFilter: 'AUTHORIZATION', transferTypeFilter: 'C2_TRANSFER' });
+  });
+
+  it('reports undefined to the host when the template is deselected', () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} />);
+
+    selectorMock.template = undefined;
+    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
+
+    expect(mockOnSelect).toHaveBeenCalledWith(undefined);
+    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
   });
 });

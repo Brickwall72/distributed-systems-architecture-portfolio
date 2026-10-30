@@ -1,7 +1,13 @@
 // File: services/core/topology-service/server/src/repositories/assets/assets.repository.unit.test.ts
 import type { Driver, Session, ManagedTransaction, Record as Neo4jRecord } from 'neo4j-driver';
 import { AssetsRepository } from './assets.repository';
-import type { AssetDTO } from '@contracts/topology';
+import { AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
+import { assetEntitySchema } from '../../domain';
+
+function createMockRecord(data: object): Neo4jRecord {
+  return { get: (key: string) => (data as Record<string, unknown>)[key] } as unknown as Neo4jRecord;
+}
 
 describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
   let mockTx: Partial<ManagedTransaction>;
@@ -30,91 +36,68 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
         filterOwnerId: null,
         excludeOwnerId: null,
         includeInTransit: undefined,
+        filterControlType: null,
       }
     );
   });
 
-  it('maps raw Neo4j record fields to AssetEntity domain shape including status', async () => {
-    const mockRecord: Partial<Neo4jRecord> = {
-      get: vi.fn((key: string) => {
-        const data: Record<string, string> = {
-          id: 'ast-101',
-          nomenclature: 'Radio',
-          serialNumber: 'SN-01',
-          currentOwnerId: 'org-10',
-          status: 'AVAILABLE',
-        };
-        return data[key];
-      }),
-    };
+  it('maps raw Neo4j record fields to AssetEntity domain shape including status and control type', async () => {
+    const entity = mockFromSchema(assetEntitySchema);
 
     vi.mocked(mockTx.run!).mockResolvedValue({
-      records: [mockRecord as Neo4jRecord],
+      records: [createMockRecord(entity)],
       summary: {} as any,
     });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    const results = await repo.findAssets({ filterOwnerId: 'org-10' });
+    const results = await repo.findAssets({ filterOwnerId: entity.currentOwnerId, includeInTransit: false });
 
-    expect(results).toEqual([
-      {
-        id: 'ast-101',
-        nomenclature: 'Radio',
-        serialNumber: 'SN-01',
-        currentOwnerId: 'org-10',
-        status: 'AVAILABLE',
-      },
-    ]);
+    expect(results).toEqual([entity]);
+  });
+
+  it('forwards filterControlType to the Cypher parameters', async () => {
+    vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
+
+    const repo = new AssetsRepository(mockDriver as Driver);
+    await repo.findAssets({ filterControlType: 'LOCAL', includeInTransit: false });
+
+    expect(mockTx.run).toHaveBeenCalledWith(
+      expect.stringContaining('a.controlType = $filterControlType'),
+      expect.objectContaining({ filterControlType: 'LOCAL' })
+    );
   });
 
   it('executes createAsset write query and returns mapped AssetEntity', async () => {
-    const mockRecord: Partial<Neo4jRecord> = {
-      get: vi.fn((key: string) => {
-        const data: Record<string, string> = {
-          id: 'ast-003',
-          name: 'GPS Unit',
-          nomenclature: 'GPS-III',
-          serialNumber: 'SN-999',
-          currentOwnerId: 'org-10',
-          status: 'AVAILABLE',
-        };
-        return data[key];
-      }),
-    };
+    const newAssetDto = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' });
+    const entity = mockFromSchema(assetEntitySchema, {
+      id: newAssetDto.id,
+      nomenclature: newAssetDto.nomenclature,
+      serialNumber: newAssetDto.serialNumber,
+      currentOwnerId: newAssetDto.currentOwnerId,
+      status: newAssetDto.status,
+      type: newAssetDto.type,
+      controlType: newAssetDto.controlType,
+    });
 
     vi.mocked(mockTx.run!).mockResolvedValue({
-      records: [mockRecord as Neo4jRecord],
+      records: [createMockRecord(entity)],
       summary: {} as any,
     });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    const newAssetDto: AssetDTO = {
-      id: 'ast-003',
-      name: 'GPS Unit',
-      nomenclature: 'GPS-III',
-      serialNumber: 'SN-999',
-      currentOwnerId: 'org-10',
-      status: 'AVAILABLE',
-    };
-
     const result = await repo.createAsset(newAssetDto);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('CREATE (a:Asset'),
       expect.objectContaining({
-        id: 'ast-003',
-        name: 'GPS Unit',
-        currentOwnerId: 'org-10',
-        status: 'AVAILABLE',
+        id: newAssetDto.id,
+        name: newAssetDto.name,
+        currentOwnerId: newAssetDto.currentOwnerId,
+        status: newAssetDto.status,
+        type: newAssetDto.type,
+        controlType: newAssetDto.controlType,
       })
     );
-
-    expect(result).toEqual({
-      id: 'ast-003',
-      nomenclature: 'GPS-III',
-      serialNumber: 'SN-999',
-      currentOwnerId: 'org-10',
-      status: 'AVAILABLE',
-    });
+    expect(result).toEqual(entity);
   });
 });

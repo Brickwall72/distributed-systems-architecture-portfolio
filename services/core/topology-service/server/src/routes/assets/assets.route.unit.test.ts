@@ -1,5 +1,7 @@
 // File: services/core/topology-service/server/src/routes/assets/assets.route.unit.test.ts
-import { AssetDTOListSchema, AssetDTOSchema, type AssetDTO, type AssetDTOList } from '@contracts/topology';
+import { AssetDTOListSchema, AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
+import { assetEntitySchema } from '../../domain';
 import { createAssetsRouter } from './assets.route';
 import type { AssetsRepository } from '../../repositories';
 
@@ -15,23 +17,9 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
 
   describe('getAssets', () => {
     it('returns HTTP 200 with contract-compliant AssetDTO array when query succeeds', async () => {
-      const mockEntities: AssetDTOList = [
-        {
-          id: 'ast-001',
-          name: 'Tactical Radio Unit',
-          nomenclature: 'Tactical Radio',
-          serialNumber: 'SN-881',
-          status: 'AVAILABLE',
-          currentOwnerId: 'org-10',
-        },
-        {
-          id: 'ast-002',
-          name: 'Satellite Terminal',
-          nomenclature: 'Satellite Terminal',
-          serialNumber: 'SN-882',
-          status: 'AVAILABLE',
-          currentOwnerId: 'org-10',
-        },
+      const mockEntities = [
+        mockFromSchema(assetEntitySchema, { currentOwnerId: 'org-10' }),
+        mockFromSchema(assetEntitySchema, { currentOwnerId: 'org-10' }),
       ];
 
       vi.mocked(mockRepository.findAssets!).mockResolvedValue(mockEntities);
@@ -84,28 +72,15 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
 
   describe('createAsset', () => {
     it('returns HTTP 201 with contract-compliant AssetDTO when creation succeeds', async () => {
-      const createdAssetDTO: AssetDTO = {
-        id: 'ast-003',
-        name: 'GPS-III',
-        nomenclature: 'GPS-III',
-        serialNumber: 'SN-999',
-        status: 'AVAILABLE',
-        currentOwnerId: 'org-10',
-      };
+      const requestBody = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' });
+      const createdEntity = mockFromSchema(assetEntitySchema, { id: requestBody.id, nomenclature: 'GPS-III' });
 
-      vi.mocked(mockRepository.createAsset!).mockResolvedValue(createdAssetDTO);
+      vi.mocked(mockRepository.createAsset!).mockResolvedValue(createdEntity);
 
       const router = createAssetsRouter(mockRepository as AssetsRepository);
 
       const response = await router.createAsset({
-        body: {
-          id: 'ast-003',
-          name: 'GPS Navigation Unit',
-          nomenclature: 'GPS-III',
-          serialNumber: 'SN-999',
-          status: 'AVAILABLE',
-          currentOwnerId: 'org-10',
-        },
+        body: requestBody,
         headers: {} as any,
         files: undefined,
         file: undefined,
@@ -117,7 +92,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
 
       const parsedBody = AssetDTOSchema.safeParse(response.body);
       expect(parsedBody.success).toBe(true);
-      expect(response.body).toEqual(createdAssetDTO);
+      expect(response.body).toEqual({ ...createdEntity, name: 'GPS-III' });
       expect(mockRepository.createAsset).toHaveBeenCalledTimes(1);
     });
 
@@ -129,14 +104,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       const router = createAssetsRouter(mockRepository as AssetsRepository);
 
       const response = await router.createAsset({
-        body: {
-          id: 'ast-003',
-          name: 'GPS Navigation Unit',
-          nomenclature: 'GPS-III',
-          serialNumber: 'SN-999',
-          status: 'AVAILABLE',
-          currentOwnerId: 'org-10',
-        },
+        body: mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' }),
         headers: {} as any,
         files: undefined,
         file: undefined,

@@ -19,7 +19,7 @@ vi.mock('../repositories', async (importOriginal) => {
   const { mockFromSchema, SHA256_HEX } = await import('@shared/testing');
   // Same seed as the consumer specs so optional keys line up with the committed pact examples.
   const seed = { seed: 1 };
-  const { TemplateDTOSchema, TemplateManifestSchema } = await import('compliance-shared');
+  const { templateDTOSchema, templateManifestSchema } = await import('compliance-shared');
 
   // Resolved lazily: '../domain' imports '../repositories', which is mid-mock while this factory runs.
   const entity = async (overrides = {}) => {
@@ -35,12 +35,12 @@ vi.mock('../repositories', async (importOriginal) => {
       insert = () => entity({ type: 'AUTHORIZATION', name: 'asset-transfer-authorization' });
     },
     TemplateRepository: {
-      findAllManifests: (query?: { type?: 'AUTHORIZATION' | 'RECEIPT' }) => [
-        mockFromSchema(TemplateManifestSchema, { name: 'Asset Transfer Authorization', type: query?.type ?? 'AUTHORIZATION' }, seed),
+      findAllManifests: () => [
+        mockFromSchema(templateManifestSchema, { name: 'Asset Transfer Authorization' }, seed),
       ],
       findById: (id: string) =>
         id === 'asset-transfer-authorization'
-          ? mockFromSchema(TemplateDTOSchema, {
+          ? mockFromSchema(templateDTOSchema, {
               id,
               name: 'Asset Transfer Authorization',
               type: 'AUTHORIZATION',

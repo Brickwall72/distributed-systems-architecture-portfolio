@@ -3,6 +3,17 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useComplianceQuery } from './useComplianceQuery';
 
 describe('useComplianceQuery', () => {
+  it('does not fetch and is idle when disabled', () => {
+    const mockFetcher = vi.fn();
+
+    const { result } = renderHook(() =>
+      useComplianceQuery({ fetcher: mockFetcher, fallbackErrorMessage: 'Failed', enabled: false })
+    );
+
+    expect(mockFetcher).not.toHaveBeenCalled();
+    expect(result.current).toEqual({ data: null, isLoading: false, error: null });
+  });
+
   it('successfully fetches and sets data on 200 OK', async () => {
     const mockFetcher = vi.fn().mockResolvedValue({
       status: 200,

@@ -4,8 +4,7 @@ import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { TemplateSelector } from '../../components'; 
-import { TemplateDTO } from 'compliance-shared';
-import { generateTemplatePayload, PayloadParams } from '../../registry';
+import { TemplateDTOwithPayloadSchema, masterPayloadInputSchema } from 'compliance-shared';
 import { useGeneratePdf, useSignPdf, signPdfParamsSchema } from '../../hooks';
 import '@shared/styles';
 
@@ -16,9 +15,11 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   }
   const entityData = parsedProps.success
     ? parsedProps.data
-    : { sourceOrg: undefined, assets: [], targetOrg: undefined };
+    : { sourceOrg: undefined, assets: [], targetOrg: undefined, transferType: undefined };
 
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO>();
+  const { onSelect } = props;
+
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTOwithPayloadSchema>();
   const [selectedDate] = useState(new Date().toDateString());
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
@@ -32,18 +33,12 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
     resetSigningState();
   }, [selectedTemplate?.id, resetSigningState]);
 
-  const templatePayloadInput: PayloadParams = useMemo(() => ({
-    templateId: selectedTemplate?.id,
-    input: {
-      ...entityData,
-      selectedDate,
-    }
-  }), [entityData, selectedDate]);
+  const payloadData = useMemo(() => masterPayloadInputSchema.parse({...entityData, selectedDate}), [entityData, selectedDate]);
 
-  const displayPayload = useMemo(() => {
-    if (!selectedTemplate?.id) return null;
-    return generateTemplatePayload(templatePayloadInput);
-  }, [templatePayloadInput]);
+  const displayPayload = useMemo(
+    () => selectedTemplate?.payloadSchema.parse(payloadData), 
+    [entityData, selectedDate, selectedTemplate]
+  );
 
   const isReadyForPdf = Boolean(
     !pdfBlobUrl && 
@@ -77,13 +72,20 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
 
   const activeError = generatePdfError || signPdfError;
 
+  const handleSelectTemplate = (template: TemplateDTOwithPayloadSchema | undefined) => {
+    setSelectedTemplate(template);
+    onSelect(template?.transferType ?? undefined);
+  }
+
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-800">
         <div className="w-72">
           <TemplateSelector
             label="Compliance Form"
-            onSelect={setSelectedTemplate}
+            typeFilter="AUTHORIZATION"
+            transferTypeFilter={entityData.transferType}
+            onSelect={handleSelectTemplate}
           />
         </div>
 
@@ -101,7 +103,11 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
           <Button
             isLoading={isGenerating}
             disabled={!isReadyForPdf || Boolean(pdfBlobUrl)}
-            onClick={() => generatePdf(templatePayloadInput, setPdfBlobUrl)}
+            onClick={() => generatePdf({ 
+              template: {...selectedTemplate!}, 
+              payloadData, 
+              onSuccess: setPdfBlobUrl 
+            })}
           >
             Generate PDF
           </Button>

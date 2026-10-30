@@ -2,6 +2,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AssetRegistrationWidget, { TOPOLOGY_MUTATION_EVENT } from './AssetRegistration';
 import { useCreateAsset } from '../../hooks';
+import { AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
+
+const { mockOrg } = vi.hoisted(() => ({ mockOrg: { id: 'org-10', name: 'Test Org' } }));
 
 vi.mock('../../hooks', () => ({
   useCreateAsset: vi.fn(),
@@ -14,7 +18,7 @@ vi.mock('../OrganizationSelector', () => ({
       <button
         type="button"
         data-testid="mock-org-selector"
-        onClick={() => onSelect([{ id: 'org-10', name: 'Test Org' }])}
+        onClick={() => onSelect([mockOrg])}
       >
         Select Org
       </button>
@@ -51,45 +55,40 @@ describe('AssetRegistrationWidget', () => {
   });
 
   it('successfully submits valid asset payload, dispatches mutation event, and resets form', async () => {
-    mockCreateAsset.mockResolvedValueOnce({ id: 'asset-gps-12' });
+    // Text inputs drop line breaks, so keep generated values single-line
+    const singleLine = (value: string) => value.replaceAll(/\s+/g, ' ').trim();
+    const generated = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: mockOrg.id, id: 'asset-gps-12' });
+    const asset = { ...generated, nomenclature: singleLine(generated.nomenclature), serialNumber: singleLine(generated.serialNumber) };
+    mockCreateAsset.mockResolvedValueOnce({ id: asset.id });
     const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
     render(<AssetRegistrationWidget />);
 
-    fireEvent.change(screen.getByLabelText(/Asset ID \(UUID \/ URI\)/i), {
-      target: { value: 'asset-gps-12' },
-    });
-    fireEvent.change(screen.getByLabelText(/Asset Name/i), {
-      target: { value: 'GPS Navigation Unit' },
-    });
-    fireEvent.change(screen.getByLabelText(/Nomenclature/i), {
-      target: { value: 'GPS-III SV' },
-    });
-    fireEvent.change(screen.getByLabelText(/Serial Number/i), {
-      target: { value: 'SN-998273' },
-    });
-
-    // Select holding organization custody
+    fireEvent.change(screen.getByLabelText(/Asset ID \(UUID \/ URI\)/i), { target: { value: asset.id } });
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: asset.name } });
+    fireEvent.change(screen.getByLabelText(/Nomenclature/i), { target: { value: asset.nomenclature } });
+    fireEvent.change(screen.getByLabelText(/Serial Number/i), { target: { value: asset.serialNumber } });
+    fireEvent.change(screen.getByLabelText(/Control Type/i), { target: { value: asset.controlType } });
     fireEvent.click(screen.getByTestId('mock-org-selector'));
 
-    const submitBtn = screen.getByRole('button', { name: /Register & Assign Custody/i });
-    fireEvent.click(submitBtn);
+    fireEvent.click(screen.getByRole('button', { name: /Register & Assign Custody/i }));
 
     await waitFor(() => {
-      expect(mockCreateAsset).toHaveBeenCalledWith({
-        id: 'asset-gps-12',
-        name: 'GPS Navigation Unit',
-        nomenclature: 'GPS-III SV',
-        serialNumber: 'SN-998273',
-        status: 'AVAILABLE',
-        currentOwnerId: 'org-10',
-      });
+      expect(mockCreateAsset).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: asset.id,
+          name: asset.name,
+          nomenclature: asset.nomenclature,
+          serialNumber: asset.serialNumber,
+          status: 'AVAILABLE',
+          controlType: asset.controlType,
+          currentOwnerId: mockOrg.id,
+        })
+      );
     });
+    expect(AssetDTOSchema.safeParse(mockCreateAsset.mock.calls[0][0]).success).toBe(true);
 
-    expect(dispatchEventSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: TOPOLOGY_MUTATION_EVENT })
-    );
-
+    expect(dispatchEventSpy).toHaveBeenCalledWith(expect.objectContaining({ type: TOPOLOGY_MUTATION_EVENT }));
     expect(screen.getByLabelText(/Asset ID \(UUID \/ URI\)/i)).toHaveValue('');
   });
 

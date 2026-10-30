@@ -2,7 +2,7 @@
 import express from 'express';
 import supertest from 'supertest';
 import { createExpressEndpoints } from '@ts-rest/express';
-import { templatesContract, TemplateDTOSchema, TemplateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
+import { templatesContract, templateDTOSchema, templateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
 import { mockFromSchema } from '@shared/testing';
 import { PDF_SUBJECTS, generatePdfCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
 import { zocker } from 'zocker';
@@ -18,8 +18,8 @@ vi.mock('../../repositories', () => ({
 }));
 
 // zocker can't generate `.trim().min()` chains, so the name is supplied
-const mockTemplateDto = (overrides: Partial<z.input<typeof TemplateDTOSchema>> = {}) =>
-  mockFromSchema(TemplateDTOSchema, { name: 'Generated Template', ...overrides });
+const mockTemplateDto = (overrides: Partial<z.input<typeof templateDTOSchema>> = {}) =>
+  mockFromSchema(templateDTOSchema, { name: 'Generated Template', ...overrides });
 
 describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
   let app: express.Express;
@@ -41,7 +41,7 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
 
   describe('GET /templates (getTemplates)', () => {
     it('returns 200 with template manifest list on successful lookup', async () => {
-      const mockManifests = [mockTemplateDto(), mockTemplateDto()].map(({ rawHTML: _rawHTML, ...manifest }) => TemplateManifestSchema.parse(manifest));
+      const mockManifests = [mockTemplateDto(), mockTemplateDto()].map(({ rawHTML: _rawHTML, ...manifest }) => templateManifestSchema.parse(manifest));
 
       vi.mocked(TemplateRepository.findAllManifests).mockReturnValue(mockManifests);
 

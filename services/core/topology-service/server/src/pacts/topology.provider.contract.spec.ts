@@ -5,31 +5,23 @@ import type { Server } from 'node:http';
 import path from 'node:path';
 import { createTopologyGateway } from '../routes';
 
-vi.mock('../repositories', () => {
+vi.mock('../repositories', async () => {
+  const { mockFromSchema } = await import('@shared/testing');
+  const { AssetDTOSchema } = await import('@contracts/topology');
+  const { assetEntitySchema } = await import('../domain');
+  // Same seed as the consumer specs so optional keys line up with the committed pact examples.
+  const seed = { seed: 1 };
+  const graphAsset = mockFromSchema(AssetDTOSchema, { id: 'asset-1', name: 'Probe Mk I', currentOwnerId: 'org-1' }, seed);
+
   return {
     AssetsRepository: class MockAssetsRepository {
       async findAssets() {
-        return [
-          {
-            id: 'ast-101',
-            name: 'AN/PRC-117G',
-            nomenclature: 'AN/PRC-117G',
-            serialNumber: 'SN-9982',
-            status: 'AVAILABLE',
-            currentOwnerId: 'org-1',
-          },
-        ];
+        return [mockFromSchema(assetEntitySchema, { id: 'ast-101', currentOwnerId: 'org-1' }, seed)];
       }
 
       async createAsset(dto: any) {
-        return {
-          id: dto.id,
-          name: dto.name,
-          nomenclature: dto.nomenclature,
-          serialNumber: dto.serialNumber,
-          status: dto.status ?? 'AVAILABLE',
-          currentOwnerId: dto.currentOwnerId,
-        };
+        const { name: _name, ...entity } = dto;
+        return mockFromSchema(assetEntitySchema, entity, seed);
       }
     },
     OrganizationsRepository: class MockOrganizationsRepository {
@@ -57,16 +49,7 @@ vi.mock('../repositories', () => {
               addressLine1: 'Pad 39-B',
             },
           ],
-          assets: [
-            {
-              id: 'asset-1',
-              name: 'Probe Mk I',
-              nomenclature: 'Probe Mk I',
-              serialNumber: 'KSP-01',
-              status: 'AVAILABLE',
-              currentOwnerId: 'org-1',
-            },
-          ],
+          assets: [graphAsset],
           activeTransfers: [
             {
               requisitionNumber: 'REQ-001',

@@ -2,7 +2,7 @@
 import { useState, type SyntheticEvent } from 'react';
 import OrganizationSelector from '../OrganizationSelector';
 import { useCreateAsset } from '../../hooks';
-import type { AssetDTO, AssetStatus } from '@contracts/topology';
+import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO, AssetStatus } from '@contracts/topology';
 import { Button, Select } from '@shared/ui-components';
 import '@shared/styles';
 
@@ -13,7 +13,8 @@ export default function AssetRegistrationWidget() {
   const [name, setName] = useState('');
   const [nomenclature, setNomenclature] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
-  const [status, setStatus] = useState<AssetStatus>('AVAILABLE');
+  const [controlType, setControlType] = useState<ControlType>();
+  const [type, setType] = useState('Asset')
   const [currentOwnerId, setCurrentOwnerId] = useState('');
   
   const { createAsset, isLoading, error: apiError } = useCreateAsset();
@@ -23,7 +24,7 @@ export default function AssetRegistrationWidget() {
     e.preventDefault();
     setFormError(null);
 
-    if (!assetId.trim() || !name.trim() || !nomenclature.trim() || !serialNumber.trim() || !currentOwnerId.trim()) {
+    if (!assetId.trim() || !name.trim() || !nomenclature.trim() || !serialNumber.trim() || !currentOwnerId.trim() || !controlType?.trim()) {
       setFormError('All fields including holding organization custody are required.');
       return;
     }
@@ -33,7 +34,9 @@ export default function AssetRegistrationWidget() {
       name: name.trim(),
       nomenclature: nomenclature.trim(),
       serialNumber: serialNumber.trim(),
-      status,
+      status: ASSET_STATUS.AVAILABLE,
+      type: 'ASSET',
+      controlType,
       currentOwnerId: currentOwnerId.trim(),
     };
 
@@ -46,7 +49,8 @@ export default function AssetRegistrationWidget() {
       setName('');
       setNomenclature('');
       setSerialNumber('');
-      setStatus('AVAILABLE');
+      setType('');
+      setControlType(undefined);
     }
   };
 
@@ -82,15 +86,20 @@ export default function AssetRegistrationWidget() {
         </div>
 
         <div>
+          <label htmlFor="asset-type-input" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Asset Type Information</label>
+          <input id="asset-type-input" type="text" value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. Asset" required className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition" />
+        </div>
+
+        <div>
           <Select
-            label="Initial Status"
-            selectedId={status}
+            label="Control Type"
+            selectedId={controlType}
             options={[
-              { id: 'AVAILABLE', name: 'AVAILABLE' },
-              { id: 'MAINTENANCE', name: 'MAINTENANCE' },
+              { id: CONTROL_TYPE.LOCAL, name: CONTROL_TYPE.LOCAL },
+              { id: CONTROL_TYPE.REMOTE, name: CONTROL_TYPE.REMOTE },
             ]}
             onSelection={(val) => {
-              if (val) setStatus(val as AssetStatus);
+              if (val) setControlType(val as ControlType);
             }}
             placeholderText="-- Select Status --"
           />

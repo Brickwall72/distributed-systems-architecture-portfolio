@@ -1,6 +1,6 @@
 // File: packages/contracts/topology/src/inputs/AssetSelector.input.schema.ts
 import { z } from 'zod';
-import { type AssetDTOList } from '../outputs';
+import { AssetDTOList, controlTypeEnum } from '../outputs';
 
 /**
  * Reusable base asset query parameters.
@@ -9,6 +9,7 @@ import { type AssetDTOList } from '../outputs';
 export const GetAssetsQuerySchema = z.object({
   filterOwnerId: z.string().trim().min(1).optional(),
   excludeOwnerId: z.string().trim().min(1).optional(),
+  filterControlType: controlTypeEnum.optional(),
   includeInTransit: z.preprocess(
     (val) => {
       if (val === 'true') return true;
@@ -18,7 +19,6 @@ export const GetAssetsQuerySchema = z.object({
     z.boolean().optional().default(false)
   ),
 });
-
 export type GetAssetsQuery = z.infer<typeof GetAssetsQuerySchema>;
 
 /**

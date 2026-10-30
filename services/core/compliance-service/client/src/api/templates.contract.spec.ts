@@ -3,7 +3,7 @@ import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
 import { z } from 'zod';
-import { TemplateDTOSchema, TemplateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
+import { templateDTOSchema, templateManifestSchema, TemplateDraftResponseSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
 const { like, arrayContaining } = MatchersV3;
@@ -33,7 +33,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: arrayContaining(
-          like(mockFromSchema(TemplateManifestSchema, { name: templateName, type: 'AUTHORIZATION' }, { seed: PACT_SEED }))
+          like(mockFromSchema(templateManifestSchema, { name: templateName }, { seed: PACT_SEED }))
         ),
       });
 
@@ -46,9 +46,9 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(200);
-      const body = z.array(TemplateManifestSchema).parse(response.body);
+      const body = z.array(templateManifestSchema).parse(response.body);
       expect(body).toHaveLength(1);
-      expect(body[0].type).toBe('AUTHORIZATION');
+      expect(body[0].name).toBe(templateName);
     });
   });
 
@@ -67,7 +67,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: like(
-          mockFromSchema(TemplateDTOSchema, {
+          mockFromSchema(templateDTOSchema, {
             id: templateId,
             name: templateName,
             type: 'AUTHORIZATION',
@@ -85,7 +85,7 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
       });
 
       expect(response.status).toBe(200);
-      const body = TemplateDTOSchema.parse(response.body);
+      const body = templateDTOSchema.parse(response.body);
       expect(body.id).toBe(templateId);
       expect(body.rawHTML).toContain('Authorization Form HTML');
     });

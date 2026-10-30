@@ -48,22 +48,22 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   }
 
   // 3. Query Data Access Layer
-  const { items, isLoading, error } = useGetOrganizations({ filterOwnedId, requireActiveAssets });
+  const { items: orgs, isLoading, error } = useGetOrganizations({ filterOwnedId, requireActiveAssets });
 
   // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
     // PRECEDENCE RULE: If an explicit asset filter returns exactly 1 holding org, 
     // bypass excludeOrgId so the true owner can still be selected.
-    const effectiveItems =
-      filterOwnedId && items.length === 1
-        ? items
-        : items.filter((org) => org.id !== excludeOrgId);
+    const effectiveOrgs =
+      filterOwnedId && orgs.length === 1
+        ? orgs
+        : orgs.filter((org) => org.id !== excludeOrgId);
 
-    return effectiveItems.map((org) => ({
+    return effectiveOrgs.map((org) => ({
       id: org.id,
       name: org.name,
     }));
-  }, [items, excludeOrgId, filterOwnedId]);
+  }, [orgs, excludeOrgId, filterOwnedId]);
 
   // 5. Handle User Selection
   const handleOrganizationSelect = (value: string) => {
@@ -80,7 +80,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     userClearedRef.current = false;
     setSelectedId(value);
 
-    const selectedOrganization = items.find((organization) => organization.id === value);
+    const selectedOrganization = orgs.find((organization) => organization.id === value);
     if (!selectedOrganization) {
       onSelect([]);
       return;

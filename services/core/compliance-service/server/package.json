@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup && pnpm copy-assets",
-    "copy-assets": "node -e \"fs.cpSync('src/assets/templates', 'dist/assets/templates', { recursive: true })\"",
+    "copy-assets": "node -e \"fs.cpSync('src/registry/templates', 'dist/registry/templates', { recursive: true })\"",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "pnpm test:unit && pnpm test:verify",

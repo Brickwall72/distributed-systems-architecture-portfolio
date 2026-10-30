@@ -1,6 +1,8 @@
 // File: services/core/topology-service/server/src/mappers/asset/entity/asset.entity.mapper.unit.test.ts
 import type { Record as Neo4jRecord } from 'neo4j-driver';
+import { mockFromSchema } from '@shared/testing';
 import { mapRecordToAssetEntity } from './asset.entity.mapper';
+import { assetEntitySchema } from '../../../domain';
 
 /**
  * Utility helper to mock Neo4j Record instance without importing full driver internals.
@@ -13,57 +15,27 @@ function createMockRecord(data: Record<string, unknown>): Neo4jRecord {
 
 describe('mapRecordToAssetEntity', () => {
   it('maps a valid complete Neo4j record to an AssetEntity', () => {
-    const record = createMockRecord({
-      id: 'asset-123',
-      nomenclature: 'AN/PRC-117G',
-      serialNumber: 'SN-998231',
-      currentOwnerId: 'org-456',
-      status: 'AVAILABLE',
-    });
+    const entity = mockFromSchema(assetEntitySchema);
 
-    const result = mapRecordToAssetEntity(record);
-
-    expect(result).toEqual({
-      id: 'asset-123',
-      nomenclature: 'AN/PRC-117G',
-      serialNumber: 'SN-998231',
-      currentOwnerId: 'org-456',
-      status: 'AVAILABLE',
-    });
+    expect(mapRecordToAssetEntity(createMockRecord(entity))).toEqual(entity);
   });
 
-  it('coerces missing or non-string nomenclature and serialNumber to empty strings safely', () => {
-    const record = createMockRecord({
-      id: 'asset-123',
-      nomenclature: null,
-      serialNumber: undefined,
-      currentOwnerId: 'org-456',
-      status: 'AVAILABLE',
-    });
+  it('rejects records whose properties violate the AssetEntity schema', () => {
+    const entity = mockFromSchema(assetEntitySchema);
 
-    const result = mapRecordToAssetEntity(record);
-
-    expect(result.nomenclature).toBe('');
-    expect(result.serialNumber).toBe('');
+    expect(() => mapRecordToAssetEntity(createMockRecord({ ...entity, nomenclature: null }))).toThrow();
+    expect(() => mapRecordToAssetEntity(createMockRecord({ ...entity, controlType: 'UNKNOWN' }))).toThrow();
   });
 
   it('throws a database integrity error when id is missing or not a string', () => {
-    const missingIdRecord = createMockRecord({
-      nomenclature: 'AN/PRC-117G',
-      status: 'AVAILABLE',
-    });
+    const entity = mockFromSchema(assetEntitySchema);
+    const { id: _id, ...withoutId } = entity;
 
-    const emptyIdRecord = createMockRecord({
-      id: '',
-      nomenclature: 'AN/PRC-117G',
-      status: 'AVAILABLE',
-    });
-
-    expect(() => mapRecordToAssetEntity(missingIdRecord)).toThrowError(
+    expect(() => mapRecordToAssetEntity(createMockRecord(withoutId))).toThrowError(
       'Database integrity error: Neo4j record missing string "id" property'
     );
 
-    expect(() => mapRecordToAssetEntity(emptyIdRecord)).toThrowError(
+    expect(() => mapRecordToAssetEntity(createMockRecord({ ...entity, id: '' }))).toThrowError(
       'Database integrity error: Neo4j record missing string "id" property'
     );
   });

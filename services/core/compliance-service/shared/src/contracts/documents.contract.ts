@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
 import { transferInitiatedDataSchema } from '@contracts/compliance';
-import { DocumentSchema, formNameEnum, formTypeEnum  } from '../schemas';
+import { DocumentSchema, formIdEnum, formTypeEnum  } from '../schemas';
 
 const c = initContract();
 
 export const signDocumentApiRequestSchema = SignDocumentCommandSchema.extend({
   ...transferInitiatedDataSchema.omit({date: true}).shape,
-  documentName: formNameEnum,
+  documentName: formIdEnum,
   documentType:formTypeEnum
 });
 

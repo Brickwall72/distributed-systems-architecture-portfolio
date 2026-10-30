@@ -1,14 +1,17 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { lazyRemote } from '../utils/federation';
 import { FederatedErrorBoundary } from '@shared/ui-components';
-import type { ComplianceWorkflowWidgetProps } from '@contracts/compliance';
-import type { 
+import { TRANSFER_TYPE, TransferType } from '@contracts/common';
+import { ComplianceWorkflowWidgetPropsSchema, ComplianceWorkflowWidgetProps } from '@contracts/compliance';
+import { 
   AssetDTOList,
+  CONTROL_TYPE,
   OrganizationDTO,
   OrganizationDTOList,
   AssetSelectorProps,
-  OrganizationSelectorProps
+  OrganizationSelectorProps,
+  ControlType
 } from '@contracts/topology';
 
 // Dynamically resolve high-level bounded context widgets
@@ -21,6 +24,28 @@ export default function UnifiedCustodyPage() {
   const [sourceOrg, setSourceOrg] = useState<OrganizationDTO>();
   const [targetOrg, setTargetOrg] = useState<OrganizationDTO>();
   const [assets, setAssets] = useState<AssetDTOList>([]);
+  const [transferType, setTransferType] = useState<TransferType>();
+  const [controlType, setControlType] = useState<ControlType>();
+
+  useEffect(() => {
+    switch (assets[0]?.controlType) {
+      case CONTROL_TYPE.LOCAL:
+        setTransferType(TRANSFER_TYPE.PHYSICAL_TRANSFER);
+        break;
+      case CONTROL_TYPE.REMOTE:
+        setTransferType(TRANSFER_TYPE.C2_TRANSFER);
+        break;
+      default:
+        setTransferType(undefined);
+    }
+  }, [assets])
+
+  const handleTemplateSelect = (transferType: TransferType | undefined) => {
+    setTransferType(transferType);
+    if(transferType === TRANSFER_TYPE.PHYSICAL_TRANSFER) setControlType(CONTROL_TYPE.LOCAL);
+    else if (transferType === TRANSFER_TYPE.C2_TRANSFER) setControlType(CONTROL_TYPE.REMOTE);
+    else setControlType(undefined);
+  }
 
   const handleSourceOrgSelect = (orgs: OrganizationDTOList) => {
     setSourceOrg(orgs[0]);
@@ -52,6 +77,7 @@ export default function UnifiedCustodyPage() {
               label='Asset for Transfer'
               excludeOwnerId={targetOrg?.id}
               filterOwnerId={sourceOrg?.id}
+              filterControlType = {controlType}
               onSelect={setAssets}
             />
           </Suspense>
@@ -71,9 +97,13 @@ export default function UnifiedCustodyPage() {
         <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading compliance workflow...</div>}>
             <ComplianceWorkflowWidget
-              sourceOrg={sourceOrg}
-              assets={assets}
-              targetOrg={targetOrg}
+              {...ComplianceWorkflowWidgetPropsSchema.parse({
+                sourceOrg,
+                assets,
+                targetOrg,
+                transferType,
+              })}
+              onSelect={handleTemplateSelect}
             />
           </Suspense>
         </FederatedErrorBoundary>

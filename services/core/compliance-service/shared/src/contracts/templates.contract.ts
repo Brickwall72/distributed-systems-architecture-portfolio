@@ -3,12 +3,9 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ApiErrorResponseSchema, transferTypeEnum } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
-import { TemplateDTOSchema, GetTemplatesQuerySchema, formTypeEnum } from '../schemas';
+import { templateDTOSchema, GetTemplatesQuerySchema, formTypeEnum, templateManifestListSchema } from '../schemas';
 
 const c = initContract();
-
-export const TemplateManifestSchema = TemplateDTOSchema.omit({ rawHTML: true });
-export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
 
 export const TemplateDraftResponseSchema = SignDocumentCommandSchema.omit({
   customPath: true, signatureImageBase64: true, signerId: true
@@ -27,7 +24,7 @@ export const templatesRoutes = {
     path: '/templates',
     query: GetTemplatesQuerySchema,
     responses: {
-      200: z.array(TemplateManifestSchema),
+      200: templateManifestListSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Retrieve a lightweight manifest of available compliance templates.',
@@ -39,7 +36,7 @@ export const templatesRoutes = {
       id: z.string(),
     }),
     responses: {
-      200: TemplateDTOSchema,
+      200: templateDTOSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
@@ -48,7 +45,7 @@ export const templatesRoutes = {
   createTemplateDraft: c.mutation({
     method: 'POST',
     path: '/templates/:id/drafts',
-    pathParams: z.object({ id: TemplateDTOSchema.shape.id }),
+    pathParams: z.object({ id: templateDTOSchema.shape.id }),
     body: z.object({
       data: z.record(z.unknown()),
     }),

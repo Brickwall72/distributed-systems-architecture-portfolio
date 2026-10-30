@@ -2,8 +2,13 @@
 import { renderHook, act } from '@testing-library/react';
 import { useGeneratePdf } from './useGeneratePdf';
 import { apiClient } from '../../api';
-import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { TemplateDraftResponseSchema } from 'compliance-shared';
+import { z } from 'zod';
+import {
+  TemplateDraftResponseSchema,
+  masterPayloadInputSchema,
+  templateDTOSchema,
+  type TemplateDTOwithPayloadSchema,
+} from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
 // Mock external dependencies
@@ -11,10 +16,6 @@ vi.mock('../../api', () => ({
   apiClient: {
     createTemplateDraft: vi.fn(),
   },
-}));
-
-vi.mock('../../registry', () => ({
-  generateTemplatePayload: vi.fn((params) => ({ mockPayloadKey: params.templateId })),
 }));
 
 // Mock URL.createObjectURL
@@ -30,19 +31,27 @@ describe('useGeneratePdf', () => {
     vi.clearAllMocks();
   });
 
-  const defaultParams: PayloadParams = {
-    templateId: 'asset-transfer-authorization',
-    input: {
-      sourceOrg: { id: '1', name: 'Src', type: 'GOV_AGENCY' },
-      targetOrg: { id: '2', name: 'Dst', type: 'CONTRACTOR' },
-      assets: [],
-    },
-  };
+  // Stand-in parser so the hook's payload handoff is observable without coupling to real form schemas
+  const payloadSchema = z
+    .object({}).passthrough()
+    .pipe(z.object({}).passthrough().transform((data) => ({ ...data, parsedByTemplate: true })));
+
+  // zocker can't generate `.trim().min()` chains, so the name is supplied
+  const template = mockFromSchema(templateDTOSchema, { name: 'Asset Transfer Authorization' });
+  const templateWithSchema = { ...template, payloadSchema } as unknown as TemplateDTOwithPayloadSchema;
+
+  const payloadData = mockFromSchema(masterPayloadInputSchema, {
+    sourceOrg: { id: '1', name: 'Src' },
+    targetOrg: { id: '2', name: 'Dst' },
+    assets: [],
+  } as never);
+
+  const defaultParams = { template: templateWithSchema, payloadData };
 
   const draftResponse = (overrides = {}) =>
     mockFromSchema(TemplateDraftResponseSchema, {
       fileHash: SHA256_HEX,
-      documentName: 'asset-transfer-authorization',
+      documentName: template.id,
       presignedUrl: 'http://localhost:9000/dsap/test-document.pdf?signature=xyz',
       ...overrides,
     });
@@ -55,12 +64,12 @@ describe('useGeneratePdf', () => {
     expect(result.current.unsignedDocumentData).toBeNull();
   });
 
-  it('does not invoke API if templateId is missing', async () => {
+  it('does not invoke API if the source organization is missing', async () => {
     const { result } = renderHook(() => useGeneratePdf());
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
-      await result.current.generatePdf({ ...defaultParams, templateId: '' as any }, mockOnSuccess);
+      await result.current.generatePdf({ ...defaultParams, payloadData: { ...payloadData, sourceOrg: undefined }, onSuccess: mockOnSuccess });
     });
 
     expect(apiClient.createTemplateDraft).not.toHaveBeenCalled();
@@ -89,21 +98,13 @@ describe('useGeneratePdf', () => {
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
-      await result.current.generatePdf(defaultParams, mockOnSuccess);
+      await result.current.generatePdf({ ...defaultParams, onSuccess: mockOnSuccess });
     });
 
-    // Verifies payload generation occurred
-    expect(generateTemplatePayload).toHaveBeenCalledWith(
-      expect.objectContaining({
-        templateId: 'asset-transfer-authorization',
-        usePlaceholders: false,
-      })
-    );
-
-    // Verifies backend API call
+    // Verifies the template's own schema produced the payload sent to the backend
     expect(apiClient.createTemplateDraft).toHaveBeenCalledWith({
-      params: { id: 'asset-transfer-authorization' },
-      body: { data: { mockPayloadKey: 'asset-transfer-authorization' } },
+      params: { id: template.id },
+      body: { data: expect.objectContaining({ requisitionNumber: 'temp', parsedByTemplate: true }) },
     });
 
     // Verifies fetch was called with the pre-signed URL
@@ -117,8 +118,8 @@ describe('useGeneratePdf', () => {
       storageBucket: draft.storageBucket,
       storageKey: draft.storageKey,
       requisitionNumber: draft.requisitionNumber,
-      senderOrgId: defaultParams.input.sourceOrg?.id,
-      receiverOrgId: defaultParams.input.targetOrg?.id,
+      senderOrgId: payloadData.sourceOrg?.id,
+      receiverOrgId: payloadData.targetOrg?.id,
     });
     expect(result.current.error).toBeNull();
     expect(result.current.isLoading).toBe(false);
@@ -143,7 +144,7 @@ describe('useGeneratePdf', () => {
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
-      await result.current.generatePdf(defaultParams, mockOnSuccess);
+      await result.current.generatePdf({ ...defaultParams, onSuccess: mockOnSuccess });
     });
 
     expect(result.current.error).toBe('Expected a PDF from storage but received text/html');
@@ -167,7 +168,7 @@ describe('useGeneratePdf', () => {
     const mockOnSuccess = vi.fn();
 
     await act(async () => {
-      await result.current.generatePdf(defaultParams, mockOnSuccess);
+      await result.current.generatePdf({ ...defaultParams, onSuccess: mockOnSuccess });
     });
 
     expect(result.current.error).toBe('Internal server error creating template draft PDF.');

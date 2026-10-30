@@ -2,6 +2,8 @@
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
+import { AssetDTOSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
 
 const { like, string, regex, arrayContaining } = MatchersV3;
 
@@ -14,6 +16,8 @@ const provider = new PactV3({
 
 describe('Topology Client -> Topology Server Contract (Graph API)', () => {
   it('receives a valid GraphDTO projection via production apiClient', async () => {
+    const asset = mockFromSchema(AssetDTOSchema, { id: 'asset-1', name: 'Probe Mk I', currentOwnerId: 'org-1' }, { seed: 1 });
+
     provider
       .given('topology graph network nodes exist')
       .uponReceiving('a request to fetch the complete topology network graph projection')
@@ -36,16 +40,7 @@ describe('Topology Client -> Topology Server Contract (Graph API)', () => {
               addressLine1: string('Pad 39-B'),
             })
           ),
-          assets: arrayContaining(
-            like({
-              id: string('asset-1'),
-              name: string('Probe Mk I'),
-              nomenclature: string('Probe Mk I'),
-              serialNumber: string('KSP-01'),
-              status: string('AVAILABLE'),
-              currentOwnerId: string('org-1'),
-            })
-          ),
+          assets: arrayContaining(like(asset)),
           activeTransfers: arrayContaining(
             like({
               requisitionNumber: string('REQ-001'),

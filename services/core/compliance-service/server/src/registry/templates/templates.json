@@ -11,6 +11,12 @@
     "transferType": "PHYSICAL_TRANSFER",
     "type": "RECEIPT"
   },
+  "authority-transfer-authorization": {
+    "name": "C2 Authority Transfer Authorization",
+    "fileName": "C2-authority-transfer.hbs",
+    "transferType": "C2_TRANSFER",
+    "type": "AUTHORIZATION"
+  },
   "contract-test-bare": {
     "name": "Minimal Test Template",
     "fileName": "contract-test-bare.hbs",

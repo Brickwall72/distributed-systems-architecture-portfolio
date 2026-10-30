@@ -1,16 +1,38 @@
 // File: packages/contracts/topology/src/outputs/asset.dto.schema.ts
 import { z } from 'zod';
 
-export const AssetStatusEnum = z.enum(['AVAILABLE', 'IN_TRANSIT', 'MAINTENANCE']);
-export type AssetStatus = z.infer<typeof AssetStatusEnum>;
+export const CONTROL_TYPE = {
+  LOCAL: 'LOCAL',
+  REMOTE: 'REMOTE',
+} as const
+export const controlTypeEnum = z.enum(
+  Object.values(CONTROL_TYPE) as [
+    (typeof CONTROL_TYPE)[keyof typeof CONTROL_TYPE], 
+    ...(typeof CONTROL_TYPE)[keyof typeof CONTROL_TYPE][]
+  ]
+);
+export type ControlType = z.infer<typeof controlTypeEnum>;
+
+export const ASSET_STATUS = {
+  AVAILABLE: 'AVAILABLE',
+  IN_TRANSIT: 'IN_TRANSIT',
+} as const
+export const assetStatusEnum = z.enum(
+  Object.values(ASSET_STATUS) as [
+    (typeof ASSET_STATUS)[keyof typeof ASSET_STATUS], 
+    ...(typeof ASSET_STATUS)[keyof typeof ASSET_STATUS][]
+  ]
+);
+export type AssetStatus = z.infer<typeof assetStatusEnum>;
 
 export const AssetItemSchema = z.object({
   id: z.string(),
   nomenclature: z.string(),
   serialNumber: z.string(),
-  status: AssetStatusEnum.default('AVAILABLE'),
+  status: assetStatusEnum.default(ASSET_STATUS.AVAILABLE),
+  type: z.string(),
+  controlType: controlTypeEnum,
 });
-
 export type AssetItemDTO = z.infer<typeof AssetItemSchema>;
 export const AssetItemDTOListSchema = z.array(AssetItemSchema);
 export type AssetItemDTOList = z.infer<typeof AssetItemDTOListSchema>;
@@ -23,7 +45,6 @@ export const AssetDTOSchema = AssetItemSchema.extend({
   name: z.string().trim().min(1, 'Asset name is required'),
   currentOwnerId: z.string().trim().min(1, 'Holding organization owner ID is required'),
 });
-
 export type AssetDTO = z.infer<typeof AssetDTOSchema>;
 
 export const AssetDTOListSchema = z.array(AssetDTOSchema);

@@ -1,8 +1,8 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplateQuery.unit.test.ts
 import { renderHook, waitFor } from '@testing-library/react';
-import { useTemplateQuery } from './useTemplateQuery';
+import { useTemplateQuery, clearTemplateCache } from './useTemplateQuery';
 import { apiClient } from '../../api';
-import type { FormName } from 'compliance-shared';
+import type { FormId } from 'compliance-shared';
 
 vi.mock('../../api', () => ({
   apiClient: {
@@ -13,10 +13,27 @@ vi.mock('../../api', () => ({
 describe('useTemplateQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearTemplateCache();
+  });
+
+  it('serves repeat requests for the same id from cache', async () => {
+    const id: FormId = 'asset-transfer-authorization';
+    vi.mocked(apiClient.getTemplate).mockResolvedValue({
+      status: 200,
+      body: { id, name: 'Form A', rawHTML: '<p>HTML</p>' } as any,
+      headers: new Headers(),
+    });
+
+    const first = renderHook(() => useTemplateQuery(id));
+    await waitFor(() => expect(first.result.current.data).not.toBeNull());
+    const second = renderHook(() => useTemplateQuery(id));
+    await waitFor(() => expect(second.result.current.data).not.toBeNull());
+
+    expect(apiClient.getTemplate).toHaveBeenCalledTimes(1);
   });
 
   it('fetches full template DTO when ID is provided', async () => {
-    const validTemplateId: FormName = 'asset-transfer-authorization';
+    const validTemplateId: FormId = 'asset-transfer-authorization';
     const mockDto = { id: validTemplateId, name: 'Form A', rawHTML: '<p>HTML</p>', type: 'AUTHORIZATION' };
     
     vi.mocked(apiClient.getTemplate).mockResolvedValue({
@@ -44,5 +61,7 @@ describe('useTemplateQuery', () => {
     // Should complete/skip loading immediately without making an API call
     expect(apiClient.getTemplate).not.toHaveBeenCalled();
     expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(false);
   });
 });

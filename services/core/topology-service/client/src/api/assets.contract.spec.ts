@@ -2,8 +2,15 @@
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
+import { AssetDTOSchema, AssetDTOListSchema } from '@contracts/topology';
+import { mockFromSchema } from '@shared/testing';
 
-const { like, string, arrayContaining } = MatchersV3;
+const { like, arrayContaining } = MatchersV3;
+const PACT_SEED = { seed: 1 };
+
+// zocker can't generate `.trim().min()` chains, so name and owner are supplied
+const mockAsset = (overrides: Parameters<typeof mockFromSchema<typeof AssetDTOSchema>>[1] = {}) =>
+  mockFromSchema(AssetDTOSchema, { name: 'AN/PRC-117G', currentOwnerId: 'org-1', ...overrides }, PACT_SEED);
 
 const provider = new PactV3({
   consumer: 'topology-client',
@@ -14,6 +21,8 @@ const provider = new PactV3({
 
 describe('Topology Client -> Topology Server Contract (Assets API)', () => {
   it('receives a valid AssetDTO collection via production apiClient', async () => {
+    const asset = mockAsset({ id: 'ast-101' });
+
     provider
       .given('assets exist for organization org-1')
       .uponReceiving('a request to fetch assets for org-1 with includeInTransit filter')
@@ -30,16 +39,7 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: arrayContaining(
-          like({
-            id: string('ast-101'),
-            name: string('AN/PRC-117G'),
-            nomenclature: string('AN/PRC-117G'),
-            serialNumber: string('SN-9982'),
-            status: string('AVAILABLE'),
-            currentOwnerId: string('org-1'),
-          })
-        ),
+        body: arrayContaining(like(asset)),
       });
 
     await provider.executeTest(async (mockServer) => {
@@ -54,22 +54,14 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = response.body as Array<{ id: string; status: string }>;
+      const body = AssetDTOListSchema.parse(response.body);
       expect(body).toHaveLength(1);
-      expect(body[0].id).toBe('ast-101');
-      expect(body[0].status).toBe('AVAILABLE');
+      expect(body[0].id).toBe(asset.id);
     });
   });
 
   it('successfully registers a new asset via POST createAsset endpoint', async () => {
-    const newAssetPayload = {
-      id: 'ast-202',
-      name: 'AN/PRC-152A',
-      nomenclature: 'AN/PRC-152A',
-      serialNumber: 'SN-44912',
-      status: 'AVAILABLE' as const,
-      currentOwnerId: 'org-1',
-    };
+    const newAssetPayload = mockAsset({ id: 'ast-202', name: 'AN/PRC-152A' });
 
     provider
       .given('organization org-1 exists')
@@ -99,7 +91,7 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
       });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual(expect.objectContaining({ id: 'ast-202', status: 'AVAILABLE' }));
+      expect(AssetDTOSchema.parse(response.body)).toEqual(expect.objectContaining({ id: newAssetPayload.id }));
     });
   });
 });

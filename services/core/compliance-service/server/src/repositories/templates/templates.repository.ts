@@ -3,30 +3,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  FormName,
+  FormId,
   TemplateDTO,
-  FormType,
-  TemplateManifest,
+  templateDTOSchema,
+  templateManifestListSchema,
   GetTemplatesQuery,
 } from 'compliance-shared';
-
-interface TemplateMetadata {
-  name: string;
-  fileName: string;
-  type: FormType;
-  transferType: TemplateDTO['transferType'];
-}
+import { masterTemplateRegistry, templatesArray } from '../../registry';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const getTemplateDirectory = (): string => {
   const candidatePaths = [
-    path.resolve(__dirname, './assets/templates'),
-    path.resolve(__dirname, '../../assets/templates'),
-    path.resolve(__dirname, '../../../src/assets/templates'),
-    path.resolve(process.cwd(), 'dist/assets/templates'),
-    path.resolve(process.cwd(), 'src/assets/templates'),
+    path.resolve(__dirname, '../../registry/templates'),
+    path.resolve(__dirname, '../../../src/registry/templates'),
+    path.resolve(process.cwd(), 'dist/registry/templates'),
+    path.resolve(process.cwd(), 'src/registry/templates'),
   ];
 
   for (const candidate of candidatePaths) {
@@ -35,87 +28,59 @@ const getTemplateDirectory = (): string => {
     }
   }
 
-  return path.resolve(__dirname, './assets/templates');
+  return path.resolve(__dirname, '../../registry/templates');
 };
 
 const TEMPLATES_DIR = getTemplateDirectory();
-
-// Load metadata from the JSON config alongside the assets
-const loadMetadata = (): Record<FormName, TemplateMetadata> => {
-  const metadataPath = path.join(TEMPLATES_DIR, 'templates.json');
-  if (fs.existsSync(metadataPath)) {
-    const rawData = fs.readFileSync(metadataPath, 'utf-8');
-    return JSON.parse(rawData) as Record<FormName, TemplateMetadata>;
-  }
-  return {} as Record<FormName, TemplateMetadata>;
-};
-
 const templateCache = new Map<string, TemplateDTO>();
 
 export const TemplateRepository = {
-  findById: (id: string): TemplateDTO | null => {
-    const metadata = loadMetadata();
-    if (!Object.prototype.hasOwnProperty.call(metadata, id)) {
+  findById: (id: FormId) => {
+    if (!(id in masterTemplateRegistry)) {
       return null;
     }
-    const templateId = id as FormName;
 
-    if (templateCache.has(templateId)) {
-      return templateCache.get(templateId)!;
+    if (templateCache.has(id)) {
+      return templateCache.get(id)!;
     }
 
-    const meta = metadata[templateId];
+    const meta = masterTemplateRegistry[id];
     const filePath = path.join(TEMPLATES_DIR, meta.fileName);
 
     if (!fs.existsSync(filePath)) {
       throw new Error(`Compliance template asset missing on disk: ${filePath}`);
     }
 
-    const html = fs.readFileSync(filePath, 'utf-8');
-    const template: TemplateDTO = {
-      id: templateId,
-      name: meta.name,
-      type: meta.type,
-      transferType: meta.transferType,
-      rawHTML: html,
-    };
+    const rawHTML = fs.readFileSync(filePath, 'utf-8');
+    const template = templateDTOSchema.parse({
+      ...meta,
+      rawHTML,
+    });
 
-    templateCache.set(templateId, template);
+    templateCache.set(id, template);
     return template;
   },
 
-  findAllManifests: (query?: GetTemplatesQuery): TemplateManifest[] => {
-    const metadata = loadMetadata();
-    
-    let manifests: TemplateManifest[] = (Object.keys(metadata) as FormName[])
-      .filter((id) => id !== 'contract-test-bare')
-      .map((id) => {
-        const meta = metadata[id];
-        return {
-          id,
-          name: meta.name,
-          type: meta.type,
-          transferType: meta.transferType,
-        };
-      });
+  findAllManifests: (query?: GetTemplatesQuery) => {
+    let templates = templatesArray.filter((meta) => meta.id !== 'contract-test-bare');
 
-    if (!query) {
-      return manifests;
+    if (query?.type) {
+      templates = templates.filter((t) => t.type === query.type);
     }
 
-    if (query.type) {
-      manifests = manifests.filter((m) => m.type === query.type);
+    if (query?.transferType) {
+      templates = templates.filter((t) => t.transferType === query.transferType);
     }
 
-    if (query.search) {
+    if (query?.search) {
       const searchLower = query.search.toLowerCase();
-      manifests = manifests.filter(
-        (m) =>
-          m.name.toLowerCase().includes(searchLower) ||
-          m.id.toLowerCase().includes(searchLower)
+      templates = templates.filter(
+        (t) =>
+          t.name.toLowerCase().includes(searchLower) ||
+          t.id.toLowerCase().includes(searchLower)
       );
     }
 
-    return manifests;
+    return templateManifestListSchema.parse(templates);
   },
 };
