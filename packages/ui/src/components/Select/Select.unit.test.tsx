@@ -81,4 +81,43 @@ describe('Select Component', () => {
     expect(select).toBeDisabled();
     expect(select).toBeRequired();
   });
+
+  describe('multi-select', () => {
+    it('renders a listbox trigger with placeholder and no native combobox', () => {
+      render(<Select isMulti label="Multi" options={mockOptions} onSelection={vi.fn()} />);
+
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Multi' })).toHaveTextContent('-- Select --');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('shows selected names and emits the toggled selection', async () => {
+      const user = userEvent.setup();
+      const onSelection = vi.fn();
+      render(<Select isMulti label="Multi" options={mockOptions} selectedIds={['opt1']} onSelection={onSelection} />);
+
+      const trigger = screen.getByRole('button', { name: 'Multi' });
+      expect(trigger).toHaveTextContent('Option 1');
+
+      await user.click(trigger);
+      expect(screen.getByRole('option', { name: 'Option 1' })).toHaveAttribute('aria-selected', 'true');
+
+      await user.click(screen.getByRole('option', { name: 'Option 2' }));
+      expect(onSelection).toHaveBeenLastCalledWith(['opt1', 'opt2']);
+
+      await user.click(screen.getByRole('option', { name: 'Option 1' }));
+      expect(onSelection).toHaveBeenLastCalledWith([]);
+    });
+
+    it('closes the dropdown when clicking outside', async () => {
+      const user = userEvent.setup();
+      render(<Select isMulti label="Multi" options={mockOptions} onSelection={vi.fn()} />);
+
+      await user.click(screen.getByRole('button', { name: 'Multi' }));
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+      await user.click(document.body);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+  });
 });
