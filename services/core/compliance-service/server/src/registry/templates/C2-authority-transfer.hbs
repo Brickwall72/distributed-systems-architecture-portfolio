@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>C2 Authority Transfer Authorization</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      color: #333;
+      padding: 40px;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .header-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .form-grid {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .grid-row {
+      display: table-row;
+    }
+    .grid-cell {
+      display: table-cell;
+      border: 1px solid #000;
+      padding: 8px;
+      vertical-align: top;
+      width: 50%;
+    }
+    .label {
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .table-items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .table-items th, .table-items td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: left;
+    }
+    .table-items th {
+      font-size: 10px;
+      background-color: #f3f4f6;
+    }
+    .signature-block {
+      border: 1px solid #000;
+      padding: 15px;
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      right: 40px;
+      box-sizing: border-box;
+    }
+    .sig-line {
+      border-bottom: 1px solid #000;
+      width: 250px;
+      display: inline-block;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-title">
+    Command &amp; Control (C2) Authority Transfer Authorization<br>
+    (Instantaneous Operational Handover)
+  </div>
+  
+  <div class="form-grid">
+    <div class="grid-row">
+      <div class="grid-cell">
+        <span class="label">1. Releasing Command (Relinquishing Authority):</span>
+        <strong>{{releasingCommandName}}</strong><br>
+        Station ID: {{releasingStationId}}<br>
+        {{releasingControlSegmentNode}}
+      </div>
+      <div class="grid-cell">
+        <span class="label">2. Receiving Command (Assuming Authority):</span>
+        <strong>{{receivingCommandName}}</strong><br>
+        Station ID: {{receivingStationId}}<br>
+        {{receivingControlSegmentNode}}
+      </div>
+    </div>
+    <div class="grid-row">
+      <div class="grid-cell">
+        <span class="label">3. Mission Directive / Authority Number:</span>
+        {{requisitionNumber}}
+      </div>
+      <div class="grid-cell">
+        <span class="label">4. Effective Handover Timestamp (UTC):</span>
+        {{authorizationTimestampUtc}}
+      </div>
+    </div>
+  </div>
+
+  <table class="table-items">
+    <thead>
+      <tr>
+        <th>Item No.</th>
+        <th>Remote Asset Designation &amp; NORAD ID</th>
+        <th>Telemetry / Uplink Stream</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each items}}
+      <tr>
+        <td>{{this.itemNumber}}</td>
+        <td>
+          <strong>{{this.nomenclature}}</strong><br>
+          Asset ID / NORAD S/N: {{this.serialNumber}}<br>
+          <em>{{this.additionalNotes}}</em>
+        </td>
+        <td>{{this.telemetryChannel}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="signature-block">
+    <span class="label">Operational Authority Transfer Certification</span>
+    <p>I certify that command and control authority for the remote assets listed above is transferred instantaneously and irrevocably upon digital cryptographic validation.</p>
+    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div>
+        <strong>Flight Director / Commander:</strong> 
+        <span class="sig-line"></span>
+      </div>
+      <div>
+        <strong>UTC Timestamp:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/shared/src/schemas/DTO/document.dto.schema.ts
 import { z } from 'zod';
 import { transferTypeEnum } from '@contracts/common';
-import { formNameEnum, formTypeEnum } from './template.dto.schema';
+import { formIdEnum, formTypeEnum } from './template.dto.schema';
 
 export const DocumentStatusSchema = z.enum([
   'SIGNED',
@@ -13,7 +13,7 @@ export const DocumentStatusSchema = z.enum([
 export type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
 
 export const DocumentSchema = z.object({
-  name: formNameEnum,
+  name: formIdEnum,
   type: formTypeEnum,
   transferType: transferTypeEnum,
   requisitionNumber: z.string(),

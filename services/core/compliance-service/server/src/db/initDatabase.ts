@@ -12,7 +12,7 @@ export const initDatabase = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS compliance_documents (
         id UUID PRIMARY KEY,
-        name VARCHAR(100) NOT NULL, -- Maps to formNameEnum (e.g., 'asset-transfer-authorization')
+        name VARCHAR(100) NOT NULL, -- Maps to formIdEnum (e.g., 'asset-transfer-authorization')
         type VARCHAR(30) NOT NULL DEFAULT 'AUTHORIZATION' CHECK (type IN ('AUTHORIZATION', 'RECEIPT')),
         transfer_type VARCHAR(30) NOT NULL DEFAULT 'PHYSICAL_TRANSFER' CHECK (transfer_type IN ('PHYSICAL_TRANSFER', 'C2_TRANSFER')),
         requisition_number VARCHAR(100) NOT NULL,

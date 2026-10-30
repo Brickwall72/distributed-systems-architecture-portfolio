@@ -1,9 +1,14 @@
 // File: services/core/compliance-service/client/src/hooks/useGeneratePdf.ts
 import { useCallback, useState } from 'react';
 import { apiClient } from '../../api';
-import { generateTemplatePayload, PayloadParams } from '../../registry';
-import { signDocumentApiRequestSchema } from 'compliance-shared';
+import { signDocumentApiRequestSchema, templateDTOwithPayloadSchema, masterPayloadInputSchema } from 'compliance-shared';
 import { z } from 'zod';
+
+const generatePdfParamsSchema = z.object({
+  template: templateDTOwithPayloadSchema,
+  payloadData: masterPayloadInputSchema,
+})
+type GeneratePdfParamsSchema = z.infer<typeof generatePdfParamsSchema> & {readonly onSuccess: (blobUrl: string) => void}
 
 const unsignedDocumentDataSchema = signDocumentApiRequestSchema.omit({signatureImageBase64: true, customPath: true, signerId: true});
 type UnsignedDocumentData = z.infer<typeof unsignedDocumentDataSchema>;
@@ -13,23 +18,18 @@ export function useGeneratePdf() {
   const [error, setError] = useState<string | null>(null);
   const [unsignedDocumentData, setUnsignedDocumentData] = useState<UnsignedDocumentData | null>(null);
 
-  const generatePdf = useCallback(async (payloadParams: PayloadParams, onSuccess: (blobUrl: string) => void) => {
-    if (!payloadParams.templateId || !payloadParams.input.sourceOrg) return;
+  const generatePdf = useCallback(async ({template, payloadData, onSuccess}: GeneratePdfParamsSchema) => {
+    if (!template.id || !payloadData.sourceOrg) return;
 
     try {
       setIsGenerating(true);
       setError(null);
-      
-      const executionParams: PayloadParams = {
-        ...payloadParams,
-        usePlaceholders: false,
-      };
 
-      const productionPayload = generateTemplatePayload(executionParams);
+      const productionPayload = template.payloadSchema.parse({...payloadData, requisitionNumber: 'temp'});
 
       // Hit the backend draft endpoint returning JSON containing the pre-signed URL
       const response = await apiClient.createTemplateDraft({
-        params: { id: payloadParams.templateId },
+        params: { id: template.id },
         body: {data: productionPayload},
       });
 
@@ -51,11 +51,11 @@ export function useGeneratePdf() {
         const blobUrl = URL.createObjectURL(blob);
         onSuccess(blobUrl);
         setUnsignedDocumentData(unsignedDocumentDataSchema.parse({
-          ...payloadParams.input, 
+          ...payloadData, 
           ...response.body,
-          senderOrgId :payloadParams.input.sourceOrg.id, 
-          receiverOrgId: payloadParams.input.targetOrg?.id, 
-          assetIds: payloadParams.input.assets?.map(a => a.id),
+          senderOrgId :payloadData.sourceOrg.id, 
+          receiverOrgId: payloadData.targetOrg?.id, 
+          assetIds: payloadData.assets?.map(a => a.id),
         }));
       } else {
         const errBody = response.body as { error?: string; message?: string };

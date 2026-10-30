@@ -576,6 +576,9 @@ importers:
 
   ui-shells/domain-shells/compliance-shell:
     dependencies:
+      '@contracts/common':
+        specifier: workspace:*
+        version: link:../../../packages/contracts/common
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../packages/contracts/compliance
@@ -606,6 +609,10 @@ importers:
       react-router-dom:
         specifier: ~7.18.3
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@shared/testing':
+        specifier: workspace:*
+        version: link:../../../packages/testing
 
   ui-shells/domain-shells/topology-shell:
     dependencies:

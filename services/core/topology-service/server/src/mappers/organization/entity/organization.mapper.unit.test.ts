@@ -16,7 +16,7 @@ describe('mapRecordToOrganizationEntity', () => {
     const record = createMockRecord({
       id: 'org-123',
       name: '75th Ranger Regiment',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: 'Building 2730',
       addressLine2: 'Fort Moore, GA',
     });
@@ -26,7 +26,7 @@ describe('mapRecordToOrganizationEntity', () => {
     expect(result).toEqual({
       id: 'org-123',
       name: '75th Ranger Regiment',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: 'Building 2730',
       addressLine2: 'Fort Moore, GA',
     });
@@ -36,7 +36,7 @@ describe('mapRecordToOrganizationEntity', () => {
     const record = createMockRecord({
       id: 'org-123',
       name: 'Space Systems Command',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: null,
       addressLine2: undefined,
     });

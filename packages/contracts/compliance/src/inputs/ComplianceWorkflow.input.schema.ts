@@ -1,6 +1,19 @@
 // File: packages/contracts/compliance/src/inputs/ComplianceWorkflow.schema.ts
+import { transferTypeEnum, TransferType } from '@contracts/common';
 import { z } from 'zod';
-import { AssetDTOListSchema, OrganizationDTOSchema } from '@contracts/topology';
+
+const organizationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+});
+const assetSchema = z.object({
+  id: z.string(),
+  nomenclature: z.string(),
+  serialNumber: z.string(),
+  type: z.string().optional(),
+})
 
 // ============================================================================
 //    COMPLIANCE WORKFLOW WIDGET CONTRACT
@@ -13,9 +26,10 @@ import { AssetDTOListSchema, OrganizationDTOSchema } from '@contracts/topology';
  * the Host Shell to mount this widget before the user completes selection states.
  */
 export const ComplianceWorkflowWidgetPropsSchema = z.object({
-  sourceOrg: OrganizationDTOSchema.optional(),
-  targetOrg: OrganizationDTOSchema.optional(),
-  assets: AssetDTOListSchema.default([]),
+  sourceOrg: organizationSchema.optional(),
+  targetOrg: organizationSchema.optional(),
+  assets: z.array(assetSchema).default([]),
+  transferType: transferTypeEnum.optional(),
 });
 
 // ============================================================================
@@ -26,10 +40,4 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
  * External props accepted by `ComplianceWorkflowWidget` from the Host Shell in JSX.
  * Uses `z.input` so `assets` is optional (`assets?: AssetDTO[]`).
  */
-export type ComplianceWorkflowWidgetProps = z.input<typeof ComplianceWorkflowWidgetPropsSchema>;
-
-/**
- * Internal parsed state after `ComplianceWorkflowWidgetPropsSchema.safeParse(props)`.
- * Uses `z.output` (`z.infer`) so `assets` is guaranteed to be an array (`AssetDTO[]`).
- */
-export type ComplianceWorkflowWidgetParsedProps = z.output<typeof ComplianceWorkflowWidgetPropsSchema>;
+export type ComplianceWorkflowWidgetProps = z.infer<typeof ComplianceWorkflowWidgetPropsSchema> & { readonly onSelect: (transferType: TransferType | undefined) => void };

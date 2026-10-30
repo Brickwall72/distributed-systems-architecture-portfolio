@@ -105,8 +105,9 @@ export class TransfersRepository extends BaseRepository {
       MATCH (asset:Asset {id: assetId})
       MATCH (e)-[inv:INVOLVES]->(asset)
       SET inv.status = 'COMPLETED',
-          asset.status = 'ACTIVE'
+          asset.status = 'AVAILABLE'
 
+      WITH e, receiver, asset
       // Drop old custody and assign new custody to receiver
       OPTIONAL MATCH (oldOwner:Organization)-[c:HAS_CUSTODY]->(asset)
       DELETE c

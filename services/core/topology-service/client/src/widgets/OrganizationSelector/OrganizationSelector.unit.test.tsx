@@ -16,7 +16,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     {
       id: 'org-001',
       name: 'Space Systems Command',
-      type: 'MILITARY_BRANCH',
+      type: 'GOV_AGENCY',
       addressLine1: 'Building 2730',
       addressLine2: 'El Segundo, CA',
     },

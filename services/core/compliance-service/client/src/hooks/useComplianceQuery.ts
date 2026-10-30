@@ -14,15 +14,18 @@ export interface UseComplianceQueryOptions<TParams> {
   params?: TParams;
   fetcher: (params: TParams | undefined, options: FetcherOptions) => Promise<ApiResponse>;
   fallbackErrorMessage: string;
+  /** When false, no request is made and state resets to idle. Defaults to true. */
+  enabled?: boolean;
 }
 
 export function useComplianceQuery<TParams, TData>({
   params,
   fetcher,
   fallbackErrorMessage,
+  enabled = true,
 }: UseComplianceQueryOptions<TParams>) {
   const [data, setData] = useState<TData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const fetcherRef = useRef(fetcher);
@@ -34,6 +37,13 @@ export function useComplianceQuery<TParams, TData>({
   const queryKey = JSON.stringify(params ?? {});
 
   useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     async function load() {
@@ -74,7 +84,7 @@ export function useComplianceQuery<TParams, TData>({
     return () => {
       controller.abort();
     };
-  }, [queryKey, fallbackErrorMessage]);
+  }, [queryKey, fallbackErrorMessage, enabled]);
 
   return { data, isLoading, error };
 }

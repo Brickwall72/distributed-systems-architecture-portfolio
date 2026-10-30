@@ -1,13 +1,13 @@
 // File: services/core/compliance-service/server/src/repositories/documents/documents.repository.ts
 import { Pool } from 'pg';
 import { mapDbRowToDocument } from '../../mappers';
-import { formNameEnum, formTypeEnum } from 'compliance-shared';
+import { formIdEnum, formTypeEnum } from 'compliance-shared';
 import { transferTypeEnum, transferStatusEnum } from '@contracts/common';
 import { z } from 'zod';
 
 export const insertDataSchema = z.object({
   documentId: z.string().uuid(),
-  documentName: formNameEnum,
+  documentName: formIdEnum,
   documentType: formTypeEnum,
   transferType: transferTypeEnum,
   requisitionNumber: z.string(),

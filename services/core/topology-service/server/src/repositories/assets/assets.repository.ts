@@ -2,11 +2,10 @@
 import { BaseRepository } from '../base.repository';
 import { mapRecordToAssetEntity } from '../../mappers';
 import type { AssetEntity } from '../../domain';
-import type { GetAssetsQuery, AssetDTO } from '@contracts/topology';
+import { GetAssetsQuery, AssetDTO, ASSET_STATUS } from '@contracts/topology';
 
 export class AssetsRepository extends BaseRepository {
   async findAssets(filters: GetAssetsQuery): Promise<AssetEntity[]> {
-    const includeInTransit = filters.includeInTransit;
 
     const cypher = `
       MATCH (a:Asset)
@@ -17,11 +16,14 @@ export class AssetsRepository extends BaseRepository {
         MATCH (eo:Organization {id: $excludeOwnerId})-[:HAS_CUSTODY]->(a)
       })
       AND ($includeInTransit = true OR a.status <> 'IN_TRANSIT')
+      AND ($filterControlType IS NULL OR a.controlType = $filterControlType)
       RETURN 
         a.id AS id,
         a.nomenclature AS nomenclature,
         a.serialNumber AS serialNumber,
         a.status AS status,
+        a.type AS type,
+        a.controlType as controlType,
         [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId
       ORDER BY currentOwnerId ASC, a.nomenclature ASC
     `;
@@ -31,7 +33,8 @@ export class AssetsRepository extends BaseRepository {
       {
         filterOwnerId: filters.filterOwnerId ?? null,
         excludeOwnerId: filters.excludeOwnerId ?? null,
-        includeInTransit,
+        includeInTransit: filters.includeInTransit,
+        filterControlType: filters.filterControlType ?? null,
       },
       mapRecordToAssetEntity
     );
@@ -45,6 +48,8 @@ export class AssetsRepository extends BaseRepository {
         name: $name,
         nomenclature: $nomenclature,
         serialNumber: $serialNumber,
+        type: $type,
+        controlType: $controlType,
         status: $status
       })
       CREATE (o)-[:HAS_CUSTODY]->(a)
@@ -54,18 +59,16 @@ export class AssetsRepository extends BaseRepository {
         a.nomenclature AS nomenclature,
         a.serialNumber AS serialNumber,
         a.status AS status,
+        a.type AS type,
+        a.controlType as controlType,
         $currentOwnerId AS currentOwnerId
     `;
 
     const records = await this.executeWriteQuery(
       cypher,
       {
-        id: dto.id,
-        name: dto.name,
-        nomenclature: dto.nomenclature,
-        serialNumber: dto.serialNumber,
-        status: dto.status ?? 'AVAILABLE',
-        currentOwnerId: dto.currentOwnerId,
+        ...dto,
+        status: dto.status ?? ASSET_STATUS.AVAILABLE,
       },
       mapRecordToAssetEntity
     );

@@ -52,6 +52,7 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           pristineAsset.nomenclature = 'Horizon Probe Mk I',
           pristineAsset.serialNumber = 'KSP-PRISTINE-01',
           pristineAsset.type = 'PROBE',
+          pristineAsset.controlType = 'REMOTE',
           pristineAsset.status = 'AVAILABLE'
       
       MERGE (jeb)-[:HAS_CUSTODY]->(pristineAsset)
@@ -76,6 +77,7 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           assetA.nomenclature = 'Mammoth Engine Cluster',
           assetA.serialNumber = 'KSP-ENG-99',
           assetA.type = 'ENGINE',
+          assetA.controlType = 'LOCAL',
           assetA.status = 'AVAILABLE'
       
       MERGE (multiEvent)-[:INVOLVES { itemNumber: '0001', status: 'RECEIVED' }]->(assetA)
@@ -88,6 +90,7 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           assetB.nomenclature = 'Jumbo-64 Tank',
           assetB.serialNumber = 'KSP-TNk-44',
           assetB.type = 'FUEL_TANK',
+          assetB.controlType = 'LOCAL',
           assetB.status = 'IN_TRANSIT'
       
       MERGE (multiEvent)-[:INVOLVES { itemNumber: '0002', status: 'IN_TRANSIT' }]->(assetB)
@@ -102,6 +105,7 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           historicalAsset.nomenclature = 'Munar Survey Rover',
           historicalAsset.serialNumber = 'KSP-ROV-HIST-01',
           historicalAsset.type = 'ROVER',
+          historicalAsset.controlType = 'REMOTE',
           historicalAsset.status = 'AVAILABLE'
 
       // Hop 1: Reaction Engines -> Jeb's Junkyard (Past Event)

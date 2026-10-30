@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/templates/templates.route.ts
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
-import { templatesRoutes, TemplateDraftResponseSchema } from 'compliance-shared';
+import { templatesRoutes, TemplateDraftResponseSchema, FormId } from 'compliance-shared';
 import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
 import { EventBroker } from '@shared/messaging';
@@ -44,7 +44,7 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
 
       try {
-        const templateRecord = TemplateRepository.findById(id);
+        const templateRecord = TemplateRepository.findById(id as FormId);
 
         if (!templateRecord) {
           logger.warn(`Template lookup failed: [${id}] not found`, correlationId);
@@ -91,7 +91,7 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
         }
 
         // 1. Generate the authoritative backend requisition number
-        const authoritativeReqNum = `REQ-2026-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
+        const authoritativeReqNum = `REQ-${new Date().getFullYear()}-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
 
         // 2. Normalize incoming body and force-overwrite requisitionNumber across input data structures
         const bodyObj = (body.data as Record<string, unknown>) || {};

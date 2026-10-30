@@ -13,9 +13,9 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   if (!parsedInputs.success) {
     console.warn('[AssetSelector MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
   }
-  const { label, filterOwnerId, excludeOwnerId, includeInTransit } = parsedInputs.success
+  const { label, filterOwnerId, excludeOwnerId, filterControlType, includeInTransit } = parsedInputs.success
     ? parsedInputs.data
-    : { label: undefined, filterOwnerId: undefined, excludeOwnerId: undefined, includeInTransit: false };
+    : { label: undefined, filterOwnerId: undefined, excludeOwnerId: undefined, filterControlType: undefined, includeInTransit: false };
 
   const { onSelect } = props;
 
@@ -23,7 +23,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   const [selectedId, setSelectedId] = useState<string>('');
 
   // 3. Query Data Access Layer (Passing includeInTransit through)
-  const { items, isLoading, error } = useGetAssets({ filterOwnerId, excludeOwnerId, includeInTransit });
+  const { items, isLoading, error } = useGetAssets({ filterOwnerId, excludeOwnerId, includeInTransit, filterControlType });
 
   // 4. Synchronize Selection: Clear selection if active asset is filtered out by prop changes
   useEffect(() => {
@@ -53,14 +53,14 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       return;
     }
 
-    const selectedAssets = items.find((asset) => asset.id === value);
-    if (!selectedAssets) {
+    const selectedAsset = items.find((asset) => asset.id === value);
+    if (!selectedAsset) {
       onSelect([]);
       return;
     }
 
     // Always emit array to maintain List Collection Pattern with Host Shell
-    onSelect([selectedAssets]);
+    onSelect([selectedAsset]);
   };
   
   return (
