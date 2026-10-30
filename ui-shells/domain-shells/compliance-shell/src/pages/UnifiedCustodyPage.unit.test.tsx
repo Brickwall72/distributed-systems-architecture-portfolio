@@ -118,6 +118,10 @@ describe('UnifiedCustodyPage', () => {
     expect(remotes.props[WORKFLOW].transferType).toBeUndefined();
   });
 
+  it('explicitly excludes in-transit assets from the asset selector', () => {
+    expect(remotes.props[ASSET].includeInTransit).toBe(false);
+  });
+
   it('cross-filters the selectors using one another’s outputs', () => {
     const source = makeOrg('org-source');
     const target = makeOrg('org-target');

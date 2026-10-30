@@ -78,6 +78,8 @@ export default function UnifiedCustodyPage() {
               excludeOwnerId={targetOrg?.id}
               filterOwnerId={sourceOrg?.id}
               filterControlType = {controlType}
+              includeInTransit={false}
+              multiSelect={true}
               onSelect={setAssets}
             />
           </Suspense>

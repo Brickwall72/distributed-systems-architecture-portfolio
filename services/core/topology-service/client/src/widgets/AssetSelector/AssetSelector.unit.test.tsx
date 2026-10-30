@@ -19,6 +19,9 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       nomenclature: 'AN/PRC-117G',
       serialNumber: 'SN-9012',
       currentOwnerId: 'org-01',
+      status: 'AVAILABLE',
+      type: 'RADIO',
+      controlType: 'LOCAL',
     },
     {
       id: 'ast-002',
@@ -26,6 +29,9 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       nomenclature: '',
       serialNumber: 'SN-9013',
       currentOwnerId: 'org-01',
+      status: 'AVAILABLE',
+      type: 'RADIO',
+      controlType: 'LOCAL',
     },
   ];
 
@@ -75,6 +81,34 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(screen.getByText('Radio Unit 2 (S/N: SN-9013)')).toBeInTheDocument();
   });
 
+  it('defaults to single-select and emits a single AssetDTO', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+
+    render(<AssetSelector onSelect={mockOnSelect} />);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ast-001' } });
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockAssetList[0]);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
+    expect(mockOnSelect).toHaveBeenLastCalledWith(null);
+  });
+
+  it('includes in-transit assets by default', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: null });
+
+    render(<AssetSelector onSelect={mockOnSelect} />);
+
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: true }));
+  });
+
+  it('forwards an explicit includeInTransit={false} to the data layer', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: null });
+
+    render(<AssetSelector includeInTransit={false} onSelect={mockOnSelect} />);
+
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: false }));
+  });
+
   it('emits AssetDTO[] array payload to Shell on user selection', () => {
     vi.mocked(useGetAssets).mockReturnValue({
       items: mockAssetList,
@@ -82,10 +116,10 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       error: null,
     });
 
-    render(<AssetSelector onSelect={mockOnSelect} />);
+    render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'ast-001' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Asset Select' }));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC-117G/ }));
 
     // Verify list collection contract payload
     expect(mockOnSelect).toHaveBeenCalledWith([
@@ -95,6 +129,9 @@ describe('AssetSelector Widget (UI Boundary)', () => {
         nomenclature: 'AN/PRC-117G',
         serialNumber: 'SN-9012',
         currentOwnerId: 'org-01',
+        status: 'AVAILABLE',
+        type: 'RADIO',
+        controlType: 'LOCAL',
       },
     ]);
   });
@@ -106,12 +143,14 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       error: null,
     });
 
-    render(<AssetSelector onSelect={mockOnSelect} />);
+    render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Asset Select' }));
+    const option = screen.getByRole('option', { name: /AN\/PRC-117G/ });
+    fireEvent.click(option);
+    fireEvent.click(option);
 
-    expect(mockOnSelect).toHaveBeenCalledWith([]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
   });
 
   it('safely handles invalid props from Host Shell without crashing render tree', () => {
@@ -141,7 +180,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
   });
 
   it('resets selection if currently selected asset disappears after filter update', () => {
-    const { rerender } = render(<AssetSelector onSelect={mockOnSelect} />);
+    const { rerender } = render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
     // 1. Initial render with 2 items
     vi.mocked(useGetAssets).mockReturnValue({
@@ -150,10 +189,10 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       error: null,
     });
 
-    rerender(<AssetSelector onSelect={mockOnSelect} />);
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'ast-001' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Asset Select' }));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC-117G/ }));
 
     expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
 
@@ -164,7 +203,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
       error: null,
     });
 
-    rerender(<AssetSelector onSelect={mockOnSelect} />);
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
     // useEffect hook should detect ast-001 is missing and emit empty array
     expect(mockOnSelect).toHaveBeenLastCalledWith([]);

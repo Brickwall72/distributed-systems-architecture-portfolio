@@ -1,51 +1,68 @@
 // File: packages/contracts/topology/src/inputs/AssetSelector.input.schema.ts
 import { z } from 'zod';
-import { AssetDTOList, controlTypeEnum } from '../outputs';
+import { AssetDTO, AssetDTOList, controlTypeEnum } from '../outputs';
 
 /**
  * Reusable base asset query parameters.
- * Defined once here as the single source of truth for asset filtering.
  */
+const booleanFromString = z.union([
+  z.boolean(),
+  z.enum(['true', 'false']).transform((v) => v === 'true'),
+]);
+
 export const GetAssetsQuerySchema = z.object({
   filterOwnerId: z.string().trim().min(1).optional(),
   excludeOwnerId: z.string().trim().min(1).optional(),
   filterControlType: controlTypeEnum.optional(),
-  includeInTransit: z.preprocess(
-    (val) => {
-      if (val === 'true') return true;
-      if (val === 'false') return false;
-      return val;
-    },
-    z.boolean().optional().default(false)
-  ),
+  includeInTransit: booleanFromString.optional().default(false),
 });
 export type GetAssetsQuery = z.infer<typeof GetAssetsQuerySchema>;
 
 /**
- * Runtime input schema enforced at the MFE boundary.
- * Combines the base query parameters with MFE-specific UI presentation props.
+ * Single-select configuration schema.
  */
-export const AssetSelectorInputSchema = GetAssetsQuerySchema.extend({
+const SingleAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
   label: z.string().trim().min(1).optional(),
-  multiSelect: z.boolean().default(false),
+  includeInTransit: booleanFromString.optional().default(true),
+  multiSelect: z.literal(false).optional().default(false),
 });
 
-// ============================================================================
-//       HOST SHELL INGRESS CONTRACT (Unparsed Inputs & External Props)
-// ============================================================================
+/**
+ * Multi-select configuration schema.
+ */
+const MultiAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
+  label: z.string().trim().min(1).optional(),
+  includeInTransit: booleanFromString.optional().default(true),
+  multiSelect: z.literal(true),
+});
 
 /**
- * Raw input parameters accepted from the Host Shell.
+ * Runtime input schema enforced at the MFE boundary (discriminated union).
  */
+export const AssetSelectorInputSchema = z.discriminatedUnion('multiSelect', [
+  SingleAssetSelectorInputSchema,
+  MultiAssetSelectorInputSchema,
+]);
+
 export type AssetSelectorInputs = z.input<typeof AssetSelectorInputSchema>;
 
 /**
- * Complete public props API exposed by the `AssetSelector` MFE to host containers.
+ * Public props API exposed by the `AssetSelector` MFE to host containers.
+ * Explicitly preserving optionality on inferred fields while enforcing the correct `onSelect` signature.
  */
-export type AssetSelectorProps = AssetSelectorInputs & {
-  /**
-   * Selection event handler invoked on state change.
-   * Always emits a list array (`AssetDTOList`) to enforce List Collection uniformity.
-   */
+type SingleInput = z.input<typeof SingleAssetSelectorInputSchema>;
+type MultiInput = z.input<typeof MultiAssetSelectorInputSchema>;
+
+export type SingleAssetSelectorProps = Omit<SingleInput, 'multiSelect' | 'includeInTransit'> & {
+  readonly includeInTransit?: boolean;   // props shouldn't accept the string forms
+  readonly multiSelect?: false;
+  readonly onSelect: (selectedAsset: AssetDTO | null) => void;
+};
+
+export type MultiAssetSelectorProps = Omit<MultiInput, 'multiSelect' | 'includeInTransit'> & {
+  readonly includeInTransit?: boolean;
+  readonly multiSelect: true;
   readonly onSelect: (selectedAssets: AssetDTOList) => void;
 };
+
+export type AssetSelectorProps = SingleAssetSelectorProps | MultiAssetSelectorProps;

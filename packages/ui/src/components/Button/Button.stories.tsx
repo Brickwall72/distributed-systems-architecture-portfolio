@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Button } from './Button';
 
 const meta: Meta = {
-  title: 'Shared Components/@shared ui-components/Button',
+  title: 'Shared Components/Button',
   component: Button,
   parameters: {
     layout: 'padded',
