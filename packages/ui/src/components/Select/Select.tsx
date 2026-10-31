@@ -128,14 +128,14 @@ export function Select(props: Readonly<SelectProps>) {
           type="button"
           id={id}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="w-full p-2 text-left border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-gray-800 flex justify-between items-center"
+          className="w-full p-2 text-left border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hover:bg-gray-100 cursor-pointer text-gray-800 flex justify-between items-center"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <span className={`truncate ${selectedIds.length === 0 ? 'text-gray-400' : 'text-gray-800'}`}>
             {displayText}
           </span>
-          <svg className="w-4 h-4 ml-2 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg aria-hidden="true" className="w-4 h-4 ml-2 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -172,7 +172,7 @@ export function Select(props: Readonly<SelectProps>) {
                     className={`cursor-pointer select-none relative py-2.5 px-3 flex items-center transition-colors ${
                       isSelected 
                         ? 'bg-gray-200 text-gray-900 font-medium' 
-                        : 'hover:bg-gray-50 text-gray-700'
+                        : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <input
@@ -202,12 +202,12 @@ export function Select(props: Readonly<SelectProps>) {
             singleProps.onSelection(e.target.value);
           }
         }}
-        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-gray-800 disabled:bg-gray-100 disabled:text-gray-400"
+        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hover:bg-gray-100 cursor-pointer text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed [appearance:base-select] [&::picker(select)]:[appearance:base-select] [&::picker(select)]:bg-white [&::picker(select)]:border [&::picker(select)]:border-gray-300 [&::picker(select)]:rounded-md [&::picker(select)]:shadow-lg [&::picker(select)]:p-1"
         {...rest}
       >
-        <option value="">{placeholderText}</option>
+        <option value="" className="cursor-pointer p-2 rounded hover:bg-gray-100">{placeholderText}</option>
         {options.map((opt) => (
-          <option key={opt.id} value={opt.id}>
+          <option key={opt.id} value={opt.id} className="cursor-pointer p-2 rounded hover:bg-gray-100">
             {opt.name}
           </option>
         ))}

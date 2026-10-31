@@ -1,5 +1,5 @@
 // File: packages/contracts/compliance/src/inputs/ComplianceWorkflow.schema.ts
-import { transferTypeEnum, TransferType } from '@contracts/common';
+import { templateDTOwithPayloadSchema } from './TemplateSelector.input.schema';
 import { z } from 'zod';
 
 const organizationSchema = z.object({
@@ -15,18 +15,6 @@ const assetSchema = z.object({
   type: z.string().optional(),
 })
 
-/**
- * Domain classification enum for official compliance templates.
- */
-export const FORM_TYPE = {
-  AUTHORIZATION: 'AUTHORIZATION',
-  RECEIPT: 'RECEIPT',
-} as const;
-export const formTypeEnum = z.enum(
-  Object.values(FORM_TYPE) as [typeof FORM_TYPE[keyof typeof FORM_TYPE], ...typeof FORM_TYPE[keyof typeof FORM_TYPE][]]
-);
-export type FormType = z.infer<typeof formTypeEnum>;
-
 // ============================================================================
 //    COMPLIANCE WORKFLOW WIDGET CONTRACT
 // ============================================================================
@@ -41,8 +29,7 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
   sourceOrg: organizationSchema.optional(),
   targetOrg: organizationSchema.optional(),
   assets: z.array(assetSchema).default([]),
-  transferType: transferTypeEnum.optional(),
-  formType: formTypeEnum.optional(),
+  template: templateDTOwithPayloadSchema.optional(),
 });
 
 // ============================================================================
@@ -53,4 +40,4 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
  * External props accepted by `ComplianceWorkflowWidget` from the Host Shell in JSX.
  * Uses `z.input` so `assets` is optional (`assets?: AssetDTO[]`).
  */
-export type ComplianceWorkflowWidgetProps = z.infer<typeof ComplianceWorkflowWidgetPropsSchema> & { readonly onSelect: (transferType: TransferType | undefined) => void };
+export type ComplianceWorkflowWidgetProps = z.infer<typeof ComplianceWorkflowWidgetPropsSchema>;

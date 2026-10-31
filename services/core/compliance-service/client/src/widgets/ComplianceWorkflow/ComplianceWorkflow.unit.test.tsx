@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { z } from 'zod';
-import { ComplianceWorkflowWidgetPropsSchema } from '@contracts/compliance';
 import { signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 import { useGeneratePdf, useSignPdf } from '../../hooks';
@@ -44,31 +43,10 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
   };
 });
 
-// Shared with the TemplateSelector mock, which can't close over variables created after hoisting
-const selectorMock = vi.hoisted(() => ({
-  template: undefined as unknown,
-  lastProps: undefined as Record<string, unknown> | undefined,
-}));
-
-vi.mock('../../components', () => ({
-  TemplateSelector: (props: any) => {
-    selectorMock.lastProps = props;
-    return (
-      <div>
-        <label>{props.label}</label>
-        <button data-testid="mock-selector-trigger" onClick={() => props.onSelect(selectorMock.template)}>
-          Select Template
-        </button>
-      </div>
-    );
-  },
-}));
-
 describe('ComplianceWorkflowWidget', () => {
   const mockGeneratePdf = vi.fn(async ({ onSuccess }: { onSuccess: (blobUrl: string) => void }): Promise<void> => {
     onSuccess('blob:mock-pdf-url');
   });
-  const mockOnSelect = vi.fn();
 
   // Stand-in parser so rendering doesn't depend on the real form schemas
   const payloadSchema = z
@@ -88,8 +66,6 @@ describe('ComplianceWorkflowWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    selectorMock.template = template;
-    
     vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
       isLoading: false,
@@ -110,28 +86,18 @@ describe('ComplianceWorkflowWidget', () => {
     });
   });
 
-  // Optional entities are sampled independently so the fixture always has both orgs and an asset
-  const sampleProps = () => {
-    for (let seed = 1; seed < 50; seed++) {
-      const generated = mockFromSchema(ComplianceWorkflowWidgetPropsSchema, {}, { seed });
-      if (generated.sourceOrg && generated.targetOrg && generated.assets.length > 0) return generated;
-    }
-    throw new Error('Could not generate populated widget props');
+  const defaultProps = {
+    sourceOrg: { id: 'org-source', name: 'Source Org' },
+    targetOrg: { id: 'org-target', name: 'Target Org' },
+    assets: [{ id: 'asset-1', nomenclature: 'AN/PRC-117G', serialNumber: 'SN-1' }],
+    template,
   };
-  const { transferType: _ignored, ...populated } = sampleProps();
-  const defaultProps = { ...populated, onSelect: mockOnSelect };
 
-  it('renders successfully and handles template selection and PDF generation workflow', async () => {
+  it('generates a PDF from the supplied template and entities', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    expect(screen.getByText('Compliance Form')).toBeDefined();
-    
-    // Select a template via mock component trigger
-    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
-    expect(mockOnSelect).toHaveBeenCalledWith(template.transferType);
-
     const generateBtn = screen.getByText('Generate PDF');
-    expect(generateBtn).not.toHaveProperty('disabled', true);
+    expect(generateBtn.closest('button')).not.toBeDisabled();
 
     fireEvent.click(generateBtn);
 
@@ -140,34 +106,44 @@ describe('ComplianceWorkflowWidget', () => {
         expect.objectContaining({
           template: expect.objectContaining({ id: template.id }),
           payloadData: expect.objectContaining({
-            sourceOrg: expect.objectContaining({ id: defaultProps.sourceOrg?.id }),
-            targetOrg: expect.objectContaining({ id: defaultProps.targetOrg?.id }),
+            sourceOrg: expect.objectContaining({ id: 'org-source' }),
+            targetOrg: expect.objectContaining({ id: 'org-target' }),
           }),
           onSuccess: expect.any(Function),
         })
       );
     });
 
-    const viewer = screen.getByTestId('document-viewer');
-    expect(viewer.getAttribute('data-content')).toBe('blob:mock-pdf-url');
+    expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-pdf-url');
+  });
+
+  it('swaps Generate PDF for Back to Interactive View and Sign Document once a PDF exists', async () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} />);
+
+    fireEvent.click(screen.getByText('Generate PDF'));
+
+    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
+    expect(screen.queryByText('Generate PDF')).toBeNull();
+
+    fireEvent.click(screen.getByText('Back to Interactive View'));
+
+    expect(screen.getByText('Generate PDF')).toBeDefined();
+    expect(screen.queryByText('Sign Document')).toBeNull();
+    expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toContain('hydrated:');
   });
 
   it('opens signature overlay and executes signing flow successfully', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    // Select template and generate PDF first
-    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
     fireEvent.click(screen.getByText('Generate PDF'));
 
     await waitFor(() => {
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-pdf-url');
     });
 
-    // Click 'Sign Document' button to open overlay
     fireEvent.click(screen.getByText('Sign Document'));
     expect(screen.getByTestId('mock-signature-overlay')).toBeDefined();
 
-    // Trigger signature submit
     fireEvent.click(screen.getByTestId('mock-sign-submit'));
 
     await waitFor(() => {
@@ -176,19 +152,15 @@ describe('ComplianceWorkflowWidget', () => {
     });
   });
 
-  it('narrows the template selector by the formType and transferType supplied by the host shell', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} formType="AUTHORIZATION" transferType="C2_TRANSFER" />);
+  it('disables Generate PDF when no template is selected', () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} template={undefined} />);
 
-    expect(selectorMock.lastProps).toMatchObject({ typeFilter: 'AUTHORIZATION', transferTypeFilter: 'C2_TRANSFER' });
+    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
   });
 
-  it('reports undefined to the host when the template is deselected', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} />);
+  it('disables Generate PDF until both organizations and an asset are provided', () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} targetOrg={undefined} />);
 
-    selectorMock.template = undefined;
-    fireEvent.click(screen.getByTestId('mock-selector-trigger'));
-
-    expect(mockOnSelect).toHaveBeenCalledWith(undefined);
     expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
   });
 });

@@ -68,6 +68,7 @@ describe('AssetRegistrationWidget', () => {
     fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: asset.name } });
     fireEvent.change(screen.getByLabelText(/Nomenclature/i), { target: { value: asset.nomenclature } });
     fireEvent.change(screen.getByLabelText(/Serial Number/i), { target: { value: asset.serialNumber } });
+    fireEvent.change(screen.getByLabelText(/Asset Type Information/i), { target: { value: singleLine(asset.type) } });
     fireEvent.change(screen.getByLabelText(/Control Type/i), { target: { value: asset.controlType } });
     fireEvent.click(screen.getByTestId('mock-org-selector'));
 
@@ -80,6 +81,7 @@ describe('AssetRegistrationWidget', () => {
           name: asset.name,
           nomenclature: asset.nomenclature,
           serialNumber: asset.serialNumber,
+          type: singleLine(asset.type),
           status: 'AVAILABLE',
           controlType: asset.controlType,
           currentOwnerId: mockOrg.id,

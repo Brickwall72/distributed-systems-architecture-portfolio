@@ -6,6 +6,7 @@ export default createRemoteConfig({
   concern: 'client',
   exposes: {
     './widget/DocumentsTable':    './src/widgets/DocumentsTable/DocumentsTable.tsx',
-    './ComplianceWorkflowWidget': './src/widgets/ComplianceWorkflow'
+    './ComplianceWorkflowWidget': './src/widgets/ComplianceWorkflow',
+    './TemplateSelector': './src/widgets/TemplateSelector',
   },
 });

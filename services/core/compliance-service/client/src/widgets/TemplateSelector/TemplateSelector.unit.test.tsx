@@ -1,6 +1,6 @@
-// File: services/core/compliance-service/client/src/components/TemplateSelector/TemplateSelector.unit.test.tsx
+// File: services/core/compliance-service/client/src/widgets/TemplateSelector/TemplateSelector.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { TemplateSelector } from './TemplateSelector';
+import TemplateSelector from './TemplateSelector';
 import { useTemplatesQuery, useTemplateQuery } from '../../hooks';
 
 vi.mock('../../hooks', () => ({

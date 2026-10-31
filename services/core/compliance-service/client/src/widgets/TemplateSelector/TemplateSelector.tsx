@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/client/src/components/TemplateSelector/TemplateSelector.tsx
+// File: services/core/compliance-service/client/src/widgets/TemplateSelector/TemplateSelector.tsx
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Select, SelectOption } from '@shared/ui-components';
 import { useTemplatesQuery, useTemplateQuery } from '../../hooks';
@@ -26,7 +26,7 @@ const templateSelectorPropsSchema = templateSelectorPropsInputSchema.transform((
 )).pipe(templateSelectorPropsDataSchema);
 type TemplateSelectorData = z.input<typeof templateSelectorPropsSchema> & { readonly onSelect: (template: TemplateDTOwithPayloadSchema | undefined) => void };
 
-export function TemplateSelector(props: Readonly<TemplateSelectorData>) {
+export default function TemplateSelector(props: Readonly<TemplateSelectorData>) {
   const { label = 'Template Select', queryParams } = templateSelectorPropsSchema.parse(props);
   const { onSelect } = props;
 

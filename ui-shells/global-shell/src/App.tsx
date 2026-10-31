@@ -36,7 +36,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-sans">
       {/* Shell Header Nav Bar */}
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between shadow-md">
+      <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
           <h1 className="font-bold text-lg text-white">Mission Operations Shell</h1>
