@@ -15,7 +15,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   }
   const entityData = parsedProps.success
     ? parsedProps.data
-    : { sourceOrg: undefined, assets: [], targetOrg: undefined, transferType: undefined };
+    : { sourceOrg: undefined, assets: [], targetOrg: undefined, transferType: undefined, formType: undefined };
 
   const { onSelect } = props;
 
@@ -83,7 +83,7 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
         <div className="w-72">
           <TemplateSelector
             label="Compliance Form"
-            typeFilter="AUTHORIZATION"
+            typeFilter={entityData.formType}
             transferTypeFilter={entityData.transferType}
             onSelect={handleSelectTemplate}
           />
@@ -120,12 +120,12 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
         </div>
       )}
 
-      <div className="flex-1 bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative min-h-[600px]">
+      <div className="flex-1 bg-white rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative min-h-[300px]">
         <DocumentViewer
           content={pdfBlobUrl ?? hydratedHtml}
           contentType={pdfBlobUrl ? 'pdf' : 'html'}
           title="Document Workflow"
-          className="w-full h-full"
+          className="w-full h-full flex-1 min-h-0"
           isSigningActive={showSignatureOverlay}
         >
           <div className="absolute bottom-4 right-4 z-10">

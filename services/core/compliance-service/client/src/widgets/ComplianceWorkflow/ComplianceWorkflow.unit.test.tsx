@@ -176,8 +176,8 @@ describe('ComplianceWorkflowWidget', () => {
     });
   });
 
-  it('narrows the template selector by the transferType supplied by the host shell', () => {
-    render(<ComplianceWorkflowWidget {...defaultProps} transferType="C2_TRANSFER" />);
+  it('narrows the template selector by the formType and transferType supplied by the host shell', () => {
+    render(<ComplianceWorkflowWidget {...defaultProps} formType="AUTHORIZATION" transferType="C2_TRANSFER" />);
 
     expect(selectorMock.lastProps).toMatchObject({ typeFilter: 'AUTHORIZATION', transferTypeFilter: 'C2_TRANSFER' });
   });

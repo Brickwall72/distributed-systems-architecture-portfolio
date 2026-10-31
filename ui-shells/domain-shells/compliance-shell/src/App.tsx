@@ -2,7 +2,7 @@
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useFederationRegistry } from '@shared/mf-runtime';
-import { UnifiedCustodyPage, DocumentsPage } from './pages';
+import { UnifiedCustodyPage, DocumentsPage, TransferReceiptPage } from './pages';
 import { NavigationTabs } from './components';
 import '@shared/styles';
 
@@ -38,8 +38,9 @@ export default function App() {
           <Suspense fallback={<div className="text-slate-400 font-mono py-12 text-center animate-pulse">Loading compliance micro-frontend module...</div>}>
             <Routes>
               <Route path="/" element={<UnifiedCustodyPage />} />
-              <Route path="/custody" element={<UnifiedCustodyPage />} />
+              <Route path="/transfer-authorizations" element={<UnifiedCustodyPage />} />
               <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/transfer-receipts" element={<TransferReceiptPage />} />
             </Routes>
           </Suspense>
         </div>

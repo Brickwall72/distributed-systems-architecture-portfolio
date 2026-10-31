@@ -4,17 +4,26 @@
   <meta charset="UTF-8">
   <title>Asset Transfer Authorization</title>
   <style>
-    html, body {
+    html {
       height: 100%;
+    }
+    html, body {
       margin: 0;
+      background-color: #ffffff;
     }
     body {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-size: 12px;
       color: #333;
-      padding: 40px;
+      padding: 32px;
       box-sizing: border-box;
-      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100%;
+    }
+    .doc-content {
+      flex: 1;
     }
     .header-title {
       text-align: center;
@@ -63,11 +72,8 @@
     .signature-block {
       border: 1px solid #000;
       padding: 15px;
-      position: absolute;
-      bottom: 40px;
-      left: 40px;
-      right: 40px;
       box-sizing: border-box;
+      margin-top: auto;
     }
     .sig-line {
       border-bottom: 1px solid #000;
@@ -78,67 +84,65 @@
   </style>
 </head>
 <body>
-  <div class="header-title">
-    Asset Transfer Authorization Form<br>
-    (Initiating Document)
-  </div>
-  
-  <div class="form-grid">
-    <div class="grid-row">
-      <div class="grid-cell">
-        <span class="label">1. From (Releasing Entity / Authorizing):</span>
-        <strong>{{authorizingEntityName}}</strong><br>
-        {{authorizingAddressLine1}}<br>
-        {{authorizingAddressLine2}}
+  <div class="doc-content">
+    <div class="header-title">
+      Asset Transfer Authorization Form<br>
+      (Initiating Document)
+    </div>
+    
+    <div class="form-grid">
+      <div class="grid-row">
+        <div class="grid-cell">
+          <span class="label">1. From (Releasing Entity / Authorizing):</span>
+          <strong>[Releasing Entity / Authorizing]</strong><br>
+          [Address Line]<br>
+        </div>
+        <div class="grid-cell">
+          <span class="label">2. To (Receiving Entity / Destination):</span>
+          <strong>[Receiving Entity / Destination]</strong><br>
+          [Address Line]<br>
+        </div>
       </div>
-      <div class="grid-cell">
-        <span class="label">2. To (Receiving Entity / Destination):</span>
-        <strong>{{receivingEntityName}}</strong><br>
-        {{receivingAddressLine1}}<br>
-        {{receivingAddressLine2}}
+      <div class="grid-row">
+        <div class="grid-cell">
+          <span class="label">3. Authority / Requisition Number:</span>
+          [REQ-PENDING]
+        </div>
+        <div class="grid-cell">
+          <span class="label">4. Date of Transfer Authorization (YYYYMMDD):</span>
+          Fri Oct 30 2026
+        </div>
       </div>
     </div>
-    <div class="grid-row">
-      <div class="grid-cell">
-        <span class="label">3. Authority / Requisition Number:</span>
-        {{requisitionNumber}}
-      </div>
-      <div class="grid-cell">
-        <span class="label">4. Date of Transfer Authorization (YYYYMMDD):</span>
-        {{authorizationDate}}
-      </div>
-    </div>
-  </div>
 
-  <table class="table-items">
-    <thead>
-      <tr>
-        <th>Item No.</th>
-        <th>Asset Description &amp; Serial Number</th>
-        <th>Unit of Issue</th>
-        <th>Quantity</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{#each items}}
-      <tr>
-        <td>{{this.itemNumber}}</td>
-        <td>
-          <strong>{{this.nomenclature}}</strong><br>
-          S/N: {{this.serialNumber}}<br>
-          <em>{{this.additionalNotes}}</em>
-        </td>
-        <td>{{this.unit}}</td>
-        <td>{{this.quantity}}</td>
-      </tr>
-      {{/each}}
-    </tbody>
-  </table>
+    <table class="table-items">
+      <thead>
+        <tr>
+          <th>Item No.</th>
+          <th>Asset Description &amp; Serial Number</th>
+          <th>Unit of Issue</th>
+          <th>Quantity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>
+            <strong>[Asset Description & Nomenclature Required]</strong><br>
+            S/N: [Serial Number Required]<br>
+            <em></em>
+          </td>
+          <td>EA</td>
+          <td>1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <div class="signature-block">
     <span class="label">Release Authorization</span>
     <p>I certify that the release and transfer of the assets listed above is authorized.</p>
-    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
       <div>
         <strong>Authorizing Official:</strong> 
         <span class="sig-line"></span>
