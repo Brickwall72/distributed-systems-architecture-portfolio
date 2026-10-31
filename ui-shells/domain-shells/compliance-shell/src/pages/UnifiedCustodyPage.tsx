@@ -3,7 +3,7 @@ import { useState, Suspense, useEffect } from 'react';
 import { lazyRemote } from '../utils/federation';
 import { FederatedErrorBoundary } from '@shared/ui-components';
 import { TRANSFER_TYPE, TransferType } from '@contracts/common';
-import { ComplianceWorkflowWidgetPropsSchema, ComplianceWorkflowWidgetProps } from '@contracts/compliance';
+import { ComplianceWorkflowWidgetPropsSchema, ComplianceWorkflowWidgetProps, FORM_TYPE } from '@contracts/compliance';
 import { 
   AssetDTOList,
   CONTROL_TYPE,
@@ -104,6 +104,7 @@ export default function UnifiedCustodyPage() {
                 assets,
                 targetOrg,
                 transferType,
+                formType: FORM_TYPE.AUTHORIZATION
               })}
               onSelect={handleTemplateSelect}
             />

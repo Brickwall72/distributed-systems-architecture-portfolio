@@ -3,8 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { 
   DatabaseTwinTable, 
   TableColumn, 
-  DatabaseTwinProps, 
-  DocumentViewer, 
+  DatabaseTwinProps,  
   FederatedErrorBoundary 
 } from './components';
 
@@ -13,49 +12,6 @@ const meta: Meta = {
 };
 
 export default meta;
-
-// ==========================================
-// Document Viewer Stories
-// ==========================================
-
-export const HtmlPreview: StoryObj<typeof DocumentViewer> = {
-  render: (args) => <DocumentViewer {...args} />,
-  args: {
-    content: `
-      <div style="font-family: sans-serif; padding: 2rem; color: #333;">
-        <h1 style="border-bottom: 2px solid #eaeaea; padding-bottom: 0.5rem;">Sample Template</h1>
-        <p>This is what the raw HTML looks like before generating the PDF.</p>
-      </div>
-    `,
-    contentType: 'html',
-    title: 'HTML Template Preview',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '100%', maxWidth: '800px', height: '600px' }}>
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-const localTestPdfUrl = new URL('./__fixtures__/example.pdf', import.meta.url).href;
-
-export const PdfView: StoryObj<typeof DocumentViewer> = {
-  render: (args) => <DocumentViewer {...args} />,
-  args: {
-    content: localTestPdfUrl,
-    contentType: 'pdf',
-    title: 'Generated PDF View',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '100%', maxWidth: '800px', height: '600px' }}>
-        <Story />
-      </div>
-    ),
-  ],
-};
 
 // ==========================================
 // Table View (Database Twin) Stories

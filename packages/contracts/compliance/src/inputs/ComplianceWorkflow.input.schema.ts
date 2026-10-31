@@ -15,6 +15,18 @@ const assetSchema = z.object({
   type: z.string().optional(),
 })
 
+/**
+ * Domain classification enum for official compliance templates.
+ */
+export const FORM_TYPE = {
+  AUTHORIZATION: 'AUTHORIZATION',
+  RECEIPT: 'RECEIPT',
+} as const;
+export const formTypeEnum = z.enum(
+  Object.values(FORM_TYPE) as [typeof FORM_TYPE[keyof typeof FORM_TYPE], ...typeof FORM_TYPE[keyof typeof FORM_TYPE][]]
+);
+export type FormType = z.infer<typeof formTypeEnum>;
+
 // ============================================================================
 //    COMPLIANCE WORKFLOW WIDGET CONTRACT
 // ============================================================================
@@ -30,6 +42,7 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
   targetOrg: organizationSchema.optional(),
   assets: z.array(assetSchema).default([]),
   transferType: transferTypeEnum.optional(),
+  formType: formTypeEnum.optional(),
 });
 
 // ============================================================================
