@@ -14,7 +14,7 @@ export default function AssetRegistrationWidget() {
   const [nomenclature, setNomenclature] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [controlType, setControlType] = useState<ControlType>();
-  const [type, setType] = useState('Asset')
+  const [type, setType] = useState('')
   const [currentOwnerId, setCurrentOwnerId] = useState('');
   
   const { createAsset, isLoading, error: apiError } = useCreateAsset();
@@ -35,7 +35,7 @@ export default function AssetRegistrationWidget() {
       nomenclature: nomenclature.trim(),
       serialNumber: serialNumber.trim(),
       status: ASSET_STATUS.AVAILABLE,
-      type: 'ASSET',
+      type: type.trim(),
       controlType,
       currentOwnerId: currentOwnerId.trim(),
     };
@@ -87,7 +87,7 @@ export default function AssetRegistrationWidget() {
 
         <div>
           <label htmlFor="asset-type-input" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Asset Type Information</label>
-          <input id="asset-type-input" type="text" value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. Asset" required className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition" />
+          <input id="asset-type-input" type="text" value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. GNSS Satellite" required className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition" />
         </div>
 
         <div>

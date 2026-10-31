@@ -2,9 +2,8 @@
 import { useState, Suspense } from 'react';
 import { lazyRemote } from '../utils/federation';
 import { FederatedErrorBoundary } from '@shared/ui-components';
-import { ComplianceWorkflowWidgetPropsSchema, ComplianceWorkflowWidgetProps, FORM_TYPE } from '@contracts/compliance';
-import { AssetDTOList, AssetSelectorProps, ControlType } from '@contracts/topology';
-import { TRANSFER_TYPE, TransferType } from '@contracts/common';
+import { ComplianceWorkflowWidgetProps, TemplateDTOwithPayload } from '@contracts/compliance';
+import { AssetDTOList, AssetSelectorProps } from '@contracts/topology';
 
 // Dynamically resolve micro-frontend widgets
 const DocumentsTable = lazyRemote<any>('compliance_client/widget/DocumentsTable');
@@ -13,12 +12,7 @@ const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('comp
 
 export default function TransferReceiptPage() {
   const [assets, setAssets] = useState<AssetDTOList>([]);
-  const [transferType, setTransferType] = useState<TransferType>(TRANSFER_TYPE.PHYSICAL_TRANSFER);
-  const [, setControlType] = useState<ControlType>();
-
-  const handleTemplateSelect = (selectedTransferType: TransferType | undefined) => {
-    setTransferType(selectedTransferType ?? TRANSFER_TYPE.PHYSICAL_TRANSFER);
-  };
+  const [template] = useState<TemplateDTOwithPayload>();
 
   return (
     <div className="flex flex-col h-full gap-6">
@@ -65,12 +59,8 @@ export default function TransferReceiptPage() {
             <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">
               <Suspense fallback={<div className="text-slate-500 font-mono py-12 text-center animate-pulse">Loading compliance workflow...</div>}>
                 <ComplianceWorkflowWidget
-                  {...ComplianceWorkflowWidgetPropsSchema.parse({
-                    assets,
-                    transferType,
-                    formType: FORM_TYPE.RECEIPT
-                  })}
-                  onSelect={handleTemplateSelect}
+                  assets={assets}
+                  template={template}
                 />
               </Suspense>
             </FederatedErrorBoundary>

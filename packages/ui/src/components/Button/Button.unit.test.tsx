@@ -1,4 +1,4 @@
-// File: packages/shared/ui-components/src/components/Button/Button.unit.test.tsx
+// File: packages/ui/src/components/Button/Button.unit.test.tsx
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';

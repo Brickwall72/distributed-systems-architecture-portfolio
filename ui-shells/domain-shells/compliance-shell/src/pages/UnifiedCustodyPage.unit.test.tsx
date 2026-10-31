@@ -2,7 +2,7 @@ import { act, render } from '@testing-library/react';
 import { mockFromSchema } from '@shared/testing';
 import { CONTROL_TYPE, AssetDTOSchema, OrganizationDTOSchema, type AssetDTO, type OrganizationDTO } from '@contracts/topology';
 import { TRANSFER_TYPE } from '@contracts/common';
-import { ComplianceWorkflowWidgetPropsSchema } from '@contracts/compliance';
+import { ComplianceWorkflowWidgetPropsSchema, FORM_TYPE } from '@contracts/compliance';
 import UnifiedCustodyPage from './UnifiedCustodyPage';
 
 type Props = Record<string, any>;
@@ -23,6 +23,7 @@ vi.mock('../utils/federation', async () => {
 const SOURCE = 'topology_client/OrganizationSelector:Source Organization';
 const TARGET = 'topology_client/OrganizationSelector:Target Organization';
 const ASSET = 'topology_client/AssetSelector:Asset for Transfer';
+const TEMPLATE = 'compliance_client/TemplateSelector:Compliance Form';
 const WORKFLOW = 'compliance_client/ComplianceWorkflowWidget:';
 
 describe('UnifiedCustodyPage', () => {
@@ -40,11 +41,15 @@ describe('UnifiedCustodyPage', () => {
   });
 
   it('mounts the workflow widget with props that satisfy its contract before anything is selected', () => {
-    const { onSelect, ...data } = remotes.props[WORKFLOW];
+    const data = remotes.props[WORKFLOW];
 
     expect(ComplianceWorkflowWidgetPropsSchema.safeParse(data).success).toBe(true);
-    expect(data).toMatchObject({ assets: [], sourceOrg: undefined, targetOrg: undefined, transferType: undefined });
-    expect(onSelect).toBeTypeOf('function');
+    expect(data).toMatchObject({ assets: [], sourceOrg: undefined, targetOrg: undefined, template: undefined });
+  });
+
+  it('mounts the template selector filtered to authorization forms', () => {
+    expect(remotes.props[TEMPLATE]).toMatchObject({ typeFilter: FORM_TYPE.AUTHORIZATION, transferTypeFilter: undefined });
+    expect(remotes.props[TEMPLATE].onSelect).toBeTypeOf('function');
   });
 
   it('forwards selector outputs to the workflow widget as valid props', () => {
@@ -56,8 +61,7 @@ describe('UnifiedCustodyPage', () => {
     select(TARGET, [target]);
     select(ASSET, [asset]);
 
-    const { onSelect: _onSelect, ...data } = remotes.props[WORKFLOW];
-    const parsed = ComplianceWorkflowWidgetPropsSchema.parse(data);
+    const parsed = ComplianceWorkflowWidgetPropsSchema.parse(remotes.props[WORKFLOW]);
 
     expect(parsed.sourceOrg?.id).toBe(source.id);
     expect(parsed.sourceOrg?.name).toBe(source.name);
@@ -93,29 +97,30 @@ describe('UnifiedCustodyPage', () => {
   ])('derives the %s asset control type into the %s transfer type', (controlType, transferType) => {
     select(ASSET, [makeAsset({ controlType })]);
 
-    expect(remotes.props[WORKFLOW].transferType).toBe(transferType);
+    expect(remotes.props[TEMPLATE].transferTypeFilter).toBe(transferType);
   });
 
   it('drops the transfer type when the asset is deselected', () => {
     select(ASSET, [makeAsset({ controlType: CONTROL_TYPE.LOCAL })]);
     select(ASSET, []);
 
-    expect(remotes.props[WORKFLOW].transferType).toBeUndefined();
+    expect(remotes.props[TEMPLATE].transferTypeFilter).toBeUndefined();
   });
 
-  it('narrows the asset selector by control type when the workflow reports a transfer type', () => {
+  it('narrows the asset selector by control type and forwards the template when one is selected', () => {
     expect(remotes.props[ASSET].filterControlType).toBeUndefined();
 
-    act(() => remotes.props[WORKFLOW].onSelect(TRANSFER_TYPE.C2_TRANSFER));
+    const remote = { id: 'tpl-c2', transferType: TRANSFER_TYPE.C2_TRANSFER };
+    select(TEMPLATE, remote);
     expect(remotes.props[ASSET].filterControlType).toBe(CONTROL_TYPE.REMOTE);
-    expect(remotes.props[WORKFLOW].transferType).toBe(TRANSFER_TYPE.C2_TRANSFER);
+    expect(remotes.props[WORKFLOW].template).toBe(remote);
 
-    act(() => remotes.props[WORKFLOW].onSelect(TRANSFER_TYPE.PHYSICAL_TRANSFER));
+    select(TEMPLATE, { id: 'tpl-phys', transferType: TRANSFER_TYPE.PHYSICAL_TRANSFER });
     expect(remotes.props[ASSET].filterControlType).toBe(CONTROL_TYPE.LOCAL);
 
-    act(() => remotes.props[WORKFLOW].onSelect(undefined));
+    select(TEMPLATE, undefined);
     expect(remotes.props[ASSET].filterControlType).toBeUndefined();
-    expect(remotes.props[WORKFLOW].transferType).toBeUndefined();
+    expect(remotes.props[WORKFLOW].template).toBeUndefined();
   });
 
   it('explicitly excludes in-transit assets from the asset selector', () => {
