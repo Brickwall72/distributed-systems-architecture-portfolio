@@ -1,4 +1,4 @@
-// File: packages/shared/ui-components/src/components/FederatedErrorBoundary.tsx
+// File: packages/shared/ui-components/src/components/FederatedErrorBoundary/FederatedErrorBoundary.tsx
 import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {

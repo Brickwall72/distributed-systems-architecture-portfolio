@@ -1,11 +1,11 @@
 // File: services/core/compliance-service/client/src/hooks/useGeneratePdf.ts
 import { useCallback, useState } from 'react';
 import { apiClient } from '../../api';
-import { signDocumentApiRequestSchema, templateDTOwithPayloadSchema, masterPayloadInputSchema } from 'compliance-shared';
+import { signDocumentApiRequestSchema, templateDTOSchema, masterPayloadInputSchema } from 'compliance-shared';
 import { z } from 'zod';
 
 const generatePdfParamsSchema = z.object({
-  template: templateDTOwithPayloadSchema,
+  template: templateDTOSchema.pick({ id: true }).passthrough(),
   payloadData: masterPayloadInputSchema,
 })
 type GeneratePdfParamsSchema = z.infer<typeof generatePdfParamsSchema> & {readonly onSuccess: (blobUrl: string) => void}
@@ -25,12 +25,10 @@ export function useGeneratePdf() {
       setIsGenerating(true);
       setError(null);
 
-      const productionPayload = template.payloadSchema.parse({...payloadData, requisitionNumber: 'temp'});
-
       // Hit the backend draft endpoint returning JSON containing the pre-signed URL
       const response = await apiClient.createTemplateDraft({
         params: { id: template.id },
-        body: {data: productionPayload},
+        body: { data: payloadData },
       });
 
       if (response.status === 201) {
@@ -56,6 +54,7 @@ export function useGeneratePdf() {
           senderOrgId :payloadData.sourceOrg.id, 
           receiverOrgId: payloadData.targetOrg?.id, 
           assetIds: payloadData.assets?.map(a => a.id),
+          transferEventId: payloadData.transferEventId,
         }));
       } else {
         const errBody = response.body as { error?: string; message?: string };

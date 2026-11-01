@@ -34,6 +34,27 @@ describe('useDocuments Hook', () => {
     expect(apiClient.getDocuments).toHaveBeenCalledTimes(1);
   });
 
+  it('sends status and requisition number filters as comma-separated query params', async () => {
+    vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({ status: 200, body: [] } as never);
+
+    const { result } = renderHook(() =>
+      useDocuments({ statuses: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1', 'REQ-2'] })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(apiClient.getDocuments).toHaveBeenCalledWith({
+      query: { status: 'IN_PROGRESS', requisitionNumbers: 'REQ-1,REQ-2' },
+    });
+  });
+
+  it('returns no documents without requesting when the requisition filter is an empty array', async () => {
+    const { result } = renderHook(() => useDocuments({ requisitionNumbers: [] }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(apiClient.getDocuments).not.toHaveBeenCalled();
+    expect(result.current.documents).toEqual([]);
+  });
+
   it('handles non-200 HTTP responses by setting an error message', async () => {
     vi.mocked(apiClient.getDocuments).mockResolvedValueOnce({
       status: 500,

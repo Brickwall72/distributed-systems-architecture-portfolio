@@ -57,8 +57,8 @@ describe('UnifiedCustodyPage', () => {
     const target = makeOrg('org-target');
     const asset = makeAsset({ controlType: CONTROL_TYPE.LOCAL });
 
-    select(SOURCE, [source]);
-    select(TARGET, [target]);
+    select(SOURCE, source);
+    select(TARGET, target);
     select(ASSET, [asset]);
 
     const parsed = ComplianceWorkflowWidgetPropsSchema.parse(remotes.props[WORKFLOW]);
@@ -74,18 +74,10 @@ describe('UnifiedCustodyPage', () => {
     });
   });
 
-  it('only passes the first organization chosen by a selector', () => {
-    const [first, second] = [makeOrg('org-a'), makeOrg('org-b')];
-
-    select(SOURCE, [first, second]);
-
-    expect(remotes.props[WORKFLOW].sourceOrg.id).toBe(first.id);
-  });
-
   it('clears workflow entities when selectors report an empty selection', () => {
-    select(SOURCE, [makeOrg('org-source')]);
+    select(SOURCE, makeOrg('org-source'));
     select(ASSET, [makeAsset()]);
-    select(SOURCE, []);
+    select(SOURCE, undefined);
     select(ASSET, []);
 
     expect(remotes.props[WORKFLOW]).toMatchObject({ sourceOrg: undefined, assets: [] });
@@ -132,8 +124,8 @@ describe('UnifiedCustodyPage', () => {
     const target = makeOrg('org-target');
     const asset = makeAsset();
 
-    select(SOURCE, [source]);
-    select(TARGET, [target]);
+    select(SOURCE, source);
+    select(TARGET, target);
     select(ASSET, [asset]);
 
     expect(remotes.props[SOURCE]).toMatchObject({ excludeOrgId: target.id, filterOwnedId: asset.id, requireActiveAssets: true });

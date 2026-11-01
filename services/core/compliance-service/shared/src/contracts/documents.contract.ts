@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
 import { transferInitiatedDataSchema } from '@contracts/compliance';
-import { DocumentSchema, formIdEnum, formTypeEnum  } from '../schemas';
+import { DocumentSchema, GetDocumentsQuerySchema, formIdEnum, formTypeEnum  } from '../schemas';
 
 const c = initContract();
 
 export const signDocumentApiRequestSchema = SignDocumentCommandSchema.extend({
   ...transferInitiatedDataSchema.omit({date: true}).shape,
+  transferEventId: z.string().uuid().optional(),
   documentName: formIdEnum,
   documentType:formTypeEnum
 });
@@ -18,6 +19,7 @@ export const documentsRoutes = {
   getDocuments: c.query({
     method: 'GET',
     path: '/documents',
+    query: GetDocumentsQuerySchema,
     responses: {
       200: z.array(DocumentSchema),
       500: ApiErrorResponseSchema,

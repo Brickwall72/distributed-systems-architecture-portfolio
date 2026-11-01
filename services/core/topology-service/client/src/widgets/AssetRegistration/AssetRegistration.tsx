@@ -2,7 +2,7 @@
 import { useState, type SyntheticEvent } from 'react';
 import OrganizationSelector from '../OrganizationSelector';
 import { useCreateAsset } from '../../hooks';
-import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO, AssetStatus } from '@contracts/topology';
+import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO } from '@contracts/topology';
 import { Button, Select } from '@shared/ui-components';
 import '@shared/styles';
 
@@ -108,7 +108,7 @@ export default function AssetRegistrationWidget() {
         <div className="pt-1">
           <OrganizationSelector
             label="Holding Organization Custody"
-            onSelect={(orgs) => setCurrentOwnerId(orgs[0]?.id ?? '')}
+            onSelect={(org) => setCurrentOwnerId(org?.id ?? '')}
           />
         </div>
 

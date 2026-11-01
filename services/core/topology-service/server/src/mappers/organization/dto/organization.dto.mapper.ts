@@ -19,5 +19,6 @@ export function organizationEntityToDTO(entity: OrganizationEntity): Organizatio
     type: parsedType.data,
     addressLine1: entity.addressLine1,
     addressLine2: entity.addressLine2,
+    requisitions: entity.requisitions,
   };
 }

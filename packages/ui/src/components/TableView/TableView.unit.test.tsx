@@ -1,5 +1,5 @@
-// File: packages/ui/src/components/TableView.unit.test.tsx
-import { render, screen } from '@testing-library/react';
+// File: packages/ui/src/components/TableView/TableView.unit.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DatabaseTwinTable, TableColumn } from './TableView';
 
 interface TestUser {
@@ -75,5 +75,19 @@ describe('DatabaseTwinTable', () => {
     // No rows should exist in tbody
     const rows = container.querySelectorAll('tbody tr');
     expect(rows.length).toBe(0);
+  });
+
+  it('invokes onRowSelect and marks the selected row', () => {
+    const onRowSelect = vi.fn();
+    render(
+      <DatabaseTwinTable columns={mockColumns} data={mockData} rowKey="id" onRowSelect={onRowSelect} selectedRowKey="usr-2" />
+    );
+
+    fireEvent.click(screen.getByText('Alice Johnson'));
+    expect(onRowSelect).toHaveBeenCalledWith(mockData[0]);
+
+    const rows = screen.getAllByRole('row');
+    expect(rows[2]).toHaveAttribute('aria-selected', 'true');
+    expect(rows[1]).toHaveAttribute('aria-selected', 'false');
   });
 });

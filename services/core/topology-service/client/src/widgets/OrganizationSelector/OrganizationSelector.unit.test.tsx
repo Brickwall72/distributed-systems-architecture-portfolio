@@ -86,7 +86,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     expect(screen.getByText('General Dynamics')).toBeInTheDocument();
 
     // Auto-selects General Dynamics because it is the sole remaining option
-    expect(mockOnSelect).toHaveBeenCalledWith([mockOrgList[1]]);
+    expect(mockOnSelect).toHaveBeenCalledWith(mockOrgList[1]);
   });
 
   it('bypasses excludeOrgId when filterOwnedId returns exactly one holding organization (Precedence Rule)', () => {
@@ -106,10 +106,10 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
 
     // Precedence rule preserves org-001 despite excludeOrgId and auto-selects it
     expect(screen.getByText('Space Systems Command')).toBeInTheDocument();
-    expect(mockOnSelect).toHaveBeenCalledWith([mockOrgList[0]]);
+    expect(mockOnSelect).toHaveBeenCalledWith(mockOrgList[0]);
   });
 
-  it('emits OrganizationBase[] array payload to Shell on explicit user selection', () => {
+  it('emits a single OrganizationDTO payload to Shell on explicit user selection', () => {
     vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,
       isLoading: false,
@@ -121,7 +121,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: 'org-001' } });
 
-    expect(mockOnSelect).toHaveBeenCalledWith([mockOrgList[0]]);
+    expect(mockOnSelect).toHaveBeenCalledWith(mockOrgList[0]);
   });
 
   it('allows explicit user deselection and prevents re-auto-selection', () => {
@@ -134,15 +134,30 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     render(<OrganizationSelector onSelect={mockOnSelect} />);
 
     // 1. Initial render auto-selects single option
-    expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
 
     // 2. User manually selects placeholder "-- Select Organization --"
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '' } });
 
     // Emits empty array and records user cleared intent
-    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
     expect(select).toHaveValue('');
+  });
+
+  it('re-enables auto-selection after a manual deselect when a different transfer event is selected', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [mockOrgList[0]], isLoading: false, error: null });
+
+    const { rerender } = render(<OrganizationSelector transferEventId="evt-1" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
+    expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
+
+    rerender(<OrganizationSelector transferEventId="evt-2" onSelect={mockOnSelect} />);
+
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
+    expect(screen.getByRole('combobox')).toHaveValue(mockOrgList[0].id);
   });
 
   it('suppresses auto-selection when clearing a filter (broadening context)', () => {
@@ -158,7 +173,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     );
 
     // 1. Narrowing context (asset selected) -> auto-selects org-001
-    expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
 
     // 2. Asset deselected -> filterOwnedId transitions to undefined (broadening context)
     rerender(<OrganizationSelector filterOwnedId={undefined} onSelect={mockOnSelect} />);
@@ -167,7 +182,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '' } });
 
-    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
     expect(select).toHaveValue('');
   });
 
@@ -183,7 +198,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
 
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: 'org-001' } });
-    expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
 
     // 2. Data updates (org-001 filtered out, leaving only org-002)
     vi.mocked(useGetOrganizations).mockReturnValue({
@@ -195,8 +210,27 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     rerender(<OrganizationSelector onSelect={mockOnSelect} />);
 
     // Evicts missing org-001 ([]) and then auto-selects sole remaining org-002
-    expect(mockOnSelect).toHaveBeenNthCalledWith(2, []);
-    expect(mockOnSelect).toHaveBeenNthCalledWith(3, [mockOrgList[1]]);
+    expect(mockOnSelect).toHaveBeenNthCalledWith(2, undefined);
+    expect(mockOnSelect).toHaveBeenNthCalledWith(3, mockOrgList[1]);
+  });
+
+  it('emits an array payload and does not auto-select in multi-select mode', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({
+      items: [mockOrgList[0]],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<OrganizationSelector multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Organization Select' }));
+    const option = screen.getByRole('option', { name: /Space Systems Command/ });
+    fireEvent.click(option);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
+
+    fireEvent.click(option);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
   });
 
   it('safely handles invalid props from Host Shell without crashing render tree', () => {

@@ -3,8 +3,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance'; 
-import { masterPayloadInputSchema } from 'compliance-shared';
-import { useGeneratePdf, useSignPdf, signPdfParamsSchema } from '../../hooks';
+import { masterPayloadInputSchema, templateId2dataSchema, getReceiptTemplateId } from 'compliance-shared';
+import { useGeneratePdf, useSignPdf, signPdfParamsSchema, useTemplateQuery } from '../../hooks';
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
@@ -14,9 +14,20 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   }
   const entityData = parsedProps.success
     ? parsedProps.data
-    : { sourceOrg: undefined, assets: [], targetOrg: undefined, template: undefined };
+    : { sourceOrg: undefined, assets: [], targetOrg: undefined, template: undefined, requisitionNumber: undefined, authorizingTemplateId: undefined };
 
-  const { template: selectedTemplate } = entityData;
+  // When receiving against an existing authorization, the receipt template is derived from the authorizing template
+  const receiptTemplateId = entityData.requisitionNumber
+    ? getReceiptTemplateId(entityData.authorizingTemplateId)
+    : undefined;
+  const { data: receiptTemplate } = useTemplateQuery(receiptTemplateId);
+
+  const selectedTemplate = useMemo(() => {
+    if (!receiptTemplateId) return entityData.template;
+    const pipeline = (templateId2dataSchema as Record<string, unknown>)[receiptTemplateId];
+    if (!receiptTemplate || !pipeline) return undefined;
+    return { ...receiptTemplate, payloadSchema: pipeline } as NonNullable<typeof entityData.template>;
+  }, [receiptTemplateId, receiptTemplate, entityData.template]);
 
   const [selectedDate] = useState(new Date().toDateString());
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);

@@ -148,17 +148,23 @@ describe('Documents Router Unit Tests', () => {
       expect(mockPublisher.publishTransferReceived).not.toHaveBeenCalled();
     });
 
-    it('does not publish transfer-received for RECEIPT documents until the transferId lookup exists', async () => {
-      mockBroker.request.mockResolvedValueOnce(signResponse());
-      mockInsert.mockResolvedValueOnce(mockEntity({ type: 'RECEIPT' }));
+    it('returns 400 for RECEIPT documents without a transferEventId', async () => {
+      const result = await router.signDocument(request({}, { body: signBody({ documentType: 'RECEIPT', transferEventId: undefined }) }));
 
-      const result = await router.signDocument(request({}, { body: signBody({ documentType: 'RECEIPT' }) }));
-
-      expect(result.status).toBe(200);
-      expect(mockPublisher.publishTransferReceived).not.toHaveBeenCalled();
+      expect(result.status).toBe(400);
+      expect(mockBroker.request).not.toHaveBeenCalled();
     });
 
-    it.todo('publishes a transfer-received event with the transferId looked up from the compliance database');
+    it('publishes transfer-received for RECEIPT documents with the supplied transferEventId', async () => {
+      const transferEventId = '123e4567-e89b-42d3-a456-426614174000';
+      mockBroker.request.mockResolvedValueOnce(signResponse());
+      mockInsert.mockResolvedValueOnce(mockEntity({ type: 'RECEIPT', transferEventId: null }));
+
+      const result = await router.signDocument(request({}, { body: signBody({ documentType: 'RECEIPT', transferEventId }) }));
+
+      expect(result.status).toBe(200);
+      expect(mockPublisher.publishTransferReceived).toHaveBeenCalledWith(expect.objectContaining({ transferEventId }), undefined);
+    });
 
     it('returns 500 when the esign service reports failure', async () => {
       mockBroker.request.mockResolvedValueOnce(signResponse({ success: false }));

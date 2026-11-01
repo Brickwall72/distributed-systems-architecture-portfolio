@@ -1,5 +1,5 @@
 // File: packages/contracts/compliance/src/inputs/ComplianceWorkflow.schema.ts
-import { templateDTOwithPayloadSchema } from './TemplateSelector.input.schema';
+import { templateDTOwithPayloadSchema, formIdEnum } from './TemplateSelector.input.schema';
 import { z } from 'zod';
 
 const organizationSchema = z.object({
@@ -30,7 +30,16 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
   targetOrg: organizationSchema.optional(),
   assets: z.array(assetSchema).default([]),
   template: templateDTOwithPayloadSchema.optional(),
-});
+  /** Existing requisition number of the authorization being received; must accompany `authorizingTemplateId`. */
+  requisitionNumber: z.string().min(1).optional(),
+  /** Transfer event being received; required to publish the receipt event. Must accompany `requisitionNumber`. */
+  transferEventId: z.string().uuid().optional(),
+  /** Template id of the authorizing document; used to resolve the matching receipt template. */
+  authorizingTemplateId: formIdEnum.optional(),
+}).refine(
+  (v) => [v.requisitionNumber, v.authorizingTemplateId, v.transferEventId].filter((x) => x !== undefined).length % 3 === 0,
+  { message: 'requisitionNumber, authorizingTemplateId, and transferEventId must be provided together', path: ['authorizingTemplateId'] }
+);
 
 // ============================================================================
 //      TYPES: INGRESS PROPS vs PARSED STATE

@@ -2,7 +2,7 @@
 import express from 'express';
 import { ZodError } from 'zod';
 import { createComplianceGateway } from './routes';
-import { initDatabase, pool } from './db';
+import { initializeDatabaseWithRetry, pool } from './db';
 import { createLogger } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { TransferService } from './services';
@@ -89,7 +89,7 @@ async function bootstrapApplicationServer() {
   });
 
   try {
-    await initDatabase();
+    await initializeDatabaseWithRetry();
     logger.info('Compliance database connection established.');
 
     await broker.connect();

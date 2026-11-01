@@ -1,5 +1,6 @@
 // File: services/core/compliance-service/client/src/widgets/DocumentsTable.tsx
-import { Document } from 'compliance-shared';
+import { useState } from 'react';
+import { Document, DocumentStatus, FormId } from 'compliance-shared';
 import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
 import { useDocuments } from '../../hooks';
 import '@shared/styles';
@@ -16,8 +17,39 @@ const columns: TableColumn<Document>[] = [
   },
 ];
 
-export default function DocumentsTable() {
-  const { documents, loading, error } = useDocuments();
+export interface DocumentsTableProps {
+  /** Emits the selected row's transferEventId, or undefined when deselected. */
+  readonly onTransferEventSelect?: (transferEventId: string | undefined) => void;
+  readonly onRequisitionNumberSelect?: (requisitionNumber: string | undefined) => void;
+  /** Emits the selected row's template id (the authorizing document), or undefined when deselected. */
+  readonly onAuthorizingTemplateSelect?: (templateId: FormId | undefined) => void;
+  /** Limits returned rows to these statuses (e.g. IN_PROGRESS, PARTIALLY_COMPLETED). */
+  readonly statusFilter?: readonly DocumentStatus[];
+  /** Limits returned rows (server-side) to these requisition numbers. */
+  readonly requisitionNumbers?: readonly string[];
+  /** Columns (by Document key) to omit from the table. */
+  readonly hiddenColumns?: readonly (keyof Document)[];
+}
+
+export default function DocumentsTable({ onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect, statusFilter, requisitionNumbers, hiddenColumns }: Readonly<DocumentsTableProps>) {
+  const { documents, loading, error } = useDocuments({ statuses: statusFilter, requisitionNumbers });
+  const [selectedTransferEventId, setSelectedTransferEventId] = useState<string>();
+  const [selectedRequisitionNumber, setSelectedRequisitionNumber] = useState<string>();
+
+  const visibleColumns = hiddenColumns?.length
+    ? columns.filter((column) => !hiddenColumns.includes(column.key as keyof Document))
+    : columns;
+
+  const handleRowSelect = (row: Document) => {
+    if (!row.transferEventId) return;
+    const TEI = row.transferEventId === selectedTransferEventId ? undefined : row.transferEventId;
+    setSelectedTransferEventId(TEI);
+    onTransferEventSelect?.(TEI);
+    const RN = row.requisitionNumber === selectedRequisitionNumber ? undefined : row.requisitionNumber;
+    setSelectedRequisitionNumber(RN);
+    onRequisitionNumberSelect?.(RN);
+    onAuthorizingTemplateSelect?.(RN ? row.name : undefined);
+  };
 
   if (loading) {
     return (
@@ -36,6 +68,9 @@ export default function DocumentsTable() {
     );
   }
 
+  const selectedRowKey =
+    documents.find((d) => d.transferEventId === selectedTransferEventId)?.requisitionNumber ?? null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -49,8 +84,10 @@ export default function DocumentsTable() {
       </div>
       <DatabaseTwinTable 
         data={documents}
-        columns={columns}
+        columns={visibleColumns}
         rowKey="requisitionNumber"
+        onRowSelect={(onTransferEventSelect || onRequisitionNumberSelect) ? handleRowSelect : undefined}
+        selectedRowKey={selectedRowKey}
       />
     </div>
   );

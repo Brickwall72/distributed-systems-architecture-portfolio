@@ -13,8 +13,10 @@ const booleanFromString = z.union([
 export const GetAssetsQuerySchema = z.object({
   filterOwnerId: z.string().trim().min(1).optional(),
   excludeOwnerId: z.string().trim().min(1).optional(),
+  transferEventId: z.string().trim().min(1).optional(),
   filterControlType: controlTypeEnum.optional(),
   includeInTransit: booleanFromString.optional().default(false),
+  includeAvailable: booleanFromString.optional().default(true),
 });
 export type GetAssetsQuery = z.infer<typeof GetAssetsQuerySchema>;
 
@@ -24,6 +26,7 @@ export type GetAssetsQuery = z.infer<typeof GetAssetsQuerySchema>;
 const SingleAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
   label: z.string().trim().min(1).optional(),
   includeInTransit: booleanFromString.optional().default(true),
+  includeAvailable: booleanFromString.optional().default(true),
   multiSelect: z.literal(false).optional().default(false),
 });
 
@@ -33,6 +36,7 @@ const SingleAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
 const MultiAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
   label: z.string().trim().min(1).optional(),
   includeInTransit: booleanFromString.optional().default(true),
+  includeAvailable: booleanFromString.optional().default(true),
   multiSelect: z.literal(true),
 });
 
@@ -53,14 +57,16 @@ export type AssetSelectorInputs = z.input<typeof AssetSelectorInputSchema>;
 type SingleInput = z.input<typeof SingleAssetSelectorInputSchema>;
 type MultiInput = z.input<typeof MultiAssetSelectorInputSchema>;
 
-export type SingleAssetSelectorProps = Omit<SingleInput, 'multiSelect' | 'includeInTransit'> & {
+export type SingleAssetSelectorProps = Omit<SingleInput, 'multiSelect' | 'includeInTransit' | 'includeAvailable'> & {
   readonly includeInTransit?: boolean;   // props shouldn't accept the string forms
+  readonly includeAvailable?: boolean;
   readonly multiSelect?: false;
-  readonly onSelect: (selectedAsset: AssetDTO | null) => void;
+  readonly onSelect: (selectedAsset: AssetDTO | undefined) => void;
 };
 
-export type MultiAssetSelectorProps = Omit<MultiInput, 'multiSelect' | 'includeInTransit'> & {
+export type MultiAssetSelectorProps = Omit<MultiInput, 'multiSelect' | 'includeInTransit' | 'includeAvailable'> & {
   readonly includeInTransit?: boolean;
+  readonly includeAvailable?: boolean;
   readonly multiSelect: true;
   readonly onSelect: (selectedAssets: AssetDTOList) => void;
 };

@@ -1,6 +1,14 @@
 // File: packages/contracts/topology/src/inputs/OrganizationSelector.input.schema.ts
 import { z } from 'zod';
-import { type OrganizationDTO } from '../outputs';
+import { type OrganizationDTO, type OrganizationDTOList } from '../outputs';
+
+export const TRANSFER_ROLE = {
+  SENDER: 'SENDER',
+  RECEIVER: 'RECEIVER',
+} as const;
+export const transferRoleEnum = z.enum(
+  Object.values(TRANSFER_ROLE) as [typeof TRANSFER_ROLE[keyof typeof TRANSFER_ROLE], ...typeof TRANSFER_ROLE[keyof typeof TRANSFER_ROLE][]]
+);
 
 /**
  * Reusable base organization query parameters.
@@ -8,6 +16,9 @@ import { type OrganizationDTO } from '../outputs';
  */
 export const GetOrganizationsQuerySchema = z.object({
   filterOwnedId: z.string().trim().min(1).optional(),
+  excludeOrgId: z.string().trim().min(1).optional(),
+  transferEventId: z.string().trim().min(1).optional(),
+  transferEventRole: transferRoleEnum.optional(),
   requireActiveAssets: z.preprocess(
     (val) => {
       if (val === 'true') return true;
@@ -22,13 +33,26 @@ export type GetOrganizationsQuery = z.infer<typeof GetOrganizationsQuerySchema>;
 
 /**
  * Runtime input configuration passed from Shell -> OrganizationSelector MFE Widget.
- * Combines the base query parameters with MFE-specific UI presentation props.
+ * Discriminated on `multiSelect`, mirroring AssetSelector.
  */
-export const OrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({
+const baseSelectorFields = {
   label: z.string().trim().min(1).optional(),
-  excludeOrgId: z.string().trim().min(1).optional(),
-  multiSelect: z.boolean().default(false),
+};
+
+const SingleOrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({
+  ...baseSelectorFields,
+  multiSelect: z.literal(false).optional().default(false),
 });
+
+const MultiOrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({
+  ...baseSelectorFields,
+  multiSelect: z.literal(true),
+});
+
+export const OrganizationSelectorInputSchema = z.discriminatedUnion('multiSelect', [
+  SingleOrganizationSelectorInputSchema,
+  MultiOrganizationSelectorInputSchema,
+]);
 
 /*
  * ============================================================================
@@ -36,21 +60,21 @@ export const OrganizationSelectorInputSchema = GetOrganizationsQuerySchema.exten
  * ============================================================================
  */
 
-/**
- * Raw input shape expected from the Shell caller.
- * `multiSelect` and `requireActiveAssets` are optional.
- */
 export type OrganizationSelectorInputs = z.input<typeof OrganizationSelectorInputSchema>;
 
-/**
- * Global Contract for the OrganizationSelector MFE Component props.
- */
-export type OrganizationSelectorProps = OrganizationSelectorInputs & {
-  /**
-   * Selection event handler.
-   * Always emits an array (`OrganizationDTO[]`) to ensure predictable processing in the Shell:
-   * - Single-select: `[selectedOrganization]` or `[]`
-   * - Multi-select: `[OrganizationA, OrganizationB]` or `[]`
-   */
-  readonly onSelect: (selectedOrganizations: OrganizationDTO[]) => void;
+type SingleInput = z.input<typeof SingleOrganizationSelectorInputSchema>;
+type MultiInput = z.input<typeof MultiOrganizationSelectorInputSchema>;
+
+export type SingleOrganizationSelectorProps = Omit<SingleInput, 'multiSelect'> & {
+  readonly multiSelect?: false;
+  /** Emits the selected organization, or `undefined` when cleared. */
+  readonly onSelect: (selectedOrganization: OrganizationDTO | undefined) => void;
 };
+
+export type MultiOrganizationSelectorProps = Omit<MultiInput, 'multiSelect'> & {
+  readonly multiSelect: true;
+  /** Emits all selected organizations (empty array when cleared). */
+  readonly onSelect: (selectedOrganizations: OrganizationDTOList) => void;
+};
+
+export type OrganizationSelectorProps = SingleOrganizationSelectorProps | MultiOrganizationSelectorProps;

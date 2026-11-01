@@ -136,13 +136,26 @@ export class DocumentsRepository {
     return rows.map((row) => mapDbRowToDocument(this.normalizeRow(row)));
   }
 
-  async findAll(): Promise<ReturnType<typeof mapDbRowToDocument>[]> {
+  async findAll(
+    filters: { statuses?: string[]; requisitionNumbers?: string[] } = {}
+  ): Promise<ReturnType<typeof mapDbRowToDocument>[]> {
+    const conditions: string[] = [];
+    const values: string[][] = [];
+    if (filters.statuses?.length) {
+      values.push(filters.statuses);
+      conditions.push(`status = ANY($${values.length})`);
+    }
+    if (filters.requisitionNumbers?.length) {
+      values.push(filters.requisitionNumbers);
+      conditions.push(`requisition_number = ANY($${values.length})`);
+    }
     const query = `
       SELECT *
       FROM compliance_documents
+      ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY created_at DESC;
     `;
-    const { rows } = await this.db.query(query);
+    const { rows } = await (values.length ? this.db.query(query, values) : this.db.query(query));
     return rows.map((row) => mapDbRowToDocument(this.normalizeRow(row)));
   }
 

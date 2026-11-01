@@ -9,9 +9,9 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: compliance
-      PGDATA: /var/lib/postgresql/data
     volumes:
-      - compliance_db_data:/data
+      # Postgres 18+ stores data in /var/lib/postgresql/18/docker; mount the parent
+      - compliance_db_data:/var/lib/postgresql
     networks:
       - platform-mesh
     healthcheck:

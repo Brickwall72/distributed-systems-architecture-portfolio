@@ -20,6 +20,7 @@ export const masterPayloadInputSchema = z.object({
   ...c2AuthTransferInputSchema.shape,
   ...transferAuthInputSchema.shape,
   ...transferReceiptInputSchema.shape,
+  transferEventId: z.string().uuid().optional(),
   sourceOrg: combinedOrgSchema.optional(),
   targetOrg: combinedOrgSchema.optional(),
   assets: z.array(combinedAssetSchema).default([])
@@ -30,3 +31,4 @@ export const templateId2dataSchema = {
   [FORM_ID.ASSET_TRANSFER_RECEIPT]: transferReceiptParserPipeline,
   [FORM_ID.AUTHORITY_TRANSFER_AUTHORIZATION]: c2AuthTransferParserPipeline,
 }
+export * from './receipt-template-mapping';

@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/templates/templates.route.ts
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
-import { templatesRoutes, TemplateDraftResponseSchema, FormId } from 'compliance-shared';
+import { templatesRoutes, TemplateDraftResponseSchema, FormId, templateId2dataSchema } from 'compliance-shared';
 import { TemplateRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/ui-components';
 import { EventBroker } from '@shared/messaging';
@@ -90,24 +90,33 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           };
         }
 
-        // 1. Generate the authoritative backend requisition number
-        const authoritativeReqNum = `REQ-${new Date().getFullYear()}-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
-
-        // 2. Normalize incoming body and force-overwrite requisitionNumber across input data structures
+        // 1. Preserve a client-supplied requisition number (links receipts to their authorizations); otherwise generate one
         const bodyObj = (body.data as Record<string, unknown>) || {};
+        const suppliedReqNum = typeof bodyObj.requisitionNumber === 'string' ? bodyObj.requisitionNumber.trim() : '';
+        const requisitionNumber =
+          suppliedReqNum || `REQ-${new Date().getFullYear()}-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
+
+        // 2. Parse the raw payload with the template's own pipeline (when one is registered)
+        const withReqNum = { ...bodyObj, requisitionNumber };
+        const pipeline = (templateId2dataSchema as Partial<Record<FormId, z.ZodTypeAny>>)[id];
+        const parsed = pipeline ? pipeline.safeParse(withReqNum) : null;
+        if (parsed && !parsed.success) {
+          return {
+            status: 400 as const,
+            body: {
+              error: `Invalid payload for template [${id}]: ${parsed.error.message}`,
+              code: 'BAD_REQUEST',
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
         const inputObj = (bodyObj.input as Record<string, unknown> | undefined) ?? {};
+        const hydrationData = parsed?.success
+          ? (parsed.data as Record<string, unknown>)
+          : { ...withReqNum, input: { ...inputObj, requisitionNumber } };
 
-        const sanitizedBody = {
-          ...bodyObj,
-          requisitionNumber: authoritativeReqNum,
-          input: {
-            ...inputObj,
-            requisitionNumber: authoritativeReqNum, // Guarantees parsers pick up the server ID
-          },
-        };
-
-        // 3. Hydrate template using the backend-enforced payload
-        const hydratedHtml = hydrateTemplate(template.rawHTML, sanitizedBody);
+        // 3. Hydrate template using the validated payload
+        const hydratedHtml = hydrateTemplate(template.rawHTML, hydrationData);
         const documentId = crypto.randomUUID();
         
         const broker = deps.broker;
@@ -120,7 +129,7 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           documentName: template.id,
           documentType: template.type,
           transferType: template.transferType,
-          requisitionNumber: authoritativeReqNum,
+          requisitionNumber,
           customPath: 'compliance/drafts',
           html: hydratedHtml,
         };

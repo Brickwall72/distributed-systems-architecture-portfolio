@@ -16,6 +16,8 @@ export function mapRecordToAssetEntity(record: Neo4jRecord) {
   const type = record.get('type') as string;
   const controlType = record.get('controlType') as ControlType;
 
+  const requisitionNumber = record.get('requisitionNumber') ?? undefined;
+
   return assetEntitySchema.parse({
     id,
     nomenclature,
@@ -24,5 +26,6 @@ export function mapRecordToAssetEntity(record: Neo4jRecord) {
     status,
     type,
     controlType,
+    requisitionNumber,
   });
 }

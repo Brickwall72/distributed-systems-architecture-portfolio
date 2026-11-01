@@ -101,10 +101,10 @@ describe('useGeneratePdf', () => {
       await result.current.generatePdf({ ...defaultParams, onSuccess: mockOnSuccess });
     });
 
-    // Verifies the template's own schema produced the payload sent to the backend
+    // Verifies the raw (unparsed) payload is sent so the server owns parsing and requisition numbering
     expect(apiClient.createTemplateDraft).toHaveBeenCalledWith({
       params: { id: template.id },
-      body: { data: expect.objectContaining({ requisitionNumber: 'temp', parsedByTemplate: true }) },
+      body: { data: payloadData },
     });
 
     // Verifies fetch was called with the pre-signed URL

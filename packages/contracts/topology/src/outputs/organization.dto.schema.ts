@@ -30,6 +30,8 @@ export const OrganizationDTOSchema = z.object({
     .trim()
     .transform((val) => (val === '' ? undefined : val))
     .optional(),
+  /** Requisition numbers of open transfer events the organization is a party to. */
+  requisitions: z.array(z.string()).optional(),
 });
 
 export type OrganizationDTO = z.infer<typeof OrganizationDTOSchema>;

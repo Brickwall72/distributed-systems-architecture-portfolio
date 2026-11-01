@@ -18,7 +18,7 @@ vi.mock('../OrganizationSelector', () => ({
       <button
         type="button"
         data-testid="mock-org-selector"
-        onClick={() => onSelect([mockOrg])}
+        onClick={() => onSelect(mockOrg)}
       >
         Select Org
       </button>
