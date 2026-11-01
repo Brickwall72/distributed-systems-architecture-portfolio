@@ -11,8 +11,7 @@ export interface UseDocumentsFilters {
 
 export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilters = {}) {
   const statusQuery = statuses?.length ? statuses.join(',') : undefined;
-  // undefined = unfiltered; an empty array means "match nothing" and skips the request.
-  const matchesNothing = requisitionNumbers !== undefined && requisitionNumbers.length === 0;
+  const matchesNothing = requisitionNumbers?.length === 0;
   const requisitionQuery = requisitionNumbers?.length ? requisitionNumbers.join(',') : undefined;
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

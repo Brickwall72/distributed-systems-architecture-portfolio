@@ -17,6 +17,8 @@ build/
 .vscode/
 .idea/
 .problems/
+.tools/cyclonedx-sunshine/
+__pycache__/
 
 # Exclude sub-directory local lockfile artifacts (Only track the main root lockfile)
 services/**/pnpm-lock.yaml

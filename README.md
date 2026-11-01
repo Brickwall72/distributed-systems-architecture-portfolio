@@ -66,6 +66,8 @@ graph TD
 	LEDGER ===> DB_I
 ```
 
+The generated [service composition and interaction view](./docs/generated/architecture/architecture.md) shows federated widgets and distinguishes HTTP, NATS request/reply, and NATS pub/sub interactions.
+
 
 ### Subsystem Architecture Breakdown
 The monorepo separates presentation layout orchestration and mission-specific business domains from generic utility logic:
@@ -88,6 +90,26 @@ The monorepo separates presentation layout orchestration and mission-specific bu
 * **Environment Strategy:** Microservices containerized via Docker and orchestrated natively via Kubernetes to ensure exact runtime parity across all development environments.
 
 *Detailed architectural records and engineering rationales can be reviewed chronologically under `docs/adrs/`.*
+
+### Generated Architecture and Software Inventory
+
+CI builds every application image declared in `skaffold.yaml`, then generates a CycloneDX JSON SBOM and a visual HTML report for each image. The [generated SBOM index](./docs/generated/sbom/index.md) links to each report. The structured [architecture model](./docs/architecture/model.json) separately records page/widget composition and communication patterns; it is rendered as both Markdown (Mermaid) and HTML.
+
+On pull requests and pushes, the reports are attached to the GitHub Actions run as the `sbom-and-architecture-reports` artifact. On pushes to `master`, after the verification and report-generation jobs pass, CI opens or updates a pull request with changed outputs under `docs/generated/`, then explicitly runs verification against that report branch. It avoids replacing a committed image report when the image digest and report-tool versions are unchanged. This requires GitHub Actions to have Actions, repository contents, and pull-request write permissions; the report updates still go through the normal `master` review and branch-protection process.
+
+Trivy runs with its license scanner for inventory metadata, not its vulnerability scanner. Sunshine displays a vulnerability summary, but a zero count here means vulnerability data was not included; it does not mean a vulnerability scan passed.
+
+Adding a deployable image to `skaffold.yaml` is enough for it to be included in SBOM generation. Update `docs/architecture/model.json` only when the image participates in a UI composition or service interaction that should appear in the architecture view. For local generation, prepare the pinned [CycloneDX Sunshine revision](https://github.com/CycloneDX/Sunshine/tree/beaab3faf2bab234069a8677fc627de2f0f01a3d):
+
+```bash
+mkdir -p .tools
+git clone https://github.com/CycloneDX/Sunshine.git .tools/cyclonedx-sunshine
+git -C .tools/cyclonedx-sunshine checkout beaab3faf2bab234069a8677fc627de2f0f01a3d
+python3 -m pip install requests==2.32.5
+pnpm docs:generate
+```
+
+The command also requires Docker with Buildx, Skaffold, Trivy, and Python 3; `SUNSHINE_CLI` can point to a different `sunshine.py` path.
 
 ---
 
