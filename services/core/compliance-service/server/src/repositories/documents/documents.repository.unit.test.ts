@@ -85,6 +85,26 @@ describe('DocumentsRepository', () => {
       expect(results).toEqual([first, second]);
     });
 
+    it('combines status and requisition number filters as parameterized conditions', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await repository.findAll({ statuses: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1', 'REQ-2'] });
+
+      const [sql, params] = mockPool.query.mock.calls[0];
+      expect(sql).toContain('WHERE status = ANY($1) AND requisition_number = ANY($2)');
+      expect(params).toEqual([['IN_PROGRESS'], ['REQ-1', 'REQ-2']]);
+    });
+
+    it('filters on requisition numbers alone using the first parameter', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await repository.findAll({ requisitionNumbers: ['REQ-1'] });
+
+      const [sql, params] = mockPool.query.mock.calls[0];
+      expect(sql).toContain('WHERE requisition_number = ANY($1)');
+      expect(params).toEqual([['REQ-1']]);
+    });
+
     it('returns an empty array when no documents exist', async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
       expect(await repository.findAll()).toEqual([]);

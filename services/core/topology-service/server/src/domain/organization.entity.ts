@@ -5,4 +5,5 @@ export interface OrganizationEntity {
   type: string;
   addressLine1?: string;
   addressLine2?: string;
+  requisitions?: string[];
 }

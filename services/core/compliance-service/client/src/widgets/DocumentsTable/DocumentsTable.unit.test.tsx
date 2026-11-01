@@ -59,6 +59,23 @@ describe('DocumentsTable', () => {
     }
   });
 
+  it('passes status and requisition number filters to the documents hook', () => {
+    vi.mocked(hooks.useDocuments).mockReturnValue({ documents: [], loading: false, error: null, refetch: vi.fn() });
+
+    render(createElement(DocumentsTable, { statusFilter: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1'] }));
+
+    expect(hooks.useDocuments).toHaveBeenCalledWith({ statuses: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1'] });
+  });
+
+  it('omits columns listed in hiddenColumns', () => {
+    vi.mocked(hooks.useDocuments).mockReturnValue({ documents: [], loading: false, error: null, refetch: vi.fn() });
+
+    render(createElement(DocumentsTable, { hiddenColumns: ['type'] }));
+
+    expect(screen.queryByText('Document Type')).not.toBeInTheDocument();
+    expect(screen.getByText('Transfer Type')).toBeInTheDocument();
+  });
+
   it('renders error UI when hook returns an error state', async () => {
     vi.mocked(hooks.useDocuments).mockReturnValue({
       documents: [],

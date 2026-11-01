@@ -32,6 +32,8 @@ export const AssetItemSchema = z.object({
   status: assetStatusEnum.default(ASSET_STATUS.AVAILABLE),
   type: z.string(),
   controlType: controlTypeEnum,
+  /** Set when the asset is IN_TRANSIT on an open transfer event. */
+  requisitionNumber: z.string().optional(),
 });
 export type AssetItemDTO = z.infer<typeof AssetItemSchema>;
 export const AssetItemDTOListSchema = z.array(AssetItemSchema);

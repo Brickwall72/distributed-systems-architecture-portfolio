@@ -1,4 +1,4 @@
-// File: packages/ui/src/components/FederatedErrorBoundary.unit.test.tsx
+// File: packages/ui/src/components/FederatedErrorBoundary/FederatedErrorBoundary.unit.test.tsx
 import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

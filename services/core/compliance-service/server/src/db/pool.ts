@@ -29,3 +29,8 @@ export const pool = new Pool(
         database: process.env.POSTGRES_DB || process.env.DB_NAME,
       }
 );
+
+// Idle client errors (e.g. DB restart) must not crash the process
+pool.on("error", (err) => {
+  console.error(`Postgres pool error: ${err.message}`);
+});

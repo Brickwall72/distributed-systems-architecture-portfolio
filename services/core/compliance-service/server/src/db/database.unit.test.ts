@@ -8,6 +8,7 @@ vi.mock('pg', () => ({
   default: {
     Pool: class {
       query = mockQuery;
+      on = vi.fn();
     },
     types: {
       setTypeParser: mockSetTypeParser,

@@ -10,6 +10,7 @@ export const assetEntitySchema = z.object({
   status: assetStatusEnum,
   type: z.string(),
   controlType: controlTypeEnum,
+  requisitionNumber: z.string().optional(),
 })
 export type AssetEntity = z.infer<typeof assetEntitySchema>;
 

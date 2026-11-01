@@ -4,6 +4,8 @@ import { Select, type SelectOption } from '@shared/ui-components';
 import { useGetAssets } from '../../hooks';
 import {
   AssetSelectorInputSchema,
+  GetAssetsQuerySchema,
+  type GetAssetsQuery,
   type AssetSelectorProps,
 } from '@contracts/topology';
 
@@ -16,10 +18,9 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
 
   const isMulti = parsedInputs.success ? parsedInputs.data.multiSelect === true : false;
   const label = parsedInputs.success ? parsedInputs.data.label : undefined;
-  const filterOwnerId = parsedInputs.success ? parsedInputs.data.filterOwnerId : undefined;
-  const excludeOwnerId = parsedInputs.success ? parsedInputs.data.excludeOwnerId : undefined;
-  const filterControlType = parsedInputs.success ? parsedInputs.data.filterControlType : undefined;
-  const includeInTransit = parsedInputs.success ? parsedInputs.data.includeInTransit : true;
+  const queryParams: GetAssetsQuery = parsedInputs.success
+    ? GetAssetsQuerySchema.parse(parsedInputs.data)
+    : { includeInTransit: true, includeAvailable: true };
 
   const { onSelect } = props;
 
@@ -28,12 +29,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // 3. Query Data Access Layer
-  const { items, isLoading, error } = useGetAssets({
-    filterOwnerId,
-    excludeOwnerId,
-    includeInTransit,
-    filterControlType,
-  });
+  const { items, isLoading, error } = useGetAssets(queryParams);
 
   // 4. Synchronize Selection: Clear selection if active assets are filtered out
   useEffect(() => {
@@ -46,7 +42,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       }
     } else if (selectedId && !items.some((item) => item.id === selectedId)) {
       setSelectedId('');
-      (onSelect as (asset: null) => void)(null);
+      (onSelect as (asset: undefined) => void)(undefined);
     }
   }, [items, selectedId, selectedIds, isMulti, onSelect]);
 
@@ -71,13 +67,13 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       setSelectedId(value);
 
       if (!value) {
-        (onSelect as (asset: null) => void)(null);
+        (onSelect as (asset: undefined) => void)(undefined);
         return;
       }
 
       const selectedAsset = items.find((asset) => asset.id === value);
       if (!selectedAsset) {
-        (onSelect as (asset: null) => void)(null);
+        (onSelect as (asset: undefined) => void)(undefined);
         return;
       }
 

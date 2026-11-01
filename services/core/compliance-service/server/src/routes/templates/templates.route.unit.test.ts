@@ -115,7 +115,8 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
   });
 
   describe('POST /templates/:id/drafts (createTemplateDraft)', () => {
-    const template = () => mockTemplateDto({ rawHTML: '<h1>{{input.requisitionNumber}}</h1>' });
+    // contract-test-bare has no registered payload pipeline, so the raw payload is hydrated as-is
+    const template = () => mockTemplateDto({ id: 'contract-test-bare', rawHTML: '<h1>{{requisitionNumber}}</h1>' });
 
     it('sends a globally-contracted PDF command and returns a contract-valid draft response', async () => {
       const mockTemplate = template();
@@ -140,6 +141,26 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
       expect(generatePdfCommandSchema.parse(payload)).toEqual(payload);
       expect(payload.html).toContain(draft.requisitionNumber);
       expect(options).toMatchObject({ correlationId: 'test-corr-789' });
+    });
+
+    it('preserves a supplied non-empty requisitionNumber and generates one when missing or blank', async () => {
+      const mockTemplate = template();
+      vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
+      mockBroker.request.mockResolvedValue(
+        zocker(generatePdfResponseSchema).supply(generatePdfResponseSchema.shape.success, true).generate()
+      );
+
+      const kept = await supertest(app)
+        .post(`/templates/${mockTemplate.id}/drafts`)
+        .send({ data: { requisitionNumber: 'REQ-EXISTING-1' } });
+      expect(kept.status).toBe(201);
+      expect(kept.body.requisitionNumber).toBe('REQ-EXISTING-1');
+      expect(mockBroker.request.mock.calls.at(-1)![1].html).toContain('REQ-EXISTING-1');
+
+      const blank = await supertest(app)
+        .post(`/templates/${mockTemplate.id}/drafts`)
+        .send({ data: { requisitionNumber: '  ' } });
+      expect(blank.body.requisitionNumber).toMatch(/^REQ-\d{4}-[0-9A-F]{8}$/);
     });
 
     it('returns 404 when template ID is not found during draft creation', async () => {

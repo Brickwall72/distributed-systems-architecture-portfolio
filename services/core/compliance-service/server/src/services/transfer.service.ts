@@ -5,12 +5,13 @@ import {
 import { 
   transferEventCreatedDataSchema, transferEventUpdatedDataSchema, transferEventCompletedDataSchema,
 } from '@contracts/topology';
+import { TRANSFER_STATUS } from '@contracts/common'
 import { z } from 'zod';
 
 export const handleTransferEventCompletedDataSchema = transferEventCompletedDataSchema.transform((
   { ...rest }) => ({
     ...rest,
-    status: 'COMPLETED' as const,
+    status: TRANSFER_STATUS.COMPLETED,
   }
 )).pipe(updateForReqNumberDataSchema);
 type HandleTransferEventCompletedData = z.infer<typeof handleTransferEventCompletedDataSchema>;
@@ -18,7 +19,7 @@ type HandleTransferEventCompletedData = z.infer<typeof handleTransferEventComple
 export const handleTransferEventCreatedDataSchema = transferEventCreatedDataSchema.transform((
   { ...rest } ) => ({
     ...rest,
-    status: 'IN_PROGRESS' as const,
+    status: TRANSFER_STATUS.IN_PROGRESS,
   }
 )).pipe(updateForReqNumberDataSchema);
 type HandleTransferEventCreatedData = z.infer<typeof handleTransferEventCreatedDataSchema>;
@@ -50,7 +51,7 @@ export class TransferService {
     await this.documents.updateForReqNumber(eventData);
   }
   async handleTransferEventUpdated(eventData: HandleTransferEventUpdatedData) {
-    await this.documents.updateForDocNumber(updateForDocNumberDataSchema.parse(eventData));
+    await this.documents.updateForDocNumber(updateForDocNumberDataSchema.parse({...eventData, status: TRANSFER_STATUS.COMPLETED}));
     const requisitionNumber = eventData.requisitionNumber ?? await this.documents.getRequisitionNumberById(eventData.id);
     await this.documents.updateForReqNumber(
       updateForReqNumberDataSchema.parse({...eventData, requisitionNumber})

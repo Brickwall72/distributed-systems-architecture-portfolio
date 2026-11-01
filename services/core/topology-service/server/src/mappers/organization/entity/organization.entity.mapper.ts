@@ -16,5 +16,6 @@ export function mapRecordToOrganizationEntity(record: Neo4jRecord): Organization
     type: record.get('type') ?? '',
     addressLine1: record.get('addressLine1') ?? undefined,
     addressLine2: record.get('addressLine2') ?? undefined,
+    requisitions: record.get('requisitions') ?? undefined,
   };
 }

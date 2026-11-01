@@ -16,6 +16,10 @@ export class AssetsRepository extends BaseRepository {
         MATCH (eo:Organization {id: $excludeOwnerId})-[:HAS_CUSTODY]->(a)
       })
       AND ($includeInTransit = true OR a.status <> 'IN_TRANSIT')
+      AND ($includeAvailable = true OR a.status <> 'AVAILABLE')
+      AND ($transferEventId IS NULL OR EXISTS {
+        MATCH (:TransferEvent {id: $transferEventId})-[:INVOLVES]->(a)
+      })
       AND ($filterControlType IS NULL OR a.controlType = $filterControlType)
       RETURN 
         a.id AS id,
@@ -24,7 +28,13 @@ export class AssetsRepository extends BaseRepository {
         a.status AS status,
         a.type AS type,
         a.controlType as controlType,
-        [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId
+        [(owner:Organization)-[:HAS_CUSTODY]->(a) | owner.id][0] AS currentOwnerId,
+        CASE WHEN a.status = 'IN_TRANSIT'
+          THEN [(e:TransferEvent)-[inv:INVOLVES]->(a)
+                WHERE inv.status = 'IN_TRANSIT' AND e.status IN ['IN_PROGRESS', 'PARTIALLY_COMPLETED']
+                | e.requisitionNumber][0]
+          ELSE null
+        END AS requisitionNumber
       ORDER BY currentOwnerId ASC, a.nomenclature ASC
     `;
 
@@ -34,6 +44,8 @@ export class AssetsRepository extends BaseRepository {
         filterOwnerId: filters.filterOwnerId ?? null,
         excludeOwnerId: filters.excludeOwnerId ?? null,
         includeInTransit: filters.includeInTransit,
+        includeAvailable: filters.includeAvailable ?? true,
+        transferEventId: filters.transferEventId ?? null,
         filterControlType: filters.filterControlType ?? null,
       },
       mapRecordToAssetEntity
@@ -61,7 +73,8 @@ export class AssetsRepository extends BaseRepository {
         a.status AS status,
         a.type AS type,
         a.controlType as controlType,
-        $currentOwnerId AS currentOwnerId
+        $currentOwnerId AS currentOwnerId,
+        null AS requisitionNumber
     `;
 
     const records = await this.executeWriteQuery(

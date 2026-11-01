@@ -90,7 +90,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(mockOnSelect).toHaveBeenLastCalledWith(mockAssetList[0]);
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
-    expect(mockOnSelect).toHaveBeenLastCalledWith(null);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
   });
 
   it('includes in-transit assets by default', () => {
@@ -107,6 +107,16 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     render(<AssetSelector includeInTransit={false} onSelect={mockOnSelect} />);
 
     expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: false }));
+  });
+
+  it('includes available assets by default and forwards includeAvailable={false}', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: null });
+
+    const { rerender } = render(<AssetSelector onSelect={mockOnSelect} />);
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: true }));
+
+    rerender(<AssetSelector includeAvailable={false} onSelect={mockOnSelect} />);
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: false }));
   });
 
   it('emits AssetDTO[] array payload to Shell on user selection', () => {

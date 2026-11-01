@@ -50,14 +50,18 @@ describe('Compliance TransferService', () => {
   });
 
   it('updates the document and resolves the requisition number when an updated event omits it', async () => {
-    const event = zocker(transferEventUpdatedDataSchema.omit({ requisitionNumber: true })).generate();
+    const event = {
+      ...zocker(transferEventUpdatedDataSchema.omit({ requisitionNumber: true })).generate(),
+      transferEventStatus: 'PARTIALLY_COMPLETED' as const,
+    };
     const input = handleTransferEventUpdatedDataSchema.parse(event);
 
     await service.handleTransferEventUpdated(input);
 
+    // The receipt itself is COMPLETED while the transfer (authorization) stays PARTIALLY_COMPLETED.
     expect(documents.updateForDocNumber).toHaveBeenCalledWith({
       id: event.documentId,
-      status: event.transferEventStatus,
+      status: 'COMPLETED',
     });
     expect(documents.getRequisitionNumberById).toHaveBeenCalledWith(event.documentId);
     expect(documents.updateForReqNumber).toHaveBeenCalledWith({

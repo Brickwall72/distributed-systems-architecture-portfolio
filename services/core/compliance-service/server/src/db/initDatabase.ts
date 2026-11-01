@@ -18,7 +18,7 @@ export const initDatabase = async () => {
         requisition_number VARCHAR(100) NOT NULL,
         storage_bucket VARCHAR(100) NOT NULL,
         storage_key TEXT NOT NULL,
-        status VARCHAR(30) NOT NULL DEFAULT 'PENDING_SIGNATURE' CHECK (status IN ('SIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED')),
+        status VARCHAR(30) NOT NULL DEFAULT 'SIGNED' CHECK (status IN ('SIGNED', 'IN_PROGRESS', 'PARTIALLY_COMPLETED', 'COMPLETED')),
         signer_id VARCHAR(100) NOT NULL,
         transfer_event_id UUID, -- Foreign key link to your topology/transfer event graph
         file_hash VARCHAR(64) NOT NULL, -- SHA-256 hash of the immutable PDF artifact for verification
@@ -40,3 +40,14 @@ export const initDatabase = async () => {
     throw error;
   }
 };
+
+export async function initializeDatabaseWithRetry(attempt = 1): Promise<void> {
+  try {
+    await initDatabase();
+  } catch (dbErr) {
+    if (attempt >= 5) throw dbErr;
+    logger.warn(`Database not ready (attempt ${attempt}/5). Retrying...`);
+    await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    return initializeDatabaseWithRetry(attempt + 1);
+  }
+}

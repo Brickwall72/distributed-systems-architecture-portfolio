@@ -13,7 +13,6 @@ import {
   AssetDTOList,
   CONTROL_TYPE,
   OrganizationDTO,
-  OrganizationDTOList,
   AssetSelectorProps,
   OrganizationSelectorProps,
   ControlType
@@ -53,14 +52,6 @@ export default function UnifiedCustodyPage() {
     else setControlType(undefined);
   }, [template]);
 
-  const handleSourceOrgSelect = (orgs: OrganizationDTOList) => {
-    setSourceOrg(orgs[0]);
-  }
-
-  const handleTargetOrgSelect = (orgs: OrganizationDTOList) => {
-    setTargetOrg(orgs[0]);
-  }
-
   return (
     <div className="flex flex-col h-screen overflow-hidden p-6 gap-6 bg-slate-950 text-slate-100">
       
@@ -85,7 +76,7 @@ export default function UnifiedCustodyPage() {
               label='Source Organization'
               excludeOrgId={targetOrg?.id}
               filterOwnedId={assets[0]?.id}
-              onSelect={handleSourceOrgSelect}
+              onSelect={setSourceOrg}
               requireActiveAssets={true}
             />
           </Suspense>
@@ -108,7 +99,7 @@ export default function UnifiedCustodyPage() {
             <OrganizationSelector
               label='Target Organization'
               excludeOrgId={sourceOrg?.id}
-              onSelect={handleTargetOrgSelect}
+              onSelect={setTargetOrg}
             />
           </Suspense>
         </FederatedErrorBoundary>

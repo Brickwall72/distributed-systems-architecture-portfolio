@@ -36,6 +36,8 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
         filterOwnerId: null,
         excludeOwnerId: null,
         includeInTransit: undefined,
+        includeAvailable: true,
+        transferEventId: null,
         filterControlType: null,
       }
     );
@@ -65,6 +67,20 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
       expect.stringContaining('a.controlType = $filterControlType'),
       expect.objectContaining({ filterControlType: 'LOCAL' })
     );
+  });
+
+  it('maps the requisitionNumber returned for in-transit assets', async () => {
+    const entity = mockFromSchema(assetEntitySchema, { status: 'IN_TRANSIT', requisitionNumber: 'REQ-42' });
+    vi.mocked(mockTx.run!).mockResolvedValue({ records: [createMockRecord(entity)], summary: {} as any });
+
+    const repo = new AssetsRepository(mockDriver as Driver);
+    const results = await repo.findAssets({ includeInTransit: true });
+
+    expect(mockTx.run).toHaveBeenCalledWith(
+      expect.stringContaining('AS requisitionNumber'),
+      expect.anything()
+    );
+    expect(results[0].requisitionNumber).toBe('REQ-42');
   });
 
   it('executes createAsset write query and returns mapped AssetEntity', async () => {

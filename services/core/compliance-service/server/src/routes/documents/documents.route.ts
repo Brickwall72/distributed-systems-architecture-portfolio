@@ -1,12 +1,13 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.ts
 import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
-import { documentsRoutes, DocumentSchema } from 'compliance-shared';
+import { documentsRoutes, DocumentSchema, FORM_TYPE } from 'compliance-shared';
 import { DocumentsRepository, insertDataSchema } from '../../repositories';
 import { EventBroker } from '@shared/messaging';
 import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
 import {
   CompliancePublisher, publishtransferInitiatedDataSchema,
+  publishtransferReceivedDataSchema,
 } from '../../messaging';
 import { z } from 'zod';
 
@@ -22,13 +23,13 @@ const s = initServer();
 
 export function createDocumentsRouter(deps: DocumentsRouterDeps) {
   return s.router(documentsRoutes, {
-    getDocuments: async ({ req }) => {
+    getDocuments: async ({ req, query }) => {
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug('Retrieving all compliance records from database.', correlationId);
       const { repository } = deps;
 
       try {
-        const documents = await repository.findAll();
+        const documents = await repository.findAll({ statuses: query?.status, requisitionNumbers: query?.requisitionNumbers });
         return { status: 200 as const, body: documents.map(doc => DocumentSchema.parse(doc)) };
       } catch (error) {
         logger.error(`Database query failed in GET /documents: ${error}`, correlationId);
@@ -81,6 +82,17 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
       const { broker, publisher, repository } = deps;
       try {
+        if (body.documentType === FORM_TYPE.RECEIPT && !body.transferEventId) {
+          return {
+            status: 400 as const,
+            body: {
+              error: 'transferEventId is required to sign a receipt document.',
+              code: 'BAD_REQUEST',
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+
         const responseData = SignDocumentResponseSchema.parse(await broker.request(
           ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
           SignDocumentCommandSchema.parse(body),
@@ -94,16 +106,22 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         // Await upsert indexing before querying repository
         const document = await repository.insert(insertDataSchema.parse({...body, ...responseData, status: 'SIGNED'}));
 
-        if(document.type === 'AUTHORIZATION'){
+        if(document.type === FORM_TYPE.AUTHORIZATION){
           const data = publishtransferInitiatedDataSchema.parse({
             ...body,
             ...responseData,
             ...document,
           });
-          void publisher.publishTransferInitiated(data, correlationId)
+          void publisher.publishTransferInitiated(data, correlationId);
+        } else if(document.type === FORM_TYPE.RECEIPT) {
+          const data = publishtransferReceivedDataSchema.parse({
+            ...body,
+            ...responseData,
+            ...document,
+            transferEventId: document.transferEventId ?? body.transferEventId,
+          })
+          void publisher.publishTransferReceived(data, correlationId);
         }
-        // TODO: publish transfer-received for RECEIPT documents once the transferId
-        // can be looked up from the compliance database (linked via topology's created event).
 
         return {
           status: 200 as const,

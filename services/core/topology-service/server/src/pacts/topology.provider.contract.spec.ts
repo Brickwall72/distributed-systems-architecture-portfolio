@@ -16,7 +16,7 @@ vi.mock('../repositories', async () => {
   return {
     AssetsRepository: class MockAssetsRepository {
       async findAssets() {
-        return [mockFromSchema(assetEntitySchema, { id: 'ast-101', currentOwnerId: 'org-1' }, seed)];
+        return [mockFromSchema(assetEntitySchema, { id: 'ast-101', currentOwnerId: 'org-1', requisitionNumber: 'REQ-001' }, seed)];
       }
 
       async createAsset(dto: any) {

@@ -94,23 +94,25 @@
       <div class="grid-row">
         <div class="grid-cell">
           <span class="label">1. From (Releasing Entity / Authorizing):</span>
-          <strong>[Releasing Entity / Authorizing]</strong><br>
-          [Address Line]<br>
+          <strong>{{authorizingEntityName}}</strong><br>
+          {{authorizingAddressLine1}}<br>
+          {{authorizingAddressLine2}}
         </div>
         <div class="grid-cell">
           <span class="label">2. To (Receiving Entity / Destination):</span>
-          <strong>[Receiving Entity / Destination]</strong><br>
-          [Address Line]<br>
+          <strong>{{receivingEntityName}}</strong><br>
+          {{receivingAddressLine1}}<br>
+          {{receivingAddressLine2}}
         </div>
       </div>
       <div class="grid-row">
         <div class="grid-cell">
           <span class="label">3. Authority / Requisition Number:</span>
-          [REQ-PENDING]
+          {{requisitionNumber}}
         </div>
         <div class="grid-cell">
           <span class="label">4. Date of Transfer Authorization (YYYYMMDD):</span>
-          Fri Oct 30 2026
+          {{authorizationDate}}
         </div>
       </div>
     </div>
@@ -125,16 +127,18 @@
         </tr>
       </thead>
       <tbody>
+        {{#each items}}
         <tr>
-          <td>1</td>
+          <td>{{this.itemNumber}}</td>
           <td>
-            <strong>[Asset Description & Nomenclature Required]</strong><br>
-            S/N: [Serial Number Required]<br>
-            <em></em>
+            <strong>{{this.nomenclature}}</strong><br>
+            S/N: {{this.serialNumber}}<br>
+            <em>{{this.additionalNotes}}</em>
           </td>
-          <td>EA</td>
-          <td>1</td>
+          <td>{{this.unit}}</td>
+          <td>{{this.quantity}}</td>
         </tr>
+        {{/each}}
       </tbody>
     </table>
   </div>

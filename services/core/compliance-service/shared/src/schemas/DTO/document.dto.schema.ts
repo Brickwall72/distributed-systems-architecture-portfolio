@@ -12,11 +12,30 @@ export const DocumentStatusSchema = z.enum([
 
 export type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
 
+/** Comma-separated status list (e.g. "IN_PROGRESS,PARTIALLY_COMPLETED") parsed into an array. */
+export const GetDocumentsQuerySchema = z.object({
+  status: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .transform((val) => (val ? val.split(',').map((v) => v.trim()) : undefined))
+    .pipe(z.array(DocumentStatusSchema).optional()),
+  requisitionNumbers: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .transform((val) => (val ? val.split(',').map((v) => v.trim()).filter(Boolean) : undefined)),
+});
+export type GetDocumentsQuery = z.input<typeof GetDocumentsQuerySchema>;
+
 export const DocumentSchema = z.object({
   name: formIdEnum,
   type: formTypeEnum,
   transferType: transferTypeEnum,
   requisitionNumber: z.string(),
+  transferEventId: z.string().nullable().optional(),
   status: DocumentStatusSchema,
   updatedAt: z.string().datetime(),
 });
