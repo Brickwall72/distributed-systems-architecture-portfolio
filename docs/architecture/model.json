@@ -1,0 +1,143 @@
+{
+  "externalNodes": [
+    {
+      "id": "nats",
+      "label": "NATS JetStream",
+      "kind": "broker"
+    }
+  ],
+  "compositions": [
+    {
+      "shell": "global-shell",
+      "page": "Mission Operations",
+      "widgets": [
+        {
+          "image": "topology-shell",
+          "module": "Fleet Topology tab"
+        },
+        {
+          "image": "compliance-shell",
+          "module": "Flight Compliance tab"
+        }
+      ]
+    },
+    {
+      "shell": "topology-shell",
+      "page": "Topology Dashboard",
+      "widgets": [
+        {
+          "image": "topology-client",
+          "module": "AssetRegistration"
+        },
+        {
+          "image": "topology-client",
+          "module": "NetworkCanvas"
+        }
+      ]
+    },
+    {
+      "shell": "compliance-shell",
+      "page": "Unified Custody",
+      "widgets": [
+        {
+          "image": "compliance-client",
+          "module": "TemplateSelector"
+        },
+        {
+          "image": "topology-client",
+          "module": "OrganizationSelector"
+        },
+        {
+          "image": "topology-client",
+          "module": "AssetSelector"
+        },
+        {
+          "image": "compliance-client",
+          "module": "ComplianceWorkflowWidget"
+        }
+      ]
+    },
+    {
+      "shell": "compliance-shell",
+      "page": "Documents",
+      "widgets": [
+        {
+          "image": "compliance-client",
+          "module": "DocumentsTable"
+        }
+      ]
+    },
+    {
+      "shell": "compliance-shell",
+      "page": "Transfer Receipt",
+      "widgets": [
+        {
+          "image": "compliance-client",
+          "module": "DocumentsTable"
+        },
+        {
+          "image": "topology-client",
+          "module": "OrganizationSelector"
+        },
+        {
+          "image": "topology-client",
+          "module": "AssetSelector"
+        },
+        {
+          "image": "compliance-client",
+          "module": "ComplianceWorkflowWidget"
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "from": "compliance-client",
+      "to": "compliance-server",
+      "type": "http",
+      "label": "Compliance REST API"
+    },
+    {
+      "from": "topology-client",
+      "to": "topology-server",
+      "type": "http",
+      "label": "Topology REST API"
+    },
+    {
+      "from": "compliance-server",
+      "to": "pdf-server",
+      "type": "nats-request-reply",
+      "label": "Generate PDF"
+    },
+    {
+      "from": "compliance-server",
+      "to": "esign-server",
+      "type": "nats-request-reply",
+      "label": "Sign document"
+    },
+    {
+      "from": "compliance-server",
+      "to": "nats",
+      "type": "nats-pub-sub",
+      "label": "Publish transfer initiated / received"
+    },
+    {
+      "from": "nats",
+      "to": "topology-server",
+      "type": "nats-pub-sub",
+      "label": "Deliver transfer initiated / received"
+    },
+    {
+      "from": "topology-server",
+      "to": "nats",
+      "type": "nats-pub-sub",
+      "label": "Publish transfer event updates"
+    },
+    {
+      "from": "nats",
+      "to": "compliance-server",
+      "type": "nats-pub-sub",
+      "label": "Deliver transfer event updates"
+    }
+  ]
+}

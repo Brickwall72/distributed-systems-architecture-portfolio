@@ -14,6 +14,7 @@
     "test:contract": "turbo run test:contract",
     "test:verify": "turbo run test:verify",
     "test:integration": "turbo run test:integration",
+    "docs:generate": "sh scripts/generate_doc_reports.sh",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006",
     "docker:base": "scripts/with-buildkit.sh docker build -f Dockerfile.base -t base-image:local .",
     "docker:df": "docker system df -v",

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generated service architecture</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    body { margin: 0; padding: 2rem; }
+    main { max-width: 1500px; margin: auto; }
+    .diagram { overflow: auto; padding: 1.5rem; border: 1px solid #334155; border-radius: 0.75rem; background: #111827; }
+    .mermaid { min-width: 950px; }
+    ul { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0; list-style: none; }
+    li { display: flex; align-items: center; gap: 0.5rem; }
+    .swatch { display: inline-block; width: 1.5rem; border-top: 3px solid; }
+    a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Generated service architecture</h1>
+    <p>Generated from <code>docs/architecture/model.json</code>; application image nodes are discovered from Skaffold.</p>
+    <ul><li><span class="swatch" style="border-color:#2563eb;border-style:solid"></span>HTTP / REST</li>
+<li><span class="swatch" style="border-color:#c2410c;border-style:solid"></span>NATS request / reply</li>
+<li><span class="swatch" style="border-color:#0f766e;border-style:dashed"></span>NATS pub / sub</li><li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition</li></ul>
+    <section class="diagram"><pre class="mermaid">flowchart LR
+  classDef application fill:#172554,stroke:#60a5fa,color:#fff
+  classDef shell fill:#312e81,stroke:#a78bfa,color:#fff
+  classDef broker fill:#78350f,stroke:#f59e0b,color:#fff
+
+  subgraph images[Application images from Skaffold]
+    compliance_client[&quot;compliance-client&quot;]:::application
+    compliance_server[&quot;compliance-server&quot;]:::application
+    compliance_shell[&quot;compliance-shell&quot;]:::shell
+    esign_server[&quot;esign-server&quot;]:::application
+    global_shell[&quot;global-shell&quot;]:::shell
+    pdf_server[&quot;pdf-server&quot;]:::application
+    topology_client[&quot;topology-client&quot;]:::application
+    topology_server[&quot;topology-server&quot;]:::application
+    topology_shell[&quot;topology-shell&quot;]:::shell
+  end
+  nats[&quot;NATS JetStream&quot;]:::broker
+  global_shell ==&gt;|Mission Operations: Fleet Topology tab| topology_shell
+  global_shell ==&gt;|Mission Operations: Flight Compliance tab| compliance_shell
+  topology_shell ==&gt;|Topology Dashboard: AssetRegistration| topology_client
+  topology_shell ==&gt;|Topology Dashboard: NetworkCanvas| topology_client
+  compliance_shell ==&gt;|Unified Custody: TemplateSelector| compliance_client
+  compliance_shell ==&gt;|Unified Custody: OrganizationSelector| topology_client
+  compliance_shell ==&gt;|Unified Custody: AssetSelector| topology_client
+  compliance_shell ==&gt;|Unified Custody: ComplianceWorkflowWidget| compliance_client
+  compliance_shell ==&gt;|Documents: DocumentsTable| compliance_client
+  compliance_shell ==&gt;|Transfer Receipt: DocumentsTable| compliance_client
+  compliance_shell ==&gt;|Transfer Receipt: OrganizationSelector| topology_client
+  compliance_shell ==&gt;|Transfer Receipt: AssetSelector| topology_client
+  compliance_shell ==&gt;|Transfer Receipt: ComplianceWorkflowWidget| compliance_client
+  compliance_client --&gt;|Compliance REST API| compliance_server
+  topology_client --&gt;|Topology REST API| topology_server
+  compliance_server &lt;--&gt;|Generate PDF| pdf_server
+  compliance_server &lt;--&gt;|Sign document| esign_server
+  compliance_server -.-&gt;|Publish transfer initiated / received| nats
+  nats -.-&gt;|Deliver transfer initiated / received| topology_server
+  topology_server -.-&gt;|Publish transfer event updates| nats
+  nats -.-&gt;|Deliver transfer event updates| compliance_server
+  linkStyle 0 stroke:#a78bfa,stroke-width:3px
+  linkStyle 1 stroke:#a78bfa,stroke-width:3px
+  linkStyle 2 stroke:#a78bfa,stroke-width:3px
+  linkStyle 3 stroke:#a78bfa,stroke-width:3px
+  linkStyle 4 stroke:#a78bfa,stroke-width:3px
+  linkStyle 5 stroke:#a78bfa,stroke-width:3px
+  linkStyle 6 stroke:#a78bfa,stroke-width:3px
+  linkStyle 7 stroke:#a78bfa,stroke-width:3px
+  linkStyle 8 stroke:#a78bfa,stroke-width:3px
+  linkStyle 9 stroke:#a78bfa,stroke-width:3px
+  linkStyle 10 stroke:#a78bfa,stroke-width:3px
+  linkStyle 11 stroke:#a78bfa,stroke-width:3px
+  linkStyle 12 stroke:#a78bfa,stroke-width:3px
+  linkStyle 13 stroke:#2563eb,stroke-width:2px
+  linkStyle 14 stroke:#2563eb,stroke-width:2px
+  linkStyle 15 stroke:#c2410c,stroke-width:2px
+  linkStyle 16 stroke:#c2410c,stroke-width:2px
+  linkStyle 17 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 18 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 19 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 20 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
+    <p>Update the architecture model when page composition or service interactions change.</p>
+  </main>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark" });
+    await mermaid.run({ querySelector: ".mermaid" });
+  </script>
+</body>
+</html>
