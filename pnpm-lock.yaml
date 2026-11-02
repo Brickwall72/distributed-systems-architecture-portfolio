@@ -281,6 +281,26 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
 
+  services/core/audit-ledger/client:
+    dependencies:
+      react:
+        specifier: ~19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@shared/testing':
+        specifier: workspace:*
+        version: link:../../../../packages/testing
+      '@shared/vite-config':
+        specifier: workspace:*
+        version: link:../../../../packages/vite-config
+
+  services/core/audit-ledger/server: {}
+
+  services/core/audit-ledger/shared: {}
+
   services/core/compliance-service/client:
     dependencies:
       '@contracts/common':

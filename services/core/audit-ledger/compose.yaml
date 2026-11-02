@@ -1,0 +1,75 @@
+# File: services/core/audit-ledger/compose.yaml
+services:
+  audit-db:
+    image: mongo:9.0.4
+    container_name: audit-db
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - audit_db_data:/data/db
+    networks:
+      - platform-mesh
+    # healthcheck:
+    #   test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d audit"]
+    #   interval: 5s
+    #   timeout: 5s
+    #   retries: 5
+  audit-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      target: prod
+    image: audit-server:prod
+    container_name: audit-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audit-api.rule=PathPrefix(`/audit/api`)"
+      - "traefik.http.routers.audit-api.entrypoints=web"
+      - "traefik.http.middlewares.audit-api-rewrite.replacepathregex.regex=^/audit/api/v1/(.*)"
+      - "traefik.http.middlewares.audit-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.audit-api.middlewares=audit-api-rewrite"
+      - "traefik.http.services.audit-api.loadbalancer.server.port=8080"
+    environment:
+      NATS_URL: nats://nats:4222
+    # depends_on:
+    #   audit-db:
+    #     condition: service_healthy
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  audit-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      target: prod
+    image: audit-client:prod
+    container_name: audit-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audit.rule=PathPrefix(`/audit`)"
+      - "traefik.http.routers.audit.entrypoints=web"
+      - "traefik.http.services.audit.loadbalancer.server.port=3000"
+    depends_on:
+      audit-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+networks:
+  platform-mesh:
+    name: platform-mesh
+
+volumes:
+  audit_db_data:
