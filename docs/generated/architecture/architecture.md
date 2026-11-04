@@ -9,6 +9,7 @@ flowchart LR
   classDef broker fill:#78350f,stroke:#f59e0b,color:#fff
 
   subgraph images[Application images from Skaffold]
+    audit_client["audit-client"]:::application
     audit_server["audit-server"]:::application
     compliance_client["compliance-client"]:::application
     compliance_server["compliance-server"]:::application

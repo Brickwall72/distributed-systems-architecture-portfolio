@@ -6,13 +6,14 @@ Generated with Trivy `0.76.1` and CycloneDX Sunshine revision `beaab3faf2bab2340
 
 | Image | SBOM | Visual report |
 | --- | --- | --- |
-| `audit-server:435e05e93494df7c0e09643d9ad652a72db2beba8e95c03b40609a800e882628` | [CycloneDX JSON](audit-server.cdx.json) | [HTML report](audit-server.html) |
-| `compliance-client:0c1fb2c13fe9390d4fe671006eeb4cdf1484c57abcfdc35a8aa47322ae6102d7` | [CycloneDX JSON](compliance-client.cdx.json) | [HTML report](compliance-client.html) |
-| `compliance-server:66f3745aa576bcb226f592d6079261b7cbd7a46878584f8cdef9773f7a76d530` | [CycloneDX JSON](compliance-server.cdx.json) | [HTML report](compliance-server.html) |
-| `compliance-shell:a9dc78f005998b77281f8dbf67836556ce7e2b4accb1ad61ae81e588e0caccc9` | [CycloneDX JSON](compliance-shell.cdx.json) | [HTML report](compliance-shell.html) |
-| `esign-server:6d37a0b6498b006de09110a93a53223520562d45105cdbf5b2da3e09b68fca69` | [CycloneDX JSON](esign-server.cdx.json) | [HTML report](esign-server.html) |
-| `global-shell:e56c6e8aeed1fd8b66a993646ddc57b296c97b77534f11f41df24f2ef651d260` | [CycloneDX JSON](global-shell.cdx.json) | [HTML report](global-shell.html) |
-| `pdf-server:282c0c7853cf97fe01488d82e76eef0e7060b5e361cc27cdf48a9899a0af28c3` | [CycloneDX JSON](pdf-server.cdx.json) | [HTML report](pdf-server.html) |
-| `topology-client:9422b49d33115e762df67e8b488392b260b9110a9315371545cf3e9785a758e2` | [CycloneDX JSON](topology-client.cdx.json) | [HTML report](topology-client.html) |
-| `topology-server:cbec4ef54cb9db7f279e639720862292134638a2326b4555aa835ff8d4236ed0` | [CycloneDX JSON](topology-server.cdx.json) | [HTML report](topology-server.html) |
-| `topology-shell:20ff1632236ba463ab24a822eb1464fa2e8c1a46f108ea01e1bf3b00813ba438` | [CycloneDX JSON](topology-shell.cdx.json) | [HTML report](topology-shell.html) |
+| `audit-client:92e35c1cd47b68038b398c3d24dec27932ef572d9c9dd2e75b68abfeb4943b10` | [CycloneDX JSON](audit-client.cdx.json) | [HTML report](audit-client.html) |
+| `audit-server:c37f04d1571cbb691f8f3cd3601413929c26539417dd41353eecffb2c7064836` | [CycloneDX JSON](audit-server.cdx.json) | [HTML report](audit-server.html) |
+| `compliance-client:5259166747205da93e7b59a4256e6595b4763ec9624d387b5c2fd7ca6bc635a7` | [CycloneDX JSON](compliance-client.cdx.json) | [HTML report](compliance-client.html) |
+| `compliance-server:bab37c54cc88c9186e2a5008a0b8edca4cddad0ce3f141179eeec6e6b05cb943` | [CycloneDX JSON](compliance-server.cdx.json) | [HTML report](compliance-server.html) |
+| `compliance-shell:b343d0a22fcb01605e3448d30c08bbe66af3377e2984431cdea90a9884324eae` | [CycloneDX JSON](compliance-shell.cdx.json) | [HTML report](compliance-shell.html) |
+| `esign-server:ad27bf11edf6bc77425e46c66851096d54b0f89f7487ba43e9e9f959bd81e01e` | [CycloneDX JSON](esign-server.cdx.json) | [HTML report](esign-server.html) |
+| `global-shell:2401af5463d9f5dc83bb1814f4e4674e6db2f7a9c3efb61f9a1ac3c41d195db0` | [CycloneDX JSON](global-shell.cdx.json) | [HTML report](global-shell.html) |
+| `pdf-server:02dca57c47b95135449c360b0b0e171af69624db0422e331d73eff8566dec1e2` | [CycloneDX JSON](pdf-server.cdx.json) | [HTML report](pdf-server.html) |
+| `topology-client:edaa5f6a69d7de7143a4d57fba88b607b1005c14b34957dde3982e8de2e56d07` | [CycloneDX JSON](topology-client.cdx.json) | [HTML report](topology-client.html) |
+| `topology-server:59e0279903fae859e9bf3802542e6aefc9e64b822e304561082b114fbcb91aa8` | [CycloneDX JSON](topology-server.cdx.json) | [HTML report](topology-server.html) |
+| `topology-shell:ef2ae6a3cc8ea4eb742d3ee172bc687de151ba558e255ae18049e595c3e6614e` | [CycloneDX JSON](topology-shell.cdx.json) | [HTML report](topology-shell.html) |
