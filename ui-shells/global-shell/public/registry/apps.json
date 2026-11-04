@@ -15,6 +15,10 @@
     {
       "name": "topology_client",
       "entry": "/topology/client/mf-manifest.json"
+    },
+    {
+      "name": "audit_client",
+      "entry": "/audit/client/mf-manifest.json"
     }
   ]
 }

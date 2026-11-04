@@ -26,7 +26,7 @@ function intersectRequisitions(sets: readonly (readonly string[] | undefined)[])
 }
 
 // Dynamically resolve micro-frontend widgets
-const DocumentsTable = lazyRemote<DocumentsTableProps>('compliance_client/widget/DocumentsTable');
+const DocumentsTable = lazyRemote<DocumentsTableProps>('compliance_client/DocumentsTable');
 const OrganizationSelector = lazyRemote<OrganizationSelectorProps>('topology_client/OrganizationSelector');
 const AssetSelector = lazyRemote<AssetSelectorProps>('topology_client/AssetSelector');
 const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('compliance_client/ComplianceWorkflowWidget');
@@ -57,7 +57,7 @@ export default function TransferReceiptPage() {
         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[600px] overflow-hidden">
           <h4 className="text-sm font-medium text-slate-300 mb-3">Receipt Documents</h4>
           <div className="flex-1 overflow-auto">
-            <FederatedErrorBoundary remoteName="DatabaseTwinTable">
+            <FederatedErrorBoundary remoteName="DocumentsTable">
               <Suspense fallback={<div className="text-slate-500 font-mono py-12 text-center animate-pulse">Loading documents table...</div>}>
                 <DocumentsTable
                   onTransferEventSelect={(id) => setTransferEventId(id ?? undefined)}

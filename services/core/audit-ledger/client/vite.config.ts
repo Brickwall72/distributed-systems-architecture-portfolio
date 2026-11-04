@@ -5,5 +5,6 @@ export default createRemoteConfig({
   domain: 'audit',
   concern: 'client',
   exposes: {
+    './TransfersTable':    './src/widgets/TransfersTable',
   },
 });

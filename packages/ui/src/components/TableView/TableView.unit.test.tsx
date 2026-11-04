@@ -90,4 +90,50 @@ describe('DatabaseTwinTable', () => {
     expect(rows[2]).toHaveAttribute('aria-selected', 'true');
     expect(rows[1]).toHaveAttribute('aria-selected', 'false');
   });
+
+  describe('isRowSelectable', () => {
+    const isRowSelectable = (row: TestUser) => row.status === 'Active';
+
+    it('does not invoke onRowSelect or expose selection semantics for non-selectable rows', () => {
+      const onRowSelect = vi.fn();
+      render(
+        <DatabaseTwinTable columns={mockColumns} data={mockData} rowKey="id" onRowSelect={onRowSelect} isRowSelectable={isRowSelectable} />
+      );
+
+      const [, selectableRow, lockedRow] = screen.getAllByRole('row');
+      expect(selectableRow).toHaveAttribute('tabindex', '0');
+      expect(lockedRow).not.toHaveAttribute('tabindex');
+      expect(lockedRow).not.toHaveAttribute('aria-selected');
+      expect(lockedRow.className).not.toContain('cursor-pointer');
+
+      fireEvent.click(screen.getByText('Bob Smith'));
+      fireEvent.keyDown(lockedRow, { key: 'Enter' });
+      expect(onRowSelect).not.toHaveBeenCalled();
+    });
+
+    it('still invokes onRowSelect for selectable rows via click, Enter and Space', () => {
+      const onRowSelect = vi.fn();
+      render(
+        <DatabaseTwinTable columns={mockColumns} data={mockData} rowKey="id" onRowSelect={onRowSelect} isRowSelectable={isRowSelectable} />
+      );
+      const selectableRow = screen.getAllByRole('row')[1];
+
+      fireEvent.click(selectableRow);
+      fireEvent.keyDown(selectableRow, { key: 'Enter' });
+      fireEvent.keyDown(selectableRow, { key: ' ' });
+      fireEvent.keyDown(selectableRow, { key: 'a' });
+
+      expect(onRowSelect).toHaveBeenCalledTimes(3);
+      expect(onRowSelect).toHaveBeenCalledWith(mockData[0]);
+    });
+
+    it('treats every row as non-interactive when no onRowSelect is provided', () => {
+      render(<DatabaseTwinTable columns={mockColumns} data={mockData} rowKey="id" isRowSelectable={() => true} />);
+
+      for (const row of screen.getAllByRole('row').slice(1)) {
+        expect(row).not.toHaveAttribute('tabindex');
+        expect(row).not.toHaveAttribute('aria-selected');
+      }
+    });
+  });
 });

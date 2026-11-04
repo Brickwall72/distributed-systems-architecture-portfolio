@@ -14,9 +14,17 @@ export interface DatabaseTwinProps<T> {
   readonly rowKey: keyof T;
   readonly onRowSelect?: (row: T) => void;
   readonly selectedRowKey?: T[keyof T] | null;
+  readonly isRowSelectable?: (row: T) => boolean; // Added to control interactivity per row
 }
 
-export function DatabaseTwinTable<T>({ columns, data, rowKey, onRowSelect, selectedRowKey }: DatabaseTwinProps<T>) {
+export function DatabaseTwinTable<T>({ 
+  columns, 
+  data, 
+  rowKey, 
+  onRowSelect, 
+  selectedRowKey,
+  isRowSelectable 
+}: DatabaseTwinProps<T>) {
   return (
     <div className="dark overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
       <table className="min-w-full border-collapse text-left">
@@ -32,30 +40,34 @@ export function DatabaseTwinTable<T>({ columns, data, rowKey, onRowSelect, selec
         <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-950 dark:text-gray-300">
           {data.map((row) => {
             const isSelected = selectedRowKey != null && row[rowKey] === selectedRowKey;
+            const selectable = isRowSelectable ? isRowSelectable(row) : !!onRowSelect;
+            
             return (
-            <tr
-              key={String(row[rowKey])}
-              className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors${onRowSelect ? ' cursor-pointer' : ''}${isSelected ? ' bg-blue-50 dark:bg-blue-900/30' : ''}`}
-              aria-selected={onRowSelect ? isSelected : undefined}
-              tabIndex={onRowSelect ? 0 : undefined}
-              onClick={onRowSelect ? () => onRowSelect(row) : undefined}
-              onKeyDown={
-                onRowSelect
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onRowSelect(row);
+              <tr
+                key={String(row[rowKey])}
+                className={`transition-colors
+                  ${selectable && onRowSelect ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50' : ''}
+                  ${isSelected ? ' bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                aria-selected={selectable && onRowSelect ? isSelected : undefined}
+                tabIndex={selectable && onRowSelect ? 0 : undefined}
+                onClick={selectable && onRowSelect ? () => onRowSelect(row) : undefined}
+                onKeyDown={
+                  selectable && onRowSelect
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowSelect(row);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            >
-              {columns.map((col) => (
-                <td key={String(col.key)} className="p-3 text-sm">
-                  {col.render ? col.render(row[col.key], row) : String(row[col.key])}
-                </td>
-              ))}
-            </tr>
+                    : undefined
+                }
+              >
+                {columns.map((col) => (
+                  <td key={String(col.key)} className="p-3 text-sm">
+                    {col.render ? col.render(row[col.key], row) : String(row[col.key])}
+                  </td>
+                ))}
+              </tr>
             );
           })}
         </tbody>

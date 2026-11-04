@@ -81,6 +81,16 @@ build:
         infer:
           - "**/*.ts"
           - "**/*.json"
+    - image: audit-client
+      context: services/core/audit-ledger
+      docker:
+        dockerfile: Dockerfile.client
+        target: prod
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
     - image: compliance-shell
       context: ui-shells/domain-shells/compliance-shell
       docker:
@@ -136,6 +146,8 @@ deploy:
         setValueTemplates:
           server.image.repository: "{{.IMAGE_REPO_audit_server}}"
           server.image.tag: "{{.IMAGE_TAG_audit_server}}"
+          client.image.repository: "{{.IMAGE_REPO_audit_client}}"
+          client.image.tag: "{{.IMAGE_TAG_audit_client}}"
       - name: pdf-service
         chartPath: charts/pdf-service
         namespace: platform-local
