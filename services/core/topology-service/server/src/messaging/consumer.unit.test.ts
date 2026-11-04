@@ -6,7 +6,7 @@ import {
   TransferReceivedEventSchema,
 } from '@contracts/compliance';
 import { zocker } from 'zocker';
-import { ComplianceEventConsumer } from './consumer';
+import { TopologyEventConsumer } from './consumer';
 import {
   handletransferReceivedDataSchema,
   handleTransferInitiatedDataSchema,
@@ -19,7 +19,7 @@ vi.mock('@shared/express', () => ({
 
 type Handler = (event: unknown, ack: () => void) => Promise<void>;
 
-describe('ComplianceEventConsumer', () => {
+describe('TopologyEventConsumer', () => {
   let broker: { ensureStream: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> };
   let transferService: {
     handleTransferInitiated: ReturnType<typeof vi.fn>;
@@ -41,7 +41,7 @@ describe('ComplianceEventConsumer', () => {
       handleTransferInitiated: vi.fn().mockResolvedValue(undefined),
       handleTransferReceived: vi.fn().mockResolvedValue(undefined),
     };
-    await new ComplianceEventConsumer(
+    await new TopologyEventConsumer(
       broker as unknown as EventBroker,
       transferService as unknown as TransferService,
     ).start();

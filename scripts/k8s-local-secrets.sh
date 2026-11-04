@@ -76,6 +76,22 @@ kubectl create secret generic "${compliance_secret_name}" \
 echo "Kubernetes secret ${compliance_secret_name}/${namespace} synchronized."
 
 # ---------------------------------------------------------
+# 2b. AUDIT LEDGER DB (MongoDB)
+# ---------------------------------------------------------
+audit_secret_name="audit-db-credentials"
+audit_env_file="services/core/audit-ledger/.env"
+audit_db_user=$(load_env_val "$audit_env_file" "DB_USER" "mongo")
+audit_db_password=$(load_env_val "$audit_env_file" "DB_PASSWORD" "$(openssl rand -hex 24)")
+
+kubectl create secret generic "${audit_secret_name}" \
+  --namespace "${namespace}" \
+  --from-literal="DB_USER=${audit_db_user}" \
+  --from-literal="DB_PASSWORD=${audit_db_password}" \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+echo "Kubernetes secret ${audit_secret_name}/${namespace} synchronized."
+
+# ---------------------------------------------------------
 # 3. MINIO (S3 Object Storage)
 # ---------------------------------------------------------
 minio_secret_name="minio-credentials"

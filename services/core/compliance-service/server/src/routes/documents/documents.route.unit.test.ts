@@ -32,7 +32,7 @@ vi.mock('../../repositories', async (importOriginal) => {
 });
 
 const mockEntity = (overrides: Partial<Parameters<typeof documentEntitySchema.parse>[0]> = {}) =>
-  mockFromSchema(documentEntitySchema, overrides);
+  mockFromSchema(documentEntitySchema, { fileHash: SHA256_HEX, ...overrides });
 
 const request = (headers: Record<string, string> = {}, extra: object = {}) =>
   ({ query: {}, params: {}, req: { headers }, ...extra }) as never;

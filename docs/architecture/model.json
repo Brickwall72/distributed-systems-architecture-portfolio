@@ -138,6 +138,18 @@
       "to": "compliance-server",
       "type": "nats-pub-sub",
       "label": "Deliver transfer event updates"
+    },
+    {
+      "from": "nats",
+      "to": "audit-server",
+      "type": "nats-pub-sub",
+      "label": "Deliver transfer event updates"
+    },
+    {
+      "from": "nats",
+      "to": "audit-server",
+      "type": "nats-pub-sub",
+      "label": "Deliver transfer initiated / received"
     }
   ]
 }

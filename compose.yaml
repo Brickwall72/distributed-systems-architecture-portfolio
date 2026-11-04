@@ -58,13 +58,19 @@ services:
     ports:
       - "3040:3000"
     environment:
-      - CONNECTIONS=compliance
+      - CONNECTIONS=compliance,audit
       - LABEL_compliance=Compliance DB
       - SERVER_compliance=compliance-db
       - PORT_compliance=5432
       - USER_compliance=posty5432
       - PASSWORD_compliance=SecurePassword5432
       - ENGINE_compliance=postgres@dbgate-plugin-postgres
+      - LABEL_audit=Audit Ledger DB
+      - SERVER_audit=audit-db
+      - PORT_audit=27017
+      - USER_audit=mongo27017
+      - PASSWORD_audit=SecurePassword5432
+      - ENGINE_audit=mongo@dbgate-plugin-mongo
     volumes:
       - dbgate-data:/root/.dbgate  # <-- Persists queries, history, and settings
     networks:

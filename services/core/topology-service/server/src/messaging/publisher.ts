@@ -7,20 +7,20 @@ import {
   transferEventCreatedDataSchema, transferEventCreatedEventSchema,
   transferEventUpdatedDataSchema, transferEventUpdatedEventSchema,
   transferEventCompletedDataSchema, transferEventCompletedEventSchema,
+  transferAssetSnapshotSchema,
 } from '@contracts/topology';
 import { createLogger } from '@shared/express';
 import z from 'zod';
-import { transferStatusEnum } from '@contracts/common';
+import { transferStatusEnum, TRANSFER_STATUS } from '@contracts/common';
+import { transferEventSnapshotSchema } from '../repositories';
 const logger = createLogger('topology:publisher');
 
-export const publishTransferEventCreatedInputSchema = z.object({
-  id: z.string().uuid(),
-  requisitionNumber: z.string(),
-}); 
+export const publishTransferEventCreatedInputSchema = transferEventSnapshotSchema.omit({ status: true });
 export const publishTransferEventCreatedDataSchema = publishTransferEventCreatedInputSchema.transform((
-  { id, ...rest }) => ({
+  { id, type, ...rest }) => ({
     ...rest,
     transferEventId: id,
+    transferType: type,
   }
 )).pipe(transferEventCreatedDataSchema);
 type PublishTransferEventCreatedData = z.infer<typeof publishTransferEventCreatedDataSchema>
@@ -30,6 +30,7 @@ export const publishTransferEventUpdatedInputSchema = z.object({
   requisitionNumber: z.string(),
   status: transferStatusEnum,
   documentId: z.string().uuid(),
+  receivedAssets: z.array(transferAssetSnapshotSchema).min(1),
 });
 
 export const publishTransferEventUpdatedDataSchema = publishTransferEventUpdatedInputSchema.transform((
@@ -41,12 +42,16 @@ export const publishTransferEventUpdatedDataSchema = publishTransferEventUpdated
 )).pipe(transferEventUpdatedDataSchema);
 type PublishTransferEventUpdatedData = z.infer<typeof publishTransferEventUpdatedDataSchema>;
 
-
-export const publishTransferEventCompletedInputSchema = publishTransferEventCreatedInputSchema;
+export const publishTransferEventCompletedInputSchema = publishTransferEventCreatedInputSchema.extend({
+  documentId: publishTransferEventUpdatedInputSchema.shape.documentId.optional(),
+  receivedAssets: z.array(transferAssetSnapshotSchema),
+});
 export const publishTransferEventCompletedDataSchema = publishTransferEventCompletedInputSchema.transform((
-  { id, ...rest }) => ({
+  { id, type, ...rest }) => ({
     ...rest,
     transferEventId: id,
+    transferType: type,
+    transferEventStatus: TRANSFER_STATUS.COMPLETED,
   }
 )).pipe(transferEventCompletedDataSchema);
 type PublishTransferEventCompletedData = z.infer<typeof publishTransferEventCompletedDataSchema>;

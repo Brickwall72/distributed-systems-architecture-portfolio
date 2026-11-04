@@ -8,10 +8,23 @@
   "scripts": {
     "build": "tsup",
     "start": "node dist/server.js",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run .unit.test"
   },
-  "peerDependencies": {
-  },
+  "peerDependencies": {},
   "dependencies": {
-  }
+    "@contracts/common": "workspace:*",
+    "@contracts/compliance": "workspace:*",
+    "@contracts/topology": "workspace:*",
+    "@shared/express": "workspace:*",
+    "@shared/messaging": "workspace:*",
+    "@ts-rest/core": "~3.52.1",
+    "@ts-rest/express": "~3.52.1",
+    "audit-shared": "workspace:*",
+    "express": "^4.0.0",
+    "mongodb": "~7.8.0",
+    "zod": "~3.24.1"
+  },
+  "devDependencies": {}
 }

@@ -2,3 +2,4 @@
 include:
   - path: compliance-service/compose.yaml
   - path: topology-service/compose.yaml
+  - path: audit-ledger/compose.yaml

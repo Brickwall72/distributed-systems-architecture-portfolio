@@ -1,0 +1,62 @@
+# File: charts/audit-ledger/charts/server/values.yaml
+
+nameOverride: audit-server
+
+image:
+  repository: audit-server
+  tag: prod
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# The ledger authenticates as the app user; see audit-db-credentials in scripts/k8s-local-secrets.sh.
+env:
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: audit-db-credentials
+        key: DB_USER
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: audit-db-credentials
+        key: DB_PASSWORD
+  - name: DB_HOST
+    value: "audit-db"
+  - name: DB_PORT
+    value: "27017"
+  - name: NATS_URL
+    value: "nats://nats.platform-local.svc.cluster.local:4222"
+envFrom: []
+
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z audit-db 27017; do echo waiting for db; sleep 2; done']
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+probes:
+  readiness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

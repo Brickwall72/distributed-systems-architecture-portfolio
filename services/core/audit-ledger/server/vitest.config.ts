@@ -1,6 +1,6 @@
 // File: services/core/audit-ledger/server/vitest.config.ts
 /**
- * Vitest configuration for the compliance-service server test suite.
+ * Vitest configuration for the audit-ledger server test suite.
  */
 import { defineConfig } from 'vitest/config';
 

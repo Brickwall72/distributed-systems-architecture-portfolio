@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,17 +7,10 @@ from pathlib import Path
 from scripts import generate_architecture, generate_sbom_reports, sync_generated_reports
 
 
-APPLICATION_IMAGES = [
-    "compliance-client",
-    "compliance-server",
-    "compliance-shell",
-    "esign-server",
-    "global-shell",
-    "pdf-server",
-    "topology-client",
-    "topology-server",
-    "topology-shell",
-]
+SKAFFOLD_PATH = Path(__file__).resolve().parents[2] / "skaffold.yaml"
+APPLICATION_IMAGES = sorted(
+    re.findall(r"^\s*-\s*image:\s*(\S+)\s*$", SKAFFOLD_PATH.read_text(encoding="utf-8"), re.MULTILINE)
+)
 
 
 class ArchitectureReportTests(unittest.TestCase):

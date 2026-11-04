@@ -9,7 +9,7 @@ import {
 } from '../services';
 import { createLogger } from '@shared/express';
 
-const logger = createLogger('Topology:consumer');
+const logger = createLogger('Compliance:consumer');
 
 export class ComplianceEventConsumer {
   constructor(

@@ -175,6 +175,101 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-audit-database-from-dbgate
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: audit-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dbgate
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dbgate-audit-database-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dbgate
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-db
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-audit-server-to-db
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: audit-server
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-db
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-audit-db-ingress-from-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: audit-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-server
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-audit-server-nats-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: audit-server
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nats
+      ports:
+        - protocol: TCP
+          port: 4222
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: allow-minio-storage
 spec:
   podSelector:
@@ -266,6 +361,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: pdf-server
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-server
       ports:
         - protocol: TCP
           port: 4222

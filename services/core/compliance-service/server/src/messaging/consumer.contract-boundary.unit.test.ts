@@ -26,7 +26,8 @@ describe('compliance consumer: topology event contracts to local service inputs'
       if (!result.success) continue;
 
       expect(result.data).toEqual({
-        ...data,
+        requisitionNumber: data.requisitionNumber,
+        transferEventId: data.transferEventId,
         status: 'IN_PROGRESS',
       });
       expect(updateForReqNumberDataSchema.safeParse(result.data).success).toBe(true);
@@ -61,7 +62,8 @@ describe('compliance consumer: topology event contracts to local service inputs'
       if (!result.success) continue;
 
       expect(result.data).toEqual({
-        ...data,
+        requisitionNumber: data.requisitionNumber,
+        transferEventId: data.transferEventId,
         status: 'COMPLETED',
       });
       expect(updateForReqNumberDataSchema.safeParse(result.data).success).toBe(true);

@@ -7,6 +7,7 @@ import {
   TransfersRepository,
   createTransferEventSchema,
   updateTransferEventSchema,
+  transferEventSnapshotSchema,
 } from './transfers.repository';
 
 vi.mock('@shared/express', () => ({
@@ -99,5 +100,30 @@ describe('TransfersRepository (Cypher Params & Transfer Flow)', () => {
 
     await expect(repo.updateTransferEvent(mockFromSchema(updateTransferEventSchema))).rejects.toThrow('neo4j down');
     expect(mockSession.close).toHaveBeenCalledTimes(1);
+  });
+  describe('findTransferEventSnapshot', () => {
+    const readWith = (rows: Record<string, unknown>[]) => {
+      mockSession.executeRead = vi.fn().mockImplementation(async (work) => work({
+        run: vi.fn().mockResolvedValue({
+          records: rows.map((row) => ({ get: (key: string) => row[key] })),
+          summary: {},
+        }),
+      }));
+    };
+
+    it('returns the parties and assets as a validated snapshot', async () => {
+      const snapshot = mockFromSchema(transferEventSnapshotSchema);
+      readWith([snapshot]);
+
+      await expect(repo.findTransferEventSnapshot(snapshot.id)).resolves.toEqual(snapshot);
+      expect(mockSession.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws when the transfer event or one of its parties is missing', async () => {
+      readWith([]);
+
+      await expect(repo.findTransferEventSnapshot('missing')).rejects.toThrow('not found');
+      expect(mockSession.close).toHaveBeenCalledTimes(1);
+    });
   });
 });

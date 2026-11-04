@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/messaging/consumer.contract-boundary.unit.test.ts
 import { zocker } from 'zocker';
-import { transferInitiatedDataSchema, transferReceivedDataSchema } from '@contracts/compliance';
+import { transferInitiatedDataSchema, transferReceivedDataSchema, signedDocumentDataSchema } from '@contracts/compliance';
 import {
   handletransferReceivedDataSchema,
   handleTransferReceivedInputsSchema,
@@ -20,8 +20,8 @@ describe('topology consumer: local param schemas vs shared compliance event cont
       expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
 
       if (result.success) {
-        const { transferType, ...rest } = data;
-        expect(result.data).toEqual({ ...rest, type: transferType });
+        const { transferType, assetIds, requisitionNumber, date, senderOrgId, receiverOrgId } = data;
+        expect(result.data).toEqual({ assetIds, requisitionNumber, date, senderOrgId, receiverOrgId, type: transferType });
         expect(createTransferEventSchema.safeParse(result.data).success).toBe(true);
       }
     }
@@ -45,7 +45,8 @@ describe('topology consumer: local param schemas vs shared compliance event cont
   });
 
   it('keeps the initiated repository payload aligned with the shared event contract', () => {
-    const globalKeys = Object.keys(transferInitiatedDataSchema.shape);
+    const documentKeys = Object.keys(signedDocumentDataSchema.shape);
+    const globalKeys = Object.keys(transferInitiatedDataSchema.shape).filter((key) => !documentKeys.includes(key));
     const repositoryKeys = Object.keys(createTransferEventSchema.shape).map((key) =>
       key === 'type' ? 'transferType' : key,
     );
