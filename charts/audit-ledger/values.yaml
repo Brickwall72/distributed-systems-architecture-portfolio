@@ -17,3 +17,8 @@ ingress:
     rewrite:
       regex: "^/audit/api/v1/(.*)"
       replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/audit`)"
+    serviceName: audit-client
+

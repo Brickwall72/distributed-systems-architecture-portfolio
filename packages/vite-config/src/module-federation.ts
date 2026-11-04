@@ -47,6 +47,7 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
           react: { singleton: true, requiredVersion: '~19.2.8', eager: false },
           'react-dom': { singleton: true, requiredVersion: '~19.2.8', eager: false },
           'react/jsx-runtime': { singleton: true, requiredVersion: '~19.2.8', eager: false },
+          '@tanstack/react-query': { singleton: true, strictVersion: true, requiredVersion: '~5.105.3', eager: false },
         },
       }),
     ],

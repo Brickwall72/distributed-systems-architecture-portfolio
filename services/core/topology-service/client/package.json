@@ -19,6 +19,7 @@
     "@shared/ui-components": "workspace:*",
     "@contracts/topology": "workspace:*",
     "topology-shared": "workspace:*",
+    "@tanstack/react-query": "~5.105.3",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "vis-network": "~10.1.2",

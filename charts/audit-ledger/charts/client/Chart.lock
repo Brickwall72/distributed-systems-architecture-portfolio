@@ -1,0 +1,6 @@
+dependencies:
+- name: platform-lib
+  repository: file://../../../platform-lib
+  version: 0.1.0
+digest: sha256:678bb8b1e6bc8335a87e11aaa6c14075bbb95e67898f2b38a98538c412fb7d7e
+generated: "2026-09-21T00:46:33.84642465-06:00"

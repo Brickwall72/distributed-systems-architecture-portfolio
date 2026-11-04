@@ -13,6 +13,7 @@
     "@shared/styles": "workspace:*",
     "@shared/ui-components": "workspace:*",
     "@module-federation/enhanced": "~2.9.1",
+    "@tanstack/react-query": "~5.105.3",
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "react-router-dom": "~7.18.3"

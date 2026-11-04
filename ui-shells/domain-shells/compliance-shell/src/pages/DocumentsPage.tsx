@@ -4,12 +4,18 @@ import { loadRemote } from '@module-federation/enhanced/runtime';
 import { FederatedErrorBoundary } from '@shared/ui-components';
 
 // Local interface definition or shared contract type
-const DocumentsTable = lazy(() => loadRemote<any>('compliance_client/widget/DocumentsTable'));
+const DocumentsTable = lazy(() => loadRemote<any>('compliance_client/DocumentsTable'));
+const TransfersTable = lazy(() => loadRemote<any>('audit_client/TransfersTable'));
 
 export default function DocumentsPage() {
   return (
-      <FederatedErrorBoundary remoteName="DatabaseTwinTable">
+    <>
+      <FederatedErrorBoundary remoteName="DocumentsTable">
         <DocumentsTable />
       </FederatedErrorBoundary>
+      <FederatedErrorBoundary remoteName="TransfersTable">
+        <TransfersTable />
+      </FederatedErrorBoundary>
+    </>
   );
 }

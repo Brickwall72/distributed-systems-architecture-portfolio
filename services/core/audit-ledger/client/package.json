@@ -8,11 +8,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "pnpm test:unit && pnpm test:contract",
+    "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.spec"
   },
   "peerDependencies": {
+    "@ts-rest/core": "~3.52.1"
   },
   "dependencies": {
+    "@shared/ui-components": "workspace:*",
+    "audit-shared": "workspace:*",
+    "@tanstack/react-query": "~5.105.3",
     "react": "~19.2.8",
     "react-dom": "~19.2.8"
   },

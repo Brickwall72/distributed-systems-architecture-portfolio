@@ -15,6 +15,7 @@ export function createLibraryConfig(options: LibraryConfigOptions): UserConfig {
     'react',
     'react-dom',
     'react/jsx-runtime',
+    '@tanstack/react-query',
     ...(options.external || []),
   ];
 

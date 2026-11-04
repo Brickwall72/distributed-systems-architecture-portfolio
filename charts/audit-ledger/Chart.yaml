@@ -8,6 +8,9 @@ version: 0.1.0
 appVersion: "0.1.0"
 
 dependencies:
+  - name: client
+    version: 0.1.0        # match charts/audit-ledger/charts/client/Chart.yaml version
+    repository: "file://charts/client"
   - name: server
     version: 0.1.0        # match charts/audit-ledger/charts/server/Chart.yaml version
     repository: "file://charts/server"

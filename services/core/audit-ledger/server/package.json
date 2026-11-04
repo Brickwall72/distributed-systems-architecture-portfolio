@@ -9,8 +9,9 @@
     "build": "tsup",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "test": "pnpm test:unit",
-    "test:unit": "vitest run .unit.test"
+    "test": "pnpm test:unit && pnpm test:verify",
+    "test:unit": "vitest run .unit.test",
+    "test:verify": "vitest run .provider.contract.spec"
   },
   "peerDependencies": {},
   "dependencies": {
@@ -26,5 +27,7 @@
     "mongodb": "~7.8.0",
     "zod": "~3.24.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@shared/testing": "workspace:*"
+  }
 }

@@ -13,14 +13,13 @@ services:
       - ./services/core/audit-ledger/server:/app/services/core/audit-ledger/server
       # Prevent host node_modules from colliding with the container's unprivileged node user
       - /app/services/core/audit-ledger/server/node_modules
-
-  # audit-client:
-  #   build:
-  #     target: dev
-  #   image: audit-client:dev
-  #   environment:
-  #     - CHOKIDAR_USEPOLLING=true
-  #   volumes:
-  #     - ./packages:/app/packages
-  #     - ./services/core/audit-ledger/client:/app/services/core/audit-ledger/client
-  #     - /app/services/core/audit-ledger/client/node_modules
+  audit-client:
+    build:
+      target: dev
+    image: audit-client:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./packages:/app/packages
+      - ./services/core/audit-ledger/client:/app/services/core/audit-ledger/client
+      - /app/services/core/audit-ledger/client/node_modules

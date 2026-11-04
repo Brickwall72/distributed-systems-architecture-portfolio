@@ -54,23 +54,23 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-  # audit-client:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.client
-  #     target: prod
-  #   image: audit-client:prod
-  #   container_name: audit-client
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.audit.rule=PathPrefix(`/audit`)"
-  #     - "traefik.http.routers.audit.entrypoints=web"
-  #     - "traefik.http.services.audit.loadbalancer.server.port=3000"
-  #   depends_on:
-  #     audit-server:
-  #       condition: service_healthy
-  #   networks:
-  #     - platform-mesh
+  audit-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      target: prod
+    image: audit-client:prod
+    container_name: audit-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audit.rule=PathPrefix(`/audit`)"
+      - "traefik.http.routers.audit.entrypoints=web"
+      - "traefik.http.services.audit.loadbalancer.server.port=3000"
+    depends_on:
+      audit-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
 
 networks:
   platform-mesh:
