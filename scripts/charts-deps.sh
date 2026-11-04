@@ -5,7 +5,7 @@ set -eu
 # Vendors platform-lib into every consuming chart's charts/ dir. Run once after
 # clone and whenever charts/platform-lib or a chart's own dependencies change.
 
-for chart in charts/esign-service charts/pdf-service charts/compliance-service charts/topology-service \
+for chart in charts/esign-service charts/pdf-service charts/compliance-service charts/topology-service charts/audit-ledger \
              charts/global-shell charts/topology-shell charts/compliance-shell \
              charts/dbgate charts/minio charts/nats; do
   if [[ -d "$chart/charts" ]]; then

@@ -12,11 +12,12 @@ services:
       - audit_db_data:/data/db
     networks:
       - platform-mesh
-    # healthcheck:
-    #   test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d audit"]
-    #   interval: 5s
-    #   timeout: 5s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   audit-server:
     build:
       context: .
@@ -34,9 +35,13 @@ services:
       - "traefik.http.services.audit-api.loadbalancer.server.port=8080"
     environment:
       NATS_URL: nats://nats:4222
-    # depends_on:
-    #   audit-db:
-    #     condition: service_healthy
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: audit-db
+      DB_PORT: ${DB_PORT}
+    depends_on:
+      audit-db:
+        condition: service_healthy
     networks:
       - platform-mesh
     healthcheck:
@@ -49,23 +54,23 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-  audit-client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-      target: prod
-    image: audit-client:prod
-    container_name: audit-client
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.audit.rule=PathPrefix(`/audit`)"
-      - "traefik.http.routers.audit.entrypoints=web"
-      - "traefik.http.services.audit.loadbalancer.server.port=3000"
-    depends_on:
-      audit-server:
-        condition: service_healthy
-    networks:
-      - platform-mesh
+  # audit-client:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.client
+  #     target: prod
+  #   image: audit-client:prod
+  #   container_name: audit-client
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.audit.rule=PathPrefix(`/audit`)"
+  #     - "traefik.http.routers.audit.entrypoints=web"
+  #     - "traefik.http.services.audit.loadbalancer.server.port=3000"
+  #   depends_on:
+  #     audit-server:
+  #       condition: service_healthy
+  #   networks:
+  #     - platform-mesh
 
 networks:
   platform-mesh:

@@ -9,7 +9,9 @@ import { DocumentSchema, GetDocumentsQuerySchema, formIdEnum, formTypeEnum  } fr
 const c = initContract();
 
 export const signDocumentApiRequestSchema = SignDocumentCommandSchema.extend({
-  ...transferInitiatedDataSchema.omit({date: true}).shape,
+  ...transferInitiatedDataSchema.omit({
+    date: true, documentId: true, documentName: true, documentType: true, fileHash: true, signerId: true, signedAt: true,
+  }).shape,
   transferEventId: z.string().uuid().optional(),
   documentName: formIdEnum,
   documentType:formTypeEnum

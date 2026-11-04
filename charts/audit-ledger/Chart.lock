@@ -1,0 +1,12 @@
+dependencies:
+- name: server
+  repository: file://charts/server
+  version: 0.1.0
+- name: database
+  repository: file://charts/database
+  version: 0.1.0
+- name: platform-lib
+  repository: file://../platform-lib
+  version: 0.1.0
+digest: sha256:a7d4cabb43d8d836cb3b4accab7dc11ffa50f532bb161bb7d00540803444393b
+generated: "2026-11-03T13:56:57.901896613-07:00"

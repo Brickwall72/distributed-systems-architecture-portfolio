@@ -15,15 +15,13 @@ import {
 } from './publisher';
 
 describe('topology publisher boundary schemas', () => {
-  it('maps the local created event id to the topology contract transferEventId', () => {
+  it('maps the local created snapshot to the topology contract', () => {
     for (let i = 0; i < 25; i++) {
       const input = zocker(publishTransferEventCreatedInputSchema).generate();
       const output = publishTransferEventCreatedDataSchema.parse(input);
 
-      expect(output).toEqual({
-        requisitionNumber: input.requisitionNumber,
-        transferEventId: input.id,
-      });
+      const { id, type, ...rest } = input;
+      expect(output).toEqual({ ...rest, transferEventId: id, transferType: type });
       expect(transferEventCreatedDataSchema.safeParse(output).success).toBe(true);
     }
   });
@@ -33,24 +31,20 @@ describe('topology publisher boundary schemas', () => {
       const input = zocker(publishTransferEventUpdatedInputSchema).generate();
       const output = publishTransferEventUpdatedDataSchema.parse(input);
 
-      expect(output).toEqual({
-        requisitionNumber: input.requisitionNumber,
-        documentId: input.documentId,
-        transferEventId: input.id,
-        transferEventStatus: input.status,
-      });
+      const { id, status, ...rest } = input;
+      expect(output).toEqual({ ...rest, transferEventId: id, transferEventStatus: status });
       expect(transferEventUpdatedDataSchema.safeParse(output).success).toBe(true);
     }
   });
 
-  it('maps the local completed event id to the topology contract transferEventId', () => {
+  it('maps the local completed snapshot to the accumulated topology contract', () => {
     for (let i = 0; i < 25; i++) {
       const input = zocker(publishTransferEventCompletedInputSchema).generate();
       const output = publishTransferEventCompletedDataSchema.parse(input);
 
+      const { id, type, ...rest } = input;
       expect(output).toEqual({
-        requisitionNumber: input.requisitionNumber,
-        transferEventId: input.id,
+        ...rest, transferEventId: id, transferType: type, transferEventStatus: 'COMPLETED',
       });
       expect(transferEventCompletedDataSchema.safeParse(output).success).toBe(true);
     }

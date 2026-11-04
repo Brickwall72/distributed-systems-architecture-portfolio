@@ -60,14 +60,29 @@ export class EventBroker {
   }
 
   /**
-   * Idempotently creates a JetStream stream to capture designated subjects.
+   * Idempotently creates or updates a JetStream stream to capture designated subjects.
    */
   async ensureStream(streamName: string, subjects: string[]) {
     try {
-      await this.jsm.streams.add({ name: streamName, subjects });
-      this.logger?.debug(`Ensured JetStream '${streamName}' exists for subjects: ${subjects.join(', ')}`);
+      // Try to get info first, or use streams.upsert() if available in your client version
+      const existing = await this.jsm.streams.info(streamName).catch(() => null);
+
+      if (!existing) {
+        await this.jsm.streams.add({ name: streamName, subjects });
+        this.logger?.debug(`Created JetStream '${streamName}' for subjects: ${subjects.join(', ')}`);
+      } else {
+        // Merge existing subjects with new ones to prevent overwriting other services' subjects
+        const mergedSubjects = Array.from(new Set([...existing.config.subjects, ...subjects]));
+        
+        await this.jsm.streams.update(streamName, {
+          ...existing.config,
+          subjects: mergedSubjects,
+        });
+        this.logger?.debug(`Updated JetStream '${streamName}' with subjects: ${mergedSubjects.join(', ')}`);
+      }
     } catch (err) {
-      this.logger?.warn(`Stream check warning (might already exist): ${(err as Error).message}`);
+      this.logger?.error(`Failed to ensure stream '${streamName}': ${(err as Error).message}`);
+      throw err;
     }
   }
 
@@ -149,12 +164,14 @@ export class EventBroker {
    * @param durableName The durable consumer identifier (e.g., 'compliance-service')
    * @param handler Message handler callback
    * @param filterSubject Optional subject filter (e.g., 'events.esign.compliance.document.signed')
+   * @param options.nakDelayMs Optional redelivery delay applied when the handler throws
    */
   async subscribe(
     streamName: string,
     durableName: string,
     handler: (payload: any, ack: () => void) => Promise<void>,
-    filterSubject?: string
+    filterSubject?: string,
+    options: { nakDelayMs?: number } = {}
   ) {
     let consumer: Consumer;
 
@@ -181,7 +198,7 @@ export class EventBroker {
             await handler(payload, () => msg.ack());
           } catch (err) {
             this.logger?.error(`Error processing event on ${msg.subject}: ${(err as Error).message}`);
-            msg.nak();
+            msg.nak(options.nakDelayMs);
           }
         }
       } catch (streamErr) {

@@ -9,12 +9,13 @@ import {
   TransferReceivedEventSchema,
   transferInitiatedDataSchema,
   transferReceivedDataSchema,
+  signedDocumentDataSchema,
 } from '@contracts/compliance';
 import { z } from 'zod';
 import { createLogger } from '@shared/express';
 const logger = createLogger('compliance:publisher');
 
-export const publishTransferReceivedInputSchema = z.object({
+export const publishTransferReceivedInputSchema = signedDocumentDataSchema.omit({ documentId: true }).extend({
   id: z.string().uuid(),
   requisitionNumber: z.string(),
   assetIds: z.array(z.string()),
@@ -30,7 +31,7 @@ export const publishtransferReceivedDataSchema = publishTransferReceivedInputSch
 type PublishtransferReceivedDataSchema = z.infer<typeof publishtransferReceivedDataSchema>;
 
 export const publishTransferInitiatedInputSchema = publishTransferReceivedInputSchema.omit(
-  {transferEventId: true, id: true}
+  {transferEventId: true}
 ).extend({
   createdAt: z.string().datetime(),
   transferType: transferTypeEnum,
@@ -39,8 +40,9 @@ export const publishTransferInitiatedInputSchema = publishTransferReceivedInputS
 });
 
 export const publishtransferInitiatedDataSchema = publishTransferInitiatedInputSchema.transform((
-  { createdAt, ...rest }) => ({
+  { id, createdAt, ...rest }) => ({
     ...rest,
+    documentId: id,
     date: createdAt,
   }
 )).pipe(transferInitiatedDataSchema);

@@ -1,0 +1,19 @@
+# File: charts/audit-ledger/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/audit/api`)"
+    serviceName: audit-server
+    rewrite:
+      regex: "^/audit/api/v1/(.*)"
+      replacement: "/api/v1/$1"

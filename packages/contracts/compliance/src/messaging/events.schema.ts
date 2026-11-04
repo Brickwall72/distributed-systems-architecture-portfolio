@@ -14,14 +14,25 @@ export const COMPLIANCE_EVENT_SUBJECTS = {
   WILDCARD_ALL: 'events.compliance.>',
 } as const;
 
-export const transferReceivedDataSchema = z.object({
+/** Facts about a signed document. The storage location is deliberately excluded; documentId resolves it. */
+export const signedDocumentDataSchema = z.object({
+  documentId: z.string().uuid(),
+  documentName: z.string(),
+  documentType: z.string(),
+  fileHash: z.string().length(64),
+  signerId: z.string(),
+  signedAt: z.string().datetime(),
+});
+
+export const transferReceivedDataSchema = signedDocumentDataSchema.extend({
   transferEventId: z.string().uuid(),
   assetIds: z.array(z.string()),
-  documentId: z.string().uuid(),
   requisitionNumber: z.string(),
-})
+});
 
-export const transferInitiatedDataSchema = transferReceivedDataSchema.omit({transferEventId: true, documentId: true}).extend({
+export const transferInitiatedDataSchema = signedDocumentDataSchema.extend({
+  assetIds: transferReceivedDataSchema.shape.assetIds,
+  requisitionNumber: transferReceivedDataSchema.shape.requisitionNumber,
   date: z.string().datetime(),
   transferType: transferTypeEnum,
   senderOrgId: z.string(),

@@ -14,7 +14,7 @@
   - *Note: Runtime port delta avoids local host socket collisions during simultaneous container and cluster testing.*
 * **Ingress Domain Prefix Routing:** 
   - Subsystem codebases remain domain-agnostic and listen on standard root endpoints (`/api/v1/*`).
-  - Traefik edge proxies intercept external traffic, evaluate structural domain prefixes (`/topology`, `/compliance`, `/pdf`, `/esign`), and strip path prefixes before forwarding traffic to backend workloads.
+  - Traefik edge proxies intercept external traffic, evaluate structural domain prefixes (`/topology`, `/compliance`, `/audit`, `/pdf`, `/esign`), and strip path prefixes before forwarding traffic to backend workloads.
 * **Primary Protocol:** Synchronous stateless communication occurs via HTTP/1.1 with `application/json` payloads unless streaming raw binary files.
 * **Traceability Requirement (Correlation ID):** Every transaction must carry a unique `X-Correlation-ID` header (`UUIDv4` or `cid_<uuid>`). This header is propagated transitively by coordinators through downstream HTTP queries and attached to NATS JetStream CloudEvent envelopes and log contexts.
 
@@ -71,6 +71,16 @@ Handles database metadata persistence logging and audit ledger retrieval.
   2. `GET /compliance/api/v1/documents` – Queries metadata records from PostgreSQL.
   3. `GET /compliance/api/v1/documents/:id` – Retrieves metadata record by document ID.
 
+### 3.6. Audit Ledger Proxy (`/audit`) -> `audit-server`
+Read-only retrieval and integrity verification of sealed transfer records. All writes arrive through NATS consumers; the HTTP surface exposes no mutation.
+
+* **Exposed Gateway Paths:**
+  1. `GET /audit/api/v1/transfers?status=OPEN|SEALED&limit&offset` – Lists sealed records and still-open drafts (with `missingSignals`).
+  2. `GET /audit/api/v1/transfers/:requisitionNumber` – Retrieves a sealed record.
+  3. `GET /audit/api/v1/transfers/:requisitionNumber/verify` – Recomputes the record hash.
+  4. `GET /audit/api/v1/ledger/verify` – Verifies the whole hash chain (hash, link, and sequence continuity).
+  5. `GET /audit/api/v1/dead-letters` – Lists events held for review (`MALFORMED`, `LATE_EVENT`).
+
 ---
 
 ## 4. Asynchronous Event Channel Specifications (NATS JetStream Broker Mesh)
@@ -110,6 +120,21 @@ Handles database metadata persistence logging and audit ledger retrieval.
     }
   }
   ```
+
+### 4.3. Audit Ledger Consumption (`audit-server`)
+`audit-server` consumes both domain streams with durable, uniquely named consumers and never queries other services.
+
+| Stream | Subject | Durable Consumer |
+|---|---|---|
+| `TOPOLOGY_EVENTS` | `events.topology.transfer.created` | `audit-ledger-transfer-created-consumer` |
+| `TOPOLOGY_EVENTS` | `events.topology.transfer.updated` | `audit-ledger-transfer-updated-consumer` |
+| `TOPOLOGY_EVENTS` | `events.topology.transfer.completed` | `audit-ledger-transfer-completed-consumer` |
+| `COMPLIANCE_EVENTS` | `events.compliance.transfer.initiated` | `audit-ledger-transfer-initiated-consumer` |
+| `COMPLIANCE_EVENTS` | `events.compliance.transfer.received` | `audit-ledger-transfer-received-consumer` |
+
+* **Event-carried state:** Topology events carry point-in-time organization and asset snapshots. `completed` accumulates everything `created` and `updated` carry (it may be the only topology event, e.g. C2 transfers) with `documentId` optional. Compliance events carry signed-document facts (`documentId`, `documentName`, `documentType`, `fileHash`, `signerId`, `signedAt`) and never a storage location.
+* **Correlation key:** `requisitionNumber` (compliance `initiated` precedes the topology-generated `transferEventId`).
+* **Failure handling:** Malformed events are dead-lettered and acked. Ledger failures propagate, producing a delayed `nak()`; redelivery is deliberately uncapped so an outage cannot drop audit data.
 
 ---
 

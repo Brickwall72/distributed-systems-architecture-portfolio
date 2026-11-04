@@ -5,7 +5,7 @@ import { EventBroker } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
 import { TransfersRepository } from './repositories';
 import { TransferService } from './services';
-import { ComplianceEventConsumer, TopologyPublisher } from './messaging';
+import { TopologyEventConsumer, TopologyPublisher } from './messaging';
 import {
   initializeDatabaseConnection, terminateDatabaseClient,
   getDatabaseClient, seedSpaceCustodyGraphTopology
@@ -77,7 +77,7 @@ async function bootstrapApplicationServer() {
     const publisher = new TopologyPublisher(broker);
     await publisher.init();
     const transferService = new TransferService(transfersRepository, publisher);
-    const topologyConsumer = new ComplianceEventConsumer(broker, transferService);
+    const topologyConsumer = new TopologyEventConsumer(broker, transferService);
     await topologyConsumer.start();
     logger.info('Topology event consumer started and listening for transfer events.');
 

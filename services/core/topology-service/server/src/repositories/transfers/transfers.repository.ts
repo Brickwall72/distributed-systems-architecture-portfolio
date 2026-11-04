@@ -1,6 +1,7 @@
 // File: services/core/topology-service/server/src/repositories/transfers/transfers.repository.ts
 import { BaseRepository } from '../base.repository';
 import { transferTypeEnum, TransferStatus, transferStatusEnum } from '@contracts/common';
+import { transferOrganizationSnapshotSchema, transferAssetSnapshotSchema } from '@contracts/topology';
 import { z } from 'zod';
 import { createLogger } from '@shared/express';
 import { randomUUID } from 'node:crypto';
@@ -32,6 +33,18 @@ const transferEventCreationResultSchema = z.object({
   id: z.string().uuid(),
 });
 type TransferEventCreationResult = z.infer<typeof transferEventCreationResultSchema>;
+
+export const transferEventSnapshotSchema = z.object({
+  id: z.string().uuid(),
+  requisitionNumber: z.string(),
+  type: transferTypeEnum,
+  date: z.string().datetime(),
+  status: transferStatusEnum,
+  sender: transferOrganizationSnapshotSchema,
+  receiver: transferOrganizationSnapshotSchema,
+  assets: z.array(transferAssetSnapshotSchema).min(1),
+});
+export type TransferEventSnapshot = z.infer<typeof transferEventSnapshotSchema>;
 
 export class TransfersRepository extends BaseRepository {
 
@@ -141,5 +154,46 @@ export class TransfersRepository extends BaseRepository {
       throw new Error(`TransferEvent ${params.id} not found or has no matching assets`);
     }
     return transferEventUpdateResultSchema.parse(results[0]);
+  }
+
+  /**
+   * Reads the transfer event with its parties and involved assets as they currently stand,
+   * so published events carry a point-in-time snapshot rather than bare identifiers.
+   */
+  public async findTransferEventSnapshot(id: string): Promise<TransferEventSnapshot> {
+    const cypher = `
+      MATCH (sender:Organization)-[:DELIVERED_FROM]->(e:TransferEvent {id: $id})-[:DELIVERED_TO]->(receiver:Organization)
+      RETURN e.id AS id,
+        e.requisitionNumber AS requisitionNumber,
+        e.type AS type,
+        e.date AS date,
+        e.status AS status,
+        properties(sender) AS sender,
+        properties(receiver) AS receiver,
+        [(e)-[:INVOLVES]->(a:Asset) | a {
+          .id, .name, .nomenclature, .serialNumber, .type, .controlType, .status,
+          currentOwnerId: [(o:Organization)-[:HAS_CUSTODY]->(a) | o.id][0]
+        }] AS assets
+    `;
+
+    const results = await this.executeReadQuery(
+      cypher,
+      { id },
+      (record) => ({
+        id: record.get('id'),
+        requisitionNumber: record.get('requisitionNumber'),
+        type: record.get('type'),
+        date: record.get('date'),
+        status: record.get('status'),
+        sender: record.get('sender'),
+        receiver: record.get('receiver'),
+        assets: record.get('assets'),
+      })
+    );
+
+    if (!results[0]) {
+      throw new Error(`TransferEvent ${id} not found or is missing a party`);
+    }
+    return transferEventSnapshotSchema.parse(results[0]);
   }
 }

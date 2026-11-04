@@ -26,7 +26,9 @@ const mockJs = {
 
 const mockJsm = {
   streams: {
+    info: vi.fn().mockRejectedValue(new Error('stream not found')),
     add: vi.fn().mockResolvedValue({ name: 'TEST_STREAM' }),
+    update: vi.fn().mockResolvedValue({ name: 'TEST_STREAM' }),
   },
   consumers: {
     add: vi.fn().mockResolvedValue({ name: 'TEST_CONSUMER' }),
@@ -106,7 +108,7 @@ describe('EventBroker', () => {
       await broker.connect();
     });
 
-    it('should add a stream via JetStream manager', async () => {
+    it('should add a stream via JetStream manager when it does not exist', async () => {
       const streamName = 'ESIGN_EVENTS';
       const subjects = ['events.esign.>'];
 
@@ -116,18 +118,32 @@ describe('EventBroker', () => {
         name: streamName,
         subjects,
       });
+      expect(mockJsm.streams.update).not.toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledWith(
-        `Ensured JetStream '${streamName}' exists for subjects: events.esign.>`
+        `Created JetStream '${streamName}' for subjects: events.esign.>`
       );
     });
 
-    it('should catch stream addition errors and log warning', async () => {
+    it('should merge subjects into an existing stream without dropping the existing ones', async () => {
+      const config = { name: 'ESIGN_EVENTS', subjects: ['events.esign.a', 'events.esign.b'] };
+      mockJsm.streams.info.mockResolvedValueOnce({ config });
+
+      await broker.ensureStream('ESIGN_EVENTS', ['events.esign.b', 'events.esign.c']);
+
+      expect(mockJsm.streams.add).not.toHaveBeenCalled();
+      expect(mockJsm.streams.update).toHaveBeenCalledWith('ESIGN_EVENTS', {
+        ...config,
+        subjects: ['events.esign.a', 'events.esign.b', 'events.esign.c'],
+      });
+    });
+
+    it('should log and rethrow stream addition errors', async () => {
       mockJsm.streams.add.mockRejectedValueOnce(new Error('Stream name in use'));
 
-      await broker.ensureStream('EXISTING_STREAM', ['events.>']);
+      await expect(broker.ensureStream('EXISTING_STREAM', ['events.>'])).rejects.toThrow('Stream name in use');
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Stream check warning (might already exist): Stream name in use'
+      expect(logger.error).toHaveBeenCalledWith(
+        "Failed to ensure stream 'EXISTING_STREAM': Stream name in use"
       );
     });
   });
@@ -269,6 +285,29 @@ describe('EventBroker', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'Error processing event on events.esign.compliance.document.signed: Validation failed'
       );
+    });
+
+    it('should pass nakDelayMs to nak when provided', async () => {
+      const mockMsg = {
+        subject: 'events.esign.compliance.document.signed',
+        json: vi.fn().mockReturnValue({}),
+        ack: vi.fn(),
+        nak: vi.fn(),
+      };
+
+      async function* singleMessageGenerator() {
+        yield mockMsg;
+      }
+
+      mockJs.consumers.get.mockResolvedValueOnce(mockConsumer);
+      mockConsumer.consume.mockResolvedValueOnce(singleMessageGenerator());
+
+      const handler = vi.fn().mockRejectedValue(new Error('db down'));
+
+      await broker.subscribe('ESIGN_EVENTS', 'audit-ledger', handler, undefined, { nakDelayMs: 5000 });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockMsg.nak).toHaveBeenCalledWith(5000);
     });
   });
 });

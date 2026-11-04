@@ -45,7 +45,7 @@ spec:
             {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
           env:
             - name: CONNECTIONS
-              value: "compliance"
+              value: "compliance,audit"
             - name: LABEL_compliance
               value: "Compliance DB"
             - name: SERVER_compliance
@@ -64,6 +64,24 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: ENGINE_compliance
               value: "postgres@dbgate-plugin-postgres"
+            - name: LABEL_audit
+              value: "Audit Ledger DB"
+            - name: SERVER_audit
+              value: "audit-db"
+            - name: PORT_audit
+              value: "27017"
+            - name: USER_audit
+              valueFrom:
+                secretKeyRef:
+                  name: audit-db-credentials
+                  key: DB_USER
+            - name: PASSWORD_audit
+              valueFrom:
+                secretKeyRef:
+                  name: audit-db-credentials
+                  key: DB_PASSWORD
+            - name: ENGINE_audit
+              value: "mongo@dbgate-plugin-mongo"
           ports:
             - name: http
               containerPort: 3000

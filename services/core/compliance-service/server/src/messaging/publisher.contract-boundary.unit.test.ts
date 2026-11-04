@@ -12,9 +12,10 @@ describe('compliance publisher: local data schemas vs shared event contracts', (
     for (let i = 0; i < 25; i++) {
       const input = zocker(publishTransferInitiatedInputSchema).generate();
       const output = publishtransferInitiatedDataSchema.parse(input);
-      const { createdAt, ...rest } = input;
+      const { id, createdAt, ...rest } = input;
       expect(output).toEqual({
         ...rest,
+        documentId: id,
         date: createdAt,
       });
       expect(transferInitiatedDataSchema.safeParse(output).success).toBe(true);
@@ -25,12 +26,8 @@ describe('compliance publisher: local data schemas vs shared event contracts', (
     for (let i = 0; i < 25; i++) {
       const input = zocker(publishTransferReceivedInputSchema).generate();
       const output = publishtransferReceivedDataSchema.parse(input);
-      expect(output).toEqual({
-        documentId: input.id,
-        assetIds: input.assetIds,
-        transferEventId: input.transferEventId,
-        requisitionNumber: input.requisitionNumber,
-      });
+      const { id, ...rest } = input;
+      expect(output).toEqual({ ...rest, documentId: id });
       expect(transferReceivedDataSchema.safeParse(output).success).toBe(true);
     }
   });

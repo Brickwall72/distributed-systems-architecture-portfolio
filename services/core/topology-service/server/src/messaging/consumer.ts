@@ -8,7 +8,7 @@ import { createLogger } from '@shared/express';
 
 const logger = createLogger('Topology:consumer');
 
-export class ComplianceEventConsumer {
+export class TopologyEventConsumer {
   constructor(
     private readonly broker: EventBroker,
     private readonly transferService: TransferService
