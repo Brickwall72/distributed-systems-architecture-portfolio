@@ -9,6 +9,7 @@ flowchart LR
   classDef broker fill:#78350f,stroke:#f59e0b,color:#fff
 
   subgraph images[Application images from Skaffold]
+    audit_server["audit-server"]:::application
     compliance_client["compliance-client"]:::application
     compliance_server["compliance-server"]:::application
     compliance_shell["compliance-shell"]:::shell
@@ -41,6 +42,8 @@ flowchart LR
   nats -.->|Deliver transfer initiated / received| topology_server
   topology_server -.->|Publish transfer event updates| nats
   nats -.->|Deliver transfer event updates| compliance_server
+  nats -.->|Deliver transfer event updates| audit_server
+  nats -.->|Deliver transfer initiated / received| audit_server
   linkStyle 0 stroke:#a78bfa,stroke-width:3px
   linkStyle 1 stroke:#a78bfa,stroke-width:3px
   linkStyle 2 stroke:#a78bfa,stroke-width:3px
@@ -62,6 +65,8 @@ flowchart LR
   linkStyle 18 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 19 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 20 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 21 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 22 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
 ```
 
 ## Interaction legend

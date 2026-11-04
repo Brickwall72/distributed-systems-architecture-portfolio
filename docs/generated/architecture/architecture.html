@@ -29,6 +29,7 @@
   classDef broker fill:#78350f,stroke:#f59e0b,color:#fff
 
   subgraph images[Application images from Skaffold]
+    audit_server[&quot;audit-server&quot;]:::application
     compliance_client[&quot;compliance-client&quot;]:::application
     compliance_server[&quot;compliance-server&quot;]:::application
     compliance_shell[&quot;compliance-shell&quot;]:::shell
@@ -61,6 +62,8 @@
   nats -.-&gt;|Deliver transfer initiated / received| topology_server
   topology_server -.-&gt;|Publish transfer event updates| nats
   nats -.-&gt;|Deliver transfer event updates| compliance_server
+  nats -.-&gt;|Deliver transfer event updates| audit_server
+  nats -.-&gt;|Deliver transfer initiated / received| audit_server
   linkStyle 0 stroke:#a78bfa,stroke-width:3px
   linkStyle 1 stroke:#a78bfa,stroke-width:3px
   linkStyle 2 stroke:#a78bfa,stroke-width:3px
@@ -81,7 +84,9 @@
   linkStyle 17 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 18 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 19 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 20 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
+  linkStyle 20 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 21 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 22 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
     <p>Update the architecture model when page composition or service interactions change.</p>
   </main>
   <script type="module">
