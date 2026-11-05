@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { transferSummarySchema } from 'audit-shared';
-import { mockFromSchema } from '@shared/testing';
+import { mockFromSchema, setTestSession } from '@shared/testing';
 import { useGetTransfers } from './useGetTransfers';
 import { apiClient } from '../../api';
 
@@ -21,6 +21,7 @@ const makeWrapper = () => {
 
 describe('useGetTransfers', () => {
   beforeEach(() => {
+    setTestSession();
     vi.clearAllMocks();
   });
 

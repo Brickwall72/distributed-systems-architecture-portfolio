@@ -1,5 +1,6 @@
 // File: services/core/compliance-service/client/src/hooks/useComplianceQuery.ts
 import { useEffect, useRef, useState } from 'react';
+import { useIdentity } from '@shared/ui-components';
 
 interface FetcherOptions {
   signal: AbortSignal;
@@ -22,8 +23,10 @@ export function useComplianceQuery<TParams, TData>({
   params,
   fetcher,
   fallbackErrorMessage,
-  enabled = true,
+  enabled: enabledOption = true,
 }: UseComplianceQueryOptions<TParams>) {
+  const identityId = useIdentity()?.id;
+  const enabled = enabledOption && Boolean(identityId);
   const [data, setData] = useState<TData | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export function useComplianceQuery<TParams, TData>({
     return () => {
       controller.abort();
     };
-  }, [queryKey, fallbackErrorMessage, enabled]);
+  }, [queryKey, fallbackErrorMessage, enabled, identityId]);
 
   return { data, isLoading, error };
 }

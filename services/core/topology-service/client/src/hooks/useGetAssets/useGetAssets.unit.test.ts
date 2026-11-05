@@ -1,4 +1,5 @@
 // File: services/core/topology-service/client/src/hooks/useGetAssets/useGetAssets.unit.test.ts
+import { setTestSession } from '@shared/testing';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useGetAssets } from '.';
 import { apiClient } from '../../api';
@@ -11,6 +12,7 @@ vi.mock('../../api', () => ({
 
 describe('useGetAssets (Contract Routing)', () => {
   beforeEach(() => {
+    setTestSession();
     vi.clearAllMocks();
   });
 
@@ -21,7 +23,11 @@ describe('useGetAssets (Contract Routing)', () => {
       headers: new Headers(),
     });
 
-    const query = { filterOwnerId: 'org-10' };
+    const query = {
+      filterOwnerId: 'org-10',
+      includeInTransit: false,
+      includeAvailable: true,
+    };
     const { result } = renderHook(() => useGetAssets(query));
 
     await waitFor(() => {

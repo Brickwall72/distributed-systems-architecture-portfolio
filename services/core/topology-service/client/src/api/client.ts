@@ -7,6 +7,7 @@ export const apiClient = initClient(topologyContract, {
   baseUrl: '/topology/api/v1',
   baseHeaders: {
     Accept: 'application/json',
-    Authorization: () => getAuthorizationHeader(),
+    // ts-rest drops undefined headers at runtime; its type just doesn't say so.
+    Authorization: () => getAuthorizationHeader() as string,
   },
 });

@@ -1,5 +1,6 @@
 // File: services/core/compliance-service/client/src/hooks/documents/useDocuments.ts
 import { useEffect, useState, useCallback } from 'react';
+import { useIdentity } from '@shared/ui-components';
 import { z } from 'zod';
 import { Document, DocumentSchema, DocumentStatus } from 'compliance-shared';
 import { apiClient } from '../../api';
@@ -10,17 +11,18 @@ export interface UseDocumentsFilters {
 }
 
 export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilters = {}) {
+  const identityId = useIdentity()?.id;
   const statusQuery = statuses?.length ? statuses.join(',') : undefined;
   const matchesNothing = requisitionNumbers?.length === 0;
   const requisitionQuery = requisitionNumbers?.length ? requisitionNumbers.join(',') : undefined;
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
     setError(null);
-    if (matchesNothing) {
+    if (matchesNothing || !identityId) {
       setDocuments([]);
       setLoading(false);
       return;
@@ -41,7 +43,7 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
     } finally {
       setLoading(false);
     }
-  }, [statusQuery, requisitionQuery, matchesNothing]);
+  }, [statusQuery, requisitionQuery, matchesNothing, identityId]);
 
   useEffect(() => {
     void fetchDocuments();

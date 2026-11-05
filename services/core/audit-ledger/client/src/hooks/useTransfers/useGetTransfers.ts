@@ -1,11 +1,15 @@
 // File: service/core/audit-ledger/client/src/hooks/useTransfers/useGetTransfers.ts
 import { useQuery } from '@tanstack/react-query';
+import { useIdentity } from '@shared/ui-components';
 import { apiClient } from '../../api'; // Adjust import based on your monorepo client export
 import { GetTransfersQuery, TransferSummary } from 'audit-shared';
 
 export function useGetTransfers(query?: GetTransfersQuery) {
+  const identityId = useIdentity()?.id;
+
   return useQuery({
-    queryKey: ['audit-ledger', 'transfers', query],
+    queryKey: ['audit-ledger', 'transfers', identityId, query],
+    enabled: Boolean(identityId),
     queryFn: async () => {
       const result = await apiClient.getTransfers({ query });
 

@@ -6,6 +6,7 @@ import {
   AUTH_ISSUER,
   AUTH_JWT_ALGORITHM,
   ROLE,
+  writeSession,
   type VerifiedIdentity,
 } from '@contracts/auth';
 
@@ -48,4 +49,14 @@ export const createTestAuth = (): TestAuth => {
     signToken,
     authHeader: async (identity) => ({ Authorization: `Bearer ${await signToken(identity)}` }),
   };
+};
+
+/** Browser tests: stores a signed-in session so identity-gated hooks fetch. Pass null to sign out. */
+export const setTestSession = (orgId: string | null = 'org-test'): void => {
+  if (orgId === null) return writeSession(null);
+  writeSession({
+    accessToken: 'test-token',
+    expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+    identity: { id: 'usr_test', displayName: 'Test User', orgId, roles: [ROLE.ORG_MEMBER], signerId: 'usr_test' },
+  });
 };

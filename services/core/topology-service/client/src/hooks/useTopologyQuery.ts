@@ -1,5 +1,6 @@
 // File: services/core/topology-service/client/src/hooks/useTopologyQuery.ts
 import { useEffect, useRef, useState } from 'react';
+import { useIdentity } from '@shared/ui-components';
 
 interface FetcherOptions {
   signal: AbortSignal;
@@ -21,8 +22,9 @@ export function useTopologyQuery<TParams, TData>({
   fetcher,
   fallbackErrorMessage,
 }: UseTopologyQueryOptions<TParams>) {
+  const identityId = useIdentity()?.id;
   const [items, setItems] = useState<TData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
 
   // Keep latest fetcher AND params in refs to avoid closure staleness without breaking dependency checks
@@ -36,6 +38,13 @@ export function useTopologyQuery<TParams, TData>({
   const queryKey = JSON.stringify(params ?? {});
 
   useEffect(() => {
+    if (!identityId) {
+      setItems([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     async function load() {
@@ -76,7 +85,7 @@ export function useTopologyQuery<TParams, TData>({
       controller.abort();
     };
   // 🚨 REMOVED `params` from dependencies! `queryKey` controls execution lifecycle.
-  }, [queryKey, fallbackErrorMessage]); 
+  }, [queryKey, fallbackErrorMessage, identityId]); 
 
   return { items, isLoading, error };
 }

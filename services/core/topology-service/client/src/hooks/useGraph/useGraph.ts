@@ -1,11 +1,13 @@
 // File: services/core/topology-service/client/src/hooks/useGraph/useGraph.ts
 import { useEffect, useState, useCallback } from 'react';
+import { useIdentity } from '@shared/ui-components';
 import { apiClient } from '../../api';
 import type { GraphDTO } from 'topology-shared';
 
 export function useGraph() {
+  const identityId = useIdentity()?.id;
   const [graphData, setGraphData] = useState<GraphDTO | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
@@ -14,6 +16,13 @@ export function useGraph() {
   }, []);
 
   useEffect(() => {
+    if (!identityId) {
+      setGraphData(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     async function load() {
@@ -55,7 +64,7 @@ export function useGraph() {
     return () => {
       controller.abort();
     };
-  }, [refreshTrigger]);
+  }, [refreshTrigger, identityId]);
 
   return { graphData, isLoading, error, refetch };
 }

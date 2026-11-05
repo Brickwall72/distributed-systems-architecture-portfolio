@@ -1,8 +1,13 @@
 // File: services/core/compliance-service/client/src/hooks/useComplianceQuery.unit.test.ts
-import { renderHook, waitFor } from '@testing-library/react';
+import { setTestSession } from '@shared/testing';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useComplianceQuery } from './useComplianceQuery';
 
 describe('useComplianceQuery', () => {
+  beforeEach(() => {
+    setTestSession();
+  });
+
   it('does not fetch and is idle when disabled', () => {
     const mockFetcher = vi.fn();
 
@@ -75,5 +80,19 @@ describe('useComplianceQuery', () => {
 
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBe('Custom network fallback error');
+  });
+
+  it('stays idle without a signed-in identity and fetches once one is selected, without a remount', async () => {
+    setTestSession(null);
+    const mockFetcher = vi.fn().mockResolvedValue({ status: 200, body: [] });
+
+    const { result } = renderHook(() => useComplianceQuery({ fetcher: mockFetcher, fallbackErrorMessage: 'Failed' }));
+
+    expect(mockFetcher).not.toHaveBeenCalled();
+    expect(result.current.error).toBeFalsy();
+
+    act(() => setTestSession());
+
+    await waitFor(() => expect(mockFetcher).toHaveBeenCalledTimes(1));
   });
 });

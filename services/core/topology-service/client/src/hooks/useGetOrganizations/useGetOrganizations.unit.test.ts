@@ -1,4 +1,5 @@
 // File: services/core/topology-service/client/src/hooks/useGetOrganizations/useGetOrganizations.unit.test.ts
+import { setTestSession } from '@shared/testing';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useGetOrganizations } from './useGetOrganizations';
 import { apiClient } from '../../api';
@@ -11,6 +12,7 @@ vi.mock('../../api', () => ({
 
 describe('useGetOrganizations (Contract Routing)', () => {
   beforeEach(() => {
+    setTestSession();
     vi.clearAllMocks();
   });
 
@@ -21,7 +23,7 @@ describe('useGetOrganizations (Contract Routing)', () => {
       headers: new Headers(),
     });
 
-    const query = { filterOwnedId: 'ast-101' };
+    const query = { filterOwnedId: 'ast-101', requireActiveAssets: false };
     const { result } = renderHook(() => useGetOrganizations(query));
 
     await waitFor(() => {
