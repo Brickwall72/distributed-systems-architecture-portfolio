@@ -1,4 +1,5 @@
 // File: services/core/topology-service/client/src/hooks/useGraph/useGraph.unit.test.tsx
+import { setTestSession } from '@shared/testing';
 import { renderHook, waitFor } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
@@ -11,7 +12,7 @@ const mockGraphData: GraphDTO = {
     { id: 'org-1', name: 'Alpha Command', type: 'CONTRACTOR', addressLine1: 'Pad 39-B' },
   ],
   assets: [
-    { id: 'asset-1', name: 'Probe Mk I', nomenclature: 'Probe Mk I', serialNumber: 'KSP-01', status: 'AVAILABLE', currentOwnerId: 'org-1' },
+    { id: 'asset-1', name: 'Probe Mk I', nomenclature: 'Probe Mk I', serialNumber: 'KSP-01', status: 'AVAILABLE', type: 'SPACECRAFT', controlType: 'LOCAL', currentOwnerId: 'org-1' },
   ],
   activeTransfers: [],
   custodyLinks: [{ orgId: 'org-1', assetId: 'asset-1' }],
@@ -28,6 +29,10 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('useGraph Hook', () => {
+  beforeEach(() => {
+    setTestSession();
+  });
+
   it('should successfully fetch and return graph data with loading state transitions', async () => {
     const { result } = renderHook(() => useGraph());
 

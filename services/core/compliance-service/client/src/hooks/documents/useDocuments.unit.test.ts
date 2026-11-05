@@ -1,6 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { DocumentSchema } from 'compliance-shared';
-import { mockFromSchema } from '@shared/testing';
+import { mockFromSchema, setTestSession } from '@shared/testing';
 import { useDocuments } from './useDocuments';
 import { apiClient } from '../../api';
 
@@ -14,6 +14,7 @@ describe('useDocuments Hook', () => {
   const mockDocument = () => mockFromSchema(DocumentSchema);
 
   beforeEach(() => {
+    setTestSession();
     vi.clearAllMocks();
   });
 

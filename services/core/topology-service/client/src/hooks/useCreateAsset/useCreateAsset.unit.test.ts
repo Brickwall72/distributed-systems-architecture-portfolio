@@ -21,6 +21,8 @@ describe('useCreateAsset Hook', () => {
     nomenclature: 'DAGR',
     serialNumber: 'SN-77892',
     status: 'AVAILABLE',
+    type: 'GPS',
+    controlType: 'LOCAL',
     currentOwnerId: 'org-10',
   };
 

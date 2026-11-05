@@ -1,4 +1,5 @@
 // File: services/core/compliance-service/client/src/hooks/templates/useTemplatesQuery.unit.test.ts
+import { setTestSession } from '@shared/testing';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useTemplatesQuery } from './useTemplatesQuery';
 import { apiClient } from '../../api';
@@ -11,6 +12,7 @@ vi.mock('../../api', () => ({
 
 describe('useTemplatesQuery', () => {
   beforeEach(() => {
+    setTestSession();
     vi.clearAllMocks();
   });
 

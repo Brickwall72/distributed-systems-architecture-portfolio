@@ -2,6 +2,7 @@
 import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
+import { setTestSession } from '@shared/testing';
 import NetworkCanvas from './NetworkCanvas';
 import type { GraphDTO } from 'topology-shared';
 
@@ -30,6 +31,8 @@ const mockGraphData: GraphDTO = {
       nomenclature: 'GPS III Space Vehicle 11',
       serialNumber: 'GPS-III-SV11-001',
       status: 'IN_TRANSIT',
+      type: 'SATELLITE',
+      controlType: 'LOCAL',
       currentOwnerId: 'org-1111-lockheed',
     },
   ],
@@ -38,7 +41,7 @@ const mockGraphData: GraphDTO = {
       requisitionNumber: 'REQ-2026-SSC-0092',
       date: '20260904',
       type: 'PHYSICAL_TRANSFER',
-      status: 'IN_TRANSIT',
+      status: 'IN_PROGRESS',
       senderOrgId: 'org-1111-lockheed',
       senderName: 'Lockheed Martin Space',
       receiverOrgId: 'org-2222-ussf',
@@ -49,6 +52,8 @@ const mockGraphData: GraphDTO = {
           nomenclature: 'GPS III Space Vehicle 11',
           serialNumber: 'GPS-III-SV11-001',
           status: 'IN_TRANSIT',
+          type: 'SATELLITE',
+          controlType: 'LOCAL',
         },
       ],
     },
@@ -67,6 +72,10 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('NetworkCanvasWidget Component Lifecycle', () => {
+  beforeEach(() => {
+    setTestSession();
+  });
+
   it('should manage the asynchronous loading state and hydrate the canvas container', async () => {
     render(<NetworkCanvas />);
 

@@ -1,8 +1,13 @@
 // File: services/core/topology-service/client/src/hooks/useTopologyQuery.unit.test.ts
-import { renderHook, waitFor } from '@testing-library/react';
+import { setTestSession } from '@shared/testing';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useTopologyQuery } from './useTopologyQuery';
 
 describe('useTopologyQuery (Base Hook Primitives)', () => {
+  beforeEach(() => {
+    setTestSession();
+  });
+
   it('resolves items array on HTTP 200 with valid array payload', async () => {
     const mockFetcher = vi.fn().mockResolvedValue({
       status: 200,
@@ -87,5 +92,19 @@ describe('useTopologyQuery (Base Hook Primitives)', () => {
 
     expect(result.current.error).toBeNull();
     expect(result.current.items).toEqual([]);
+  });
+
+  it('stays idle without a signed-in identity and fetches once one is selected, without a remount', async () => {
+    setTestSession(null);
+    const mockFetcher = vi.fn().mockResolvedValue({ status: 200, body: [] });
+
+    const { result } = renderHook(() => useTopologyQuery({ fetcher: mockFetcher, fallbackErrorMessage: 'Failed' }));
+
+    expect(mockFetcher).not.toHaveBeenCalled();
+    expect(result.current.error).toBeFalsy();
+
+    act(() => setTestSession());
+
+    await waitFor(() => expect(mockFetcher).toHaveBeenCalledTimes(1));
   });
 });
