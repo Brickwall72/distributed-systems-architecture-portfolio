@@ -3,7 +3,7 @@ import express from 'express';
 import { ZodError } from 'zod';
 import { createComplianceGateway } from './routes';
 import { initializeDatabaseWithRetry, pool } from './db';
-import { createLogger } from '@shared/express';
+import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { TransferService } from './services';
 import { DocumentsRepository } from './repositories';
@@ -104,7 +104,7 @@ async function bootstrapApplicationServer() {
 
     // 2. Inject publisher into gateway factory routes
     const complianceGateway = createComplianceGateway({broker, publisher, repository});
-    app.use('/api/v1', complianceGateway);
+    app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), complianceGateway);
 
     server = app.listen(env.PORT, '0.0.0.0', () => {
       logger.info(`Compliance Server running on port ${env.PORT}`);

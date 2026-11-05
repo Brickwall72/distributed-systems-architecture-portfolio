@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/TransferReceiptPage.tsx
 import { useState, Suspense } from 'react';
 import { lazyRemote } from '../utils/federation';
-import { FederatedErrorBoundary } from '@shared/ui-components';
+import { FederatedErrorBoundary, useIdentity } from '@shared/ui-components';
 import { ComplianceWorkflowWidgetProps, FormId } from '@contracts/compliance';
 import { TRANSFER_STATUS } from '@contracts/common'
 import { AssetDTOList, AssetSelectorProps, OrganizationSelectorProps, OrganizationDTO, TRANSFER_ROLE } from '@contracts/topology';
@@ -36,6 +36,7 @@ export default function TransferReceiptPage() {
   const [transferEventId, setTransferEventId] = useState<string>();
   const [requisitionNumber, setRequisitionNumber] = useState<string>();
   const [authorizingTemplateId, setAuthorizingTemplateId] = useState<FormId>();
+  const identity = useIdentity();
   const [fromOrg, setFromOrg] = useState<OrganizationDTO>();
   const [receivingOrg, setReceivingOrg] = useState<OrganizationDTO>();
 
@@ -87,6 +88,7 @@ export default function TransferReceiptPage() {
               />
               <OrganizationSelector
                 label="Receiving Organization"
+                onlyOrgId={identity?.orgId ?? undefined}
                 transferEventId={transferEventId}
                 transferEventRole={TRANSFER_ROLE.RECEIVER}
                 onSelect={setReceivingOrg}

@@ -18,6 +18,10 @@
         {
           "image": "compliance-shell",
           "module": "Flight Compliance tab"
+        },
+        {
+          "image": "auth-client",
+          "module": "ProfileSelector"
         }
       ]
     },
@@ -100,6 +104,12 @@
     {
       "from": "topology-client",
       "to": "topology-server",
+      "type": "http",
+      "label": "Topology REST API"
+    },
+    {
+      "from": "audit-client",
+      "to": "audit-server",
       "type": "http",
       "label": "Topology REST API"
     },

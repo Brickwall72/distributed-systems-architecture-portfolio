@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
-import { createLogger } from '@shared/express';
+import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
 import { TransfersRepository } from './repositories';
@@ -83,7 +83,7 @@ async function bootstrapApplicationServer() {
 
     // ✅ Instantiate routes ONLY after dependencies initialize successfully
     const topologyGateway = createTopologyGateway();
-    app.use('/api/v1', topologyGateway);
+    app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), topologyGateway);
 
     server = app.listen(Number(PORT), '0.0.0.0', () => {
       logger.info(`Safe isolated execution thread pool listening on port ${PORT}`);

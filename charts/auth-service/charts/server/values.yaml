@@ -1,0 +1,58 @@
+# File: charts/auth-service/charts/server/values.yaml
+
+nameOverride: auth-server
+
+image:
+  repository: auth-server
+  tag: prod
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+env:
+  - name: AUTH_PRIVATE_KEY_FILE
+    value: "/app/keys/private.pem"
+  # Dev login mints tokens for any seeded identity on request: demo only, never a production setting.
+  - name: AUTH_DEV_LOGIN
+    value: "true"
+envFrom: []
+
+volumeMounts:
+  - name: auth-signing-key
+    mountPath: "/app/keys"
+    readOnly: true
+
+volumes:
+  - name: auth-signing-key
+    secret:
+      secretName: auth-signing-key
+      items:
+        - key: private.pem
+          path: private.pem
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+probes:
+  readiness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

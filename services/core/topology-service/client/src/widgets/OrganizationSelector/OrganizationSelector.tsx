@@ -19,6 +19,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   }
   const label = parsedInputs.success ? parsedInputs.data.label : undefined;
   const excludeOrgId = parsedInputs.success ? parsedInputs.data.excludeOrgId : undefined;
+  const onlyOrgId = parsedInputs.success ? parsedInputs.data.onlyOrgId : undefined;
   const queryParams: GetOrganizationsQuery = parsedInputs.success
     ? GetOrganizationsQuerySchema.parse(parsedInputs.data)
     : { requireActiveAssets: false };
@@ -67,16 +68,17 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   const options: SelectOption[] = useMemo(() => {
     // PRECEDENCE RULE: If an explicit asset filter returns exactly 1 holding org, 
     // bypass excludeOrgId so the true owner can still be selected.
+    const candidateOrgs = onlyOrgId ? orgs.filter((org) => org.id === onlyOrgId) : orgs;
     const effectiveOrgs =
-      filterOwnedId && orgs.length === 1
-        ? orgs
-        : orgs.filter((org) => org.id !== excludeOrgId);
+      filterOwnedId && candidateOrgs.length === 1
+        ? candidateOrgs
+        : candidateOrgs.filter((org) => org.id !== excludeOrgId);
 
     return effectiveOrgs.map((org) => ({
       id: org.id,
       name: org.name,
     }));
-  }, [orgs, excludeOrgId, filterOwnedId]);
+  }, [orgs, excludeOrgId, filterOwnedId, onlyOrgId]);
 
   // 5. Handle User Selection
   const handleOrganizationSelect = (value: string) => {

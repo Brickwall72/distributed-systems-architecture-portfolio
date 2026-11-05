@@ -39,6 +39,9 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       NATS_URL: nats://nats:4222
+      AUTH_PUBLIC_KEY_FILE: /run/secrets/auth_public_key
+    secrets:
+      - auth_public_key
     depends_on:
       topology-db:
         condition: service_healthy
@@ -72,6 +75,10 @@ services:
         condition: service_healthy
     networks:
       - platform-mesh
+
+secrets:
+  auth_public_key:
+    file: ../../../.auth-keys/public.pem
 
 networks:
   platform-mesh:

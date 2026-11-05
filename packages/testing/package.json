@@ -19,6 +19,8 @@
     "zod": "~3.24.1"
   },
   "dependencies": {
-    "zocker": "~3.0.0"
+    "zocker": "~3.0.0",
+    "@contracts/auth": "workspace:*",
+    "jose": "^6.0.0"
   }
 }

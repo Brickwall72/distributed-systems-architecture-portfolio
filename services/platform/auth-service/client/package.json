@@ -1,0 +1,34 @@
+{
+  "name": "auth-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "pnpm test:unit && pnpm test:contract",
+    "test:unit": "vitest run .unit.test",
+    "test:contract": "vitest run .contract.spec"
+  },
+  "peerDependencies": {
+    "@ts-rest/core": "~3.52.1"
+  },
+  "dependencies": {
+    "@shared/ui-components": "workspace:*",
+    "@contracts/common": "workspace:*",
+    "@contracts/auth": "workspace:*",
+    "auth-shared": "workspace:*",
+    "@tanstack/react-query": "~5.105.3",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8",
+    "zod": "~3.24.1"
+  },
+  "devDependencies": {
+    "@shared/vite-config": "workspace:*",
+    "@shared/testing": "workspace:*",
+    "@contracts/esign": "workspace:*"
+  }
+}

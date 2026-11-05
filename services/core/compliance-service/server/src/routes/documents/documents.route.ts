@@ -77,7 +77,9 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       }
     },
 
-    signDocument: async ({ body, req }) => {
+    signDocument: async ({ body: requestBody, req }) => {
+      // The verified token, not the client payload, decides who the signer is.
+      const body = { ...requestBody, signerId: req.identity?.signerId ?? requestBody.signerId };
       const correlationId = (req.headers['x-correlation-id'] as string);
       logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
       const { broker, publisher, repository } = deps;

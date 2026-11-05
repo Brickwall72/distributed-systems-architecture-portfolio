@@ -33,6 +33,10 @@ data:
         {
           "name": "audit_client",
           "entry": "/audit/client/mf-manifest.json"
+        },
+        {
+          "name": "auth_client",
+          "entry": "/auth/client/mf-manifest.json"
         }
       ]
     }

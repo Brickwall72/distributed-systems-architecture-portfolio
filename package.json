@@ -16,7 +16,7 @@
     "test:integration": "turbo run test:integration",
     "docs:generate": "sh scripts/generate_doc_reports.sh",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006",
-    "docker:base": "scripts/with-buildkit.sh docker build -f Dockerfile.base -t base-image:local .",
+    "docker:base": "scripts/with-buildkit.sh docker build -f Dockerfile.base -t base-image:local . && scripts/generate-auth-keys.sh",
     "docker:df": "docker system df -v",
     "docker:prune": "docker buildx prune -f && docker image prune -f",
     "k8s:secrets": "bash scripts/k8s-local-secrets.sh",

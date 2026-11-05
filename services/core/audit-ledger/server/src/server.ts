@@ -3,7 +3,7 @@ import express from 'express';
 import { ZodError } from 'zod';
 import { createAuditGateway } from './routes';
 import { connectDatabaseWithRetry, closeDatabase } from './db';
-import { createLogger } from '@shared/express';
+import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
 import { LedgerService } from './services';
 import { EventsRepository, DraftsRepository, SealedTransfersRepository, DeadLettersRepository } from './repositories';
@@ -101,7 +101,7 @@ async function bootstrapApplicationServer() {
     });
     await new AuditEventConsumer(broker, ledgerService).start();
 
-    app.use('/api/v1', createAuditGateway({ ledgerService }));
+    app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), createAuditGateway({ ledgerService }));
 
     server = app.listen(env.PORT, '0.0.0.0', () => {
       logger.info(`Audit Server running on port ${env.PORT}`);

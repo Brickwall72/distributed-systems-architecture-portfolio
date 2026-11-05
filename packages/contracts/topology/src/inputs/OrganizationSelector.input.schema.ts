@@ -37,6 +37,8 @@ export type GetOrganizationsQuery = z.infer<typeof GetOrganizationsQuerySchema>;
  */
 const baseSelectorFields = {
   label: z.string().trim().min(1).optional(),
+  /** Restricts the selectable organizations to this one (e.g. the signed-in identity's organization). Client-side only. */
+  onlyOrgId: z.string().trim().min(1).optional(),
 };
 
 const SingleOrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({

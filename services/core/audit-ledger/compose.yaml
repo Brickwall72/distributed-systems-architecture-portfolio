@@ -35,10 +35,13 @@ services:
       - "traefik.http.services.audit-api.loadbalancer.server.port=8080"
     environment:
       NATS_URL: nats://nats:4222
+      AUTH_PUBLIC_KEY_FILE: /run/secrets/auth_public_key
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: audit-db
       DB_PORT: ${DB_PORT}
+    secrets:
+      - auth_public_key
     depends_on:
       audit-db:
         condition: service_healthy
@@ -71,6 +74,10 @@ services:
         condition: service_healthy
     networks:
       - platform-mesh
+
+secrets:
+  auth_public_key:
+    file: ../../../.auth-keys/public.pem
 
 networks:
   platform-mesh:
