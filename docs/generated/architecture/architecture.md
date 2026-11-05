@@ -11,6 +11,8 @@ flowchart LR
   subgraph images[Application images from Skaffold]
     audit_client["audit-client"]:::application
     audit_server["audit-server"]:::application
+    auth_client["auth-client"]:::application
+    auth_server["auth-server"]:::application
     compliance_client["compliance-client"]:::application
     compliance_server["compliance-server"]:::application
     compliance_shell["compliance-shell"]:::shell
@@ -24,6 +26,7 @@ flowchart LR
   nats["NATS JetStream"]:::broker
   global_shell ==>|Mission Operations: Fleet Topology tab| topology_shell
   global_shell ==>|Mission Operations: Flight Compliance tab| compliance_shell
+  global_shell ==>|Mission Operations: ProfileSelector| auth_client
   topology_shell ==>|Topology Dashboard: AssetRegistration| topology_client
   topology_shell ==>|Topology Dashboard: NetworkCanvas| topology_client
   compliance_shell ==>|Unified Custody: TemplateSelector| compliance_client
@@ -37,6 +40,7 @@ flowchart LR
   compliance_shell ==>|Transfer Receipt: ComplianceWorkflowWidget| compliance_client
   compliance_client -->|Compliance REST API| compliance_server
   topology_client -->|Topology REST API| topology_server
+  audit_client -->|Topology REST API| audit_server
   compliance_server <-->|Generate PDF| pdf_server
   compliance_server <-->|Sign document| esign_server
   compliance_server -.->|Publish transfer initiated / received| nats
@@ -58,16 +62,18 @@ flowchart LR
   linkStyle 10 stroke:#a78bfa,stroke-width:3px
   linkStyle 11 stroke:#a78bfa,stroke-width:3px
   linkStyle 12 stroke:#a78bfa,stroke-width:3px
-  linkStyle 13 stroke:#2563eb,stroke-width:2px
+  linkStyle 13 stroke:#a78bfa,stroke-width:3px
   linkStyle 14 stroke:#2563eb,stroke-width:2px
-  linkStyle 15 stroke:#c2410c,stroke-width:2px
-  linkStyle 16 stroke:#c2410c,stroke-width:2px
-  linkStyle 17 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 18 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 15 stroke:#2563eb,stroke-width:2px
+  linkStyle 16 stroke:#2563eb,stroke-width:2px
+  linkStyle 17 stroke:#c2410c,stroke-width:2px
+  linkStyle 18 stroke:#c2410c,stroke-width:2px
   linkStyle 19 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 20 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 21 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 22 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 23 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 24 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
 ```
 
 ## Interaction legend
