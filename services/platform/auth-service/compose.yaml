@@ -1,0 +1,59 @@
+# File: services/platform/auth-service/compose.yaml
+services:
+  auth-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      target: prod
+    image: auth-server:prod
+    container_name: auth-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth-api.rule=PathPrefix(`/auth/api`)"
+      - "traefik.http.routers.auth-api.entrypoints=web"
+      - "traefik.http.middlewares.auth-api-rewrite.replacepathregex.regex=^/auth/api/v1/(.*)"
+      - "traefik.http.middlewares.auth-api-rewrite.replacepathregex.replacement=/api/v1/$1"
+      - "traefik.http.routers.auth-api.middlewares=auth-api-rewrite"
+      - "traefik.http.services.auth-api.loadbalancer.server.port=8080"
+    environment:
+      AUTH_PRIVATE_KEY_FILE: /run/secrets/auth_private_key
+      AUTH_DEV_LOGIN: ${AUTH_DEV_LOGIN:-false}
+    secrets:
+      - auth_private_key
+    networks:
+      - platform-mesh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:8080/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  auth-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      target: prod
+    image: auth-client:prod
+    container_name: auth-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.auth.entrypoints=web"
+      - "traefik.http.services.auth.loadbalancer.server.port=3000"
+    depends_on:
+      auth-server:
+        condition: service_healthy
+    networks:
+      - platform-mesh
+
+secrets:
+  auth_private_key:
+    file: ../../../.auth-keys/private.pem
+
+networks:
+  platform-mesh:
+    name: platform-mesh

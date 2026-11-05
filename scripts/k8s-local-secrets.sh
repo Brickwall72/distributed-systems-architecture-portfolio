@@ -126,3 +126,21 @@ if [[ -f "$cert_path" ]]; then
 else
   echo "Warning: Signing certificate not found at ${cert_path}. Skipping file binding for ${esign_secret_name}." >&2
 fi
+
+# ---------------------------------------------------------
+# AUTH KEYS (RS256): private key only for auth-server, public key for verifying servers
+# ---------------------------------------------------------
+auth_key_dir=".auth-keys"
+if [[ ! -f "${auth_key_dir}/private.pem" ]]; then
+  bash scripts/generate-auth-keys.sh
+fi
+
+kubectl create secret generic "auth-signing-key" \
+  --namespace "${namespace}" \
+  --from-file="private.pem=${auth_key_dir}/private.pem" \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+kubectl create secret generic "auth-public-key" \
+  --namespace "${namespace}" \
+  --from-file="public.pem=${auth_key_dir}/public.pem" \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+echo "Kubernetes secrets auth-signing-key and auth-public-key/${namespace} synchronized."

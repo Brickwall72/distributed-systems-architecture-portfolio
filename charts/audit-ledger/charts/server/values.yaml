@@ -27,7 +27,22 @@ env:
     value: "27017"
   - name: NATS_URL
     value: "nats://nats.platform-local.svc.cluster.local:4222"
+  - name: AUTH_PUBLIC_KEY_FILE
+    value: "/app/auth/public.pem"
 envFrom: []
+
+volumeMounts:
+  - name: auth-public-key
+    mountPath: "/app/auth"
+    readOnly: true
+
+volumes:
+  - name: auth-public-key
+    secret:
+      secretName: auth-public-key
+      items:
+        - key: public.pem
+          path: public.pem
 
 initContainers:
   - name: wait-for-db

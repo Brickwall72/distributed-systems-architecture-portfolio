@@ -6,6 +6,7 @@ import '@shared/styles';
 
 // Dynamically resolve domain shells at runtime via the global peer registry (initialized in main.tsx)
 const TopologyApp = lazy(() => loadRemote<any>('topology_shell/App'));
+const ProfileSelector = lazy(() => loadRemote<any>('auth_client/ProfileSelector'));
 const ComplianceApp = lazy(() => loadRemote<any>('compliance_shell/App'));
 
 interface DomainTab {
@@ -61,6 +62,14 @@ export default function App() {
             );
           })}
         </nav>
+
+        <div className="min-w-56">
+          <FederatedErrorBoundary remoteName="auth_client/ProfileSelector">
+            <Suspense fallback={<span className="text-sm text-gray-400">Loading profiles...</span>}>
+              <ProfileSelector />
+            </Suspense>
+          </FederatedErrorBoundary>
+        </div>
       </header>
 
       {/* Main Viewport Container with Fault Isolation */}

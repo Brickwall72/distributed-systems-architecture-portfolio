@@ -1,0 +1,24 @@
+# File: charts/auth-service/values.yaml
+
+ingress:
+  web:
+    entryPoints:
+      - web
+
+  websecure:
+    enabled: false
+    entryPoints:
+      - websecure
+    tls: {}
+
+  api:
+    rule: "PathPrefix(`/auth/api`)"
+    serviceName: auth-server
+    rewrite:
+      regex: "^/auth/api/v1/(.*)"
+      replacement: "/api/v1/$1"
+
+  client:
+    rule: "PathPrefix(`/auth`)"
+    serviceName: auth-client
+

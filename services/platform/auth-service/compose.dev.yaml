@@ -1,0 +1,26 @@
+# File: services/platform/auth-service/compose.dev.yaml
+services:
+  auth-server:
+    build:
+      target: dev
+    image: auth-server:dev
+    environment:
+      # Forces polling for cross-os volume event reliability
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Mount source for nodemon/Vite live-reloading
+      - ./packages:/app/packages
+      - ./services/platform/auth-service/server:/app/services/platform/auth-service/server
+      # Prevent host node_modules from colliding with the container's unprivileged node user
+      - /app/services/platform/auth-service/server/node_modules
+
+  auth-client:
+    build:
+      target: dev
+    image: auth-client:dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./packages:/app/packages
+      - ./services/platform/auth-service/client:/app/services/platform/auth-service/client
+      - /app/services/platform/auth-service/client/node_modules

@@ -21,7 +21,8 @@
     "audit-shared": "workspace:*",
     "@tanstack/react-query": "~5.105.3",
     "react": "~19.2.8",
-    "react-dom": "~19.2.8"
+    "react-dom": "~19.2.8",
+    "@contracts/auth": "workspace:*"
   },
   "devDependencies": {
     "@shared/vite-config": "workspace:*",

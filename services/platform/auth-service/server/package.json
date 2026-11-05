@@ -1,0 +1,30 @@
+{
+  "name": "auth-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "pnpm test:unit && pnpm test:verify",
+    "test:unit": "vitest run .unit.test",
+    "test:verify": "vitest run .provider.contract.spec"
+  },
+  "dependencies": {
+    "@shared/express": "workspace:*",
+    "@contracts/auth": "workspace:*",
+    "auth-shared": "workspace:*",
+    "@ts-rest/core": "~3.52.1",
+    "@ts-rest/express": "~3.52.1",
+    "express": "^4.0.0",
+    "zod": "~3.24.1",
+    "jose": "^6.0.0",
+    "@contracts/common": "workspace:*"
+  },
+  "devDependencies": {
+    "@shared/testing": "workspace:*"
+  }
+}

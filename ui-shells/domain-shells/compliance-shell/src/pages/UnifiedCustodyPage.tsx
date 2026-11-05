@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
 import { useState, Suspense, useEffect } from 'react';
 import { lazyRemote } from '../utils/federation';
-import { FederatedErrorBoundary } from '@shared/ui-components';
+import { FederatedErrorBoundary, useIdentity } from '@shared/ui-components';
 import { TRANSFER_TYPE, TransferType } from '@contracts/common';
 import { 
   ComplianceWorkflowWidgetProps, 
@@ -26,6 +26,7 @@ const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('comp
 
 export default function UnifiedCustodyPage() {
   // 1. Topology Data Handlers
+  const identity = useIdentity();
   const [sourceOrg, setSourceOrg] = useState<OrganizationDTO>();
   const [targetOrg, setTargetOrg] = useState<OrganizationDTO>();
   const [assets, setAssets] = useState<AssetDTOList>([]);
@@ -74,6 +75,7 @@ export default function UnifiedCustodyPage() {
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selectors...</div>}>
             <OrganizationSelector
               label='Source Organization'
+              onlyOrgId={identity?.orgId ?? undefined}
               excludeOrgId={targetOrg?.id}
               filterOwnedId={assets[0]?.id}
               onSelect={setSourceOrg}

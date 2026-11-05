@@ -44,6 +44,25 @@ build:
         infer:
           - "**/*.ts"
           - "**/*.json"
+    - image: auth-server
+      context: services/platform/auth-service
+      docker:
+        dockerfile: Dockerfile.server
+        target: prod
+      sync:
+        infer:
+          - "**/*.ts"
+          - "**/*.json"
+    - image: auth-client
+      context: services/platform/auth-service
+      docker:
+        dockerfile: Dockerfile.client
+        target: prod
+      sync:
+        infer:
+          - "**/*.tsx"
+          - "**/*.ts"
+          - "**/*.json"
     - image: topology-shell
       context: ui-shells/domain-shells/topology-shell
       docker:
@@ -160,6 +179,14 @@ deploy:
         setValueTemplates:
           server.image.repository: "{{.IMAGE_REPO_esign_server}}"
           server.image.tag: "{{.IMAGE_TAG_esign_server}}"
+      - name: auth-service
+        chartPath: charts/auth-service
+        namespace: platform-local
+        setValueTemplates:
+          server.image.repository: "{{.IMAGE_REPO_auth_server}}"
+          server.image.tag: "{{.IMAGE_TAG_auth_server}}"
+          client.image.repository: "{{.IMAGE_REPO_auth_client}}"
+          client.image.tag: "{{.IMAGE_TAG_auth_client}}"
       - name: topology-shell
         chartPath: charts/topology-shell
         namespace: platform-local

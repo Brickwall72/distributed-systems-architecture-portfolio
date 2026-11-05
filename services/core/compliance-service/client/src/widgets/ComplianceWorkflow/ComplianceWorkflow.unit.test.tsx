@@ -33,6 +33,7 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shared/ui-components')>();
   return {
     ...actual,
+    useIdentity: () => ({ id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' }),
     hydrateTemplate: vi.fn((html, data) => `hydrated:${html}:${JSON.stringify(data)}`),
     DocumentViewer: ({ content, children }: any) => (
       <div data-testid="document-viewer" data-content={content}>

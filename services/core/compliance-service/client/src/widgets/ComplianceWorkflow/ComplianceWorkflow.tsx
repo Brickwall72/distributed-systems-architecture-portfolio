@@ -1,6 +1,6 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.tsx
 import { useState, useMemo, useEffect } from 'react';
-import { Button, DocumentViewer, hydrateTemplate } from '@shared/ui-components';
+import { Button, DocumentViewer, hydrateTemplate, useIdentity } from '@shared/ui-components';
 import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance'; 
 import { masterPayloadInputSchema, templateId2dataSchema, getReceiptTemplateId } from 'compliance-shared';
@@ -8,6 +8,7 @@ import { useGeneratePdf, useSignPdf, signPdfParamsSchema, useTemplateQuery } fro
 import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
+  const identity = useIdentity();
   const parsedProps = ComplianceWorkflowWidgetPropsSchema.safeParse(props);
   if (!parsedProps.success) {
     console.warn('[ComplianceWorkflowWidget MFE] Invalid props received from Host Shell:', parsedProps.error.format());
@@ -63,12 +64,12 @@ export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkf
   }, [selectedTemplate?.rawHTML, displayPayload]);
 
   const handleSign = async (signatureDataUrl: string) => {
-    if (!unsignedDocumentData || !pdfBlobUrl) return;
+    if (!unsignedDocumentData || !pdfBlobUrl || !identity) return;
 
     await signPdf({
       params: signPdfParamsSchema.parse({
         ...unsignedDocumentData,
-        signerId: 'usr_compliance_officer',
+        signerId: identity.signerId,
         customPath: `compliance/transfers/${unsignedDocumentData.documentType || 'forms'}`,
         signatureDataUrl,
       }),
