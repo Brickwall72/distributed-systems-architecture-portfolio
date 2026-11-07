@@ -42,6 +42,7 @@ describe('Documents Router Unit Tests', () => {
   let mockBroker: { request: ReturnType<typeof vi.fn> };
   let mockPublisher: { publishTransferInitiated: ReturnType<typeof vi.fn>; publishTransferReceived: ReturnType<typeof vi.fn> };
   let repository: DocumentsRepository;
+  const getSignedDownloadUrl = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,6 +53,7 @@ describe('Documents Router Unit Tests', () => {
       broker: mockBroker as unknown as EventBroker,
       publisher: mockPublisher as unknown as CompliancePublisher,
       repository,
+      getSignedDownloadUrl,
     });
   });
 
@@ -88,6 +90,41 @@ describe('Documents Router Unit Tests', () => {
       expect(result.status).toBe(200);
       expect(result.body).toEqual(DocumentSchema.parse(doc));
       expect(mockFindById).toHaveBeenCalledWith(doc.id);
+    });
+
+    describe('GET /documents/:id/content', () => {
+      it('signs the stored bucket and key and prevents caching the response', async () => {
+        const doc = mockEntity();
+        const setHeader = vi.fn();
+        mockFindById.mockResolvedValueOnce(doc);
+        getSignedDownloadUrl.mockResolvedValueOnce('https://storage.example/dsap/file.pdf?signature=test');
+
+        const result = await router.getDocumentContentById(request({}, {
+          params: { id: doc.id },
+          req: { headers: {}, res: { setHeader } },
+        }));
+
+        expect(result).toEqual({ status: 200, body: { presignedUrl: 'https://storage.example/dsap/file.pdf?signature=test' } });
+        expect(getSignedDownloadUrl).toHaveBeenCalledWith({
+          storageBucket: doc.storageBucket, storageKey: doc.storageKey, expiresInSeconds: 600,
+        });
+        expect(setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+      });
+
+      it('returns 404 without signing a missing document', async () => {
+        mockFindById.mockResolvedValueOnce(null);
+        const result = await router.getDocumentContentById(request({}, { params: { id: mockEntity().id } }));
+        expect(result.status).toBe(404);
+        expect(getSignedDownloadUrl).not.toHaveBeenCalled();
+      });
+
+      it('does not expose presigner errors', async () => {
+        mockFindById.mockResolvedValueOnce(mockEntity());
+        getSignedDownloadUrl.mockRejectedValueOnce(new Error('internal storage details'));
+        const result = await router.getDocumentContentById(request({}, { params: { id: mockEntity().id } }));
+        expect(result.status).toBe(500);
+        expect(result.body).toMatchObject({ error: 'Internal server error retrieving document content.' });
+      });
     });
 
     it('returns 404 when document is not found in repository', async () => {

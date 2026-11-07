@@ -216,6 +216,21 @@ The expected Kubernetes context is `k3d-platform-cluster`. The frontend federati
 
 PDF presigned URLs use `http://minio.localhost:8081`, routed to the MinIO S3 API Service on port `9000` (not the web console on port `9001`). The MinIO API allows browser CORS for this local workflow; a successful presigned download should return `Content-Type: application/pdf`.
 
+The compliance document viewer also signs download URLs. The compliance server uses
+`S3_PUBLIC_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY`: Compose
+reads them from the compliance service environment, while the Helm chart reads
+credentials from `minio-credentials`. Set the public endpoint to the exact
+browser-reachable S3 origin before deployment; `minio.localhost` works only on
+the local machine. Remote deployments need an HTTPS endpoint, compatible S3
+ingress and CORS permitting the frontend origin; rewriting a URL after signing
+invalidates its signature.
+
+The document endpoint verifies a JWT but does **not** yet enforce organization
+access. Demo login allows callers to select any seeded identity, and the root
+Compose setup makes the `dsap` bucket publicly readable. Use fictional data
+only; neither the viewer nor its short-lived URLs protect sensitive documents in
+this configuration. Transfer PDF previews are not implemented.
+
 ### Service-Level Compose Development
 
 Use Compose when working on individual containers without the Kubernetes stack. The root Compose file includes the service-owned definitions and does not bind port `8081`:

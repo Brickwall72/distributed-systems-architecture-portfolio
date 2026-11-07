@@ -2,21 +2,9 @@
 import { useState, Suspense } from 'react';
 import { lazyRemote } from '../utils/federation';
 import { FederatedErrorBoundary, useIdentity } from '@shared/ui-components';
-import { ComplianceWorkflowWidgetProps, FormId } from '@contracts/compliance';
+import { ComplianceWorkflowWidgetProps, FormId, DocumentsTableInput } from '@contracts/compliance';
 import { TRANSFER_STATUS } from '@contracts/common'
 import { AssetDTOList, AssetSelectorProps, OrganizationSelectorProps, OrganizationDTO, TRANSFER_ROLE } from '@contracts/topology';
-
-export interface DocumentsTableProps {
-  /** Emits the selected row's transferEventId, or null when deselected. */
-  readonly onTransferEventSelect?: (transferEventId: string | null) => void;
-  readonly onRequisitionNumberSelect?: (requisitionNumber: string | null) => void;
-  readonly onAuthorizingTemplateSelect?: (templateId: FormId | undefined) => void;
-  /** Limits returned rows to these statuses (e.g. IN_PROGRESS, PARTIALLY_COMPLETED). */
-  readonly statusFilter?: readonly (typeof TRANSFER_STATUS.IN_PROGRESS | typeof TRANSFER_STATUS.PARTIALLY_COMPLETED)[];
-  /** Limits returned rows to these requisition numbers; an empty array matches nothing. */
-  readonly requisitionNumbers?: readonly string[];
-  readonly hiddenColumns?: readonly ('type' | 'transferType' | 'status' | 'updatedAt' | 'requisitionNumber')[];
-}
 
 /** Intersects every active selection's requisition numbers; undefined when nothing is selected. */
 function intersectRequisitions(sets: readonly (readonly string[] | undefined)[]): string[] | undefined {
@@ -26,7 +14,7 @@ function intersectRequisitions(sets: readonly (readonly string[] | undefined)[])
 }
 
 // Dynamically resolve micro-frontend widgets
-const DocumentsTable = lazyRemote<DocumentsTableProps>('compliance_client/DocumentsTable');
+const DocumentsTable = lazyRemote<DocumentsTableInput>('compliance_client/DocumentsTable');
 const OrganizationSelector = lazyRemote<OrganizationSelectorProps>('topology_client/OrganizationSelector');
 const AssetSelector = lazyRemote<AssetSelectorProps>('topology_client/AssetSelector');
 const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('compliance_client/ComplianceWorkflowWidget');

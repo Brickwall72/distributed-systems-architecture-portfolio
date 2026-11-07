@@ -1,8 +1,10 @@
 // File: services/core/compliance-service/client/src/widgets/DocumentsTable.tsx
-import { useState } from 'react';
-import { Document, DocumentStatus, FormId } from 'compliance-shared';
-import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
-import { useDocuments } from '../../hooks';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Document } from 'compliance-shared';
+import { DatabaseTwinTable, TableColumn, useIdentity } from '@shared/ui-components';
+import { DocumentsTableInput } from '@contracts/compliance';
+import { useDocuments, useGetPdf } from '../../hooks';
 import '@shared/styles';
 
 const columns: TableColumn<Document>[] = [
@@ -17,38 +19,56 @@ const columns: TableColumn<Document>[] = [
   },
 ];
 
-export interface DocumentsTableProps {
-  /** Emits the selected row's transferEventId, or undefined when deselected. */
-  readonly onTransferEventSelect?: (transferEventId: string | undefined) => void;
-  readonly onRequisitionNumberSelect?: (requisitionNumber: string | undefined) => void;
-  /** Emits the selected row's template id (the authorizing document), or undefined when deselected. */
-  readonly onAuthorizingTemplateSelect?: (templateId: FormId | undefined) => void;
-  /** Limits returned rows to these statuses (e.g. IN_PROGRESS, PARTIALLY_COMPLETED). */
-  readonly statusFilter?: readonly DocumentStatus[];
-  /** Limits returned rows (server-side) to these requisition numbers. */
-  readonly requisitionNumbers?: readonly string[];
-  /** Columns (by Document key) to omit from the table. */
-  readonly hiddenColumns?: readonly (keyof Document)[];
-}
-
-export default function DocumentsTable({ onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect, statusFilter, requisitionNumbers, hiddenColumns }: Readonly<DocumentsTableProps>) {
+export default function DocumentsTable({
+  onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect, onPdfSelect,
+  statusFilter, requisitionNumbers, hiddenColumns
+}: Readonly<DocumentsTableInput>) {
   const { documents, loading, error } = useDocuments({ statuses: statusFilter, requisitionNumbers });
-  const [selectedTransferEventId, setSelectedTransferEventId] = useState<string>();
-  const [selectedRequisitionNumber, setSelectedRequisitionNumber] = useState<string>();
+  const identityId = useIdentity()?.id;
+  const previousIdentityId = useRef(identityId);
+  const queryClient = useQueryClient();
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>();
+  const { data: pdf, error: pdfError } = useGetPdf(
+    onPdfSelect && previousIdentityId.current === identityId ? selectedDocumentId : undefined,
+  );
+  const selectable = onTransferEventSelect || onRequisitionNumberSelect || onAuthorizingTemplateSelect || onPdfSelect;
+
+  useEffect(() => {
+    if (previousIdentityId.current !== identityId) {
+      const oldId = previousIdentityId.current;
+      previousIdentityId.current = identityId;
+      setSelectedDocumentId(undefined);
+      onPdfSelect?.({ type: 'clear' });
+      if (oldId) {
+        queryClient.removeQueries({ queryKey: ['compliance-service', 'document-pdf', oldId] });
+      }
+    }
+  }, [identityId, onPdfSelect, queryClient]);
+
+  useEffect(() => {
+    if (!selectedDocumentId || !identityId || !onPdfSelect) return;
+    if (pdf) {
+      onPdfSelect({ type: 'ready', documentId: selectedDocumentId, identityId, blob: pdf });
+    } else if (pdfError) {
+      onPdfSelect({ type: 'error', documentId: selectedDocumentId, identityId, message: pdfError.message });
+    }
+  }, [pdf, pdfError, selectedDocumentId, identityId, onPdfSelect]);
 
   const visibleColumns = hiddenColumns?.length
-    ? columns.filter((column) => !hiddenColumns.includes(column.key as keyof Document))
+    ? columns.filter((column) => !(hiddenColumns as readonly string[]).includes(String(column.key)))
     : columns;
 
   const handleRowSelect = (row: Document) => {
-    if (!row.transferEventId) return;
-    const TEI = row.transferEventId === selectedTransferEventId ? undefined : row.transferEventId;
-    setSelectedTransferEventId(TEI);
-    onTransferEventSelect?.(TEI);
-    const RN = row.requisitionNumber === selectedRequisitionNumber ? undefined : row.requisitionNumber;
-    setSelectedRequisitionNumber(RN);
-    onRequisitionNumberSelect?.(RN);
-    onAuthorizingTemplateSelect?.(RN ? row.name : undefined);
+    const nextId = row.id === selectedDocumentId ? undefined : row.id;
+    setSelectedDocumentId(nextId);
+    onTransferEventSelect?.(nextId ? row.transferEventId ?? undefined : undefined);
+    onRequisitionNumberSelect?.(nextId ? row.requisitionNumber : undefined);
+    onAuthorizingTemplateSelect?.(nextId ? row.name : undefined);
+    if (nextId && identityId) {
+      onPdfSelect?.({ type: 'select', documentId: nextId, identityId });
+    } else {
+      onPdfSelect?.({ type: 'clear' });
+    }
   };
 
   if (loading) {
@@ -68,9 +88,6 @@ export default function DocumentsTable({ onTransferEventSelect, onRequisitionNum
     );
   }
 
-  const selectedRowKey =
-    documents.find((d) => d.transferEventId === selectedTransferEventId)?.requisitionNumber ?? null;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -85,9 +102,9 @@ export default function DocumentsTable({ onTransferEventSelect, onRequisitionNum
       <DatabaseTwinTable 
         data={documents}
         columns={visibleColumns}
-        rowKey="requisitionNumber"
-        onRowSelect={(onTransferEventSelect || onRequisitionNumberSelect) ? handleRowSelect : undefined}
-        selectedRowKey={selectedRowKey}
+        rowKey="id"
+        onRowSelect={selectable ? handleRowSelect : undefined}
+        selectedRowKey={selectedDocumentId}
       />
     </div>
   );

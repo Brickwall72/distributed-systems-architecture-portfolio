@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { transferSummarySchema, type TransferSummary } from 'audit-shared';
-import { mockFromSchema } from '@shared/testing';
+import { mockFromSchema, setTestSession } from '@shared/testing';
 import TransfersTable from './TransfersTable';
 import { useGetTransfers } from '../../hooks';
 
@@ -29,6 +29,14 @@ describe('TransfersTable', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setTestSession();
+  });
+
+  it('prompts for a profile instead of reporting an error when signed out', () => {
+    setTestSession(null);
+    mockHook({});
+    render(<TransfersTable />);
+    expect(screen.getByText('Select a profile to view audit ledger transfers.')).toBeDefined();
   });
 
   it('shows a loading message while fetching', () => {

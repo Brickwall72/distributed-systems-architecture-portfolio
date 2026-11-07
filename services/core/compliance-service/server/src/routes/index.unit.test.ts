@@ -24,7 +24,7 @@ describe('createComplianceGateway', () => {
       query: vi.fn().mockResolvedValue({ rows: [] }),
     } as unknown as Pool);
 
-    app.use('/api/v1', createComplianceGateway({ broker, publisher, repository }));
+    app.use('/api/v1', createComplianceGateway({ broker, publisher, repository, getSignedDownloadUrl: vi.fn() }));
   });
 
   it('mounts the health check endpoint', async () => {

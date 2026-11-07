@@ -72,6 +72,32 @@ describe('Compliance Client -> Compliance Server Contract (Documents API)', () =
     });
   });
 
+  it('returns a temporary URL for document content', async () => {
+    const presignedUrl = 'http://localhost:9000/dsap/test.pdf?signature=xyz';
+    provider
+      .given(`document with ID ${documentId} exists`)
+      .uponReceiving(`a request for document ${documentId} content`)
+      .withRequest({
+        method: 'GET',
+        path: `/compliance/api/v1/documents/${documentId}/content`,
+        headers: { Accept: 'application/json' },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        body: like({ presignedUrl }),
+      });
+
+    await provider.executeTest(async (mockServer) => {
+      const response = await apiClient.getDocumentContentById({
+        params: { id: documentId },
+        overrideClientOptions: { baseUrl: `${mockServer.url}/compliance/api/v1` },
+      });
+      expect(response.status).toBe(200);
+      expect(documentsRoutes.getDocumentContentById.responses[200].parse(response.body)).toEqual({ presignedUrl });
+    });
+  });
+
   it('signs a document and returns the presignedUrl', async () => {
     const request = mockFromSchema(signDocumentApiRequestSchema, {
       documentId,

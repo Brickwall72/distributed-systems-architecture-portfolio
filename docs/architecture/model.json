@@ -35,6 +35,10 @@
         },
         {
           "image": "topology-client",
+          "module": "OrganizationSelector"
+        },
+        {
+          "image": "topology-client",
           "module": "NetworkCanvas"
         }
       ]
@@ -68,6 +72,10 @@
         {
           "image": "compliance-client",
           "module": "DocumentsTable"
+        },
+        {
+          "image": "audit-client",
+          "module": "TransfersTable"
         }
       ]
     },
@@ -110,6 +118,12 @@
     {
       "from": "audit-client",
       "to": "audit-server",
+      "type": "http",
+      "label": "Topology REST API"
+    },
+    {
+      "from": "auth-client",
+      "to": "auth-server",
       "type": "http",
       "label": "Topology REST API"
     },

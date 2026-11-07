@@ -1,3 +1,4 @@
+// File: services/platform/esignature-service/server/src/services/storage/storage.unit.test.ts
 import { InMemoryStorageClient, uploadFileRequestSchema, uploadFileResultSchema } from '@shared/filestore';
 import { mockFromSchema } from '@shared/testing';
 

@@ -41,6 +41,19 @@ export const documentsRoutes = {
     },
     summary: 'Retrieve a single document by UUID.',
   }),
+  getDocumentContentById: c.query({
+    method: 'GET',
+    path: '/documents/:id/content',
+    pathParams: z.object({
+      id: z.string().uuid(),
+    }),
+    responses: {
+      200: z.object({ presignedUrl: z.string().url() }),
+      404: ApiErrorResponseSchema,
+      500: ApiErrorResponseSchema,
+    },
+    summary: 'Retrieve a temporary URL for a stored document by UUID.',
+  }),
   signDocument: c.mutation({
     method: 'POST',
     path: '/documents/sign',

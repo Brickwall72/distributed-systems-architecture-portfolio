@@ -5,16 +5,21 @@ import { documentsRoutes, DocumentSchema, FORM_TYPE } from 'compliance-shared';
 import { DocumentsRepository, insertDataSchema } from '../../repositories';
 import { EventBroker } from '@shared/messaging';
 import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
+import { DOCUMENT_STATUS } from '@contracts/compliance';
 import {
   CompliancePublisher, publishtransferInitiatedDataSchema,
   publishtransferReceivedDataSchema,
 } from '../../messaging';
+import { getSignedDownloadUrlRequestSchema, type GetSignedDownloadUrlRequest } from '@shared/filestore';
 import { z } from 'zod';
 
 export const documentsRouterDepsSchema = z.object({
   broker: z.instanceof(EventBroker),
   publisher: z.instanceof(CompliancePublisher),
   repository: z.instanceof(DocumentsRepository),
+  getSignedDownloadUrl: z.custom<(request: GetSignedDownloadUrlRequest) => Promise<string>>(
+    (value) => typeof value === 'function',
+  ),
 })
 type DocumentsRouterDeps = z.infer<typeof documentsRouterDepsSchema>;
 
@@ -76,6 +81,42 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         };
       }
     },
+    getDocumentContentById: async ({ params: { id }, req }) => {
+      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+      logger.debug(`Retrieving document content for ID: ${id}`, correlationId);
+      req.res?.setHeader('Cache-Control', 'no-store');
+      const { repository } = deps;
+
+      try {
+        const document = await repository.findById(id);
+
+        if (!document?.storageBucket || !document?.storageKey) {
+          return {
+            status: 404 as const,
+            body: {
+              error: `Document with ID '${id}' was not found or does not have storageBucket and/or storageKey.`,
+              code: 'NOT_FOUND',
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+
+        const presignedUrl = await deps.getSignedDownloadUrl(getSignedDownloadUrlRequestSchema.parse(document));
+
+        return { status: 200 as const, body: { presignedUrl } };
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : 'Unknown error';
+        logger.error(`Failed to retrieve document content in GET /documents/:id/content: ${errorType}`, correlationId);
+        return {
+          status: 500 as const,
+          body: {
+            error: 'Internal server error retrieving document content.',
+            code: 'INTERNAL_SERVER_ERROR',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+    },
 
     signDocument: async ({ body: requestBody, req }) => {
       // The verified token, not the client payload, decides who the signer is.
@@ -106,7 +147,9 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         }
 
         // Await upsert indexing before querying repository
-        const document = await repository.insert(insertDataSchema.parse({...body, ...responseData, status: 'SIGNED'}));
+        const document = await repository.insert(
+          insertDataSchema.parse({...body, ...responseData, status: DOCUMENT_STATUS.SIGNED})
+        );
 
         if(document.type === FORM_TYPE.AUTHORIZATION){
           const data = publishtransferInitiatedDataSchema.parse({
