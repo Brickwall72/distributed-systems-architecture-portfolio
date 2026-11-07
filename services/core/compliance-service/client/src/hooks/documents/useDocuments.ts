@@ -1,5 +1,5 @@
 // File: services/core/compliance-service/client/src/hooks/documents/useDocuments.ts
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useIdentity } from '@shared/ui-components';
 import { z } from 'zod';
 import { Document, DocumentSchema, DocumentStatus } from 'compliance-shared';
@@ -16,19 +16,30 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
   const matchesNothing = requisitionNumbers?.length === 0;
   const requisitionQuery = requisitionNumbers?.length ? requisitionNumbers.join(',') : undefined;
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentsIdentityId, setDocumentsIdentityId] = useState<string>();
   const [loading, setLoading] = useState<boolean>(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const fetchDocuments = useCallback(async () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setLoading(true);
     setError(null);
     if (matchesNothing || !identityId) {
       setDocuments([]);
+      setDocumentsIdentityId(undefined);
       setLoading(false);
       return;
     }
     try {
-      const response = await apiClient.getDocuments({ query: { status: statusQuery, requisitionNumbers: requisitionQuery } });
+      const response = await apiClient.getDocuments({
+        query: { status: statusQuery, requisitionNumbers: requisitionQuery },
+        fetchOptions: { signal: controller.signal },
+      });
+
+      if (controller.signal.aborted) return;
 
       if (response.status !== 200) {
         const errBody = response.body as { error?: string; message?: string };
@@ -38,16 +49,24 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
       // Enforces Zod contract validation at the boundary
       const parsedData = z.array(DocumentSchema).parse(response.body);
       setDocuments(parsedData);
+      setDocumentsIdentityId(identityId);
     } catch (err) {
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Failed to retrieve dataset');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [statusQuery, requisitionQuery, matchesNothing, identityId]);
 
   useEffect(() => {
     void fetchDocuments();
+    return () => controllerRef.current?.abort();
   }, [fetchDocuments]);
 
-  return { documents, loading, error, refetch: fetchDocuments };
+  return {
+    documents: identityId && documentsIdentityId === identityId ? documents : [],
+    loading,
+    error,
+    refetch: fetchDocuments,
+  };
 }

@@ -9,6 +9,7 @@ import { TransferService } from './services';
 import { DocumentsRepository } from './repositories';
 import { CompliancePublisher, ComplianceEventConsumer } from './messaging';
 import { env } from './config';
+import { publicStorageClient } from './services/storage';
 
 const app = express();
 const logger = createLogger('compliance-server');
@@ -103,7 +104,10 @@ async function bootstrapApplicationServer() {
     logger.info('Compliance event publisher initialized.');
 
     // 2. Inject publisher into gateway factory routes
-    const complianceGateway = createComplianceGateway({broker, publisher, repository});
+    const complianceGateway = createComplianceGateway({
+      broker, publisher, repository,
+      getSignedDownloadUrl: (request) => publicStorageClient.getSignedDownloadUrl(request),
+    });
     app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), complianceGateway);
 
     server = app.listen(env.PORT, '0.0.0.0', () => {

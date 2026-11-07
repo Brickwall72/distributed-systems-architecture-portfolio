@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { mapDbRowToDocument } from '../../mappers';
 import { formIdEnum, formTypeEnum } from 'compliance-shared';
 import { transferTypeEnum, transferStatusEnum } from '@contracts/common';
+import { DOCUMENT_STATUS } from '@contracts/compliance';
 import { z } from 'zod';
 
 export const insertDataSchema = z.object({
@@ -13,7 +14,7 @@ export const insertDataSchema = z.object({
   requisitionNumber: z.string(),
   storageBucket: z.string(),
   storageKey: z.string(),
-  status: z.union([transferStatusEnum, z.literal('SIGNED')]),
+  status: z.union([transferStatusEnum, z.literal(DOCUMENT_STATUS.SIGNED)]),
   signerId: z.string(),
   fileHash: z.string(),
   transferEventId: z.string().uuid().optional(),

@@ -1,10 +1,11 @@
 // File: service/core/audit-ledger/client/src/widgets/TransfersTable/TransfersTable.tsx
 import { useState } from 'react';
-import { DatabaseTwinTable, TableColumn } from '@shared/ui-components';
+import { DatabaseTwinTable, TableColumn, useIdentity } from '@shared/ui-components';
 import { TransferSummary } from 'audit-shared';
 import { useGetTransfers } from '../../hooks';
 
 export default function TransfersTableWidget() {
+  const identity = useIdentity();
   const { data: transfers, isLoading, error } = useGetTransfers();
   const [selectedRequisition, setSelectedRequisition] = useState<string | null>(null);
 
@@ -39,6 +40,10 @@ export default function TransfersTableWidget() {
       render: (val) => new Date(String(val)).toLocaleString() 
     },
   ];
+
+  if (!identity) {
+    return <div className="p-4 text-sm text-slate-400">Select a profile to view audit ledger transfers.</div>;
+  }
 
   if (isLoading) {
     return <div className="p-4 text-sm text-gray-400">Loading audit ledger transfers...</div>;

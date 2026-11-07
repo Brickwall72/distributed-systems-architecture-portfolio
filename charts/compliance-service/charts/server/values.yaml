@@ -19,6 +19,20 @@ env:
     value: "nats://nats.platform-local.svc.cluster.local:4222"
   - name: AUTH_PUBLIC_KEY_FILE
     value: "/app/auth/public.pem"
+  - name: S3_PUBLIC_ENDPOINT
+    value: "http://minio.localhost:8081"
+  - name: S3_REGION
+    value: "us-east-1"
+  - name: S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: S3_ACCESS_KEY
+  - name: S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: S3_SECRET_KEY
 envFrom: []
 
 volumeMounts:

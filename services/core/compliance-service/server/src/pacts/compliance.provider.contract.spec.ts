@@ -79,6 +79,7 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
       broker: mockBroker,
       publisher: mockPublisher,
       repository,
+      getSignedDownloadUrl: async () => 'http://localhost:9000/dsap/test.pdf?signature=xyz',
     });
 
     app.use('/compliance/api/v1', gateway);

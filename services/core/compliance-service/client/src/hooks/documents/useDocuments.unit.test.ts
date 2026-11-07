@@ -45,6 +45,7 @@ describe('useDocuments Hook', () => {
 
     expect(apiClient.getDocuments).toHaveBeenCalledWith({
       query: { status: 'IN_PROGRESS', requisitionNumbers: 'REQ-1,REQ-2' },
+      fetchOptions: { signal: expect.any(AbortSignal) },
     });
   });
 
@@ -109,5 +110,16 @@ describe('useDocuments Hook', () => {
     });
 
     expect(apiClient.getDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it('discards a late response after sign-out even if the request ignores abort', async () => {
+    let finish!: (response: Awaited<ReturnType<typeof apiClient.getDocuments>>) => void;
+    vi.mocked(apiClient.getDocuments).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => useDocuments());
+    await waitFor(() => expect(apiClient.getDocuments).toHaveBeenCalledTimes(1));
+    act(() => setTestSession(null));
+    await act(async () => finish({ status: 200, body: [mockDocument()], headers: new Headers() } as never));
+    expect(result.current.documents).toEqual([]);
+    expect(result.current.error).toBeNull();
   });
 });
