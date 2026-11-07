@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:ae23fe9e-e8c0-4187-a9a8-ec1998abe825",
+  "serialNumber": "urn:uuid:0682a9de-4d35-41a0-8524-7489b4ba531d",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-05T21:17:20+00:00",
+    "timestamp": "2026-11-07T21:28:54+00:00",
     "tools": {
       "components": [
         {
@@ -20,9 +20,9 @@
       ]
     },
     "component": {
-      "bom-ref": "53633c1f-649e-46da-98cd-d43eebf30a2a",
+      "bom-ref": "831d81aa-e4b5-42b7-b09a-8a579e0e2dc4",
       "type": "container",
-      "name": "auth-client:145917bedbbaaeb4ba24fea3b489c66dc3e36e1f82aaf6acb5cac098e4fbcf94",
+      "name": "auth-client:9d9ef9150edc61467916fb548498e2542032dce7d8c08b4560c25f5448f02258",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -34,7 +34,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:47e45f55516bfce0777165df015eab99c138656c058e8eb8cf5831f8d5dc3b9e"
+          "value": "sha256:47b04a626e76e2d5fad0e7560b7f25234d23e957e150e200682ab72237caa855"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -42,7 +42,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:5d3ec7aaa6293324be4602ad6122f6a655ca131d989f8b99b7805a1a78c5f886"
+          "value": "sha256:620f62182ffeb19513015dd15d2b681890af33220dfdeb062d5ff6c2052bd7d0"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -58,7 +58,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:8c99c5e6ce33027377cf0815fcef2987c9b97dd7b4f3007220d1c346f860d96d"
+          "value": "sha256:97b8c3fb97eaf47bac8c0e6a2a0c0b490745b988fd7660d225bf1db7788a0565"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -70,15 +70,15 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
+          "value": "sha256:facb0be8229f54c53059903f93f80c1c4a005c00c742f7fa714963b3694f0876"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:ff9307f08a3ad6aaa7a0a7b93dd632b227cfc2198d576074e0a4f550b91781be"
+          "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:145917bedbbaaeb4ba24fea3b489c66dc3e36e1f82aaf6acb5cac098e4fbcf94"
+          "value": "sha256:9d9ef9150edc61467916fb548498e2542032dce7d8c08b4560c25f5448f02258"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -118,15 +118,15 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "auth-client:145917bedbbaaeb4ba24fea3b489c66dc3e36e1f82aaf6acb5cac098e4fbcf94"
+          "value": "auth-client:9d9ef9150edc61467916fb548498e2542032dce7d8c08b4560c25f5448f02258"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "auth-client:145917bedbbaaeb4ba24fea3b489c66dc3e36e1f82aaf6acb5cac098e4fbcf94"
+          "value": "auth-client:3d49f54"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "auth-client:2c7dc44"
+          "value": "auth-client:9d9ef9150edc61467916fb548498e2542032dce7d8c08b4560c25f5448f02258"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -141,7 +141,7 @@
   },
   "components": [
     {
-      "bom-ref": "843652a8-8b22-4b81-bee1-99e0b72410e8",
+      "bom-ref": "814f1514-417e-45f9-9cdc-fa6e9cc8c1ce",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3519,13 +3519,7 @@
   ],
   "dependencies": [
     {
-      "ref": "53633c1f-649e-46da-98cd-d43eebf30a2a",
-      "dependsOn": [
-        "843652a8-8b22-4b81-bee1-99e0b72410e8"
-      ]
-    },
-    {
-      "ref": "843652a8-8b22-4b81-bee1-99e0b72410e8",
+      "ref": "814f1514-417e-45f9-9cdc-fa6e9cc8c1ce",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -3540,6 +3534,12 @@
         "pkg:apk/alpine/nginx-module-xslt@1.31.7-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/ssl_client@1.37.0-r31?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/tzdata@2026e-r0?arch=x86_64&distro=3.24.2"
+      ]
+    },
+    {
+      "ref": "831d81aa-e4b5-42b7-b09a-8a579e0e2dc4",
+      "dependsOn": [
+        "814f1514-417e-45f9-9cdc-fa6e9cc8c1ce"
       ]
     },
     {
