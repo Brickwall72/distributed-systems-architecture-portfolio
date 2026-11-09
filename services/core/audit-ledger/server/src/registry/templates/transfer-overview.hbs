@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Transfer {{requisitionNumber}}</title>
+<style>
+body { font: 11pt Arial, sans-serif; color: #172033; margin: 28px; }
+h1 { color: #193a62; margin-bottom: 4px; } h2 { color: #193a62; border-bottom: 1px solid #8da3ba; padding-bottom: 5px; }
+.meta { color: #53647b; } .orgs { display: flex; gap: 20px; } .org { flex: 1; padding: 10px; background: #f1f5f9; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; } th, td { padding: 7px; border: 1px solid #ccd5e0; text-align: left; }
+th { background: #e8eef5; } tr, .document { break-inside: avoid; } footer { border-top: 1px solid #8da3ba; margin-top: 24px; padding-top: 10px; }
+</style></head><body>
+<header><h1>Transfer overview</h1><p class="meta">Requisition: <strong>{{requisitionNumber}}</strong> | Ledger sequence: {{sequence}} | Type: {{transferType}}</p></header>
+<h2>Organizations</h2><section class="orgs">
+<div class="org"><strong>Sending: {{sender.name}}</strong><br>ID: {{sender.id}}<br>Type: {{sender.type}}{{#if sender.addressLine1}}<br>{{sender.addressLine1}}{{/if}}{{#if sender.addressLine2}}<br>{{sender.addressLine2}}{{/if}}</div>
+<div class="org"><strong>Receiving: {{receiver.name}}</strong><br>ID: {{receiver.id}}<br>Type: {{receiver.type}}{{#if receiver.addressLine1}}<br>{{receiver.addressLine1}}{{/if}}{{#if receiver.addressLine2}}<br>{{receiver.addressLine2}}{{/if}}</div>
+</section>
+<h2>Transfer authorization</h2>
+<p>Document: {{authorization.documentName}} ({{authorization.documentType}})<br>ID: {{authorization.documentId}}<br>Signed: {{authorization.signedAt}} | Signer: {{authorization.signerId}}</p>
+<table><thead><tr><th>Asset</th><th>Serial number</th></tr></thead><tbody>{{#each authorization.assets}}<tr><td>{{name}}</td><td>{{serialNumber}}</td></tr>{{/each}}</tbody></table>
+<h2>Receipt documents</h2>
+{{#each receipts}}<section class="document"><p>Document: {{documentName}} ({{documentType}})<br>ID: {{documentId}}<br>Signed: {{signedAt}} | Signer: {{signerId}}</p>
+<table><thead><tr><th>Received asset</th><th>Serial number</th></tr></thead><tbody>{{#each assets}}<tr><td>{{name}}</td><td>{{serialNumber}}</td></tr>{{/each}}</tbody></table></section>
+{{else}}<p>No receipt documents for this transfer.</p>{{/each}}
+<footer><p>Initiated: {{initiatedAt}}<br>Transaction concluded: {{completedAt}}<br>Ledger sealed: {{sealedAt}}</p><p class="meta">Sealed record hash: {{recordHash}}</p></footer>
+</body></html>

@@ -36,6 +36,12 @@ export class SealedTransfersRepository {
     return docs.map((doc) => sealedTransferSchema.parse(doc));
   }
 
+  async listAfter(sequence: number, limit: number): Promise<SealedTransfer[]> {
+    const docs = await this.collection.find({ sequence: { $gt: sequence } }, { projection: { _id: 0 } })
+      .sort({ sequence: 1 }).limit(limit).toArray();
+    return docs.map((doc) => sealedTransferSchema.parse(doc));
+  }
+
   /** Streams every record in chain order for verification. */
   async *iterateInOrder(): AsyncGenerator<SealedTransfer> {
     const cursor = this.collection.find({}, { projection: { _id: 0 } }).sort({ sequence: 1 });

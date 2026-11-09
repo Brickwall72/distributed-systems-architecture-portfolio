@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useIdentity } from '@shared/ui-components';
 import { apiClient } from '../../api';
-import { GetTransfersQuery, TransferSummary } from 'audit-shared';
+import { GetTransfersQuery, TransferSummary, RENDITION_STATUS, LEDGER_STATUS } from 'audit-shared';
 
 export function useGetTransfers(query?: GetTransfersQuery) {
   const identityId = useIdentity()?.id;
@@ -22,5 +22,8 @@ export function useGetTransfers(query?: GetTransfersQuery) {
     },
     staleTime: 0,          // Data is immediately stale upon mounting
     refetchOnMount: true,  // Trigger a background refetch whenever the component mounts
+    refetchInterval: (query) => query.state.data?.some(
+      (transfer) => transfer.status === LEDGER_STATUS.SEALED && transfer.renditionStatus !== RENDITION_STATUS.READY,
+    ) ? 5_000 : false,
   });
 }

@@ -3,7 +3,7 @@ import { Verifier } from '@pact-foundation/pact';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'node:path';
-import { transferSummarySchema } from 'audit-shared';
+import { transferSummarySchema, LEDGER_STATUS } from 'audit-shared';
 import { mockFromSchema } from '@shared/testing';
 import { createAuditGateway } from '../routes';
 import { LedgerService } from '../services';
@@ -21,8 +21,9 @@ describe('Pact Provider Verification - Audit Server', () => {
     const ledgerService = Object.assign(Object.create(LedgerService.prototype), {
       listTransfers: async () => {
         if (behavior === 'failing') throw new Error('Internal server error.');
-        return [mockFromSchema(transferSummarySchema, behavior === 'sealed' ? { status: 'SEALED' } : {}, seed)];
+        return [mockFromSchema(transferSummarySchema, behavior === 'sealed' ? { status: LEDGER_STATUS.SEALED } : {}, seed)];
       },
+      getTransferDocument: async () => ({ status: 'READY', presignedUrl: 'https://storage.example/file.pdf' }),
     }) as LedgerService;
 
     const app = express();
@@ -59,6 +60,7 @@ describe('Pact Provider Verification - Audit Server', () => {
         'the ledger service is failing': async () => {
           behavior = 'failing';
         },
+        'a transfer overview is ready': async () => {},
       },
     });
 

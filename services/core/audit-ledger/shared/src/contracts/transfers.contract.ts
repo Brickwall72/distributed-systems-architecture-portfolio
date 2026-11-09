@@ -37,6 +37,18 @@ export const transfersRoutes = {
     },
     summary: 'Retrieve a sealed transfer record by requisition number.',
   }),
+  getTransferDocument: c.query({
+    method: 'GET',
+    path: '/transfers/:requisitionNumber/document',
+    pathParams: requisitionNumberParamsSchema,
+    responses: {
+      200: z.object({ presignedUrl: z.string().url() }),
+      404: ApiErrorResponseSchema,
+      409: ApiErrorResponseSchema,
+      500: ApiErrorResponseSchema,
+    },
+    summary: 'Retrieve a temporary URL for a sealed transfer overview.',
+  }),
   verifyTransfer: c.query({
     method: 'GET',
     path: '/transfers/:requisitionNumber/verify',

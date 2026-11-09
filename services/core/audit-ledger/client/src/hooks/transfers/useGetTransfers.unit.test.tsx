@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { transferSummarySchema } from 'audit-shared';
+import { transferSummarySchema, LEDGER_STATUS } from 'audit-shared';
 import { mockFromSchema, setTestSession } from '@shared/testing';
 import { useGetTransfers } from './useGetTransfers';
 import { apiClient } from '../../api';
@@ -28,7 +28,7 @@ describe('useGetTransfers', () => {
   it('returns the transfer summaries and forwards the query to the API', async () => {
     const transfers = [mockFromSchema(transferSummarySchema), mockFromSchema(transferSummarySchema)];
     vi.mocked(apiClient.getTransfers).mockResolvedValueOnce({ status: 200, body: transfers, headers: new Headers() });
-    const query = { status: 'SEALED' as const, limit: 10 };
+    const query = { status: LEDGER_STATUS.SEALED, limit: 10 };
 
     const { result } = renderHook(() => useGetTransfers(query), { wrapper: makeWrapper() });
 

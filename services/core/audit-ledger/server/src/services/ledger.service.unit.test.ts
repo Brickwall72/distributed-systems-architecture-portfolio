@@ -1,6 +1,7 @@
 // File: services/core/audit-ledger/server/src/services/ledger.service.unit.test.ts
 import { createInMemoryLedger } from './ledger.test-support';
 import { GENESIS_HASH } from '../utils';
+import { LEDGER_STATUS } from 'audit-shared';
 
 const REQ = 'REQ-100';
 const TRANSFER_ID = '11111111-1111-4111-8111-111111111111';
@@ -84,8 +85,8 @@ describe('LedgerService', () => {
     });
 
     expect(sealed).toHaveLength(0);
-    const [summary] = await service.listTransfers({ status: 'OPEN' });
-    expect(summary).toMatchObject({ requisitionNumber: REQ, status: 'OPEN', missingSignals: ['RECEIPT_DOCUMENTS'] });
+    const [summary] = await service.listTransfers({ status: LEDGER_STATUS.OPEN });
+    expect(summary).toMatchObject({ requisitionNumber: REQ, status: LEDGER_STATUS.OPEN, missingSignals: ['RECEIPT_DOCUMENTS'] });
   });
 
   it('is idempotent when the same event is redelivered', async () => {
@@ -166,6 +167,6 @@ describe('LedgerService', () => {
     });
 
     const all = await service.listTransfers({});
-    expect(all.map((t) => [t.requisitionNumber, t.status]).sort()).toEqual([[REQ, 'OPEN'], ['REQ-C2', 'SEALED']]);
+    expect(all.map((t) => [t.requisitionNumber, t.status]).sort()).toEqual([[REQ, LEDGER_STATUS.OPEN], ['REQ-C2', LEDGER_STATUS.SEALED]]);
   });
 });

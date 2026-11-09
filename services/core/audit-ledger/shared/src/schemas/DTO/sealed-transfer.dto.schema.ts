@@ -58,6 +58,15 @@ export const sealedTransferSchema = z.object({
 });
 export type SealedTransfer = z.infer<typeof sealedTransferSchema>;
 
+export const RENDITION_STATUS = {
+  PENDING: 'PENDING',
+  GENERATING: 'GENERATING',
+  READY: 'READY',
+  FAILED: 'FAILED',
+} as const;
+export const renditionStatusEnum = z.enum(
+  Object.values(RENDITION_STATUS) as [typeof RENDITION_STATUS[keyof typeof RENDITION_STATUS], ...typeof RENDITION_STATUS[keyof typeof RENDITION_STATUS][]]
+);
 export const transferSummarySchema = z.object({
   requisitionNumber: z.string(),
   status: ledgerStatusEnum,
@@ -66,6 +75,7 @@ export const transferSummarySchema = z.object({
   sequence: sealedTransferSchema.shape.sequence.optional(),
   sealedAt: sealedTransferSchema.shape.sealedAt.optional(),
   recordHash: sealedTransferSchema.shape.recordHash.optional(),
+  renditionStatus: renditionStatusEnum.optional(),
   missingSignals: z.array(sealSignalEnum),
   updatedAt: z.string().datetime(),
 });

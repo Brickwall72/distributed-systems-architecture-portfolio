@@ -5,8 +5,9 @@ import { createAuditGateway } from './routes';
 import { connectDatabaseWithRetry, closeDatabase } from './db';
 import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
 import { EventBroker } from '@shared/messaging';
-import { LedgerService } from './services';
-import { EventsRepository, DraftsRepository, SealedTransfersRepository, DeadLettersRepository } from './repositories';
+import { LedgerService, RenditionService } from './services';
+import { EventsRepository, DraftsRepository, SealedTransfersRepository, DeadLettersRepository, RenditionsRepository } from './repositories';
+import { ObjectStorageClient } from '@shared/filestore';
 import { AuditEventConsumer } from './messaging';
 import { env } from './config';
 
@@ -49,6 +50,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 async function bootstrapApplicationServer() {
   const broker = new EventBroker(env.NATS_URL, logger);
   let server: ReturnType<typeof app.listen>;
+  let renditionService: RenditionService | undefined;
 
   const shutdown = (signal: string) => {
     logger.info(`Received ${signal}. Initiating graceful shutdown...`);
@@ -61,6 +63,7 @@ async function bootstrapApplicationServer() {
     server.close(async () => {
       logger.info('HTTP server closed.');
       try {
+        await renditionService?.stop();
         await broker.disconnect();
         logger.info('NATS broker connection closed cleanly.');
 
@@ -93,13 +96,24 @@ async function bootstrapApplicationServer() {
     logger.info('Audit ledger database connection established.');
 
     await broker.connect();
+    const sealed = new SealedTransfersRepository(db);
+    const renditions = new RenditionsRepository(db);
+    renditionService = new RenditionService(sealed, renditions, broker);
+    const storage = new ObjectStorageClient({
+      endpoint: env.S3_PUBLIC_ENDPOINT, region: env.S3_REGION,
+      accessKeyId: env.S3_ACCESS_KEY, secretAccessKey: env.S3_SECRET_KEY, forcePathStyle: true,
+    });
     const ledgerService = new LedgerService({
       events: new EventsRepository(db),
       drafts: new DraftsRepository(db),
-      sealed: new SealedTransfersRepository(db),
+      sealed,
       deadLetters: new DeadLettersRepository(db),
+      renditions,
+      onSealed: () => renditionService?.nudge(),
+      getSignedDownloadUrl: (request) => storage.getSignedDownloadUrl(request),
     });
     await new AuditEventConsumer(broker, ledgerService).start();
+    renditionService.start();
 
     app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), createAuditGateway({ ledgerService }));
 

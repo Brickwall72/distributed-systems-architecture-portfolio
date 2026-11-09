@@ -3,6 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { createAuditGateway } from '../index';
 import { LedgerService } from '../../services';
+import { LEDGER_STATUS } from 'audit-shared';
 
 function appWith(overrides: Partial<Record<keyof LedgerService, unknown>>) {
   const service = Object.assign(Object.create(LedgerService.prototype), overrides) as LedgerService;
@@ -33,7 +34,7 @@ describe('audit gateway routes', () => {
     const listTransfers = vi.fn().mockResolvedValue([]);
     const res = await request(appWith({ listTransfers })).get('/api/v1/transfers?status=OPEN');
     expect(res.status).toBe(200);
-    expect(listTransfers).toHaveBeenCalledWith({ status: 'OPEN', limit: 50, offset: 0 });
+    expect(listTransfers).toHaveBeenCalledWith({ status: LEDGER_STATUS.OPEN, limit: 50, offset: 0 });
   });
 
   it('exposes no write endpoints', async () => {
@@ -45,5 +46,27 @@ describe('audit gateway routes', () => {
     const result = { valid: true, checked: 0, failures: [] };
     const res = await request(appWith({ verifyLedger: vi.fn().mockResolvedValue(result) })).get('/api/v1/ledger/verify');
     expect(res.body).toEqual(result);
+  });
+
+  it.each([
+    [{ status: 'NOT_FOUND' }, 404],
+    [{ status: 'NOT_READY' }, 409],
+    [{ status: 'READY', presignedUrl: 'https://storage.example/file.pdf' }, 200],
+  ])('returns the document state without caching', async (result, status) => {
+    const getTransferDocument = vi.fn().mockResolvedValue(result);
+    const res = await request(appWith({ getTransferDocument })).get('/api/v1/transfers/REQ-X/document');
+    expect(res.status).toBe(status);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(getTransferDocument).toHaveBeenCalledWith('REQ-X');
+    if (status === 200) expect(res.body).toEqual({ presignedUrl: 'https://storage.example/file.pdf' });
+  });
+
+  it('does not expose signing failures and prevents caching them', async () => {
+    const res = await request(appWith({
+      getTransferDocument: vi.fn().mockRejectedValue(new Error('secret URL')),
+    })).get('/api/v1/transfers/REQ-X/document');
+    expect(res.status).toBe(500);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(JSON.stringify(res.body)).not.toContain('secret URL');
   });
 });

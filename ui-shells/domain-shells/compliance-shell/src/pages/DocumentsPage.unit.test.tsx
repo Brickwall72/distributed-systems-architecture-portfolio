@@ -1,3 +1,4 @@
+// File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.unit.test.tsx
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { Suspense } from 'react';
 import { setTestSession } from '@shared/testing';
@@ -6,7 +7,7 @@ import DocumentsPage from './DocumentsPage';
 
 const { loadRemote, remote } = vi.hoisted(() => ({
   loadRemote: vi.fn(),
-  remote: { onPdfSelect: undefined as DocumentsTableInput['onPdfSelect'] },
+  remote: { onPdfSelect: undefined as DocumentsTableInput['onPdfSelect'], transferSelect: undefined as DocumentsTableInput['onPdfSelect'] },
 }));
 
 vi.mock('@module-federation/enhanced/runtime', () => ({ loadRemote }));
@@ -25,6 +26,7 @@ describe('DocumentsPage', () => {
     loadRemote.mockImplementation(async (id: string) => ({
       default: (props: DocumentsTableInput) => {
         if (id === 'compliance_client/DocumentsTable') remote.onPdfSelect = props.onPdfSelect;
+        if (id === 'audit_client/TransfersTable') remote.transferSelect = props.onPdfSelect;
         return <div data-testid={id} />;
       },
     }));
@@ -104,5 +106,19 @@ describe('DocumentsPage', () => {
     await screen.findByTitle('Stored document');
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+  });
+
+  it('ignores late results and clear events from the other source, even for matching IDs', async () => {
+    await renderPage();
+    const selection = { documentId: 'same-id', identityId: 'usr_test' };
+    emit({ type: 'select', ...selection });
+    act(() => remote.transferSelect?.({ type: 'select', ...selection }));
+    emit({ type: 'ready', ...selection, blob: new Blob(['wrong']) });
+    emit({ type: 'clear' });
+    expect(screen.getByRole('status')).toHaveTextContent('Loading document');
+    const blob = new Blob(['transfer']);
+    act(() => remote.transferSelect?.({ type: 'ready', ...selection, blob }));
+    await screen.findByTitle('Stored document');
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
   });
 });

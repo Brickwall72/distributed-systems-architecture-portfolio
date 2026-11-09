@@ -53,6 +53,23 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
       }
     },
 
+    getTransferDocument: async ({ params: { requisitionNumber }, req }) => {
+      req.res?.setHeader('Cache-Control', 'no-store');
+      try {
+        const result = await ledgerService.getTransferDocument(requisitionNumber);
+        if (result.status === 'NOT_FOUND') {
+          return { status: 404 as const, body: errorBody('NOT_FOUND', 'Sealed transfer not found.') };
+        }
+        if (result.status === 'NOT_READY') {
+          return { status: 409 as const, body: errorBody('NOT_READY', 'Transfer overview is not ready.') };
+        }
+        return { status: 200 as const, body: { presignedUrl: result.presignedUrl } };
+      } catch (error) {
+        logger.error(`GET /transfers/:requisitionNumber/document failed: ${error instanceof Error ? error.name : 'Unknown error'}`, correlationOf(req.headers));
+        return { status: 500 as const, body: errorBody('INTERNAL_SERVER_ERROR', 'Could not retrieve transfer overview.') };
+      }
+    },
+
     verifyTransfer: async ({ params: { requisitionNumber }, req }) => {
       const correlationId = correlationOf(req.headers);
       try {
