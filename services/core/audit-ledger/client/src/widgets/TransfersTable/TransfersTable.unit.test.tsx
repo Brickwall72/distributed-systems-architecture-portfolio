@@ -1,12 +1,20 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { transferSummarySchema, type TransferSummary } from 'audit-shared';
+// File: service/core/audit-ledger/client/src/widgets/TransfersTable/TransfersTable.unit.test.tsx
+import { render as testingRender, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { transferSummarySchema, RENDITION_STATUS, LEDGER_STATUS, type TransferSummary } from 'audit-shared';
 import { mockFromSchema, setTestSession } from '@shared/testing';
 import TransfersTable from './TransfersTable';
 import { useGetTransfers } from '../../hooks';
 
 vi.mock('../../hooks', () => ({
   useGetTransfers: vi.fn(),
+  useGetTransferPdf: vi.fn(() => ({ data: undefined, error: null })),
 }));
+
+const render = (component: ReactElement) => testingRender(
+  <QueryClientProvider client={new QueryClient()}>{component}</QueryClientProvider>,
+);
 
 const mockHook = (state: { data?: TransferSummary[]; isLoading?: boolean; error?: Error | null }) =>
   vi.mocked(useGetTransfers).mockReturnValue({ data: undefined, isLoading: false, error: null, ...state } as never);
@@ -14,14 +22,15 @@ const mockHook = (state: { data?: TransferSummary[]; isLoading?: boolean; error?
 describe('TransfersTable', () => {
   const sealed = mockFromSchema(transferSummarySchema, {
     requisitionNumber: 'REQ-SEALED',
-    status: 'SEALED',
+    status: LEDGER_STATUS.SEALED,
     sequence: 7,
     transferType: undefined,
     sealedAt: '2026-01-02T03:04:05.000Z',
+    renditionStatus: RENDITION_STATUS.READY,
   });
   const open = mockFromSchema(transferSummarySchema, {
     requisitionNumber: 'REQ-OPEN',
-    status: 'OPEN',
+    status: LEDGER_STATUS.OPEN,
     sequence: undefined,
     transferType: undefined,
     sealedAt: undefined,
@@ -63,8 +72,8 @@ describe('TransfersTable', () => {
     expect(screen.getByText('Showing 2 records')).toBeDefined();
     expect(screen.getByText('REQ-SEALED')).toBeDefined();
     expect(screen.getByText('REQ-OPEN')).toBeDefined();
-    expect(screen.getByText('SEALED')).toBeDefined();
-    expect(screen.getByText('OPEN')).toBeDefined();
+    expect(screen.getByText(LEDGER_STATUS.SEALED)).toBeDefined();
+    expect(screen.getByText(LEDGER_STATUS.OPEN)).toBeDefined();
     expect(screen.getByText('#7')).toBeDefined();
   });
 
@@ -81,5 +90,15 @@ describe('TransfersTable', () => {
 
     fireEvent.click(screen.getByText('REQ-SEALED'));
     expect(sealedRow).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('notifies the viewer when a sealed row is selected and deselected', () => {
+    mockHook({ data: [sealed] });
+    const onPdfSelect = vi.fn();
+    render(<TransfersTable onPdfSelect={onPdfSelect} />);
+    fireEvent.click(screen.getByText('REQ-SEALED'));
+    expect(onPdfSelect).toHaveBeenCalledWith({ type: 'select', documentId: 'REQ-SEALED', identityId: 'usr_test' });
+    fireEvent.click(screen.getByText('REQ-SEALED'));
+    expect(onPdfSelect).toHaveBeenLastCalledWith({ type: 'clear' });
   });
 });

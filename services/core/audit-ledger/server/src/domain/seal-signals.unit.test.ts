@@ -1,5 +1,5 @@
 // File: services/core/audit-ledger/server/src/domain/seal-signals.unit.test.ts
-import { SEAL_SIGNAL } from 'audit-shared';
+import { SEAL_SIGNAL, LEDGER_STATUS } from 'audit-shared';
 import { getMissingSignals } from './seal-signals';
 import type { TransferDraftEntity } from './transfer-draft.entity.schema';
 
@@ -9,7 +9,7 @@ const auth = {} as never;
 
 const draft = (overrides: Partial<TransferDraftEntity>): TransferDraftEntity => ({
   requisitionNumber: 'REQ-1',
-  status: 'OPEN',
+  status: LEDGER_STATUS.OPEN,
   receiptDocuments: {},
   receivedAssets: {},
   topologyCompleted: false,

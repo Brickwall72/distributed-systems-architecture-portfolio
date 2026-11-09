@@ -5,12 +5,13 @@ import { FederatedErrorBoundary, DocumentViewer, useIdentity } from '@shared/ui-
 import type { DocumentsTableInput, DocumentPreviewEvent } from '@contracts/compliance';
 
 const DocumentsTable = lazyRemote<DocumentsTableInput>('compliance_client/DocumentsTable');
-const TransfersTable = lazyRemote('audit_client/TransfersTable');
+const TransfersTable = lazyRemote<{ onPdfSelect?: (event: DocumentPreviewEvent) => void }>('audit_client/TransfersTable');
 
+type Source = 'document' | 'transfer';
 type Preview =
-  | { documentId: string; identityId: string; status: 'loading' }
-  | { documentId: string; identityId: string; status: 'ready'; blob: Blob }
-  | { documentId: string; identityId: string; status: 'error'; message: string };
+  | { source: Source; documentId: string; identityId: string; status: 'loading' }
+  | { source: Source; documentId: string; identityId: string; status: 'ready'; blob: Blob }
+  | { source: Source; documentId: string; identityId: string; status: 'error'; message: string };
 
 export default function DocumentsPage() {
   const identityId = useIdentity()?.id;
@@ -18,36 +19,38 @@ export default function DocumentsPage() {
   const activePreview = preview?.identityId === identityId ? preview : null;
   const blob = activePreview?.status === 'ready' ? activePreview.blob : undefined;
   const [objectUrl, setObjectUrl] = useState<{
-    blob: Blob; url: string; documentId: string; identityId: string; valid: boolean;
+    blob: Blob; url: string; source: Source; documentId: string; identityId: string; valid: boolean;
   } | null>(null);
 
-  const handlePdfSelect = useCallback((event: DocumentPreviewEvent) => {
+  const handlePdfSelect = useCallback((source: Source, event: DocumentPreviewEvent) => {
     setPreview((current) => {
-      if (event.type === 'clear') return null;
+      if (event.type === 'clear') return current?.source === source ? null : current;
       if (event.type === 'select') {
-        return { documentId: event.documentId, identityId: event.identityId, status: 'loading' };
+        return { source, documentId: event.documentId, identityId: event.identityId, status: 'loading' };
       }
-      if (!current || current.documentId !== event.documentId || current.identityId !== event.identityId) return current;
+      if (current?.source !== source || current.documentId !== event.documentId || current.identityId !== event.identityId) return current;
       if (event.type === 'ready') {
-        return { documentId: event.documentId, identityId: event.identityId, status: 'ready', blob: event.blob };
+        return { source, documentId: event.documentId, identityId: event.identityId, status: 'ready', blob: event.blob };
       }
-      return { documentId: event.documentId, identityId: event.identityId, status: 'error', message: event.message };
+      return { source, documentId: event.documentId, identityId: event.identityId, status: 'error', message: event.message };
     });
   }, []);
+  const handleDocumentSelect = useCallback((event: DocumentPreviewEvent) => handlePdfSelect('document', event), [handlePdfSelect]);
+  const handleTransferSelect = useCallback((event: DocumentPreviewEvent) => handlePdfSelect('transfer', event), [handlePdfSelect]);
 
   useEffect(() => {
     if (!blob || !activePreview) return;
     const url = URL.createObjectURL(blob);
-    const entry = { blob, url, documentId: activePreview.documentId, identityId: activePreview.identityId, valid: true };
+    const entry = { blob, url, source: activePreview.source, documentId: activePreview.documentId, identityId: activePreview.identityId, valid: true };
     setObjectUrl(entry);
     return () => {
       entry.valid = false;
       URL.revokeObjectURL(url);
     };
-  }, [blob, activePreview?.documentId, activePreview?.identityId]);
+  }, [blob, activePreview?.source, activePreview?.documentId, activePreview?.identityId]);
 
   const currentUrl = blob && objectUrl?.valid && objectUrl.blob === blob
-    && objectUrl.documentId === activePreview?.documentId && objectUrl.identityId === activePreview.identityId
+    && objectUrl.source === activePreview?.source && objectUrl.documentId === activePreview?.documentId && objectUrl.identityId === activePreview.identityId
     ? objectUrl.url : undefined;
 
   let previewContent;
@@ -76,12 +79,12 @@ export default function DocumentsPage() {
       <div className="order-last min-w-0 space-y-6 lg:order-first">
         <section aria-label="Compliance documents" className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-5">
           <FederatedErrorBoundary remoteName="DocumentsTable">
-            <DocumentsTable onPdfSelect={handlePdfSelect} />
+            <DocumentsTable onPdfSelect={handleDocumentSelect} />
           </FederatedErrorBoundary>
         </section>
         <section aria-label="Audit transfers" className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-5">
           <FederatedErrorBoundary remoteName="TransfersTable">
-            <TransfersTable />
+            <TransfersTable onPdfSelect={handleTransferSelect} />
           </FederatedErrorBoundary>
         </section>
       </div>

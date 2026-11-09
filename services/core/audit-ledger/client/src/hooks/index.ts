@@ -1,2 +1,2 @@
 // File: service/core/audit-ledger/client/src/hooks/index.ts
-export * from './useTransfers';
+export * from './transfers';

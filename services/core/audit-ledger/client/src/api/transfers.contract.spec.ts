@@ -2,7 +2,7 @@
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
-import { transferSummarySchema, transfersRoutes } from 'audit-shared';
+import { transferSummarySchema, transfersRoutes, LEDGER_STATUS } from 'audit-shared';
 import { mockFromSchema } from '@shared/testing';
 
 const { like, arrayContaining, string } = MatchersV3;
@@ -51,25 +51,25 @@ describe('Audit Client -> Audit Server Contract (Transfers API)', () => {
       .withRequest({
         method: 'GET',
         path: '/audit/api/v1/transfers',
-        query: { status: 'SEALED', limit: '10', offset: '0' },
+        query: { status: LEDGER_STATUS.SEALED, limit: '10', offset: '0' },
         headers: { Accept: 'application/json' },
       })
       .willRespondWith({
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: arrayContaining(like(exampleSummary({ status: 'SEALED' }))),
+        body: arrayContaining(like(exampleSummary({ status: LEDGER_STATUS.SEALED }))),
       });
 
     await provider.executeTest(async (mockServer) => {
       const response = await apiClient.getTransfers({
-        query: { status: 'SEALED', limit: 10, offset: 0 },
+        query: { status: LEDGER_STATUS.SEALED, limit: 10, offset: 0 },
         overrideClientOptions: { baseUrl: `${mockServer.url}/audit/api/v1` },
       });
 
       expect(response.status).toBe(200);
       const body = transfersRoutes.getTransfers.responses[200].parse(response.body);
       expect(body).toHaveLength(1);
-      expect(body[0].status).toBe('SEALED');
+      expect(body[0].status).toBe(LEDGER_STATUS.SEALED);
     });
   });
 
@@ -99,6 +99,23 @@ describe('Audit Client -> Audit Server Contract (Transfers API)', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
+    });
+  });
+
+  it('retrieves a temporary URL for a ready transfer overview', async () => {
+      const example = mockFromSchema(transfersRoutes.getTransferDocument.responses[200], {
+        presignedUrl: 'https://storage.example/file.pdf',
+      });
+      provider.given('a transfer overview is ready')
+        .uponReceiving('a request for a transfer overview')
+        .withRequest({ method: 'GET', path: '/audit/api/v1/transfers/REQ-1/document', headers: { Accept: 'application/json' } })
+        .willRespondWith({ status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: like(example) });
+      await provider.executeTest(async (mockServer) => {
+        const response = await apiClient.getTransferDocument({
+          params: { requisitionNumber: 'REQ-1' }, overrideClientOptions: { baseUrl: `${mockServer.url}/audit/api/v1` },
+        });
+        expect(response.status).toBe(200);
+        expect(transfersRoutes.getTransferDocument.responses[200].parse(response.body)).toEqual(example);
     });
   });
 });

@@ -1,13 +1,48 @@
 // File: service/core/audit-ledger/client/src/widgets/TransfersTable/TransfersTable.tsx
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DatabaseTwinTable, TableColumn, useIdentity } from '@shared/ui-components';
-import { TransferSummary } from 'audit-shared';
-import { useGetTransfers } from '../../hooks';
+import { TransferSummary, RENDITION_STATUS, LEDGER_STATUS } from 'audit-shared';
+import { useGetTransfers, useGetTransferPdf } from '../../hooks';
 
-export default function TransfersTableWidget() {
+type PreviewEvent =
+  | { type: 'select'; documentId: string; identityId: string }
+  | { type: 'ready'; documentId: string; identityId: string; blob: Blob }
+  | { type: 'error'; documentId: string; identityId: string; message: string }
+  | { type: 'clear' };
+
+export default function TransfersTableWidget({ onPdfSelect }: { onPdfSelect?: (event: PreviewEvent) => void } = {}) {
   const identity = useIdentity();
+  const identityId = identity?.id;
+  const previousIdentity = useRef(identityId);
+  const queryClient = useQueryClient();
   const { data: transfers, isLoading, error } = useGetTransfers();
-  const [selectedRequisition, setSelectedRequisition] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ requisition: string; identityId: string }>();
+  const selectedRequisition = selection && selection.identityId === identityId ? selection.requisition : undefined;
+  const selected = transfers?.find((transfer) => transfer.requisitionNumber === selectedRequisition);
+  const { data: pdf, error: pdfError } = useGetTransferPdf(
+    onPdfSelect && selected?.renditionStatus === RENDITION_STATUS.READY ? selectedRequisition : undefined,
+  );
+
+  useEffect(() => {
+    if (previousIdentity.current === identityId) return;
+    const oldIdentity = previousIdentity.current;
+    previousIdentity.current = identityId;
+    setSelection(undefined);
+    onPdfSelect?.({ type: 'clear' });
+    if (oldIdentity) queryClient.removeQueries({ queryKey: ['audit-ledger', 'transfer-pdf', oldIdentity] });
+  }, [identityId, onPdfSelect, queryClient]);
+
+  useEffect(() => {
+    if (!selectedRequisition || !identityId || !onPdfSelect || !selected) return;
+    if (selected.renditionStatus !== RENDITION_STATUS.READY) {
+      onPdfSelect({ type: 'error', documentId: selectedRequisition, identityId, message: 'Transfer overview is not ready yet.' });
+    } else if (pdf) {
+      onPdfSelect({ type: 'ready', documentId: selectedRequisition, identityId, blob: pdf });
+    } else if (pdfError) {
+      onPdfSelect({ type: 'error', documentId: selectedRequisition, identityId, message: pdfError.message });
+    }
+  }, [selectedRequisition, identityId, onPdfSelect, selected?.renditionStatus, pdf, pdfError]);
 
   const columns: TableColumn<TransferSummary>[] = [
     { key: 'requisitionNumber', header: 'Requisition #' },
@@ -15,7 +50,7 @@ export default function TransfersTableWidget() {
       key: 'status', 
       header: 'Status',
       render: (value) => {
-        const isSealed = value === 'SEALED';
+        const isSealed = value === LEDGER_STATUS.SEALED;
         return (
           <span className={`px-2 py-1 rounded text-xs font-medium ${
             isSealed 
@@ -29,6 +64,7 @@ export default function TransfersTableWidget() {
     },
     { key: 'transferType', header: 'Type', render: (val) => val ? String(val) : '—' },
     { key: 'sequence', header: 'Sequence', render: (val) => val !== undefined ? `#${val}` : '—' },
+    { key: 'renditionStatus', header: 'PDF', render: (val) => val ? String(val) : '—' },
     { 
       key: 'sealedAt', 
       header: 'Sealed At', 
@@ -64,12 +100,17 @@ export default function TransfersTableWidget() {
         columns={columns}
         data={transfers}
         rowKey="requisitionNumber"
-        selectedRowKey={selectedRequisition}
-        isRowSelectable={(row) => row.status === 'SEALED'}
+        selectedRowKey={selectedRequisition ?? null}
+        isRowSelectable={(row) => row.status === LEDGER_STATUS.SEALED}
         onRowSelect={(row) => {
-          if (row.status === 'SEALED') {
-            setSelectedRequisition(row.requisitionNumber);
-            // Trigger detail view or verification action for sealed transfer
+          if (row.status === LEDGER_STATUS.SEALED && identityId) {
+            if (selectedRequisition === row.requisitionNumber) {
+              setSelection(undefined);
+              onPdfSelect?.({ type: 'clear' });
+            } else {
+              setSelection({ requisition: row.requisitionNumber, identityId });
+              onPdfSelect?.({ type: 'select', documentId: row.requisitionNumber, identityId });
+            }
           }
         }}
       />

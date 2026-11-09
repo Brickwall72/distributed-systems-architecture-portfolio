@@ -348,12 +348,18 @@ importers:
       '@contracts/compliance':
         specifier: workspace:*
         version: link:../../../../packages/contracts/compliance
+      '@contracts/pdf':
+        specifier: workspace:*
+        version: link:../../../../packages/contracts/pdf
       '@contracts/topology':
         specifier: workspace:*
         version: link:../../../../packages/contracts/topology
       '@shared/express':
         specifier: workspace:*
         version: link:../../../../packages/express
+      '@shared/filestore':
+        specifier: workspace:*
+        version: link:../../../../packages/file-storage
       '@shared/messaging':
         specifier: workspace:*
         version: link:../../../../packages/messaging
@@ -369,6 +375,9 @@ importers:
       express:
         specifier: ^4.0.0
         version: 4.22.3(supports-color@7.2.0)
+      handlebars:
+        specifier: ~4.7.9
+        version: 4.7.9
       mongodb:
         specifier: ~7.8.0
         version: 7.8.0

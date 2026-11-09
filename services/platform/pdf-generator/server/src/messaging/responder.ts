@@ -50,7 +50,7 @@ export function registerPdfResponder(broker: EventBroker): void {
       getSignedDownloadUrlRequestSchema.parse(storageMetadata)
     );
 
-    logger.info(`Successfully generated pre-signed URL for document [${documentId}]: ${presignedUrl}`);
+    logger.info(`Successfully generated PDF for document [${documentId}]`);
 
     return generatePdfResponseSchema.parse({
       ...storageMetadata,

@@ -134,6 +134,12 @@
       "label": "Generate PDF"
     },
     {
+      "from": "audit-server",
+      "to": "pdf-server",
+      "type": "nats-request-reply",
+      "label": "Generate PDF"
+    },
+    {
       "from": "compliance-server",
       "to": "esign-server",
       "type": "nats-request-reply",
