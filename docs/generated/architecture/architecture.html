@@ -65,6 +65,7 @@
   audit_client --&gt;|Topology REST API| audit_server
   auth_client --&gt;|Topology REST API| auth_server
   compliance_server &lt;--&gt;|Generate PDF| pdf_server
+  audit_server &lt;--&gt;|Generate PDF| pdf_server
   compliance_server &lt;--&gt;|Sign document| esign_server
   compliance_server -.-&gt;|Publish transfer initiated / received| nats
   nats -.-&gt;|Deliver transfer initiated / received| topology_server
@@ -94,12 +95,13 @@
   linkStyle 19 stroke:#2563eb,stroke-width:2px
   linkStyle 20 stroke:#c2410c,stroke-width:2px
   linkStyle 21 stroke:#c2410c,stroke-width:2px
-  linkStyle 22 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 22 stroke:#c2410c,stroke-width:2px
   linkStyle 23 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 24 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 25 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 26 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
+  linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 28 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
     <p>Update the architecture model when page composition or service interactions change.</p>
   </main>
   <script type="module">
