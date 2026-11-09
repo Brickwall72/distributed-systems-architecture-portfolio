@@ -45,6 +45,7 @@ flowchart LR
   audit_client -->|Topology REST API| audit_server
   auth_client -->|Topology REST API| auth_server
   compliance_server <-->|Generate PDF| pdf_server
+  audit_server <-->|Generate PDF| pdf_server
   compliance_server <-->|Sign document| esign_server
   compliance_server -.->|Publish transfer initiated / received| nats
   nats -.->|Deliver transfer initiated / received| topology_server
@@ -74,12 +75,13 @@ flowchart LR
   linkStyle 19 stroke:#2563eb,stroke-width:2px
   linkStyle 20 stroke:#c2410c,stroke-width:2px
   linkStyle 21 stroke:#c2410c,stroke-width:2px
-  linkStyle 22 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 22 stroke:#c2410c,stroke-width:2px
   linkStyle 23 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 24 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 25 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 26 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 28 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
 ```
 
 ## Interaction legend
