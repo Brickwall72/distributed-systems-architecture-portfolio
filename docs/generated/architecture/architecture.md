@@ -27,9 +27,11 @@ flowchart LR
   global_shell ==>|Mission Operations: Fleet Topology tab| topology_shell
   global_shell ==>|Mission Operations: Flight Compliance tab| compliance_shell
   global_shell ==>|Mission Operations: ProfileSelector| auth_client
-  topology_shell ==>|Topology Dashboard: AssetRegistration| topology_client
-  topology_shell ==>|Topology Dashboard: OrganizationSelector| topology_client
-  topology_shell ==>|Topology Dashboard: NetworkCanvas| topology_client
+  topology_shell ==>|Asset Registration Dashboard: AssetRegistration| topology_client
+  topology_shell ==>|Asset Registration Dashboard: OrganizationSelector| topology_client
+  topology_shell ==>|Asset Registration Dashboard: NetworkCanvas| topology_client
+  topology_shell ==>|Transfer History: AssetSelector| topology_client
+  topology_shell ==>|Transfer History: NetworkCanvas| topology_client
   compliance_shell ==>|Unified Custody: TemplateSelector| compliance_client
   compliance_shell ==>|Unified Custody: OrganizationSelector| topology_client
   compliance_shell ==>|Unified Custody: AssetSelector| topology_client
@@ -69,19 +71,21 @@ flowchart LR
   linkStyle 13 stroke:#a78bfa,stroke-width:3px
   linkStyle 14 stroke:#a78bfa,stroke-width:3px
   linkStyle 15 stroke:#a78bfa,stroke-width:3px
-  linkStyle 16 stroke:#2563eb,stroke-width:2px
-  linkStyle 17 stroke:#2563eb,stroke-width:2px
+  linkStyle 16 stroke:#a78bfa,stroke-width:3px
+  linkStyle 17 stroke:#a78bfa,stroke-width:3px
   linkStyle 18 stroke:#2563eb,stroke-width:2px
   linkStyle 19 stroke:#2563eb,stroke-width:2px
-  linkStyle 20 stroke:#c2410c,stroke-width:2px
-  linkStyle 21 stroke:#c2410c,stroke-width:2px
+  linkStyle 20 stroke:#2563eb,stroke-width:2px
+  linkStyle 21 stroke:#2563eb,stroke-width:2px
   linkStyle 22 stroke:#c2410c,stroke-width:2px
-  linkStyle 23 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 24 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 23 stroke:#c2410c,stroke-width:2px
+  linkStyle 24 stroke:#c2410c,stroke-width:2px
   linkStyle 25 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 26 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 28 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 29 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 30 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
 ```
 
 ## Interaction legend
