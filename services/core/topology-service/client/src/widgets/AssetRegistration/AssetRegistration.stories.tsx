@@ -1,7 +1,9 @@
 // File: services/core/topology-service/client/src/widgets/AssetRegistration/AssetRegistration.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import { http, HttpResponse } from 'msw';
+import { useState } from 'react';
 import AssetRegistrationWidget from './AssetRegistration';
+import OrganizationSelector from '../OrganizationSelector';
 import type { OrganizationDTO } from '@contracts/topology';
 
 const meta: Meta<typeof AssetRegistrationWidget> = {
@@ -27,11 +29,24 @@ const MOCK_ORGANIZATIONS: OrganizationDTO[] = [
   { id: 'org-2', name: 'Bravo Logistics', type: 'GOV_AGENCY', addressLine1: 'Building 2730' },
 ];
 
+function RegistrationWithOrganizationSelector() {
+  const [organizationId, setOrganizationId] = useState('');
+
+  return (
+    <AssetRegistrationWidget organizationId={organizationId}>
+      <OrganizationSelector
+        label="Holding Organization Custody"
+        onSelect={(organization) => setOrganizationId(organization?.id ?? '')}
+      />
+    </AssetRegistrationWidget>
+  );
+}
+
 // ------------------------------------------------------------------
 // 1. Default (Ready) State Story
 // ------------------------------------------------------------------
 export const Default: Story = {
-  render: () => <AssetRegistrationWidget />,
+  render: () => <RegistrationWithOrganizationSelector />,
   parameters: {
     msw: {
       handlers: [
@@ -61,7 +76,7 @@ export const Default: Story = {
 // 2. Server Error Mutation State Story
 // ------------------------------------------------------------------
 export const MutationError: Story = {
-  render: () => <AssetRegistrationWidget />,
+  render: () => <RegistrationWithOrganizationSelector />,
   parameters: {
     msw: {
       handlers: [

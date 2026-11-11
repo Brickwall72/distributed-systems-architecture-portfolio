@@ -5,12 +5,12 @@ import { apiClient } from '../../api';
 import { NetworkCanvasInputSchema, type NetworkCanvasInputs } from '@contracts/topology';
 import type { GraphDTO } from 'topology-shared';
 
-export function useGraph(inputs?: NetworkCanvasInputs) {
+export function useGraph(inputs?: NetworkCanvasInputs, options?: { enabled?: boolean }) {
   const identityId = useIdentity()?.id;
   const query = NetworkCanvasInputSchema.parse(inputs ?? {});
   const result = useQuery<GraphDTO, Error>({
     queryKey: ['topology-service', 'graph', identityId, query],
-    enabled: Boolean(identityId),
+    enabled: Boolean(identityId) && (options?.enabled ?? true),
     queryFn: async ({ signal }) => {
       const response = await apiClient.getGraph({
         query,

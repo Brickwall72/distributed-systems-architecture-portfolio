@@ -1,14 +1,19 @@
 // File: ui-shells/domain-shells/topology-shell/src/pages/AssetRegistrationDashboard.tsx
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
-import { NetworkCanvasInputs } from '@contracts/topology';
+import { useIdentity } from '@shared/ui-components';
+import type { AssetRegistrationProps, NetworkCanvasProps, OrganizationSelectorProps } from '@contracts/topology';
 import '@shared/styles';
 
 // Dynamically resolve autonomous widgets at runtime (now backed by populated registerRemotes)
-const AssetRegistration = lazyRemote<any>('topology_client/AssetRegistration');
-const NetworkCanvas = lazyRemote<NetworkCanvasInputs>('topology_client/NetworkCanvas');
+const AssetRegistration = lazyRemote<AssetRegistrationProps>('topology_client/AssetRegistration');
+const NetworkCanvas = lazyRemote<NetworkCanvasProps>('topology_client/NetworkCanvas');
+const OrganizationSelector = lazyRemote<OrganizationSelectorProps>('topology_client/OrganizationSelector');
 
 export default function AssetRegistrationDashboard() {
+  const [organizationId, setOrganizationId] = useState('');
+  const identity = useIdentity();
+
   return (
     <div className="p-6 font-sans max-w-7xl mx-auto">
       <header className="mb-6 border-b border-slate-800 pb-4">
@@ -24,7 +29,17 @@ export default function AssetRegistrationDashboard() {
               Loading Connection Form...
             </div>
           }>
-            <AssetRegistration />
+            <AssetRegistration organizationId={organizationId}>
+              <FederatedErrorBoundary remoteName="topology_client/OrganizationSelector">
+                <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selector...</div>}>
+                  <OrganizationSelector
+                    label="Holding Organization Custody"
+                    onSelect={(organization) => setOrganizationId(organization?.id ?? '')}
+                    onlyOrgId={identity?.orgId ?? undefined}
+                  />
+                </Suspense>
+              </FederatedErrorBoundary>
+            </AssetRegistration>
           </Suspense>
         </FederatedErrorBoundary>
 
@@ -34,7 +49,10 @@ export default function AssetRegistrationDashboard() {
               Loading Network Canvas...
             </div>
           }>
-            <NetworkCanvas />
+            <NetworkCanvas 
+              whitelistSenders={[organizationId]}
+              whitelistReceivers={[organizationId]}
+            />
           </Suspense>
         </FederatedErrorBoundary>
       </div>

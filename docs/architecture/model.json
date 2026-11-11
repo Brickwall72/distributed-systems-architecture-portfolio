@@ -49,10 +49,6 @@
       "widgets": [
         {
           "image": "topology-client",
-          "module": "AssetSelector"
-        },
-        {
-          "image": "topology-client",
           "module": "NetworkCanvas"
         }
       ]

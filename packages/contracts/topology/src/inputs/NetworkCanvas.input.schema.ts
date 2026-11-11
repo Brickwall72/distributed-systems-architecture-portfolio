@@ -17,3 +17,10 @@ export const NetworkCanvasInputSchema = z.object({
 
 export type NetworkCanvasInputs = z.input<typeof NetworkCanvasInputSchema>;
 export type NetworkCanvasInput = z.output<typeof NetworkCanvasInputSchema>;
+
+/** Widget-only options; selection overlays asset history without changing graph query defaults. */
+export const NetworkCanvasWidgetInputSchema = NetworkCanvasInputSchema.extend({
+  enableAssetHistorySelection: z.boolean().default(false),
+});
+
+export type NetworkCanvasProps = z.input<typeof NetworkCanvasWidgetInputSchema>;

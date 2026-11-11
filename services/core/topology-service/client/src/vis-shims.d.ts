@@ -23,5 +23,8 @@ declare module 'vis-network' {
     setData(data: { nodes: any; edges: any }): void;
     setOptions(options: any): void;
     on(event: string, callback: (params: any) => void): void;
+    off(event: string, callback: (params: any) => void): void;
+    getNodeAt(position: { x: number; y: number }): string | number | undefined;
+    getEdgeAt(position: { x: number; y: number }): string | number | undefined;
   }
 }

@@ -1,21 +1,20 @@
 // File: services/core/topology-service/client/src/widgets/AssetRegistration/AssetRegistration.tsx
 import { useState, type SyntheticEvent } from 'react';
-import OrganizationSelector from '../OrganizationSelector';
 import { useCreateAsset } from '../../hooks';
-import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO } from '@contracts/topology';
+import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO, AssetRegistrationInputSchema, type AssetRegistrationProps } from '@contracts/topology';
 import { Button, Select } from '@shared/ui-components';
 import '@shared/styles';
 
 export const TOPOLOGY_MUTATION_EVENT = 'topology:graph-mutated';
 
-export default function AssetRegistrationWidget() {
+export default function AssetRegistrationWidget(props: Readonly<AssetRegistrationProps>) {
+  const { organizationId } = AssetRegistrationInputSchema.parse(props);
   const [assetId, setAssetId] = useState('');
   const [name, setName] = useState('');
   const [nomenclature, setNomenclature] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [controlType, setControlType] = useState<ControlType>();
   const [type, setType] = useState('')
-  const [currentOwnerId, setCurrentOwnerId] = useState('');
   
   const { createAsset, isLoading, error: apiError } = useCreateAsset();
   const [formError, setFormError] = useState<string | null>(null);
@@ -24,7 +23,7 @@ export default function AssetRegistrationWidget() {
     e.preventDefault();
     setFormError(null);
 
-    if (!assetId.trim() || !name.trim() || !nomenclature.trim() || !serialNumber.trim() || !currentOwnerId.trim() || !controlType?.trim()) {
+    if (!assetId.trim() || !name.trim() || !nomenclature.trim() || !serialNumber.trim() || !organizationId || !controlType?.trim()) {
       setFormError('All fields including holding organization custody are required.');
       return;
     }
@@ -37,7 +36,7 @@ export default function AssetRegistrationWidget() {
       status: ASSET_STATUS.AVAILABLE,
       type: type.trim(),
       controlType,
-      currentOwnerId: currentOwnerId.trim(),
+      currentOwnerId: organizationId,
     };
 
     const newAsset = await createAsset(payload);
@@ -106,10 +105,7 @@ export default function AssetRegistrationWidget() {
         </div>
 
         <div className="pt-1">
-          <OrganizationSelector
-            label="Holding Organization Custody"
-            onSelect={(org) => setCurrentOwnerId(org?.id ?? '')}
-          />
+          {props.children}
         </div>
 
         <Button
