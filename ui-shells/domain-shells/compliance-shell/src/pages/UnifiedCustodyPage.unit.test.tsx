@@ -1,3 +1,4 @@
+// File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.unit.test.tsx
 import { act, render } from '@testing-library/react';
 import { mockFromSchema } from '@shared/testing';
 import { CONTROL_TYPE, AssetDTOSchema, OrganizationDTOSchema, type AssetDTO, type OrganizationDTO } from '@contracts/topology';
@@ -10,13 +11,21 @@ type Props = Record<string, any>;
 // Stub remotes record the props the page hands them, keyed by module and label
 const remotes = vi.hoisted(() => ({ props: {} as Record<string, Props> }));
 
-vi.mock('../utils/federation', async () => {
-  const React = await import('react');
+vi.mock('@shared/mf-runtime', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shared/mf-runtime')>();
   return {
+    ...actual,
     lazyRemote: (moduleName: string) => (props: Props) => {
       remotes.props[`${moduleName}:${props.label ?? ''}`] = props;
-      return React.createElement('div', { 'data-testid': moduleName });
+      return <div data-testid={moduleName} />;
     },
+  };
+});
+
+vi.mock('@shared/ui-components', async () => {
+  const actual = await vi.importActual<typeof import('@shared/ui-components')>('@shared/ui-components');
+  return {
+    ...actual,
   };
 });
 

@@ -5,14 +5,19 @@ import { DataSet } from 'vis-data';
 import { TOPOLOGY_MUTATION_EVENT } from '../AssetRegistration/AssetRegistration';
 import { useGraph } from '../../hooks';
 import { Button } from '@shared/ui-components';
+import { NetworkCanvasInputSchema, type NetworkCanvasInputs } from '@contracts/topology';
 
-export default function NetworkCanvas() {
+export default function NetworkCanvas(props: NetworkCanvasInputs = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const networkInstanceRef = useRef<vis.Network | null>(null);
   const nodesDataSetRef = useRef<DataSet<any> | null>(null);
   const edgesDataSetRef = useRef<DataSet<any> | null>(null);
 
-  const { graphData, isLoading, error, refetch } = useGraph();
+  const parsedInputs = NetworkCanvasInputSchema.safeParse(props);
+  if (!parsedInputs.success) {
+    console.warn('[NetworkCanvas MFE] Invalid props received from Host Shell:', parsedInputs.error.format());
+  }
+  const { graphData, isLoading, error, refetch } = useGraph(parsedInputs.success ? parsedInputs.data : undefined);
 
   // 1. Initialize vis-network ONCE on mount
   useEffect(() => {
@@ -51,7 +56,7 @@ export default function NetworkCanvas() {
 
     // 1. Render Organizations (Blue boxes)
     graphData.organizations.forEach((org) => {
-      if (!trackedNodeIds.has(org.id)) {
+      if (org.id && !trackedNodeIds.has(org.id)) {
         trackedNodeIds.add(org.id);
         rawNodes.push({
           id: org.id,
@@ -65,7 +70,7 @@ export default function NetworkCanvas() {
 
     // 2. Render Assets (Indigo dots)
     graphData.assets.forEach((asset) => {
-      if (!trackedNodeIds.has(asset.id)) {
+      if (asset.id && !trackedNodeIds.has(asset.id)) {
         trackedNodeIds.add(asset.id);
         rawNodes.push({
           id: asset.id,
@@ -78,7 +83,7 @@ export default function NetworkCanvas() {
     });
 
     // 3. Render Active Transfer Events (Amber diamonds) & In-Transit Connections
-    graphData.activeTransfers.forEach((transfer) => {
+    graphData.transfers.forEach((transfer) => {
       if (transfer.requisitionNumber && !trackedNodeIds.has(transfer.requisitionNumber)) {
         trackedNodeIds.add(transfer.requisitionNumber);
         rawNodes.push({
@@ -98,28 +103,34 @@ export default function NetworkCanvas() {
       }
 
       transfer.assets.forEach((assetItem) => {
-        if (assetItem.id && transfer.requisitionNumber && assetItem.status === 'IN_TRANSIT') {
-          rawEdges.push({
-            from: transfer.requisitionNumber,
-            to: assetItem.id,
-            label: 'IN_TRANSIT',
-            color: { color: '#f97316' },
-            arrows: 'to',
-            dashes: true,
-          });
+        if (assetItem.id && transfer.requisitionNumber) {
+          const isInTransit = assetItem.status === 'IN_TRANSIT';
+          // Only show INVOLVES edges if includeCompletedTransferEvents is true, OR if asset is IN_TRANSIT
+          if (isInTransit || parsedInputs.data?.includeCompletedTransferEvents) {
+            rawEdges.push({
+              from: transfer.requisitionNumber,
+              to: assetItem.id,
+              label: isInTransit ? 'IN_TRANSIT' : 'INVOLVES',
+              color: { color: isInTransit ? '#f97316' : '#8b5cf6' },
+              arrows: 'to',
+              dashes: isInTransit,
+            });
+          }
         }
       });
     });
 
     // 4. Render Current Custody Edges
     graphData.custodyLinks.forEach((link) => {
-      rawEdges.push({
-        from: link.orgId,
-        to: link.assetId,
-        label: 'HAS_CUSTODY',
-        color: { color: '#10b981' },
-        arrows: 'to',
-      });
+      if (link.orgId && link.assetId) {
+        rawEdges.push({
+          from: link.orgId,
+          to: link.assetId,
+          label: 'HAS_CUSTODY',
+          color: { color: '#10b981' },
+          arrows: 'to',
+        });
+      }
     });
 
     // Sync nodes in-place: update existing ones (preserving positions) and remove stale ones

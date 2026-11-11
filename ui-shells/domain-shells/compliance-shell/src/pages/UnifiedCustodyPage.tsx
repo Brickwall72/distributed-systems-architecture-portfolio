@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
 import { useState, Suspense, useEffect } from 'react';
-import { lazyRemote } from '../utils/federation';
-import { FederatedErrorBoundary, useIdentity } from '@shared/ui-components';
+import { useIdentity } from '@shared/ui-components';
+import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
 import { TRANSFER_TYPE, TransferType } from '@contracts/common';
 import { 
   ComplianceWorkflowWidgetProps, 

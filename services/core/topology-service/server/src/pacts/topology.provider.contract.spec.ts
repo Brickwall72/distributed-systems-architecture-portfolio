@@ -50,7 +50,7 @@ vi.mock('../repositories', async () => {
             },
           ],
           assets: [graphAsset],
-          activeTransfers: [
+          transfers: [
             {
               requisitionNumber: 'REQ-001',
               date: '20261020',

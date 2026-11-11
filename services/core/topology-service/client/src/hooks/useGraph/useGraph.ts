@@ -1,70 +1,36 @@
 // File: services/core/topology-service/client/src/hooks/useGraph/useGraph.ts
-import { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useIdentity } from '@shared/ui-components';
 import { apiClient } from '../../api';
+import { NetworkCanvasInputSchema, type NetworkCanvasInputs } from '@contracts/topology';
 import type { GraphDTO } from 'topology-shared';
 
-export function useGraph() {
+export function useGraph(inputs?: NetworkCanvasInputs) {
   const identityId = useIdentity()?.id;
-  const [graphData, setGraphData] = useState<GraphDTO | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(identityId));
-  const [error, setError] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const query = NetworkCanvasInputSchema.parse(inputs ?? {});
+  const result = useQuery<GraphDTO, Error>({
+    queryKey: ['topology-service', 'graph', identityId, query],
+    enabled: Boolean(identityId),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.getGraph({
+        query,
+        fetchOptions: { signal },
+      });
 
-  const refetch = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!identityId) {
-      setGraphData(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    async function load() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await apiClient.getGraph({
-          query: undefined,
-          fetchOptions: { signal: controller.signal },
-        });
-
-        if (response.status === 200 && response.body) {
-          setGraphData(response.body);
-        } else {
-          const body = response.body as { error?: string; message?: string } | null | undefined;
-          setError(body?.error || body?.message || 'Failed to fetch topology network graph');
-          setGraphData(null);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-
-        const message =
-          err instanceof Error && err.message.trim() !== ''
-            ? err.message
-            : 'Failed to fetch topology network graph';
-
-        setError(message);
-        setGraphData(null);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+      if (response.status === 200 && response.body) {
+        return response.body;
       }
-    }
 
-    void load();
+      const body = response.body as { error?: string; message?: string } | null | undefined;
+      throw new Error(body?.error || body?.message || 'Failed to fetch topology network graph');
+    },
+    retry: false,
+  });
 
-    return () => {
-      controller.abort();
-    };
-  }, [refreshTrigger, identityId]);
-
-  return { graphData, isLoading, error, refetch };
+  return {
+    graphData: result.data ?? null,
+    isLoading: result.isLoading,
+    error: result.error?.message ?? null,
+    refetch: result.refetch,
+  };
 }

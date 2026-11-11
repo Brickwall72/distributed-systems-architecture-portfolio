@@ -34,7 +34,6 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
   return {
     ...actual,
     useIdentity: () => ({ id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' }),
-    hydrateTemplate: vi.fn((html, data) => `hydrated:${html}:${JSON.stringify(data)}`),
     DocumentViewer: ({ content, children }: any) => (
       <div data-testid="document-viewer" data-content={content}>
         {content}
@@ -43,6 +42,10 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
     ),
   };
 });
+
+vi.mock('@shared/utils', () => ({
+  hydrateTemplate: vi.fn((html, data) => `hydrated:${html}:${JSON.stringify(data)}`),
+}));
 
 describe('ComplianceWorkflowWidget', () => {
   const mockGeneratePdf = vi.fn(async ({ onSuccess }: { onSuccess: (blobUrl: string) => void }): Promise<void> => {

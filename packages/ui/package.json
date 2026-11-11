@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly --outDir dist",
-    "dev": "vite build --watch",
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
+    "dev": "tsup --watch",
     "test": "pnpm test:unit",
     "test:unit": "vitest run .unit.test"
   },
@@ -23,13 +23,12 @@
     "react-dom": "~19.2.8"
   },
   "dependencies": {
-    "handlebars": "~4.7.9",
     "tailwind-merge": "~3.6.0",
     "clsx": "~2.1.1",
-    "@contracts/auth": "workspace:*"
+    "@contracts/auth": "workspace:*",
+    "@shared/utils": "workspace:*"
   },
   "devDependencies": {
-    "@shared/styles": "workspace:*",
-    "@shared/vite-config": "workspace:*"
+    "@shared/styles": "workspace:*"
   }
 }

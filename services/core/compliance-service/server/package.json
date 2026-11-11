@@ -19,7 +19,8 @@
     "@contracts/topology": "workspace:*"
   },
   "dependencies": {
-    "@shared/ui-components": "workspace:*",
+
+    "@shared/utils": "workspace:*",
     "@shared/express": "workspace:*",
     "@shared/messaging": "workspace:*",
     "@shared/filestore": "workspace:*",

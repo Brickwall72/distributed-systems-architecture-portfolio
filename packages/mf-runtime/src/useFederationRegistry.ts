@@ -1,4 +1,3 @@
-// File: packages/mf-runtime/src/useFederationRegistry.ts
 import { useEffect, useState } from 'react';
 import { registerRemotes } from '@module-federation/enhanced/runtime';
 
@@ -16,7 +15,7 @@ export function useFederationRegistry({
   registryUrl = '/registry/apps.json',
   shellName = 'domain_shell',
 }: UseFederationRegistryOptions = {}): FederationRegistryState {
-  const [isReady, setIsReady] = useState<boolean>(false);
+  const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -28,13 +27,13 @@ export function useFederationRegistry({
         if (!response.ok) {
           throw new Error(`Failed to fetch registry from ${registryUrl} (Status ${response.status})`);
         }
-        
+
         const manifest = await response.json();
         if (manifest?.remotes) {
           registerRemotes(manifest.remotes);
         }
-      } catch (err) {
-        const runtimeError = err instanceof Error ? err : new Error(String(err));
+      } catch (cause) {
+        const runtimeError = cause instanceof Error ? cause : new Error(String(cause));
         console.error(`[${shellName}] Failed to initialize dynamic registry:`, runtimeError);
         if (isMounted) {
           setError(runtimeError);

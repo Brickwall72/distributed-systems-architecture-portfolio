@@ -3,6 +3,7 @@ import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-lib
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { setTestSession } from '@shared/testing';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NetworkCanvas from './NetworkCanvas';
 import type { GraphDTO } from 'topology-shared';
 
@@ -36,7 +37,7 @@ const mockGraphData: GraphDTO = {
       currentOwnerId: 'org-1111-lockheed',
     },
   ],
-  activeTransfers: [
+  transfers: [
     {
       requisitionNumber: 'REQ-2026-SSC-0092',
       date: '20260904',
@@ -72,12 +73,21 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('NetworkCanvasWidget Component Lifecycle', () => {
+  const renderNetworkCanvas = () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <NetworkCanvas />
+      </QueryClientProvider>
+    );
+  };
+
   beforeEach(() => {
     setTestSession();
   });
 
   it('should manage the asynchronous loading state and hydrate the canvas container', async () => {
-    render(<NetworkCanvas />);
+    renderNetworkCanvas();
 
     const loadingScreen = screen.getByText(/Traversing Space Custody Network Threads.../i);
     expect(loadingScreen).toBeInTheDocument();
@@ -92,7 +102,7 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
       })
     );
 
-    render(<NetworkCanvas />);
+    renderNetworkCanvas();
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to fetch topology network graph/i)).toBeInTheDocument();

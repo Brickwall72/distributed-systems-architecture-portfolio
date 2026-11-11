@@ -12,9 +12,9 @@ export function createGraphRouter(repository?: GraphRepository) {
   const graphRepository = repository ?? new GraphRepository(getDatabaseClient());
 
   return s.router(graphRoutes, {
-    getGraph: async () => {
+    getGraph: async ({ query }) => {
       try {
-        const graphData = await graphRepository.getGraph();
+        const graphData = await graphRepository.getGraph(query);
         return {
           status: 200,
           body: graphData,

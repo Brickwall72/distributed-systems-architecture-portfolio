@@ -3,7 +3,7 @@ import { initServer } from '@ts-rest/express';
 import { createLogger } from '@shared/express';
 import { templatesRoutes, TemplateDraftResponseSchema, FormId, templateId2dataSchema } from 'compliance-shared';
 import { TemplateRepository } from '../../repositories';
-import { hydrateTemplate } from '@shared/ui-components';
+import { hydrateTemplate } from '@shared/utils';
 import { EventBroker } from '@shared/messaging';
 import { PDF_SUBJECTS, generatePdfCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
 import { z } from 'zod';

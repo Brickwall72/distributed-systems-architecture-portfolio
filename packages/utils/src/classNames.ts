@@ -1,4 +1,4 @@
-// File: packages/ui/src/lib/utils.ts
+// File: packages/utils/src/classNames.ts
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

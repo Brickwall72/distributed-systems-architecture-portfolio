@@ -27,6 +27,7 @@
     "zod": "~3.24.1"
   },
   "devDependencies": {
+    "@module-federation/enhanced": "~2.9.1",
     "@shared/vite-config": "workspace:*",
     "@shared/testing": "workspace:*",
     "@contracts/esign": "workspace:*"

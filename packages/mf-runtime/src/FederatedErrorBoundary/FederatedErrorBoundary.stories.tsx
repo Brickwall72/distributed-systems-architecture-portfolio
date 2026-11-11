@@ -1,4 +1,4 @@
-// File: packages/ui/src/components/SharedComponents.stories.tsx
+// File: packages/mf-runtime/src/FederatedErrorBoundary/FederatedErrorBoundary.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import FederatedErrorBoundary from './FederatedErrorBoundary';
 

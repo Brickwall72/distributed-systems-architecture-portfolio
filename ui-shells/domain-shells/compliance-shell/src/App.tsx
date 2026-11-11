@@ -1,17 +1,17 @@
 // File: ui-shells/domain-shells/compliance-shell/src/App.tsx
 import { Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { useFederationRegistry } from '@shared/mf-runtime';
 import { UnifiedCustodyPage, DocumentsPage, TransferReceiptPage } from './pages';
 import { NavigationTabs } from './components';
 import '@shared/styles';
 
 export default function App() {
-  const { isReady } = useFederationRegistry({ shellName: 'compliance_shell' });
-
   const isStandalone =
     window.location.pathname === '/compliance' ||
     window.location.pathname.startsWith('/compliance/');
+
+  const { isReady } = useFederationRegistry({ shellName: 'compliance_shell' });
 
   if (!isReady) {
     return (
@@ -41,6 +41,7 @@ export default function App() {
               <Route path="/transfer-authorizations" element={<UnifiedCustodyPage />} />
               <Route path="/documents" element={<DocumentsPage />} />
               <Route path="/transfer-receipts" element={<TransferReceiptPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </div>
