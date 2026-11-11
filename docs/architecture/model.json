@@ -27,7 +27,7 @@
     },
     {
       "shell": "topology-shell",
-      "page": "Topology Dashboard",
+      "page": "Asset Registration Dashboard",
       "widgets": [
         {
           "image": "topology-client",
@@ -36,6 +36,20 @@
         {
           "image": "topology-client",
           "module": "OrganizationSelector"
+        },
+        {
+          "image": "topology-client",
+          "module": "NetworkCanvas"
+        }
+      ]
+    },
+    {
+      "shell": "topology-shell",
+      "page": "Transfer History",
+      "widgets": [
+        {
+          "image": "topology-client",
+          "module": "AssetSelector"
         },
         {
           "image": "topology-client",

@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.tsx
 import { useCallback, useEffect, useState } from 'react';
-import { lazyRemote } from '../utils/federation';
-import { FederatedErrorBoundary, DocumentViewer, useIdentity } from '@shared/ui-components';
+import { DocumentViewer, useIdentity } from '@shared/ui-components';
+import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
 import type { DocumentsTableInput, DocumentPreviewEvent } from '@contracts/compliance';
 
 const DocumentsTable = lazyRemote<DocumentsTableInput>('compliance_client/DocumentsTable');

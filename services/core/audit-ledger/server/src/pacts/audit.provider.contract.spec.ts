@@ -2,6 +2,7 @@
 import { Verifier } from '@pact-foundation/pact';
 import express from 'express';
 import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { transferSummarySchema, LEDGER_STATUS } from 'audit-shared';
 import { mockFromSchema } from '@shared/testing';
@@ -13,7 +14,8 @@ type Behavior = 'sealed' | 'all' | 'failing';
 describe('Pact Provider Verification - Audit Server', () => {
   let server: Server;
   let behavior: Behavior = 'all';
-  const PORT = 8090;
+  // Ephemeral port avoids clashing with the local Docker stack (Traefik publishes 8090)
+  let port = 0;
   // Same seed as the consumer spec so optional keys line up with the committed pact examples
   const seed = { seed: 1 };
 
@@ -33,8 +35,9 @@ describe('Pact Provider Verification - Audit Server', () => {
     app.use('/api/v1', gateway);
 
     await new Promise<void>((resolve) => {
-      server = app.listen(PORT, () => resolve());
+      server = app.listen(0, () => resolve());
     });
+    port = (server.address() as AddressInfo).port;
   });
 
   afterAll(async () => {
@@ -48,7 +51,7 @@ describe('Pact Provider Verification - Audit Server', () => {
   it('validates provider implementation against generated consumer pacts', async () => {
     const verifier = new Verifier({
       provider: 'audit-server',
-      providerBaseUrl: `http://localhost:${PORT}`,
+      providerBaseUrl: `http://localhost:${port}`,
       pactUrls: [path.resolve(process.cwd(), '../shared/pacts/audit-client-audit-server.json')],
       stateHandlers: {
         'ledger transfers exist': async () => {

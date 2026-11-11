@@ -12,7 +12,7 @@ export const GraphDTOSchema = z.object({
   timestamp: z.string(),
   organizations: OrganizationDTOListSchema,
   assets: AssetDTOListSchema,
-  activeTransfers: TransferEventDTOListSchema,
+  transfers: TransferEventDTOListSchema,
   custodyLinks: z.array(CustodyLinkDTOSchema),
 });
 

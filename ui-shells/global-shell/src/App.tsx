@@ -1,13 +1,12 @@
 // File: ui-shells/global-shell/src/App.tsx
-import { useState, Suspense, ComponentType, lazy } from 'react';
-import { loadRemote } from '@module-federation/enhanced/runtime';
-import { FederatedErrorBoundary } from '@shared/ui-components';
+import { useState, Suspense, ComponentType } from 'react';
+import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
 import '@shared/styles';
 
 // Dynamically resolve domain shells at runtime via the global peer registry (initialized in main.tsx)
-const TopologyApp = lazy(() => loadRemote<any>('topology_shell/App'));
-const ProfileSelector = lazy(() => loadRemote<any>('auth_client/ProfileSelector'));
-const ComplianceApp = lazy(() => loadRemote<any>('compliance_shell/App'));
+const TopologyApp = lazyRemote<any>('topology_shell/App');
+const ProfileSelector = lazyRemote<any>('auth_client/ProfileSelector');
+const ComplianceApp = lazyRemote<any>('compliance_shell/App');
 
 interface DomainTab {
   domainId: string;
@@ -33,6 +32,14 @@ export default function App() {
 
   const activeDomain = DOMAINS.find((d) => d.domainId === activeDomainId) || DOMAINS[0];
   const ActiveComponent = activeDomain.Component;
+  const handleDomainChange = (domainId: string) => {
+    if (domainId === activeDomainId) {
+      return;
+    }
+
+    window.history.replaceState(null, '', '/');
+    setActiveDomainId(domainId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-sans">
@@ -50,7 +57,7 @@ export default function App() {
               <button
                 type="button"
                 key={domain.domainId}
-                onClick={() => setActiveDomainId(domain.domainId)}
+                onClick={() => handleDomainChange(domain.domainId)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md'

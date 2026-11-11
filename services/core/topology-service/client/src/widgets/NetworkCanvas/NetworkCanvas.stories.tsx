@@ -34,7 +34,7 @@ const MOCK_GRAPH_DATA: GraphDTO = {
     { id: 'asset-2', name: 'Night Vision Goggles', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', status: 'IN_TRANSIT', currentOwnerId: 'org-2' },
     { id: 'asset-3', name: 'Secure Satellite Terminal', nomenclature: 'Secure Satellite Terminal', serialNumber: 'SST-778899', status: 'IN_TRANSIT', currentOwnerId: 'org-2' },
   ],
-  activeTransfers: [
+  transfers: [
     {
       requisitionNumber: 'REQ-TR-001',
       date: '20261020',

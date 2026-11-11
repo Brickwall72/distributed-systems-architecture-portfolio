@@ -6,6 +6,7 @@ describe('GraphRepository', () => {
   let repository: GraphRepository;
   let mockSession: Partial<Session>;
   let mockDriver: Partial<Driver>;
+  let queryParams: Record<string, unknown> | undefined;
 
   const mockTopologyRecord = {
     get: (key: string) => {
@@ -17,7 +18,7 @@ describe('GraphRepository', () => {
           assets: [
             { id: 'asset-1', name: 'Probe Mk I', nomenclature: 'Probe Mk I', serialNumber: 'KSP-01', status: 'AVAILABLE' },
           ],
-          activeTransfers: [],
+          transfers: [],
           custodyLinks: [
             { orgId: 'org-1', assetId: 'asset-1' },
           ],
@@ -31,8 +32,11 @@ describe('GraphRepository', () => {
     mockSession = {
       executeRead: vi.fn().mockImplementation(async (callback) => {
         const tx = {
-          run: vi.fn().mockResolvedValue({
+          run: vi.fn().mockImplementation(async (_query: string, params: Record<string, unknown>) => {
+            queryParams = params;
+            return {
             records: [mockTopologyRecord],
+            };
           }),
         };
         return callback(tx);
@@ -45,6 +49,7 @@ describe('GraphRepository', () => {
     } as unknown as Driver;
 
     repository = new GraphRepository(mockDriver as Driver);
+    queryParams = undefined;
   });
 
   it('should successfully execute read query and return structured GraphDTO', async () => {
@@ -74,8 +79,26 @@ describe('GraphRepository', () => {
 
     expect(graph.organizations).toEqual([]);
     expect(graph.assets).toEqual([]);
-    expect(graph.activeTransfers).toEqual([]);
+    expect(graph.transfers).toEqual([]);
     expect(graph.custodyLinks).toEqual([]);
     expect(graph.timestamp).toBeTypeOf('string');
+  });
+
+  it('should pass whitelist filters and completed-event inclusion to Neo4j', async () => {
+    await repository.getGraph({
+      whitelistSenders: ['sender-1'],
+      whitelistReceivers: ['receiver-1'],
+      whitelistAssets: ['asset-1'],
+      whitelistTransfers: ['transfer-1'],
+      includeCompletedTransferEvents: true,
+    });
+
+    expect(queryParams).toEqual({
+      whitelistSenders: ['sender-1'],
+      whitelistReceivers: ['receiver-1'],
+      whitelistAssets: ['asset-1'],
+      whitelistTransfers: ['transfer-1'],
+      includeCompletedTransferEvents: true,
+    });
   });
 });

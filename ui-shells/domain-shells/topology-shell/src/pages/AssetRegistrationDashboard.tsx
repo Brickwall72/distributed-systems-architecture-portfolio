@@ -1,14 +1,14 @@
-// File: ui-shells/domain-shells/topology-shell/src/pages/TopologyDashboard.tsx
-import { Suspense, lazy } from 'react';
-import { loadRemote } from '@module-federation/enhanced/runtime';
-import { FederatedErrorBoundary } from '@shared/ui-components';
+// File: ui-shells/domain-shells/topology-shell/src/pages/AssetRegistrationDashboard.tsx
+import { Suspense } from 'react';
+import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
+import { NetworkCanvasInputs } from '@contracts/topology';
 import '@shared/styles';
 
 // Dynamically resolve autonomous widgets at runtime (now backed by populated registerRemotes)
-const AssetRegistration = lazy(() => loadRemote<any>('topology_client/AssetRegistration'));
-const NetworkCanvas = lazy(() => loadRemote<any>('topology_client/NetworkCanvas'));
+const AssetRegistration = lazyRemote<any>('topology_client/AssetRegistration');
+const NetworkCanvas = lazyRemote<NetworkCanvasInputs>('topology_client/NetworkCanvas');
 
-export default function TopologyDashboard() {
+export default function AssetRegistrationDashboard() {
   return (
     <div className="p-6 font-sans max-w-7xl mx-auto">
       <header className="mb-6 border-b border-slate-800 pb-4">

@@ -32,7 +32,7 @@ describe('Graph Router (/graph)', () => {
       timestamp: new Date().toISOString(),
       organizations: [{ id: 'org-1', name: 'Alpha Command', type: 'CONTRACTOR' }],
       assets: [{ id: 'asset-1', name: 'Probe', nomenclature: 'Probe', serialNumber: '01', status: 'AVAILABLE' }],
-      activeTransfers: [],
+      transfers: [],
       custodyLinks: [{ orgId: 'org-1', assetId: 'asset-1' }],
     };
 
@@ -43,6 +43,13 @@ describe('Graph Router (/graph)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual(mockGraph);
     expect(mockGraphRepository.getGraph).toHaveBeenCalledTimes(1);
+    expect(mockGraphRepository.getGraph).toHaveBeenCalledWith({
+      whitelistSenders: [],
+      whitelistReceivers: [],
+      whitelistAssets: [],
+      whitelistTransfers: [],
+      includeCompletedTransferEvents: false,
+    });
   });
 
   it('should return 500 Internal Server Error when repository throws an exception', async () => {

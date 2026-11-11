@@ -41,7 +41,7 @@ describe('Topology Client -> Topology Server Contract (Graph API)', () => {
             })
           ),
           assets: arrayContaining(like(asset)),
-          activeTransfers: arrayContaining(
+          transfers: arrayContaining(
             like({
               requisitionNumber: string('REQ-001'),
               date: string('20261020'),

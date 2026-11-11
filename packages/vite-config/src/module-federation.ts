@@ -31,6 +31,9 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
       cors: true,
       origin: process.env.VITE_ORIGIN || 'http://localhost',
     },
+    resolve: {
+      dedupe: ['react', 'react-dom', 'react-dom/client'],
+    },
     ...(options.preview && { preview: options.preview }),
     plugins: [
       react(),
@@ -46,6 +49,7 @@ export function createRemoteConfig(options: RemoteConfigOptions): UserConfig {
         shared: {
           react: { singleton: true, requiredVersion: '~19.2.8', eager: false },
           'react-dom': { singleton: true, requiredVersion: '~19.2.8', eager: false },
+          'react-dom/client': { singleton: true, requiredVersion: '~19.2.8', eager: false },
           'react/jsx-runtime': { singleton: true, requiredVersion: '~19.2.8', eager: false },
           '@tanstack/react-query': { singleton: true, strictVersion: true, requiredVersion: '~5.105.3', eager: false },
         },

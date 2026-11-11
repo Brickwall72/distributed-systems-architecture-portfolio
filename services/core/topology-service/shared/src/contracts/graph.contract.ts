@@ -2,7 +2,7 @@
 import { initContract } from '@ts-rest/core';
 import { GraphDTOSchema } from '../schemas';
 import { ApiErrorResponseSchema } from '@contracts/common';
-import { z } from 'zod';
+import { NetworkCanvasInputSchema } from '@contracts/topology';
 
 const c = initContract();
 
@@ -10,7 +10,7 @@ export const graphRoutes = {
   getGraph: c.query({
     method: 'GET',
     path: '/graph',
-    query: z.object({}).optional(),
+    query: NetworkCanvasInputSchema,
     responses: {
       200: GraphDTOSchema,
       500: ApiErrorResponseSchema,

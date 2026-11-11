@@ -5,12 +5,22 @@ import { setTestSession } from '@shared/testing';
 import type { DocumentPreviewEvent, DocumentsTableInput } from '@contracts/compliance';
 import DocumentsPage from './DocumentsPage';
 
-const { loadRemote, remote } = vi.hoisted(() => ({
-  loadRemote: vi.fn(),
+const { remote } = vi.hoisted(() => ({
   remote: { onPdfSelect: undefined as DocumentsTableInput['onPdfSelect'], transferSelect: undefined as DocumentsTableInput['onPdfSelect'] },
 }));
 
-vi.mock('@module-federation/enhanced/runtime', () => ({ loadRemote }));
+vi.mock('@shared/mf-runtime', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shared/mf-runtime')>();
+  return {
+    ...actual,
+    lazyRemote: (id: string) => (props: { onPdfSelect?: (event: DocumentPreviewEvent) => void }) => {
+      if (id === 'compliance_client/DocumentsTable') remote.onPdfSelect = props.onPdfSelect;
+      if (id === 'audit_client/TransfersTable') remote.transferSelect = props.onPdfSelect;
+      return <div data-testid={id} />;
+    },
+  };
+});
+
 vi.mock('@shared/ui-components', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shared/ui-components')>();
   return {
@@ -23,13 +33,6 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
 describe('DocumentsPage', () => {
   beforeEach(() => {
     setTestSession();
-    loadRemote.mockImplementation(async (id: string) => ({
-      default: (props: DocumentsTableInput) => {
-        if (id === 'compliance_client/DocumentsTable') remote.onPdfSelect = props.onPdfSelect;
-        if (id === 'audit_client/TransfersTable') remote.transferSelect = props.onPdfSelect;
-        return <div data-testid={id} />;
-      },
-    }));
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   });

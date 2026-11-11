@@ -25,6 +25,7 @@
     "@contracts/auth": "workspace:*"
   },
   "devDependencies": {
+    "@module-federation/enhanced": "~2.9.1",
     "@shared/vite-config": "workspace:*",
     "@shared/testing": "workspace:*"
   }

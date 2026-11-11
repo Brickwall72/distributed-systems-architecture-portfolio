@@ -1,6 +1,7 @@
 // File: services/platform/compliance/client/src/widgets/ComplianceWorkflow.tsx
 import { useState, useMemo, useEffect } from 'react';
-import { Button, DocumentViewer, hydrateTemplate, useIdentity } from '@shared/ui-components';
+import { Button, DocumentViewer, useIdentity } from '@shared/ui-components';
+import { hydrateTemplate } from '@shared/utils';
 import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance'; 
 import { masterPayloadInputSchema, templateId2dataSchema, getReceiptTemplateId } from 'compliance-shared';

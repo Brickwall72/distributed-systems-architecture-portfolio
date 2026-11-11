@@ -1,7 +1,7 @@
 // File: ui-shells/domain-shells/compliance-shell/src/pages/TransferReceiptPage.tsx
 import { useState, Suspense } from 'react';
-import { lazyRemote } from '../utils/federation';
-import { FederatedErrorBoundary, useIdentity } from '@shared/ui-components';
+import { useIdentity } from '@shared/ui-components';
+import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
 import { ComplianceWorkflowWidgetProps, FormId, DocumentsTableInput } from '@contracts/compliance';
 import { TRANSFER_STATUS } from '@contracts/common'
 import { AssetDTOList, AssetSelectorProps, OrganizationSelectorProps, OrganizationDTO, TRANSFER_ROLE } from '@contracts/topology';
