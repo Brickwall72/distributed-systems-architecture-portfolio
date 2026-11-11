@@ -2,28 +2,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AssetRegistrationWidget, { TOPOLOGY_MUTATION_EVENT } from './AssetRegistration';
 import { useCreateAsset } from '../../hooks';
-import { AssetDTOSchema } from '@contracts/topology';
+import { AssetDTOSchema, AssetRegistrationInputSchema } from '@contracts/topology';
 import { mockFromSchema } from '@shared/testing';
 
-const { mockOrg } = vi.hoisted(() => ({ mockOrg: { id: 'org-10', name: 'Test Org' } }));
+const organizationId = 'org-jeb-junkyard';
 
 vi.mock('../../hooks', () => ({
   useCreateAsset: vi.fn(),
-}));
-
-vi.mock('../OrganizationSelector', () => ({
-  default: ({ label, onSelect }: any) => (
-    <div>
-      <label>{label}</label>
-      <button
-        type="button"
-        data-testid="mock-org-selector"
-        onClick={() => onSelect(mockOrg)}
-      >
-        Select Org
-      </button>
-    </div>
-  ),
 }));
 
 describe('AssetRegistrationWidget', () => {
@@ -39,9 +24,14 @@ describe('AssetRegistrationWidget', () => {
   });
 
   it('renders correctly and shows validation error when submitting empty form', async () => {
-    render(<AssetRegistrationWidget />);
+    render(<AssetRegistrationWidget organizationId=""><span>Organization child</span></AssetRegistrationWidget>);
 
     expect(screen.getByText('Register New Asset')).toBeInTheDocument();
+    expect(screen.getByText('Organization child').closest('form')).toBeInTheDocument();
+    expect(screen.getByText('Organization child').parentElement?.previousElementSibling)
+      .toContainElement(screen.getByLabelText(/Control Type/i));
+    expect(screen.getByText('Organization child').parentElement?.nextElementSibling)
+      .toBe(screen.getByRole('button', { name: /Register & Assign Custody/i }));
 
     const form = screen.getByRole('button', { name: /Register & Assign Custody/i }).closest('form')!;
     
@@ -57,12 +47,12 @@ describe('AssetRegistrationWidget', () => {
   it('successfully submits valid asset payload, dispatches mutation event, and resets form', async () => {
     // Text inputs drop line breaks, so keep generated values single-line
     const singleLine = (value: string) => value.replaceAll(/\s+/g, ' ').trim();
-    const generated = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: mockOrg.id, id: 'asset-gps-12' });
+    const generated = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: organizationId, id: 'asset-gps-12' });
     const asset = { ...generated, nomenclature: singleLine(generated.nomenclature), serialNumber: singleLine(generated.serialNumber) };
     mockCreateAsset.mockResolvedValueOnce({ id: asset.id });
     const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
-    render(<AssetRegistrationWidget />);
+    render(<AssetRegistrationWidget organizationId={` ${organizationId} `} />);
 
     fireEvent.change(screen.getByLabelText(/Asset ID \(UUID \/ URI\)/i), { target: { value: asset.id } });
     fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: asset.name } });
@@ -70,8 +60,6 @@ describe('AssetRegistrationWidget', () => {
     fireEvent.change(screen.getByLabelText(/Serial Number/i), { target: { value: asset.serialNumber } });
     fireEvent.change(screen.getByLabelText(/Asset Type Information/i), { target: { value: singleLine(asset.type) } });
     fireEvent.change(screen.getByLabelText(/Control Type/i), { target: { value: asset.controlType } });
-    fireEvent.click(screen.getByTestId('mock-org-selector'));
-
     fireEvent.click(screen.getByRole('button', { name: /Register & Assign Custody/i }));
 
     await waitFor(() => {
@@ -84,7 +72,7 @@ describe('AssetRegistrationWidget', () => {
           type: singleLine(asset.type),
           status: 'AVAILABLE',
           controlType: asset.controlType,
-          currentOwnerId: mockOrg.id,
+          currentOwnerId: organizationId,
         })
       );
     });
@@ -101,8 +89,47 @@ describe('AssetRegistrationWidget', () => {
       error: 'Conflict: Asset ID already exists',
     });
 
-    render(<AssetRegistrationWidget />);
+    render(<AssetRegistrationWidget organizationId="" />);
 
     expect(screen.getByText('Conflict: Asset ID already exists')).toBeInTheDocument();
+  });
+
+  it('requires an organization even when every other field is filled and uses updated props', async () => {
+    mockCreateAsset.mockResolvedValue({ id: 'asset-1' });
+    const { rerender } = render(<AssetRegistrationWidget organizationId="  " />);
+    fireEvent.change(screen.getByLabelText(/Asset ID/i), { target: { value: 'asset-1' } });
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Asset' } });
+    fireEvent.change(screen.getByLabelText(/Nomenclature/i), { target: { value: 'Nomenclature' } });
+    fireEvent.change(screen.getByLabelText(/Serial Number/i), { target: { value: 'serial-1' } });
+    fireEvent.change(screen.getByLabelText(/Asset Type Information/i), { target: { value: 'Radio' } });
+    fireEvent.change(screen.getByLabelText(/Control Type/i), { target: { value: 'LOCAL' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Register & Assign Custody/i }));
+    expect(await screen.findByText('All fields including holding organization custody are required.')).toBeInTheDocument();
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+
+    rerender(<AssetRegistrationWidget organizationId="org-previous" />);
+    rerender(<AssetRegistrationWidget organizationId="" />);
+    fireEvent.click(screen.getByRole('button', { name: /Register & Assign Custody/i }));
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+
+    rerender(<AssetRegistrationWidget organizationId="org-current" />);
+    fireEvent.click(screen.getByRole('button', { name: /Register & Assign Custody/i }));
+    await waitFor(() => expect(mockCreateAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ currentOwnerId: 'org-current' }),
+    ));
+  });
+
+  it('parses organization input and rejects missing or invalid values', () => {
+    expect(AssetRegistrationInputSchema.parse({ organizationId: ` ${organizationId} ` })).toEqual({ organizationId });
+    expect(AssetRegistrationInputSchema.parse({ organizationId: '' })).toEqual({ organizationId: '' });
+    expect(AssetRegistrationInputSchema.parse({ organizationId: ' ' })).toEqual({ organizationId: '' });
+    expect(AssetRegistrationInputSchema.safeParse({}).success).toBe(false);
+    expect(AssetRegistrationInputSchema.safeParse({ organizationId: null }).success).toBe(false);
+    expect(AssetRegistrationInputSchema.safeParse({ organizationId: 123 }).success).toBe(false);
+    expect(() => {
+      // @ts-expect-error Runtime callers can violate the federation contract.
+      AssetRegistrationWidget({ organizationId: 123 });
+    }).toThrow();
   });
 });

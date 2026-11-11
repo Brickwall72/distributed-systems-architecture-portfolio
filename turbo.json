@@ -17,6 +17,11 @@
       ],
       "outputs": []
     },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "env": ["GRAPH_TEST_NEO4J_URI"],
+      "cache": false
+    },
     "test:contract": {
       "dependsOn": ["^build"],
       "inputs": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.contract.test.ts", "src/**/*.contract.test.tsx"],

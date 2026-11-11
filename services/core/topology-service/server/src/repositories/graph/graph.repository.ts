@@ -15,55 +15,6 @@ export class GraphRepository extends BaseRepository {
     // Each section is its own subquery: a global collect() always yields one row (possibly an empty list),
     // so an empty section can no longer wipe out the rest of the graph.
     const query = `
-      // Build organizations set based on filters
-      CALL {
-        MATCH (o:Organization)
-        WHERE (
-          size($whitelistTransfers) = 0
-          AND size($whitelistAssets) = 0
-          AND size($whitelistSenders) = 0
-          AND size($whitelistReceivers) = 0
-        )
-        OR (o.id IN $whitelistSenders)
-        OR (o.id IN $whitelistReceivers)
-        OR (
-          size($whitelistAssets) > 0
-          AND EXISTS {
-            MATCH (o)-[:HAS_CUSTODY]->(asset:Asset)
-            WHERE asset.id IN $whitelistAssets
-          }
-        )
-        OR (
-          size($whitelistAssets) > 0
-          AND EXISTS {
-            MATCH (o)-[:DELIVERED_FROM|DELIVERED_TO]->(e:TransferEvent)-[:INVOLVES]->(asset:Asset)
-            WHERE asset.id IN $whitelistAssets
-          }
-        )
-        OR (
-          size($whitelistAssets) > 0
-          AND EXISTS {
-            MATCH (e:TransferEvent)-[:DELIVERED_TO]->(o)
-            MATCH (e)-[:INVOLVES { status: 'IN_TRANSIT' }]->(asset:Asset)
-            WHERE asset.id IN $whitelistAssets
-          }
-        )
-        OR (
-          size($whitelistTransfers) > 0
-          AND EXISTS {
-            MATCH (o)-[:DELIVERED_FROM|DELIVERED_TO]->(e:TransferEvent)
-            WHERE e.requisitionNumber IN $whitelistTransfers OR e.id IN $whitelistTransfers
-          }
-        )
-        RETURN collect(DISTINCT {
-          id: o.id,
-          name: o.name,
-          type: o.type,
-          addressLine1: o.addressLine1,
-          addressLine2: o.addressLine2
-        }) AS organizations
-      }
-
       // Build assets set based on filters
       CALL {
         MATCH (a:Asset)
@@ -174,6 +125,57 @@ export class GraphRepository extends BaseRepository {
           receiverName: receiver.name,
           assets: [item IN transferAssets WHERE item.id IS NOT NULL]
         }) AS transfers
+      }
+
+      // Include both endpoints of the transfers actually selected above.
+      CALL {
+        WITH transfers
+        MATCH (o:Organization)
+        WHERE (
+          size($whitelistTransfers) = 0
+          AND size($whitelistAssets) = 0
+          AND size($whitelistSenders) = 0
+          AND size($whitelistReceivers) = 0
+        )
+        OR (o.id IN $whitelistSenders)
+        OR (o.id IN $whitelistReceivers)
+        OR any(transfer IN transfers WHERE o.id = transfer.senderOrgId OR o.id = transfer.receiverOrgId)
+        OR (
+          size($whitelistAssets) > 0
+          AND EXISTS {
+            MATCH (o)-[:HAS_CUSTODY]->(asset:Asset)
+            WHERE asset.id IN $whitelistAssets
+          }
+        )
+        OR (
+          size($whitelistAssets) > 0
+          AND EXISTS {
+            MATCH (o)-[:DELIVERED_FROM|DELIVERED_TO]->(e:TransferEvent)-[:INVOLVES]->(asset:Asset)
+            WHERE asset.id IN $whitelistAssets
+          }
+        )
+        OR (
+          size($whitelistAssets) > 0
+          AND EXISTS {
+            MATCH (e:TransferEvent)-[:DELIVERED_TO]->(o)
+            MATCH (e)-[:INVOLVES { status: 'IN_TRANSIT' }]->(asset:Asset)
+            WHERE asset.id IN $whitelistAssets
+          }
+        )
+        OR (
+          size($whitelistTransfers) > 0
+          AND EXISTS {
+            MATCH (o)-[:DELIVERED_FROM|DELIVERED_TO]->(e:TransferEvent)
+            WHERE e.requisitionNumber IN $whitelistTransfers OR e.id IN $whitelistTransfers
+          }
+        )
+        RETURN collect(DISTINCT {
+          id: o.id,
+          name: o.name,
+          type: o.type,
+          addressLine1: o.addressLine1,
+          addressLine2: o.addressLine2
+        }) AS organizations
       }
 
       // Build custody links based on filters

@@ -125,4 +125,22 @@ describe('useGraph Hook', () => {
       ['includeCompletedTransferEvents', 'true'],
     ]);
   });
+
+  it('does not request the graph while disabled and fetches when enabled', async () => {
+    const handler = vi.fn(() => HttpResponse.json(mockGraphData));
+    server.use(http.get('/topology/api/v1/graph', handler));
+
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useGraph({ whitelistAssets: ['asset-1'], includeCompletedTransferEvents: true }, { enabled }),
+      { wrapper: createWrapper(), initialProps: { enabled: false } },
+    );
+
+    expect(result.current.graphData).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+    expect(handler).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.graphData).toEqual(mockGraphData));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
 });

@@ -11,6 +11,7 @@
     "build": "tsup",
     "test": "pnpm test:unit && pnpm test:verify",
     "test:unit": "vitest run .unit.test",
+    "test:integration": "vitest run .integration.test",
     "test:verify": "vitest run .provider.contract.spec"
   },
   "peerDependencies": {
