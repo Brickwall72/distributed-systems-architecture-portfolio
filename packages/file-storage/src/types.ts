@@ -16,6 +16,7 @@ export const getStorageMetadataReturnSchema = getFileStreamRequestSchema.extend(
 export const uploadFileRequestSchema = getStorageMetadataReturnSchema.extend({
   pdfBuffer: z.instanceof(Buffer),
   contentType: z.string(),
+  ifNotExists: z.boolean().optional(),
 })
 
 export type UploadFileRequest = z.infer<typeof uploadFileRequestSchema>;
@@ -38,18 +39,23 @@ export interface DocumentReader {
   getSignedDownloadUrl({storageBucket, storageKey, expiresInSeconds}: GetSignedDownloadUrlRequest): Promise<string>;
 }
 
-export interface StorageConfig {
-  endpoint: string;
-  region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  forcePathStyle?: boolean;
-}
+export const storageConfigSchema = z.object({
+  endpoint: z.string(),
+  region: z.string(),
+  accessKeyId: z.string(),
+  secretAccessKey: z.string(),
+  forcePathStyle: z.boolean().optional(),
+});
+export type StorageConfig = z.infer<typeof storageConfigSchema>;
 
 export interface GetFileStreamResult {
   stream: Readable;
   contentType?: string;
+  metadata?: Record<string, string>;
 }
+
+export class ObjectNotFoundError extends Error {}
+export class ObjectAlreadyExistsError extends Error {}
 
 export interface DocumentReader {
   getFileStream({storageBucket, storageKey}: GetFileStreamRequest): Promise<GetFileStreamResult>;

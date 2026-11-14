@@ -29,6 +29,9 @@ describe('compliance consumer: topology event contracts to local service inputs'
         requisitionNumber: data.requisitionNumber,
         transferEventId: data.transferEventId,
         status: 'IN_PROGRESS',
+        sender: { id: data.sender.id },
+        receiver: { id: data.receiver.id },
+        ...('appliedDocumentId' in data ? { appliedDocumentId: data.appliedDocumentId } : {}),
       });
       expect(updateForReqNumberDataSchema.safeParse(result.data).success).toBe(true);
     }
@@ -46,7 +49,8 @@ describe('compliance consumer: topology event contracts to local service inputs'
         transferEventId: data.transferEventId,
         status: data.transferEventStatus,
         id: data.documentId,
-        ...(data.requisitionNumber === undefined ? {} : { requisitionNumber: data.requisitionNumber }),
+        ...('requisitionNumber' in data ? { requisitionNumber: data.requisitionNumber } : {}),
+        ...('appliedDocumentId' in data ? { appliedDocumentId: data.appliedDocumentId } : {}),
       });
       expect(updateForDocNumberDataSchema.safeParse(result.data).success).toBe(true);
       expect(handleTransferEventUpdatedInputSchema.safeParse(result.data).success).toBe(true);
@@ -65,6 +69,9 @@ describe('compliance consumer: topology event contracts to local service inputs'
         requisitionNumber: data.requisitionNumber,
         transferEventId: data.transferEventId,
         status: 'COMPLETED',
+        sender: { id: data.sender.id },
+        receiver: { id: data.receiver.id },
+        ...('appliedDocumentId' in data ? { appliedDocumentId: data.appliedDocumentId } : {}),
       });
       expect(updateForReqNumberDataSchema.safeParse(result.data).success).toBe(true);
     }

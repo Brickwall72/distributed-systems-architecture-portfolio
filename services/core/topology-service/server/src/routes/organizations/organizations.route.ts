@@ -5,7 +5,7 @@ import { organizationsContract } from 'topology-shared';
 import { OrganizationsRepository } from '../../repositories';
 import { organizationEntityToDTO } from '../../mappers';
 import { getDatabaseClient } from '../../database';
-import { createLogger } from '@shared/express';
+import { accessScope, createLogger } from '@shared/express';
 
 const logger = createLogger('topology/organizations');
 const s = initServer();
@@ -16,9 +16,20 @@ export function createOrganizationsRouter(repository?: OrganizationsRepository) 
 
   // Bind directly to organizationsContract, NOT the entire topologyContract
   return s.router(organizationsContract, {
-    getOrganizations: async ({ query }) => {
+    getOrganizations: async ({ query, req }) => {
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return {
+          status: req.identity ? 403 : 401,
+          body: {
+            error: req.identity ? 'Organization access denied' : 'Authentication required',
+            code: req.identity ? 'FORBIDDEN' : 'UNAUTHORIZED',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
       try {
-        const domainEntities = await organizationRepository.findOrganizations(query);
+        const domainEntities = await organizationRepository.findOrganizations(query, scope);
         const dtos: OrganizationDTOList = domainEntities.map(organizationEntityToDTO);
 
         return {

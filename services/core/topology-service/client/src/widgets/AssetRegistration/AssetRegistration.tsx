@@ -2,13 +2,16 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useCreateAsset } from '../../hooks';
 import { ASSET_STATUS, ControlType, CONTROL_TYPE, AssetDTO, AssetRegistrationInputSchema, type AssetRegistrationProps } from '@contracts/topology';
-import { Button, Select } from '@shared/ui-components';
+import { Button, Select, useIdentity } from '@shared/ui-components';
+import { isAuditor } from '@contracts/auth';
 import '@shared/styles';
 
 export const TOPOLOGY_MUTATION_EVENT = 'topology:graph-mutated';
 
 export default function AssetRegistrationWidget(props: Readonly<AssetRegistrationProps>) {
   const { organizationId } = AssetRegistrationInputSchema.parse(props);
+  const identity = useIdentity();
+  const canRegister = Boolean(identity?.orgId && !isAuditor(identity));
   const [assetId, setAssetId] = useState('');
   const [name, setName] = useState('');
   const [nomenclature, setNomenclature] = useState('');
@@ -22,6 +25,11 @@ export default function AssetRegistrationWidget(props: Readonly<AssetRegistratio
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!canRegister) {
+      setFormError('Asset registration requires an organization member.');
+      return;
+    }
 
     if (!assetId.trim() || !name.trim() || !nomenclature.trim() || !serialNumber.trim() || !organizationId || !controlType?.trim()) {
       setFormError('All fields including holding organization custody are required.');
@@ -110,6 +118,7 @@ export default function AssetRegistrationWidget(props: Readonly<AssetRegistratio
 
         <Button
           type="submit"
+          disabled={!canRegister}
           variant="primary"
           size="md"
           isLoading={isLoading}

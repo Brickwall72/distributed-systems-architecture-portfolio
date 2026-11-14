@@ -1,9 +1,11 @@
 // File: services/core/audit-ledger/server/src/routes/transfers/transfers.route.ts
 import { initServer } from '@ts-rest/express';
 import { z } from 'zod';
-import { createLogger } from '@shared/express';
+import { createLogger, orgScope } from '@shared/express';
+import type { Request } from 'express';
 import { transfersRoutes } from 'audit-shared';
 import { LedgerService } from '../../services';
+import type { AccessScope } from '../../repositories';
 
 export const transfersRouterDepsSchema = z.object({
   ledgerService: z.instanceof(LedgerService),
@@ -22,6 +24,15 @@ const serverError = (err: unknown, context: string, correlationId: string | null
   };
 };
 const correlationOf = (headers: Record<string, unknown>) => (headers['x-correlation-id'] as string) || null;
+const scopeFor = (req: Pick<Request, 'identity'>): AccessScope | null => {
+  if (!req.identity) return null;
+  const orgId = orgScope(req.identity);
+  if (orgId === null) return null;
+  return orgId === undefined ? { kind: 'auditor' } : { kind: 'organization', orgId };
+};
+const denied = (req: Pick<Request, 'identity'>) => req.identity
+  ? { status: 403 as const, body: errorBody('FORBIDDEN', 'Insufficient access') }
+  : { status: 401 as const, body: errorBody('UNAUTHORIZED', 'Authentication required') };
 
 /** Read-only: every ledger write arrives through the NATS consumers, never HTTP. */
 export function createTransfersRouter(deps: TransfersRouterDeps) {
@@ -30,8 +41,10 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
   return s.router(transfersRoutes, {
     getTransfers: async ({ query, req }) => {
       const correlationId = correlationOf(req.headers);
+      const scope = scopeFor(req);
+      if (!scope) return denied(req);
       try {
-        return { status: 200 as const, body: await ledgerService.listTransfers(query) };
+        return { status: 200 as const, body: await ledgerService.listTransfers(query, scope) };
       } catch (err) {
         return serverError(err, 'GET /transfers failed', correlationId);
       }
@@ -39,8 +52,10 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
     getTransfer: async ({ params: { requisitionNumber }, req }) => {
       const correlationId = correlationOf(req.headers);
+      const scope = scopeFor(req);
+      if (!scope) return denied(req);
       try {
-        const record = await ledgerService.getSealedTransfer(requisitionNumber);
+        const record = await ledgerService.getSealedTransfer(requisitionNumber, scope);
         if (!record) {
           return {
             status: 404 as const,
@@ -55,8 +70,10 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
     getTransferDocument: async ({ params: { requisitionNumber }, req }) => {
       req.res?.setHeader('Cache-Control', 'no-store');
+      const scope = scopeFor(req);
+      if (!scope) return denied(req);
       try {
-        const result = await ledgerService.getTransferDocument(requisitionNumber);
+        const result = await ledgerService.getTransferDocument(requisitionNumber, scope);
         if (result.status === 'NOT_FOUND') {
           return { status: 404 as const, body: errorBody('NOT_FOUND', 'Sealed transfer not found.') };
         }
@@ -72,8 +89,10 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
     verifyTransfer: async ({ params: { requisitionNumber }, req }) => {
       const correlationId = correlationOf(req.headers);
+      const scope = scopeFor(req);
+      if (!scope) return denied(req);
       try {
-        const result = await ledgerService.verifyTransfer(requisitionNumber);
+        const result = await ledgerService.verifyTransfer(requisitionNumber, scope);
         if (!result) {
           return {
             status: 404 as const,
@@ -88,6 +107,8 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
     verifyLedger: async ({ req }) => {
       const correlationId = correlationOf(req.headers);
+      const scope = scopeFor(req);
+      if (scope?.kind !== 'auditor') return denied(req);
       try {
         return { status: 200 as const, body: await ledgerService.verifyLedger() };
       } catch (err) {
@@ -97,6 +118,8 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
     getDeadLetters: async ({ req }) => {
       const correlationId = correlationOf(req.headers);
+      const scope = scopeFor(req);
+      if (scope?.kind !== 'auditor') return denied(req);
       try {
         return { status: 200 as const, body: await ledgerService.listDeadLetters() };
       } catch (err) {

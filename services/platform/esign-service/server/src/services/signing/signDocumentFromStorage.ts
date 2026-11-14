@@ -1,11 +1,13 @@
-// File: services/platform/esignature-service/server/src/services/signing/signDocumentFromStorage.ts
+// File: services/platform/esign-service/server/src/services/signing/signDocumentFromStorage.ts
 import { createLogger } from '@shared/express';
 import { downloadDocumentStream, downloadDocumentStreamParamsSchema } from '../storage';
 import { signDocument, signDocumentReturnSchema, signDocumentParamsSchema } from './signing';
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 
 export const signDocumentFromStorageParamsSchema = downloadDocumentStreamParamsSchema.extend({
   ...signDocumentParamsSchema.omit({ pdfBuffer: true }).shape,
+  fileHash: z.string().length(64).optional(),
 });
 
 type SignDocumentFromStorageParams = z.infer<typeof signDocumentFromStorageParamsSchema>;
@@ -30,6 +32,9 @@ export async function signDocumentFromStorage(params: SignDocumentFromStoragePar
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
   const pdfBuffer = Buffer.concat(chunks);
+  if (params.fileHash && createHash('sha256').update(pdfBuffer).digest('hex') !== params.fileHash) {
+    throw new Error('Stored draft hash does not match the signing request');
+  }
 
   return signDocument(
     signDocumentParamsSchema.parse({...params, pdfBuffer})

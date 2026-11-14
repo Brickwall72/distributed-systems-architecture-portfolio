@@ -1,3 +1,4 @@
+# File: scripts/tests/test_documentation_reports.py
 import json
 import re
 import tempfile
@@ -26,7 +27,12 @@ class ArchitectureReportTests(unittest.TestCase):
             legend for _arrow, legend, _color, _style in generate_architecture.EDGE_TYPES.values()
         ))
         self.assertIn("compliance_server <-->|Generate PDF| pdf_server", diagram)
-        self.assertIn("topology_server -.->|Publish transfer event updates| nats", diagram)
+        self.assertNotIn("nats_bootstrap", diagram)
+        self.assertIn("compliance_server <-->|Validate drafts and reserve transfers| topology_server", diagram)
+        self.assertIn("nats -.->|Deliver signed transfer for reserved application| topology_server", diagram)
+        self.assertIn("topology_server -.->|Publish committed transfer results| nats", diagram)
+        self.assertIn("audit_server <-->|Generate PDF| pdf_server", diagram)
+        self.assertNotIn("Deliver transfer initiated / received", diagram)
 
     def test_new_skaffold_image_is_discovered_without_model_changes(self) -> None:
         diagram = generate_architecture.render_mermaid(

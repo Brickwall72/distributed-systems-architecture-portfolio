@@ -26,6 +26,8 @@ services:
       target: prod
     image: compliance-server:prod
     container_name: compliance-server
+    env_file:
+      - ../../../.auth-keys/nats/compliance.env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.compliance-api.rule=PathPrefix(`/compliance/api`)"
@@ -49,6 +51,8 @@ services:
       - auth_public_key
     depends_on:
       compliance-db:
+        condition: service_healthy
+      nats:
         condition: service_healthy
     networks:
       - platform-mesh

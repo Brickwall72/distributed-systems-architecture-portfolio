@@ -13,6 +13,8 @@ export const organizationsRoutes = {
     responses: {
       200: OrganizationDTOListSchema,
       400: ApiErrorResponseSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Fetch organizations with optional exclusion filtering',

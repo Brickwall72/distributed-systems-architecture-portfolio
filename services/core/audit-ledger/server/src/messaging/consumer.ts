@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import { EventBroker } from '@shared/messaging';
 import { COMPLIANCE_EVENT_SUBJECTS } from '@contracts/compliance';
 import { TOPOLOGY_EVENT_SUBJECTS } from '@contracts/topology';
+import { TOPOLOGY_DURABLE_CONSUMERS, COMPLIANCE_DURABLE_CONSUMERS } from './durableConsumers';
 import { DEAD_LETTER_REASON } from 'audit-shared';
 import { createLogger } from '@shared/express';
 import {
@@ -25,42 +26,42 @@ export class AuditEventConsumer {
     private readonly ledgerService: LedgerService
   ) {}
 
-  public async start(): Promise<void> {
-    await this.broker.ensureStream(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [TOPOLOGY_EVENT_SUBJECTS.WILDCARD_ALL]);
-    await this.broker.ensureStream(COMPLIANCE_EVENT_SUBJECTS.STREAM_NAME, [COMPLIANCE_EVENT_SUBJECTS.WILDCARD_ALL]);
+  public async start(signal?: AbortSignal): Promise<void> {
+    await this.broker.waitForStream(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [TOPOLOGY_EVENT_SUBJECTS.WILDCARD_ALL], signal);
+    await this.broker.waitForStream(COMPLIANCE_EVENT_SUBJECTS.STREAM_NAME, [COMPLIANCE_EVENT_SUBJECTS.WILDCARD_ALL], signal);
 
     await this.listen(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
       TOPOLOGY_EVENT_SUBJECTS.TRANSFER_EVENT_CREATED,
-      'audit-ledger-transfer-created-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.AUDIT_CREATED,
       handleTransferCreatedSchema,
       (input) => this.ledgerService.handleTransferCreated(input)
     );
     await this.listen(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
       TOPOLOGY_EVENT_SUBJECTS.TRANSFER_EVENT_UPDATED,
-      'audit-ledger-transfer-updated-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.AUDIT_UPDATED,
       handleTransferUpdatedSchema,
       (input) => this.ledgerService.handleTransferUpdated(input)
     );
     await this.listen(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
       TOPOLOGY_EVENT_SUBJECTS.TRANSFER_EVENT_COMPLETED,
-      'audit-ledger-transfer-completed-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.AUDIT_COMPLETED,
       handleTransferCompletedSchema,
       (input) => this.ledgerService.handleTransferCompleted(input)
     );
     await this.listen(
       COMPLIANCE_EVENT_SUBJECTS.STREAM_NAME,
       COMPLIANCE_EVENT_SUBJECTS.TRANSFER_INITIATED,
-      'audit-ledger-transfer-initiated-consumer',
+      COMPLIANCE_DURABLE_CONSUMERS.AUDIT_INITIATED,
       handleTransferInitiatedSchema,
       (input) => this.ledgerService.handleTransferInitiated(input)
     );
     await this.listen(
       COMPLIANCE_EVENT_SUBJECTS.STREAM_NAME,
       COMPLIANCE_EVENT_SUBJECTS.TRANSFER_RECEIVED,
-      'audit-ledger-transfer-received-consumer',
+      COMPLIANCE_DURABLE_CONSUMERS.AUDIT_RECEIVED,
       handleTransferReceivedSchema,
       (input) => this.ledgerService.handleTransferReceived(input)
     );

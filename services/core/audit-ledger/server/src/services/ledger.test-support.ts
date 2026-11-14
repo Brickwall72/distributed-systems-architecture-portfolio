@@ -3,6 +3,7 @@ import { LEDGER_STATUS, type DeadLetter, type SealedTransfer } from 'audit-share
 import { transferDraftEntitySchema, type EventLogEntity, type TransferDraftEntity } from '../domain';
 import { LedgerService } from './ledger.service';
 import type {
+  AccessScope,
   DeadLettersRepository,
   DraftsRepository,
   EventsRepository,
@@ -63,13 +64,14 @@ export function createInMemoryLedger(now: () => Date = () => new Date('2025-01-0
       if (doc) Object.assign(doc, { status: LEDGER_STATUS.SEALED, updatedAt: at });
       return Promise.resolve();
     },
-    list(status: string | undefined, limit: number, offset: number): Promise<TransferDraftEntity[]> {
+    list(status: string | undefined, limit: number, offset: number, scope: AccessScope): Promise<TransferDraftEntity[]> {
       return Promise.resolve(
         [...drafts.values()]
           .filter((d) => !status || d.status === status)
-          .slice(offset, offset + limit)
           .map((d) => transferDraftEntitySchema.parse(structuredClone(d))),
-      );
+      ).then((items) => items.filter((d) => scope.kind === 'auditor'
+        || (Boolean(d.sender?.id) && Boolean(d.receiver?.id) && (d.sender?.id === scope.orgId || d.receiver?.id === scope.orgId)))
+        .slice(offset, offset + limit));
     },
   } as unknown as DraftsRepository;
 
@@ -90,8 +92,10 @@ export function createInMemoryLedger(now: () => Date = () => new Date('2025-01-0
       const found = sealed.find((r) => r.requisitionNumber === requisitionNumber);
       return Promise.resolve(found ? structuredClone(found) : null);
     },
-    list(limit: number, offset: number) {
-      return Promise.resolve([...sealed].reverse().slice(offset, offset + limit));
+    list(limit: number, offset: number, scope: AccessScope) {
+      return Promise.resolve([...sealed].reverse()
+        .filter((record) => scope.kind === 'auditor' || record.sender.id === scope.orgId || record.receiver.id === scope.orgId)
+        .slice(offset, offset + limit));
     },
     iterateInOrder() {
       return generate();

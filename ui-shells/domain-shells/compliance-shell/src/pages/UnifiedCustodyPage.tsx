@@ -25,8 +25,12 @@ const TemplateSelector = lazyRemote<TemplateSelectorPropsInput>('compliance_clie
 const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('compliance_client/ComplianceWorkflowWidget');
 
 export default function UnifiedCustodyPage() {
-  // 1. Topology Data Handlers
   const identity = useIdentity();
+  return <UnifiedCustodySession key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} />;
+}
+
+function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typeof useIdentity> }) {
+  // 1. Topology Data Handlers
   const [sourceOrg, setSourceOrg] = useState<OrganizationDTO>();
   const [targetOrg, setTargetOrg] = useState<OrganizationDTO>();
   const [assets, setAssets] = useState<AssetDTOList>([]);

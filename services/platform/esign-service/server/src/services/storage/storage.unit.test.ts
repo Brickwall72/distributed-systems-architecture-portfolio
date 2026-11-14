@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/services/storage/storage.unit.test.ts
+// File: services/platform/esign-service/server/src/services/storage/storage.unit.test.ts
 import { InMemoryStorageClient, uploadFileRequestSchema, uploadFileResultSchema } from '@shared/filestore';
 import { mockFromSchema } from '@shared/testing';
 
@@ -40,7 +40,7 @@ describe('esign-service storage wrapper', () => {
       expect(uploadFileResultSchema.parse(result)).toEqual(result);
       const storedItem = inMemoryStorage.storage.get(`${request.storageBucket}/${request.storageKey}`);
       expect(storedItem?.contentType).toBe('application/pdf');
-      expect(storedItem?.metadata).toEqual(request.metadata);
+      expect(storedItem?.metadata).toEqual({ ...request.metadata, 'sha256-checksum': result.fileHash });
     });
   });
 });

@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow.stories.tsx
+// File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.stories.tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { complianceApiHandlers } from '../../utils/mswHandlers';
@@ -33,17 +33,14 @@ export const Default: Story = {
     sourceOrg: {
       id: 'TR-2026-8801',
       name: 'AeroDefense Systems Corp',
-      type: 'GOV',
     },
     targetOrg: {
       id: 'TX-2024-8532',
       name: 'AeroDyne Systems',
-      type: 'CONTRACTOR',
     },
     assets: [
       {
         id: '12345',
-        name: 'Rocket',
         nomenclature: 'Rocket System Alpha',
         serialNumber: '123455',
       },

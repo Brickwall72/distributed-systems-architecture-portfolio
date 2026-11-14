@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import crypto from 'node:crypto';
 import { ObjectStorageClient } from './s3-storage-client';
 import { zocker } from 'zocker';
-import { uploadFileRequestSchema, uploadFileResultSchema, type StorageConfig } from '../types';
+import { storageConfigSchema, uploadFileRequestSchema, uploadFileResultSchema, type StorageConfig } from '../types';
 
 describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
   const mockConfig: StorageConfig = {
@@ -24,6 +24,12 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
     sendSpy = vi.spyOn(S3Client.prototype, 'send');
   });
 
+  it('validates storage configuration at construction', () => {
+    expect(storageConfigSchema.safeParse(mockConfig).success).toBe(true);
+    expect(storageConfigSchema.safeParse({ ...mockConfig, endpoint: 123 }).success).toBe(false);
+    expect(() => new ObjectStorageClient({ ...mockConfig, endpoint: 123 } as never)).toThrow();
+  });
+
   describe('uploadFile', () => {
     it('computes sha256 checksum and issues PutObjectCommand with metadata', async () => {
       const pdfBuffer = Buffer.from('unit test file contents');
@@ -31,9 +37,10 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
 
       sendSpy.mockResolvedValueOnce({} as never);
 
-      const request = zocker(uploadFileRequestSchema)
-        .supply(uploadFileRequestSchema.shape.pdfBuffer, pdfBuffer)
-        .generate();
+      const request = {
+        ...zocker(uploadFileRequestSchema).supply(uploadFileRequestSchema.shape.pdfBuffer, pdfBuffer).generate(),
+        ifNotExists: false,
+      };
       const result = await storageClient.uploadFile(request);
 
       expect(sendSpy).toHaveBeenCalledTimes(1);
@@ -67,6 +74,17 @@ describe('ObjectStorageClient (AWS S3 / MinIO Adapter)', () => {
           metadata: {}
         })
       ).rejects.toThrow('S3 service unavailable');
+    });
+
+    it('uses a conditional put and distinguishes an existing object', async () => {
+      const error = new Error('Already exists');
+      error.name = 'PreconditionFailed';
+      sendSpy.mockRejectedValueOnce(error);
+      await expect(storageClient.uploadFile({
+        storageBucket: 'bucket', storageKey: 'signed.pdf', pdfBuffer: Buffer.from('test'),
+        contentType: 'application/pdf', metadata: {}, ifNotExists: true,
+      })).rejects.toThrow('Object already exists');
+      expect(sendSpy.mock.calls[0][0].input.IfNoneMatch).toBe('*');
     });
   });
 

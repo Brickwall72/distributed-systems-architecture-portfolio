@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/client/src/widgets/DocumentsTable.tsx
+// File: services/core/compliance-service/client/src/widgets/DocumentsTable/DocumentsTable.tsx
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Document } from 'compliance-shared';
@@ -7,11 +7,21 @@ import { DocumentsTableInput } from '@contracts/compliance';
 import { useDocuments, useGetPdf } from '../../hooks';
 import '@shared/styles';
 
+const synchronizationLabels: Record<string, string> = {
+  PENDING: 'Topology update pending',
+  APPLIED: 'Applied',
+  ATTENTION_REQUIRED: 'Needs attention',
+};
+
 const columns: TableColumn<Document>[] = [
   { key: 'requisitionNumber', header: 'Requisition Number' },
   { key: 'transferType', header: 'Transfer Type' },
   { key: 'type', header: 'Document Type' },
   { key: 'status', header: 'Status' },
+  {
+    key: 'topologyApplicationStatus', header: 'Synchronization',
+    render: (value) => synchronizationLabels[String(value)] ?? 'Unknown',
+  },
   { 
     key: 'updatedAt', 
     header: 'Updated At',

@@ -1,7 +1,7 @@
 // File: services/platform/pdf-generator/server/src/server.ts
 import express from 'express';
 import { createHealthCheck, createErrorHandler, createLogger } from '@shared/express';
-import { EventBroker } from '@shared/messaging';
+import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerPdfResponder } from './messaging';
 import { env } from './config';
 
@@ -17,7 +17,7 @@ app.get('/api/v1/health', createHealthCheck('pdf-server'));
 app.use(createErrorHandler(logger));
 
 async function bootstrapPdfService() {
-  const broker = new EventBroker(env.NATS_URL, logger);
+  const broker = new EventBroker(env.NATS_URL, logger, natsCredentialsFromEnv(process.env));
   let server: ReturnType<typeof app.listen>;
 
   const shutdown = async (signal: string) => {

@@ -17,7 +17,10 @@ export function getMissingSignals(draft: TransferDraftEntity): SealSignal[] {
   if (draft.transferType === TRANSFER_TYPE.PHYSICAL_TRANSFER) {
     const receipted = new Set(Object.values(draft.receiptDocuments).flatMap((doc) => doc.assetIds));
     const allCovered = (draft.assets ?? []).every((asset) => receipted.has(asset.id));
-    if (!allCovered || receipted.size === 0) missing.push(SEAL_SIGNAL.RECEIPT_DOCUMENTS);
+    const allCommittedReceiptsPresent = (draft.committedReceiptDocumentIds ?? []).every(
+      (id) => draft.receiptDocuments[id] !== undefined && draft.receivedAssets[id] !== undefined,
+    );
+    if (!allCovered || receipted.size === 0 || !allCommittedReceiptsPresent) missing.push(SEAL_SIGNAL.RECEIPT_DOCUMENTS);
   }
 
   return missing;

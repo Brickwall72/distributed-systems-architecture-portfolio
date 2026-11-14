@@ -8,6 +8,9 @@ export const DocumentStatusSchema = documentStatusEnum;
 
 export type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
 
+export const topologyApplicationStatusSchema = z.enum(['PENDING', 'APPLIED', 'ATTENTION_REQUIRED']);
+export type TopologyApplicationStatus = z.infer<typeof topologyApplicationStatusSchema>;
+
 /** Comma-separated status list (e.g. "IN_PROGRESS,PARTIALLY_COMPLETED") parsed into an array. */
 export const GetDocumentsQuerySchema = z.object({
   status: z
@@ -34,6 +37,7 @@ export const DocumentSchema = z.object({
   requisitionNumber: z.string(),
   transferEventId: z.string().nullable().optional(),
   status: DocumentStatusSchema,
+  topologyApplicationStatus: topologyApplicationStatusSchema,
   updatedAt: z.string().datetime(),
 });
 

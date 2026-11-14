@@ -11,8 +11,12 @@ const NetworkCanvas = lazyRemote<NetworkCanvasProps>('topology_client/NetworkCan
 const OrganizationSelector = lazyRemote<OrganizationSelectorProps>('topology_client/OrganizationSelector');
 
 export default function AssetRegistrationDashboard() {
-  const [organizationId, setOrganizationId] = useState('');
   const identity = useIdentity();
+  return <AssetRegistrationSession key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} />;
+}
+
+function AssetRegistrationSession({ identity }: { readonly identity: ReturnType<typeof useIdentity> }) {
+  const [organizationId, setOrganizationId] = useState('');
 
   return (
     <div className="p-6 font-sans max-w-7xl mx-auto">

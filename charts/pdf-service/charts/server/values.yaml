@@ -28,7 +28,9 @@ env:
     value: "dsap"
   - name: NATS_URL
     value: "nats://nats.platform-local.svc.cluster.local:4222"
-envFrom: []
+envFrom:
+  - secretRef:
+      name: nats-pdf-credentials
 
 annotations:
   prometheus.io/scrape: "true"

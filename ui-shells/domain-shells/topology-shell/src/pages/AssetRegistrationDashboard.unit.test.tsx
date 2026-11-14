@@ -1,5 +1,6 @@
 // File: ui-shells/domain-shells/topology-shell/src/pages/AssetRegistrationDashboard.unit.test.tsx
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { setTestSession } from '@shared/testing';
 import type { AssetRegistrationProps, SingleOrganizationSelectorProps } from '@contracts/topology';
 import AssetRegistrationDashboard from './AssetRegistrationDashboard';
 
@@ -74,6 +75,16 @@ describe('AssetRegistrationDashboard composition', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear organization' }));
     expect(screen.getByTestId('organization-id')).toBeEmptyDOMElement();
+  });
+
+  it('clears the selected organization when the profile changes', () => {
+    setTestSession('org-first');
+    render(<AssetRegistrationDashboard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Select first organization' }));
+    expect(screen.getByTestId('organization-id')).toHaveTextContent('org-jeb-junkyard');
+    act(() => setTestSession('org-second'));
+    expect(screen.getByTestId('organization-id')).toBeEmptyDOMElement();
+    act(() => setTestSession(null));
   });
 
   it('shows the selector loading state inside registration', () => {

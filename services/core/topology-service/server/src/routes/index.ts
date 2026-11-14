@@ -7,6 +7,7 @@ import { createGraphRouter } from './graph/graph.route';
 import { createHealthCheck } from '@shared/express';
 import { topologyContract } from 'topology-shared';
 
+
 export function createTopologyGateway(): Router {
   const router = Router();
 

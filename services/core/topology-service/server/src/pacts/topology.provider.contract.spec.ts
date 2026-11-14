@@ -78,6 +78,10 @@ describe('Pact Provider Verification - Topology Server', () => {
   beforeAll(async () => {
     const app = express();
     app.use(express.json());
+    app.use((req, _res, next) => {
+      req.identity = { sub: 'pact-member', orgId: 'org-1', roles: ['org-member'], signerId: 'pact-member' };
+      next();
+    });
 
     const gateway = createTopologyGateway();
 

@@ -3,6 +3,7 @@ import type { Driver, Session, ManagedTransaction, Record as Neo4jRecord } from 
 import { OrganizationsRepository } from './organizations.repository';
 
 describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
+  const auditor = { kind: 'auditor' } as const;
   let mockTx: Partial<ManagedTransaction>;
   let mockSession: Partial<Session>;
   let mockDriver: Partial<Driver>;
@@ -20,11 +21,11 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
 
     const repo = new OrganizationsRepository(mockDriver as Driver);
-    await repo.findOrganizations({ requireActiveAssets: false, transferEventId: 'evt-1', transferEventRole: 'SENDER' });
+    await repo.findOrganizations({ requireActiveAssets: false, transferEventId: 'evt-1', transferEventRole: 'SENDER' }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('TransferEvent'),
-      { filterOwnedId: null, excludeOrgId: null, transferEventId: 'evt-1', transferEventRole: 'SENDER', requireActiveAssets: false }
+      { scopeOrgId: null, filterOwnedId: null, excludeOrgId: null, transferEventId: 'evt-1', transferEventRole: 'SENDER', requireActiveAssets: false }
     );
   });
 
@@ -37,11 +38,12 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
       transferEventRole: 'SENDER',
       excludeOrgId: 'org-recv',
       filterOwnedId: 'ast-1',
-    });
+    }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('requisitions'),
       {
+        scopeOrgId: null,
         filterOwnedId: 'ast-1',
         excludeOrgId: 'org-recv',
         transferEventId: null,
@@ -55,11 +57,12 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
 
     const repo = new OrganizationsRepository(mockDriver as Driver);
-    await repo.findOrganizations({ requireActiveAssets: true });
+    await repo.findOrganizations({ requireActiveAssets: true }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('MATCH (o:Organization)'),
       {
+        scopeOrgId: null,
         filterOwnedId: null,
         excludeOrgId: null,
         transferEventId: null,
@@ -93,7 +96,7 @@ describe('OrganizationsRepository (Domain Mapping & Cypher Params)', () => {
     const results = await repo.findOrganizations({
       filterOwnedId: 'ast-101',
       requireActiveAssets: true,
-    });
+    }, auditor);
 
     expect(results).toEqual([
       {

@@ -40,9 +40,12 @@ services:
     ports:
       - "4222:4222" # Client connections
       - "8222:8222" # HTTP management & monitoring dashboard
-    command: ["-m", "8222", "-js"]
+    command: ["-c", "/etc/nats/nats.conf"]
+    env_file:
+      - .auth-keys/nats/broker.env
     volumes:
       - nats-data:/data
+      - ./charts/nats/files/nats.conf:/etc/nats/nats.conf:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
       interval: 5s
@@ -99,10 +102,10 @@ services:
       - platform-mesh
     entrypoint: >
       /bin/sh -c "
+      set -e;
       until mc alias set localmfe http://minio:9000 minioadmin minioadmin; do echo 'Waiting for MinIO...'; sleep 1; done;
       mc mb --ignore-existing localmfe/dsap;
-      mc anonymous set public localmfe/dsap;
-      exit 0;
+      mc anonymous set none localmfe/dsap;
       "
 volumes:
   dbgate-data:

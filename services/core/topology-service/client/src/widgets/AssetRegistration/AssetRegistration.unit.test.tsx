@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AssetRegistrationWidget, { TOPOLOGY_MUTATION_EVENT } from './AssetRegistration';
 import { useCreateAsset } from '../../hooks';
 import { AssetDTOSchema, AssetRegistrationInputSchema } from '@contracts/topology';
-import { mockFromSchema } from '@shared/testing';
+import { mockFromSchema, setTestSession } from '@shared/testing';
+import { writeSession } from '@contracts/auth';
 
 const organizationId = 'org-jeb-junkyard';
 
@@ -16,6 +17,7 @@ describe('AssetRegistrationWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setTestSession();
     vi.mocked(useCreateAsset).mockReturnValue({
       createAsset: mockCreateAsset,
       isLoading: false,
@@ -41,6 +43,17 @@ describe('AssetRegistrationWidget', () => {
     expect(
       await screen.findByText('All fields including holding organization custody are required.')
     ).toBeInTheDocument();
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+  });
+
+  it('does not allow auditors to register assets', () => {
+    writeSession({
+      accessToken: 'auditor-test-token',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      identity: { id: 'auditor', displayName: 'Auditor', orgId: null, roles: ['auditor'], signerId: 'auditor' },
+    });
+    render(<AssetRegistrationWidget organizationId={organizationId} />);
+    expect(screen.getByRole('button', { name: /Register & Assign Custody/i })).toBeDisabled();
     expect(mockCreateAsset).not.toHaveBeenCalled();
   });
 

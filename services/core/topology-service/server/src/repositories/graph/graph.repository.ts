@@ -2,9 +2,10 @@
 import { BaseRepository } from '../base.repository';
 import type { NetworkCanvasInput } from '@contracts/topology';
 import type { GraphDTO } from 'topology-shared';
+import type { AccessScope } from '@shared/express';
 
 export class GraphRepository extends BaseRepository {
-  async getGraph(filters?: NetworkCanvasInput): Promise<GraphDTO> {
+  async getGraph(filters: NetworkCanvasInput | undefined, scope: AccessScope): Promise<GraphDTO> {
     const graphFilters: NetworkCanvasInput = filters ?? {
       whitelistSenders: [],
       whitelistReceivers: [],
@@ -15,10 +16,24 @@ export class GraphRepository extends BaseRepository {
     // Each section is its own subquery: a global collect() always yields one row (possibly an empty list),
     // so an empty section can no longer wipe out the rest of the graph.
     const query = `
+      CALL {
+        MATCH (accessible:Asset)
+        WHERE $scopeOrgId IS NULL OR EXISTS {
+          MATCH (:Organization {id: $scopeOrgId})-[:HAS_CUSTODY]->(accessible)
+        } OR EXISTS {
+          MATCH (incoming:TransferEvent)-[inv:INVOLVES]->(accessible)
+          MATCH (incoming)-[:DELIVERED_TO]->(:Organization {id: $scopeOrgId})
+          WHERE accessible.status = 'IN_TRANSIT'
+            AND incoming.status IN ['IN_PROGRESS', 'PARTIALLY_COMPLETED'] AND inv.status = 'IN_TRANSIT'
+        }
+        RETURN collect(accessible.id) AS accessibleAssetIds
+      }
+
       // Build assets set based on filters
       CALL {
+        WITH accessibleAssetIds
         MATCH (a:Asset)
-        WHERE (
+        WHERE a.id IN accessibleAssetIds AND ((
           size($whitelistTransfers) = 0
           AND size($whitelistAssets) = 0
           AND size($whitelistSenders) = 0
@@ -57,7 +72,7 @@ export class GraphRepository extends BaseRepository {
             MATCH (e)-[:DELIVERED_TO]->(o:Organization)
             WHERE o.id IN $whitelistReceivers
           }
-        )
+        ))
         RETURN collect(DISTINCT {
           id: a.id,
           name: a.name,
@@ -69,8 +84,13 @@ export class GraphRepository extends BaseRepository {
 
       // Build transfers set based on filters
       CALL {
+        WITH accessibleAssetIds
         MATCH (e:TransferEvent)
         WHERE ($includeCompletedTransferEvents OR e.status IN ['IN_PROGRESS', 'PARTIALLY_COMPLETED'])
+        AND ($scopeOrgId IS NULL OR EXISTS {
+          MATCH (e)-[:INVOLVES]->(accessible:Asset)
+          WHERE accessible.id IN accessibleAssetIds
+        })
         AND (
           (
             size($whitelistTransfers) = 0
@@ -83,7 +103,7 @@ export class GraphRepository extends BaseRepository {
             size($whitelistAssets) > 0
             AND EXISTS {
               MATCH (e)-[:INVOLVES]->(asset:Asset)
-              WHERE asset.id IN $whitelistAssets
+              WHERE asset.id IN $whitelistAssets AND asset.id IN accessibleAssetIds
             }
           )
           OR (
@@ -108,6 +128,7 @@ export class GraphRepository extends BaseRepository {
         OPTIONAL MATCH (sender:Organization)-[:DELIVERED_FROM]->(e)
         OPTIONAL MATCH (e)-[:DELIVERED_TO]->(receiver:Organization)
         OPTIONAL MATCH (e)-[inv:INVOLVES]->(asset:Asset)
+        WHERE asset.id IN accessibleAssetIds
         WITH e, sender, receiver, collect(DISTINCT {
           id: asset.id,
           nomenclature: asset.nomenclature,
@@ -129,9 +150,16 @@ export class GraphRepository extends BaseRepository {
 
       // Include both endpoints of the transfers actually selected above.
       CALL {
-        WITH transfers
+        WITH transfers, assets, accessibleAssetIds
         MATCH (o:Organization)
-        WHERE (
+        WHERE ($scopeOrgId IS NULL
+          OR (o.id = $scopeOrgId AND size($whitelistAssets) = 0 AND size($whitelistTransfers) = 0)
+          OR any(transfer IN transfers WHERE o.id = transfer.senderOrgId OR o.id = transfer.receiverOrgId)
+          OR EXISTS {
+            MATCH (o)-[:HAS_CUSTODY]->(asset:Asset)
+            WHERE asset.id IN accessibleAssetIds AND any(selected IN assets WHERE selected.id = asset.id)
+          })
+        AND ((
           size($whitelistTransfers) = 0
           AND size($whitelistAssets) = 0
           AND size($whitelistSenders) = 0
@@ -168,7 +196,7 @@ export class GraphRepository extends BaseRepository {
             MATCH (o)-[:DELIVERED_FROM|DELIVERED_TO]->(e:TransferEvent)
             WHERE e.requisitionNumber IN $whitelistTransfers OR e.id IN $whitelistTransfers
           }
-        )
+        ))
         RETURN collect(DISTINCT {
           id: o.id,
           name: o.name,
@@ -180,8 +208,10 @@ export class GraphRepository extends BaseRepository {
 
       // Build custody links based on filters
       CALL {
+        WITH accessibleAssetIds
         MATCH (org:Organization)-[:HAS_CUSTODY]->(ast:Asset)
-        WHERE NOT (
+        WHERE ast.id IN accessibleAssetIds
+        AND NOT (
           ()-[:INVOLVES { status: 'IN_TRANSIT' }]->(ast)
         )
         AND (
@@ -210,7 +240,11 @@ export class GraphRepository extends BaseRepository {
       } AS topologyGraph
     `;
 
-    const result = await this.executeReadQuery(query, graphFilters, (record) => record.get('topologyGraph'));
+    const result = await this.executeReadQuery(
+      query,
+      { ...graphFilters, scopeOrgId: scope.kind === 'auditor' ? null : scope.orgId },
+      (record) => record.get('topologyGraph'),
+    );
     const rawGraph = result[0] || {
       organizations: [],
       assets: [],

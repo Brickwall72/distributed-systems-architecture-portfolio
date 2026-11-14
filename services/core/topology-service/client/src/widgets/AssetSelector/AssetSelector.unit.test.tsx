@@ -1,5 +1,6 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.unit.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { setTestSession } from '@shared/testing';
 import AssetSelector from './AssetSelector';
 import { useGetAssets } from '../../hooks';
 import type { AssetDTOList } from '@contracts/topology';
@@ -37,6 +38,7 @@ describe('AssetSelector Widget (UI Boundary)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setTestSession();
   });
 
   it('renders loading state when data layer is fetching', () => {
@@ -216,6 +218,44 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
 
     // useEffect hook should detect ast-001 is missing and emit empty array
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+  });
+
+  it('retains a selection during a refetch and an error, then prunes it after a successful result', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+    const { rerender } = render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Asset Select' }));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC-117G/ }));
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
+    mockOnSelect.mockClear();
+
+    vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: true, error: null });
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).not.toHaveBeenCalled();
+
+    vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: 'Network error' });
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).not.toHaveBeenCalled();
+
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('option', { name: /AN\/PRC-117G/ })).toHaveAttribute('aria-selected', 'true');
+
+    vi.mocked(useGetAssets).mockReturnValue({ items: [mockAssetList[1]], isLoading: false, error: null });
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+  });
+
+  it('clears selected assets when the organization changes for the same identity', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+    render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Asset Select' }));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC-117G/ }));
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
+    act(() => setTestSession('another-org'));
     expect(mockOnSelect).toHaveBeenLastCalledWith([]);
   });
 });

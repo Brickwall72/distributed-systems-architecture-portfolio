@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { PDF_SUBJECTS, generatePdfCommandSchema } from '@contracts/pdf';
 import { createLogger } from '@shared/express';
 import type { EventBroker } from '@shared/messaging';
-import { transferOverviewInputSchema } from '../registry/overview.schema';
-import { renderTransferOverview } from '../registry/render-overview';
+import { transferOverviewInputSchema, renderTransferOverview } from '../registry';
 import type { RenditionsRepository, SealedTransfersRepository, Rendition } from '../repositories';
 
 const logger = createLogger('audit-server:renditions');

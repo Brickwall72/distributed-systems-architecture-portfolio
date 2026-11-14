@@ -4,7 +4,7 @@ import { mockFromSchema } from '@shared/testing';
 import { deadLetterSchema } from 'audit-shared';
 import { DeadLettersRepository } from './dead-letters.repository';
 
-vi.mock('../../db', async () => import('../../db/indexes'));
+vi.mock('../../db', async () => import('../../db'));
 
 describe('DeadLettersRepository', () => {
   const entry = mockFromSchema(deadLetterSchema, { payload: { event: 'invalid' } });

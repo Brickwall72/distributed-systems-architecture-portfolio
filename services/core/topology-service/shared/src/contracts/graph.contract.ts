@@ -13,6 +13,8 @@ export const graphRoutes = {
     query: NetworkCanvasInputSchema,
     responses: {
       200: GraphDTOSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Fetch full topology network graph projection for NetworkCanvasWidget',

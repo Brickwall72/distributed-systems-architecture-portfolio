@@ -35,7 +35,9 @@ env:
     value: "dsap"
   - name: NATS_URL
     value: "nats://nats.platform-local.svc.cluster.local:4222"
-envFrom: []
+envFrom:
+  - secretRef:
+      name: nats-esign-credentials
 
 # Volume configuration to mount PKCS#12 bundle from Secret
 volumeMounts:

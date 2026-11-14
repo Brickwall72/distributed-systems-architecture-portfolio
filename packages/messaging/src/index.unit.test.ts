@@ -1,8 +1,9 @@
 // File: packages/messaging/src/index.unit.test.ts
-import { EventBroker, Logger } from './index.js';
+import { EventBroker, Logger, natsCredentialsFromEnv } from './index.js';
 import { createCloudEventSchema, type CloudEvent } from '@contracts/common';
 import { z } from 'zod';
 import { zocker } from 'zocker';
+import { JetStreamApiError, JetStreamApiCodes } from '@nats-io/jetstream';
 
 const eventSchema = createCloudEventSchema(z.object({ documentId: z.string().uuid() }));
 const mockEvent = (overrides: Partial<CloudEvent<{ documentId: string }>> = {}): CloudEvent<{ documentId: string }> =>
@@ -11,10 +12,12 @@ const mockEvent = (overrides: Partial<CloudEvent<{ documentId: string }>> = {}):
 // Mocks for NATS transport and JetStream
 const mockNc = {
   close: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn(),
 };
 
 const mockConsumer = {
   consume: vi.fn(),
+  info: vi.fn(),
 };
 
 const mockJs = {
@@ -26,20 +29,23 @@ const mockJs = {
 
 const mockJsm = {
   streams: {
-    info: vi.fn().mockRejectedValue(new Error('stream not found')),
-    add: vi.fn().mockResolvedValue({ name: 'TEST_STREAM' }),
+    info: vi.fn(),
+    add: vi.fn(),
     update: vi.fn().mockResolvedValue({ name: 'TEST_STREAM' }),
   },
   consumers: {
+    info: vi.fn(),
     add: vi.fn().mockResolvedValue({ name: 'TEST_CONSUMER' }),
   },
 };
 
-vi.mock('@nats-io/transport-node', () => ({
+vi.mock('@nats-io/transport-node', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@nats-io/transport-node')>(),
   connect: vi.fn(() => Promise.resolve(mockNc)),
 }));
 
-vi.mock('@nats-io/jetstream', () => ({
+vi.mock('@nats-io/jetstream', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@nats-io/jetstream')>(),
   jetstream: vi.fn(() => mockJs),
   jetstreamManager: vi.fn(() => Promise.resolve(mockJsm)),
   AckPolicy: {
@@ -54,6 +60,15 @@ describe('EventBroker', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockJsm.streams.info.mockReset();
+    mockJsm.streams.add.mockReset().mockImplementation(async (config) => ({ config: { ...config, retention: 'limits' } }));
+    mockJsm.streams.info.mockRejectedValue(new JetStreamApiError({
+      code: 404, err_code: JetStreamApiCodes.StreamNotFound, description: 'stream not found',
+    }));
+    mockJsm.consumers.info.mockReset().mockResolvedValue({});
+    mockJs.consumers.get.mockReset().mockResolvedValue(mockConsumer);
+    mockConsumer.info.mockReset().mockResolvedValue({ config: { filter_subject: undefined, ack_policy: 'explicit', deliver_policy: 'all' } });
+    mockConsumer.consume.mockReset().mockImplementation(() => (async function* () {})());
 
     logger = {
       info: vi.fn(),
@@ -63,6 +78,19 @@ describe('EventBroker', () => {
     };
 
     broker = new EventBroker(natsUrl, logger);
+  });
+
+  describe('natsCredentialsFromEnv', () => {
+    it('uses a per-service inbox prefix when credentials are present', () => {
+      expect(natsCredentialsFromEnv({ NATS_USER: 'compliance', NATS_PASSWORD: 'secret' }))
+        .toEqual({ user: 'compliance', pass: 'secret', inboxPrefix: '_INBOX.compliance' });
+    });
+
+    it('does not silently accept partial or malformed credentials', () => {
+      expect(natsCredentialsFromEnv({})).toBeUndefined();
+      expect(() => natsCredentialsFromEnv({ NATS_USER: 'compliance' })).toThrow();
+      expect(() => natsCredentialsFromEnv({ NATS_USER: 'bad.>', NATS_PASSWORD: 'secret' })).toThrow();
+    });
   });
 
   describe('constructor', () => {
@@ -108,6 +136,31 @@ describe('EventBroker', () => {
       await broker.connect();
     });
 
+    describe('respond', () => {
+      it('uses a queue group when one is provided', async () => {
+        mockNc.subscribe.mockReturnValueOnce((async function* () {})());
+        await broker.connect();
+
+        broker.respond('requests.topology.transfer.reserve', async () => ({ status: 'OK' }), {
+          queue: 'topology-reservations',
+        });
+
+        expect(mockNc.subscribe).toHaveBeenCalledWith(
+          'requests.topology.transfer.reserve',
+          { queue: 'topology-reservations' },
+        );
+      });
+
+      it('keeps existing responders outside a queue group by default', async () => {
+        mockNc.subscribe.mockReturnValueOnce((async function* () {})());
+        await broker.connect();
+
+        broker.respond('requests.pdf.generate', async () => ({ success: true }));
+
+        expect(mockNc.subscribe).toHaveBeenCalledWith('requests.pdf.generate', undefined);
+      });
+    });
+
     it('should add a stream via JetStream manager when it does not exist', async () => {
       const streamName = 'ESIGN_EVENTS';
       const subjects = ['events.esign.>'];
@@ -119,22 +172,36 @@ describe('EventBroker', () => {
         subjects,
       });
       expect(mockJsm.streams.update).not.toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith(
-        `Created JetStream '${streamName}' for subjects: events.esign.>`
-      );
     });
 
-    it('should merge subjects into an existing stream without dropping the existing ones', async () => {
-      const config = { name: 'ESIGN_EVENTS', subjects: ['events.esign.a', 'events.esign.b'] };
+    it('rejects incompatible subjects without updating the stream', async () => {
+      const config = { name: 'ESIGN_EVENTS', subjects: ['events.esign.a', 'events.esign.b'], retention: 'limits' };
       mockJsm.streams.info.mockResolvedValueOnce({ config });
 
-      await broker.ensureStream('ESIGN_EVENTS', ['events.esign.b', 'events.esign.c']);
+      await expect(broker.ensureStream('ESIGN_EVENTS', ['events.esign.b', 'events.esign.c'])).rejects.toThrow('unexpected subjects');
 
       expect(mockJsm.streams.add).not.toHaveBeenCalled();
-      expect(mockJsm.streams.update).toHaveBeenCalledWith('ESIGN_EVENTS', {
-        ...config,
-        subjects: ['events.esign.a', 'events.esign.b', 'events.esign.c'],
-      });
+      expect(mockJsm.streams.update).not.toHaveBeenCalled();
+    });
+
+    it('does not update an existing stream when all subjects are present', async () => {
+      mockJsm.streams.info.mockResolvedValueOnce({ config: { subjects: ['events.example.>'], retention: 'limits' } });
+      await broker.ensureStream('EXAMPLE', ['events.example.>']);
+      expect(mockJsm.streams.update).not.toHaveBeenCalled();
+    });
+
+    it('propagates authenticated stream permission failures', async () => {
+      const secured = new EventBroker(natsUrl, logger, natsCredentialsFromEnv({
+        NATS_USER: 'compliance', NATS_PASSWORD: 'secret',
+      }));
+      await secured.connect();
+      mockJsm.streams.info.mockResolvedValueOnce({ config: { subjects: ['events.example.>'], retention: 'limits' } });
+      await secured.ensureStream('EXAMPLE', ['events.example.>']);
+      expect(mockJsm.streams.add).not.toHaveBeenCalled();
+      expect(mockJsm.streams.update).not.toHaveBeenCalled();
+      mockJsm.streams.info.mockRejectedValueOnce(new Error('permission denied'));
+      await expect(secured.ensureStream('EXAMPLE', ['events.example.>'])).rejects.toThrow('permission denied');
+      expect(mockJsm.streams.add).not.toHaveBeenCalled();
     });
 
     it('should log and rethrow stream addition errors', async () => {
@@ -191,6 +258,24 @@ describe('EventBroker', () => {
       await broker.connect();
     });
 
+    it('requires an authenticated consumer with the expected filter and acknowledgment policy', async () => {
+      const secured = new EventBroker(natsUrl, logger, natsCredentialsFromEnv({
+        NATS_USER: 'audit', NATS_PASSWORD: 'secret',
+      }));
+      await secured.connect();
+      mockJs.consumers.get.mockResolvedValue(mockConsumer);
+      mockConsumer.info.mockResolvedValueOnce({ config: { filter_subject: 'events.other', ack_policy: 'explicit', deliver_policy: 'all' } });
+      await expect(secured.subscribe('EVENTS', 'audit-consumer', async () => {}, 'events.expected'))
+        .rejects.toThrow('unexpected configuration');
+      expect(mockJsm.consumers.add).not.toHaveBeenCalled();
+
+      mockConsumer.info.mockResolvedValueOnce({ config: { filter_subject: 'events.expected', ack_policy: 'explicit', deliver_policy: 'all' } });
+      mockConsumer.consume.mockResolvedValueOnce((async function* () {})());
+      await secured.subscribe('EVENTS', 'audit-consumer', async () => {}, 'events.expected');
+      expect(mockJsm.consumers.add).not.toHaveBeenCalled();
+      mockJs.consumers.get.mockReset();
+    });
+
     it('should use existing consumer if found', async () => {
       mockJs.consumers.get.mockResolvedValueOnce(mockConsumer);
       mockConsumer.consume.mockResolvedValueOnce((async function* () {})());
@@ -209,9 +294,12 @@ describe('EventBroker', () => {
     });
 
     it('should create new consumer if existing consumer is not found', async () => {
-      mockJs.consumers.get
-        .mockRejectedValueOnce(new Error('Consumer not found'))
-        .mockResolvedValueOnce(mockConsumer);
+      mockJsm.consumers.info.mockRejectedValueOnce(new JetStreamApiError({
+        code: 404, err_code: JetStreamApiCodes.ConsumerNotFound, description: 'consumer not found',
+      }));
+      mockConsumer.info.mockResolvedValueOnce({ config: {
+        filter_subject: 'events.esign.compliance.document.signed', ack_policy: 'explicit', deliver_policy: 'all',
+      } });
       mockConsumer.consume.mockResolvedValueOnce((async function* () {})());
 
       await broker.subscribe(
@@ -226,7 +314,7 @@ describe('EventBroker', () => {
         filter_subject: 'events.esign.compliance.document.signed',
         ack_policy: 'explicit',
       });
-      expect(mockJs.consumers.get).toHaveBeenCalledTimes(2);
+      expect(mockJs.consumers.get).toHaveBeenCalledTimes(1);
     });
 
     it('should pass parsed message payload to handler and execute ack on success', async () => {

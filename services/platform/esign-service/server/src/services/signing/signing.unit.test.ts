@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/services/signing/signing.unit.test.ts
+// File: services/platform/esign-service/server/src/services/signing/signing.unit.test.ts
 import fs from 'node:fs/promises';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
@@ -135,19 +135,32 @@ describe('signDocument', () => {
     expect(result.pdfBuffer.toString()).toBe('%PDF-1.7 Cryptographically Sealed');
   });
 
-  it('should fall back gracefully to unsigned saved PDF if P12 certificate is missing or fails', async () => {
+  it('rejects rather than returning an unsigned PDF when the certificate is unavailable', async () => {
     vi.mocked(fs.readFile).mockRejectedValueOnce(
       new Error('ENOENT: no such file or directory')
     );
 
-    const result = await signDocument(validParams);
-
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('P12 certificate seal skipped (ENOENT: no such file or directory)')
+    await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('P12 certificate seal failed: ENOENT: no such file or directory')
     );
-
-    expect(result.pdfBuffer.toString()).toBe('%PDF-1.7 Visual Elements Added');
+    expect(mockPdfDoc.save).not.toHaveBeenCalled();
     expect(SignPdf).not.toHaveBeenCalled();
+  });
+
+  it('propagates a cryptographic signing failure without returning a successful document', async () => {
+    vi.mocked(fs.readFile).mockResolvedValueOnce(Buffer.from('certificate'));
+    mockSign.mockRejectedValueOnce(new Error('bad certificate'));
+    await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('bad certificate'));
+  });
+
+  it('uses the deployed signing certificate password in preference to the legacy variable', async () => {
+    process.env.SIGNING_CERT_PASSWORD = 'deployed-password';
+    process.env.CERT_PASSPHRASE = 'legacy-password';
+    vi.mocked(fs.readFile).mockResolvedValueOnce(Buffer.from('certificate'));
+    await signDocument(validParams);
+    expect(P12Signer).toHaveBeenCalledWith(expect.any(Buffer), { passphrase: 'deployed-password' });
   });
 
   it('should respect custom environment variables for cert path and signature metadata', async () => {

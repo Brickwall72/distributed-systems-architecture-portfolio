@@ -1,4 +1,4 @@
-// File: services/core/topology-service/server/src/routes/graph/graph.unit.test.ts
+// File: services/core/topology-service/server/src/routes/graph/graph.route.unit.test.ts
 import express from 'express';
 import request from 'supertest';
 import { createExpressEndpoints } from '@ts-rest/express';
@@ -18,6 +18,10 @@ describe('Graph Router (/graph)', () => {
 
     const router = express.Router();
     router.use(express.json());
+    router.use((req, _res, next) => {
+      req.identity = { sub: 'user', orgId: 'org-1', roles: ['org-member'], signerId: 'user' };
+      next();
+    });
 
     const graphRouter = createGraphRouter(mockGraphRepository as unknown as GraphRepository);
     createExpressEndpoints(graphRoutes, graphRouter, router);
@@ -49,7 +53,7 @@ describe('Graph Router (/graph)', () => {
       whitelistAssets: [],
       whitelistTransfers: [],
       includeCompletedTransferEvents: false,
-    });
+    }, { kind: 'organization', orgId: 'org-1' });
   });
 
   it('should return 500 Internal Server Error when repository throws an exception', async () => {

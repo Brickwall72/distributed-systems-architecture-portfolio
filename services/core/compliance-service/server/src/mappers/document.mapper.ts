@@ -11,6 +11,7 @@ export function mapDbRowToDocument(row: any): DocumentEntity {
     storageBucket: row.storage_bucket,
     storageKey: row.storage_key,
     status: row.status,
+    topologyApplicationStatus: row.topology_application_status,
     signerId: row.signer_id,
     transferEventId: row.transfer_event_id || null,
     fileHash: row.file_hash,

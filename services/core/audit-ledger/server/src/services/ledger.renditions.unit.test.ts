@@ -1,11 +1,12 @@
 // File: services/core/audit-ledger/server/src/services/ledger.renditions.unit.test.ts
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
-import { overviewRecord } from '../registry/overview.test-support';
-import { renditionSchema } from '../repositories/renditions';
+import { overviewRecord } from '../registry';
+import { renditionSchema } from '../repositories';
 import { LedgerService, type LedgerServiceDeps } from './ledger.service';
 import { RENDITION_STATUS, LEDGER_STATUS } from 'audit-shared';
 
 describe('ledger rendition retrieval', () => {
+  const auditor = { kind: 'auditor' } as const;
   const record = overviewRecord();
   const ready = mockFromSchema(renditionSchema, {
     sequence: record.sequence, requisitionNumber: record.requisitionNumber, sourceRecordHash: record.recordHash,
@@ -21,7 +22,7 @@ describe('ledger rendition retrieval', () => {
 
   it('looks up statuses in one batch and treats missing jobs as pending', async () => {
     const { service, findBySequences } = makeService([]);
-    const result = await service.listTransfers({ status: LEDGER_STATUS.SEALED });
+    const result = await service.listTransfers({ status: LEDGER_STATUS.SEALED }, auditor);
     expect(findBySequences).toHaveBeenCalledOnce();
     expect(findBySequences).toHaveBeenCalledWith([record.sequence]);
     expect(result[0].renditionStatus).toBe(RENDITION_STATUS.PENDING);
@@ -29,14 +30,26 @@ describe('ledger rendition retrieval', () => {
 
   it('presigns only matching ready metadata', async () => {
     const { service, getSignedDownloadUrl } = makeService();
-    expect(await service.getTransferDocument(record.requisitionNumber)).toEqual({
+    expect(await service.getTransferDocument(record.requisitionNumber, auditor)).toEqual({
       status: 'READY', presignedUrl: 'https://storage.example/file.pdf',
     });
     expect(getSignedDownloadUrl).toHaveBeenCalledWith({ storageBucket: 'dsap', storageKey: 'audit/file.pdf', expiresInSeconds: 600 });
     const pending = makeService([{ ...ready, status: 'FAILED' }]);
-    expect(await pending.service.getTransferDocument(record.requisitionNumber)).toEqual({ status: 'NOT_READY' });
+    expect(await pending.service.getTransferDocument(record.requisitionNumber, auditor)).toEqual({ status: 'NOT_READY' });
     expect(pending.getSignedDownloadUrl).not.toHaveBeenCalled();
     const invalid = makeService([{ ...ready, sourceRecordHash: 'b'.repeat(64) }]);
-    await expect(invalid.service.getTransferDocument(record.requisitionNumber)).rejects.toThrow('does not match');
+    await expect(invalid.service.getTransferDocument(record.requisitionNumber, auditor)).rejects.toThrow('does not match');
+  });
+
+  it('does not reveal or presign a nonparticipant transfer', async () => {
+    const { service, getSignedDownloadUrl } = makeService();
+    const scope = { kind: 'organization', orgId: 'unrelated-org' } as const;
+    expect(await service.getSealedTransfer(record.requisitionNumber, scope)).toBeNull();
+    expect(await service.verifyTransfer(record.requisitionNumber, scope)).toBeNull();
+    expect(await service.getTransferDocument(record.requisitionNumber, scope)).toEqual({ status: 'NOT_FOUND' });
+    expect(getSignedDownloadUrl).not.toHaveBeenCalled();
+    for (const orgId of [record.sender.id, record.receiver.id]) {
+      expect(await service.getSealedTransfer(record.requisitionNumber, { kind: 'organization', orgId })).toEqual(record);
+    }
   });
 });

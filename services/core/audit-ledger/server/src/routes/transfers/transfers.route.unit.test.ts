@@ -1,13 +1,20 @@
 // File: services/core/audit-ledger/server/src/routes/transfers/transfers.route.unit.test.ts
-import express from 'express';
+import express, { type Request } from 'express';
 import request from 'supertest';
 import { createAuditGateway } from '../index';
 import { LedgerService } from '../../services';
 import { LEDGER_STATUS } from 'audit-shared';
 
-function appWith(overrides: Partial<Record<keyof LedgerService, unknown>>) {
+const auditor: NonNullable<Request['identity']> = { sub: 'auditor', orgId: null, roles: ['auditor'], signerId: 'auditor' };
+const member: NonNullable<Request['identity']> = { sub: 'member', orgId: 'org-a', roles: ['org-member'], signerId: 'member' };
+
+function appWith(overrides: Partial<Record<keyof LedgerService, unknown>>, identity: Request['identity'] | null = auditor) {
   const service = Object.assign(Object.create(LedgerService.prototype), overrides) as LedgerService;
   const app = express();
+  app.use((req, _res, next) => {
+    req.identity = identity ?? undefined;
+    next();
+  });
   app.use('/api/v1', createAuditGateway({ ledgerService: service }));
   return app;
 }
@@ -34,7 +41,7 @@ describe('audit gateway routes', () => {
     const listTransfers = vi.fn().mockResolvedValue([]);
     const res = await request(appWith({ listTransfers })).get('/api/v1/transfers?status=OPEN');
     expect(res.status).toBe(200);
-    expect(listTransfers).toHaveBeenCalledWith({ status: LEDGER_STATUS.OPEN, limit: 50, offset: 0 });
+    expect(listTransfers).toHaveBeenCalledWith({ status: LEDGER_STATUS.OPEN, limit: 50, offset: 0 }, { kind: 'auditor' });
   });
 
   it('exposes no write endpoints', async () => {
@@ -57,7 +64,7 @@ describe('audit gateway routes', () => {
     const res = await request(appWith({ getTransferDocument })).get('/api/v1/transfers/REQ-X/document');
     expect(res.status).toBe(status);
     expect(res.headers['cache-control']).toBe('no-store');
-    expect(getTransferDocument).toHaveBeenCalledWith('REQ-X');
+    expect(getTransferDocument).toHaveBeenCalledWith('REQ-X', { kind: 'auditor' });
     if (status === 200) expect(res.body).toEqual({ presignedUrl: 'https://storage.example/file.pdf' });
   });
 
@@ -68,5 +75,19 @@ describe('audit gateway routes', () => {
     expect(res.status).toBe(500);
     expect(res.headers['cache-control']).toBe('no-store');
     expect(JSON.stringify(res.body)).not.toContain('secret URL');
+  });
+
+  it('scopes members and denies administrative endpoints', async () => {
+    const listTransfers = vi.fn().mockResolvedValue([]);
+    const app = appWith({ listTransfers }, member);
+    await request(app).get('/api/v1/transfers').expect(200);
+    expect(listTransfers).toHaveBeenCalledWith(expect.anything(), { kind: 'organization', orgId: 'org-a' });
+    await request(app).get('/api/v1/ledger/verify').expect(403);
+    await request(app).get('/api/v1/dead-letters').expect(403);
+  });
+
+  it('rejects missing identities and members without an organization', async () => {
+    await request(appWith({}, null)).get('/api/v1/transfers').expect(401);
+    await request(appWith({}, { ...member, orgId: null })).get('/api/v1/transfers').expect(403);
   });
 });

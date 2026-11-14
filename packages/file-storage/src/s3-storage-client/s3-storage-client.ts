@@ -1,22 +1,19 @@
 // File: packages/file-storage/src/s3-storage-client/s3-storage-client.ts
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, type GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Readable } from 'node:stream';
 import crypto from 'node:crypto';
 import {
-  StorageConfig,
-  UploadFileRequest,
-  UploadFileResult,
-  GetFileStreamResult,
-  StorageProvider,
-  GetFileStreamRequest,
-  GetSignedDownloadUrlRequest,
+  ObjectAlreadyExistsError, ObjectNotFoundError, storageConfigSchema,
+  type StorageConfig, type UploadFileRequest, type UploadFileResult, type GetFileStreamResult,
+  type StorageProvider, type GetFileStreamRequest, type GetSignedDownloadUrlRequest,
 } from '../types';
 
 export class ObjectStorageClient implements StorageProvider {
   private readonly client: S3Client;
 
   constructor(config: StorageConfig) {
+    config = storageConfigSchema.parse(config);
     this.client = new S3Client({
       endpoint: config.endpoint,
       region: config.region,
@@ -39,13 +36,21 @@ export class ObjectStorageClient implements StorageProvider {
       Key: request.storageKey,
       Body: request.pdfBuffer,
       ContentType: request.contentType,
+      ...(request.ifNotExists ? { IfNoneMatch: '*' } : {}),
       Metadata: {
         ...request.metadata,
         'sha256-checksum': fileHash,
       },
     });
 
-    await this.client.send(command);
+    try {
+      await this.client.send(command);
+    } catch (error: unknown) {
+      if (request.ifNotExists && error instanceof Error && error.name === 'PreconditionFailed') {
+        throw new ObjectAlreadyExistsError('Object already exists', { cause: error });
+      }
+      throw error;
+    }
 
     return {
       fileHash,
@@ -62,7 +67,15 @@ export class ObjectStorageClient implements StorageProvider {
       Key: storageKey,
     });
 
-    const response = await this.client.send(command);
+    let response: GetObjectCommandOutput;
+    try {
+      response = await this.client.send(command);
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.name === 'NoSuchKey' || error.name === 'NotFound')) {
+        throw new ObjectNotFoundError('Object not found', { cause: error });
+      }
+      throw error;
+    }
 
     if (!response.Body) {
       throw new Error(`File not found or empty: s3://${storageBucket}/${storageKey}`);
@@ -71,6 +84,7 @@ export class ObjectStorageClient implements StorageProvider {
     return {
       stream: response.Body as Readable,
       contentType: response.ContentType,
+      metadata: response.Metadata,
     };
   }
 

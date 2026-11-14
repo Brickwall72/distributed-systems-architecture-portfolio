@@ -1,17 +1,13 @@
+<!-- File: services/core/topology-service/server/README.md -->
 # Topology server integration tests
 
-The graph repository integration tests require a **dedicated, empty Neo4j database**
-with authentication disabled. They create and remove test data; do not point them
-at a development or production database.
+Run the complete isolated suite from the workspace root with
+`pnpm test:integration`. It starts and cleans up its own Docker dependencies;
+normal `pnpm test` does not run integration tests. See the root README for
+prerequisites and coverage.
 
-Start a disposable Neo4j 5.26 instance, then use its Bolt address:
-
-```sh
-GRAPH_TEST_NEO4J_URI=bolt://127.0.0.1:PORT pnpm --filter topology-server test:integration
-```
-
-The same environment variable can be used with `pnpm test:integration` at the
-workspace root.
-
-The normal `pnpm test` runs unit and contract tests without a database. Stop and
-remove the disposable instance after running the integration tests.
+For individual topology tests, use disposable, isolated Neo4j databases with
+authentication disabled. The graph tests require `GRAPH_TEST_NEO4J_URI`, claim
+and outbox tests require `CLAIM_TEST_NEO4J_URI`, and the seed test requires
+`SEED_TEST_NEO4J_URI` pointing to a **separate empty database**. The seed test
+leaves seeded data behind. Do not use a development or production database.

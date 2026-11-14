@@ -22,7 +22,9 @@ export function useTopologyQuery<TParams, TData>({
   fetcher,
   fallbackErrorMessage,
 }: UseTopologyQueryOptions<TParams>) {
-  const identityId = useIdentity()?.id;
+  const identity = useIdentity();
+  const identityId = identity?.id;
+  const identityKey = JSON.stringify([identity?.id, identity?.orgId, identity?.roles]);
   const [items, setItems] = useState<TData[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,13 @@ export function useTopologyQuery<TParams, TData>({
 
   // Primitive string key comparison prevents infinite render loops from un-memoized object params
   const queryKey = JSON.stringify(params ?? {});
+  const requestKey = JSON.stringify([identityKey, queryKey]);
+  const [activeKey, setActiveKey] = useState(requestKey);
 
   useEffect(() => {
+    setActiveKey(requestKey);
+    setItems([]);
     if (!identityId) {
-      setItems([]);
       setError(null);
       setIsLoading(false);
       return;
@@ -54,6 +59,7 @@ export function useTopologyQuery<TParams, TData>({
 
         // Access parameters safely via the ref
         const response = await fetcherRef.current(paramsRef.current, { signal: controller.signal });
+        if (controller.signal.aborted) return;
 
         if (response.status === 200 && Array.isArray(response.body)) {
           setItems(response.body as TData[]);
@@ -63,7 +69,7 @@ export function useTopologyQuery<TParams, TData>({
           setItems([]);
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (controller.signal.aborted) return;
 
         const message =
           err instanceof Error && err.message.trim() !== ''
@@ -85,7 +91,10 @@ export function useTopologyQuery<TParams, TData>({
       controller.abort();
     };
   // 🚨 REMOVED `params` from dependencies! `queryKey` controls execution lifecycle.
-  }, [queryKey, fallbackErrorMessage, identityId]); 
+  }, [requestKey, fallbackErrorMessage, identityId]);
 
+  if (activeKey !== requestKey) {
+    return { items: [], isLoading: Boolean(identityId), error: null };
+  }
   return { items, isLoading, error };
 }

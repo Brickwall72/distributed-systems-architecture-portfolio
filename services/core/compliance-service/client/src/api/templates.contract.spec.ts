@@ -93,7 +93,12 @@ describe('Compliance Client -> Compliance Server Contract (Templates API)', () =
 
   it('creates a template draft and returns StorageArtifact response with pre-signed URL', async () => {
     const templateId = 'asset-transfer-authorization';
-    const draftRequestBody = { data: { requisitionNumber: '', items: [] } };
+    const draftRequestBody = { data: {
+      requisitionNumber: '',
+      sourceOrg: { id: 'org-1', name: 'Sender' },
+      targetOrg: { id: 'org-2', name: 'Receiver' },
+      assets: [{ id: 'asset-1', nomenclature: 'Asset', serialNumber: 'SN-1' }],
+    } };
     const draftResponse = mockFromSchema(TemplateDraftResponseSchema, {
       documentName: templateId,
       // Optional in the schema; the pact must only require keys the provider guarantees to return.

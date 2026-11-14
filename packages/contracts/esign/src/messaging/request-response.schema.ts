@@ -1,4 +1,4 @@
-// File: packages/contracts/esign/src/messaging/request-response.ts
+// File: packages/contracts/esign/src/messaging/request-response.schema.ts
 import { BaseDocumentResponseSchema, S3ReferenceSchema, getStorageMetadataParamsSchema } from '@contracts/common';
 import { z } from 'zod';
 
@@ -9,6 +9,7 @@ export const ESIGN_COMMAND_SUBJECTS = {
 export const SignDocumentCommandSchema = S3ReferenceSchema.extend({
   ...getStorageMetadataParamsSchema.omit({signedAt: true}).shape,
   signatureImageBase64: z.string(),
+  fileHash: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
 export type SignDocumentCommand = z.infer<typeof SignDocumentCommandSchema>;

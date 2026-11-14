@@ -22,7 +22,7 @@ vi.mock('@shared/express', () => ({
 type Handler = (event: unknown, ack: () => void) => Promise<void>;
 
 describe('ComplianceEventConsumer', () => {
-  let broker: { ensureStream: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> };
+  let broker: { waitForStream: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> };
   let transferService: {
     handleTransferEventCreated: ReturnType<typeof vi.fn>;
     handleTransferEventUpdated: ReturnType<typeof vi.fn>;
@@ -34,7 +34,7 @@ describe('ComplianceEventConsumer', () => {
     vi.clearAllMocks();
     Object.values(TOPOLOGY_EVENT_SUBJECTS).forEach((subject) => delete handlers[subject]);
     broker = {
-      ensureStream: vi.fn().mockResolvedValue(undefined),
+      waitForStream: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn(async (_stream: string, _durable: string, handler: Handler, subject: string) => {
         handlers[subject] = handler;
       }),
@@ -52,9 +52,9 @@ describe('ComplianceEventConsumer', () => {
   });
 
   it('ensures the topology stream and subscribes to all transfer subjects', () => {
-    expect(broker.ensureStream).toHaveBeenCalledWith(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [
+    expect(broker.waitForStream).toHaveBeenCalledWith(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [
       TOPOLOGY_EVENT_SUBJECTS.WILDCARD_ALL,
-    ]);
+    ], undefined);
     expect(broker.subscribe.mock.calls.map((call) => call[3]).sort()).toEqual([
       TOPOLOGY_EVENT_SUBJECTS.TRANSFER_EVENT_CREATED,
       TOPOLOGY_EVENT_SUBJECTS.TRANSFER_EVENT_UPDATED,

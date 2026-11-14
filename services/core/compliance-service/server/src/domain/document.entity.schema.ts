@@ -1,5 +1,5 @@
-// File: services/core/compliance-service/server/src/domain/document.entity.ts
-import { formIdEnum, formTypeEnum } from 'compliance-shared';
+// File: services/core/compliance-service/server/src/domain/document.entity.schema.ts
+import { formIdEnum, formTypeEnum, topologyApplicationStatusSchema } from 'compliance-shared';
 import { transferTypeEnum } from '@contracts/common';
 import { insertDataSchema } from '../repositories';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ export const documentEntitySchema = insertDataSchema.omit({
   type: formTypeEnum,
   transferType: transferTypeEnum,
   transferEventId: z.string().uuid().nullable(),
+  topologyApplicationStatus: topologyApplicationStatusSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

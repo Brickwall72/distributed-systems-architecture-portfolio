@@ -26,7 +26,9 @@ env:
     value: "nats://nats.platform-local.svc.cluster.local:4222"
   - name: AUTH_PUBLIC_KEY_FILE
     value: "/app/auth/public.pem"
-envFrom: []
+envFrom:
+  - secretRef:
+      name: nats-topology-credentials
 
 volumeMounts:
   - name: auth-public-key
@@ -60,7 +62,7 @@ probes:
     periodSeconds: 10
   liveness:
     httpGet:
-      path: /api/v1/health
+      path: /live
       port: 8080
     initialDelaySeconds: 10
     periodSeconds: 10

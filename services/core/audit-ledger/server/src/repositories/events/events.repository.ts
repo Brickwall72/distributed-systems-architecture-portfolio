@@ -1,6 +1,6 @@
 // File: services/core/audit-ledger/server/src/repositories/events/events.repository.ts
 import type { Db } from 'mongodb';
-import { COLLECTIONS } from '../../db';
+import { COLLECTIONS } from '../../db/indexes';
 import type { EventLogEntity } from '../../domain';
 import { isDuplicateKeyError } from '../mongo-errors';
 

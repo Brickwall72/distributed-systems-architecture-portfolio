@@ -1,4 +1,4 @@
-// File: packages/contracts/compliance/src/messaging/events.ts
+// File: packages/contracts/topology/src/messaging/events.schema.ts
 import { z } from 'zod';
 import { createCloudEventSchema, transferStatusEnum, transferTypeEnum, TRANSFER_STATUS } from '@contracts/common';
 import { OrganizationDTOSchema, AssetItemSchema } from '../outputs';
@@ -37,6 +37,7 @@ export type TransferAssetSnapshot = z.infer<typeof transferAssetSnapshotSchema>;
 export const transferEventCreatedDataSchema = z.object({
   requisitionNumber: z.string(),
   transferEventId: z.string().uuid(),
+  appliedDocumentId: z.string().uuid().optional(),
   transferType: transferTypeEnum,
   date: z.string().datetime(),
   sender: transferOrganizationSnapshotSchema,
@@ -50,6 +51,7 @@ export type TransferEventCreatedEvent = z.infer<typeof transferEventCreatedEvent
 
 export const transferEventUpdatedDataSchema = z.object({
   transferEventId: transferEventCreatedDataSchema.shape.transferEventId,
+  appliedDocumentId: transferEventCreatedDataSchema.shape.appliedDocumentId,
   requisitionNumber: transferEventCreatedDataSchema.shape.requisitionNumber.optional(),
   transferEventStatus: transferStatusEnum,
   documentId: z.string().uuid(),
@@ -70,6 +72,7 @@ export const transferEventCompletedDataSchema = transferEventCreatedDataSchema.e
   transferEventStatus: z.literal(TRANSFER_STATUS.COMPLETED),
   documentId: transferEventUpdatedDataSchema.shape.documentId.optional(),
   receivedAssets: z.array(transferAssetSnapshotSchema),
+  receiptDocumentIds: z.array(z.string().uuid()).optional(),
 });
 export type TransferEventCompletedData = z.infer<typeof transferEventCompletedDataSchema>;
 

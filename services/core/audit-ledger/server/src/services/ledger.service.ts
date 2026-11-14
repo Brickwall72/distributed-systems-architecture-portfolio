@@ -13,9 +13,9 @@ import {
 } from 'audit-shared';
 import { createLogger } from '@shared/express';
 import { getMissingSignals } from '../domain';
-import type { DraftsRepository, EventsRepository, SealedTransfersRepository, DeadLettersRepository, RenditionsRepository } from '../repositories';
+import { isDuplicateKeyError, type DraftsRepository, type EventsRepository, type SealedTransfersRepository,
+  type DeadLettersRepository, type RenditionsRepository, type AccessScope } from '../repositories';
 import { getSignedDownloadUrlRequestSchema, type GetSignedDownloadUrlRequest } from '@shared/filestore';
-import { isDuplicateKeyError } from '../repositories/mongo-errors';
 import { draftToSealedTransfer, draftToSummary, sealedToSummary } from '../mappers';
 import { computeRecordHash, GENESIS_HASH } from '../utils';
 import type {
@@ -78,6 +78,7 @@ export class LedgerService {
       topologyCompleted: true,
       completedAt: meta.occurredAt,
       ...(data.documentId ? { [`receivedAssets.${data.documentId}`]: data.receivedAssets } : {}),
+      ...(data.receiptDocumentIds ? { committedReceiptDocumentIds: data.receiptDocumentIds } : {}),
     });
   }
 
@@ -114,19 +115,19 @@ export class LedgerService {
     logger.warn(`Dead-lettered ${reason} event on ${subject}: ${detail}`);
   }
 
-  async listTransfers(query: GetTransfersQuery): Promise<TransferSummary[]> {
+  async listTransfers(query: GetTransfersQuery, scope: AccessScope): Promise<TransferSummary[]> {
     const limit = query.limit ?? 50;
     const offset = query.offset ?? 0;
 
     if (query.status === LEDGER_STATUS.SEALED) {
-      return this.addRenditionStatus((await this.deps.sealed.list(limit, offset)).map(sealedToSummary));
+      return this.addRenditionStatus((await this.deps.sealed.list(limit, offset, scope)).map(sealedToSummary));
     }
     if (query.status === LEDGER_STATUS.OPEN) {
-      return (await this.deps.drafts.list(LEDGER_STATUS.OPEN, limit, offset)).map(draftToSummary);
+      return (await this.deps.drafts.list(LEDGER_STATUS.OPEN, limit, offset, scope)).map(draftToSummary);
     }
     // Sealed drafts are already represented by their immutable record, so only open drafts are merged in.
-    const open = (await this.deps.drafts.list(LEDGER_STATUS.OPEN, limit + offset, 0)).map(draftToSummary);
-    const sealed = (await this.deps.sealed.list(limit + offset, 0)).map(sealedToSummary);
+    const open = (await this.deps.drafts.list(LEDGER_STATUS.OPEN, limit + offset, 0, scope)).map(draftToSummary);
+    const sealed = (await this.deps.sealed.list(limit + offset, 0, scope)).map(sealedToSummary);
     return this.addRenditionStatus([...open, ...sealed]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .slice(offset, offset + limit));
@@ -142,11 +143,11 @@ export class LedgerService {
     });
   }
 
-  async getTransferDocument(requisitionNumber: string): Promise<
+  async getTransferDocument(requisitionNumber: string, scope: AccessScope): Promise<
     { status: 'NOT_FOUND' } | { status: 'NOT_READY' } | { status: 'READY'; presignedUrl: string }
   > {
     if (!this.deps.renditions || !this.deps.getSignedDownloadUrl) throw new Error('Rendition retrieval is not configured');
-    const record = await this.deps.sealed.findByRequisition(requisitionNumber);
+    const record = await this.getSealedTransfer(requisitionNumber, scope);
     if (!record) return { status: 'NOT_FOUND' };
     const [rendition] = await this.deps.renditions.findBySequences([record.sequence]);
     if (rendition?.status !== 'READY') return { status: 'NOT_READY' };
@@ -159,16 +160,20 @@ export class LedgerService {
     };
   }
 
-  getSealedTransfer(requisitionNumber: string): Promise<SealedTransfer | null> {
-    return this.deps.sealed.findByRequisition(requisitionNumber);
+  async getSealedTransfer(requisitionNumber: string, scope: AccessScope): Promise<SealedTransfer | null> {
+    const record = await this.deps.sealed.findByRequisition(requisitionNumber);
+    if (!record || (scope.kind === 'organization' && record.sender.id !== scope.orgId && record.receiver.id !== scope.orgId)) {
+      return null;
+    }
+    return record;
   }
 
   listDeadLetters(): Promise<DeadLetter[]> {
     return this.deps.deadLetters.list();
   }
 
-  async verifyTransfer(requisitionNumber: string): Promise<VerificationResult | null> {
-    const record = await this.deps.sealed.findByRequisition(requisitionNumber);
+  async verifyTransfer(requisitionNumber: string, scope: AccessScope): Promise<VerificationResult | null> {
+    const record = await this.getSealedTransfer(requisitionNumber, scope);
     if (!record) return null;
 
     const failures: VerificationResult['failures'] = [];

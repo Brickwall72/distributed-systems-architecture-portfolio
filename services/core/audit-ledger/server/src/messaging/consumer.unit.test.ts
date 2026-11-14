@@ -8,7 +8,7 @@ type Handler = (payload: unknown, ack: () => void) => Promise<void>;
 function setup() {
   const handlers = new Map<string, { handler: Handler; options?: { nakDelayMs?: number } }>();
   const broker = {
-    ensureStream: vi.fn().mockResolvedValue(undefined),
+    waitForStream: vi.fn().mockResolvedValue(undefined),
     subscribe: vi.fn(async (_s: string, durable: string, handler: Handler, _f?: string, options?: { nakDelayMs?: number }) => {
       handlers.set(durable, { handler, options });
     }),

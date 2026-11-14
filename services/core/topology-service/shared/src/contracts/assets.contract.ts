@@ -13,6 +13,8 @@ export const assetsRoutes = {
     responses: {
       200: AssetDTOListSchema,
       400: ApiErrorResponseSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Fetch assets with optional owner filtering',
@@ -24,6 +26,8 @@ export const assetsRoutes = {
     responses: {
       201: AssetDTOSchema,
       400: ApiErrorResponseSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Register a new asset and establish custody with an organization',

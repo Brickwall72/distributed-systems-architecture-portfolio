@@ -105,6 +105,9 @@ describe('Compliance Client -> Compliance Server Contract (Documents API)', () =
       signerId: 'usr_1',
       documentName: 'asset-transfer-authorization',
       documentType: 'AUTHORIZATION',
+      requisitionNumber: 'REQ-PACT-1',
+      storageBucket: 'dsap',
+      transferEventId: undefined,
     }, { seed: PACT_SEED });
     const presignedUrl = 'http://localhost:9000/dsap/test.pdf?signature=123';
 

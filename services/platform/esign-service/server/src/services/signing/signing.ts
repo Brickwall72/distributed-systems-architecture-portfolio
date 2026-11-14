@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/server/src/services/signing/signing.ts
+// File: services/platform/esign-service/server/src/services/signing/signing.ts
 import { PDFDocument, rgb } from 'pdf-lib';
 import { SignPdf } from '@signpdf/signpdf';
 import { P12Signer } from '@signpdf/signer-p12';
@@ -83,15 +83,14 @@ export async function signDocument({
     pdfBuffer = Buffer.from(await pdfDoc.save());
 
     const signer = new P12Signer(p12Buffer, {
-      passphrase: process.env.CERT_PASSPHRASE || 'changeit',
+      passphrase: process.env.SIGNING_CERT_PASSWORD || process.env.CERT_PASSPHRASE || 'changeit',
     });
     const signPdf = new SignPdf();
     pdfBuffer = Buffer.from(await signPdf.sign(pdfBuffer, signer));
   } catch (err: unknown) {
-    // If cert file does not exist or fails, fall back to unsigned PDF save
-    pdfBuffer = Buffer.from(await pdfDoc.save());
-    const msg = err instanceof Error ? err.message : 'File not found';
-    logger.warn(`P12 certificate seal skipped (${msg}).`);
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`P12 certificate seal failed: ${msg}`);
+    throw new Error('Failed to apply the document signature', { cause: err });
   }
 
   return { pdfBuffer, signedAt };

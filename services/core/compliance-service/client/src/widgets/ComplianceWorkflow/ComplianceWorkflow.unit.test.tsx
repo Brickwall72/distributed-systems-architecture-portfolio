@@ -1,9 +1,15 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+// File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.unit.test.tsx
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { z } from 'zod';
 import { signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 import { useGeneratePdf, useSignPdf } from '../../hooks';
+import type { Identity } from '@contracts/auth';
+
+const session = vi.hoisted(() => ({
+  identity: { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' } as Identity | null,
+}));
 
 // Mock the custom compliance hooks
 vi.mock('../../hooks', async (importOriginal) => {
@@ -12,6 +18,7 @@ vi.mock('../../hooks', async (importOriginal) => {
     ...actual,
     useGeneratePdf: vi.fn(),
     useSignPdf: vi.fn(),
+    useDocumentSync: vi.fn(() => ({ data: undefined, error: null })),
   };
 });
 
@@ -33,7 +40,7 @@ vi.mock('@shared/ui-components', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shared/ui-components')>();
   return {
     ...actual,
-    useIdentity: () => ({ id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' }),
+    useIdentity: () => session.identity,
     DocumentViewer: ({ content, children }: any) => (
       <div data-testid="document-viewer" data-content={content}>
         {content}
@@ -70,6 +77,7 @@ describe('ComplianceWorkflowWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    session.identity = { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' };
     vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
       isLoading: false,
@@ -121,6 +129,52 @@ describe('ComplianceWorkflowWidget', () => {
     expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-pdf-url');
   });
 
+  it('discards late previews and disables writes after switching to an auditor', async () => {
+    let finish!: (url: string) => void;
+    mockGeneratePdf.mockImplementationOnce(async ({ onSuccess }) => { finish = onSuccess; });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+    const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
+    fireEvent.click(screen.getByText('Generate PDF'));
+
+    session.identity = { id: 'auditor', displayName: 'Auditor', orgId: null, roles: ['auditor'], signerId: 'auditor' };
+    rerender(<ComplianceWorkflowWidget {...defaultProps} />);
+    await act(async () => finish('blob:stale-preview'));
+
+    expect(revoke).toHaveBeenCalledWith('blob:stale-preview');
+    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
+    expect(screen.getByTestId('document-viewer').getAttribute('data-content')).not.toBe('blob:stale-preview');
+    revoke.mockRestore();
+  });
+
+  it('discards a late draft when the selected assets change', async () => {
+    let finish!: (url: string) => void;
+    mockGeneratePdf.mockImplementationOnce(async ({ onSuccess }) => { finish = onSuccess; });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+    const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
+    fireEvent.click(screen.getByText('Generate PDF'));
+
+    rerender(<ComplianceWorkflowWidget {...defaultProps} assets={[{ id: 'asset-2', nomenclature: 'Other', serialNumber: 'SN-2' }]} />);
+    await act(async () => finish('blob:old-asset-draft'));
+
+    expect(revoke).toHaveBeenCalledWith('blob:old-asset-draft');
+    expect(screen.getByText('Generate PDF')).toBeDefined();
+    expect(screen.queryByText('Sign Document')).toBeNull();
+    revoke.mockRestore();
+  });
+
+  it('closes an existing draft when a counterparty changes', async () => {
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+    const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
+    fireEvent.click(screen.getByText('Generate PDF'));
+    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
+
+    rerender(<ComplianceWorkflowWidget {...defaultProps} targetOrg={{ id: 'org-other', name: 'Other' }} />);
+
+    expect(screen.queryByText('Sign Document')).toBeNull();
+    expect(revoke).toHaveBeenCalledWith('blob:mock-pdf-url');
+    revoke.mockRestore();
+  });
+
   it('swaps Generate PDF for Back to Interactive View and Sign Document once a PDF exists', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
@@ -153,6 +207,7 @@ describe('ComplianceWorkflowWidget', () => {
     await waitFor(() => {
       expect(mockSignPdf).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-signed-pdf-url');
+      expect(screen.getByRole('status')).toHaveTextContent('topology update pending');
     });
   });
 
