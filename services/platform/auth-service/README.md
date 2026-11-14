@@ -1,3 +1,4 @@
+<!-- File: services/platform/auth-service/README.md -->
 # auth-service
 
 Minimal dev-login identity service.
@@ -21,4 +22,4 @@ AUTH_DEV_LOGIN=true docker compose up
 
 ## Not yet enforced
 
-Authentication is required on all non-health routes, and the compliance server takes `signerId` from the token. Per-organization data scoping on the server (using `orgScope` / `requireOrgAccess`) is still to be applied to the topology, compliance and audit queries.
+Authentication is required on all non-health routes. Topology scopes asset and graph reads to current custody or an incoming transfer, and audit-ledger scopes transfer records to participants. The compliance server takes `signerId` from the token, but does not yet enforce document participation or signing permissions. These incomplete controls and the dev-login impersonation seam make the platform unsuitable for sensitive data.

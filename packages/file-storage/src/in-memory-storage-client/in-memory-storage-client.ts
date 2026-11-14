@@ -1,13 +1,10 @@
-// File: packages/file-storage/src/in-ememory-storage-client/in-ememory-storage-client.ts
+// File: packages/file-storage/src/in-memory-storage-client/in-memory-storage-client.ts
 import { Readable } from 'node:stream';
 import crypto from 'node:crypto';
-import type {
-  UploadFileRequest,
-  UploadFileResult,
-  GetFileStreamResult,
-  StorageProvider,
-  GetFileStreamRequest,
-  GetSignedDownloadUrlRequest,
+import {
+  ObjectAlreadyExistsError, ObjectNotFoundError,
+  type UploadFileRequest, type UploadFileResult, type GetFileStreamResult,
+  type StorageProvider, type GetFileStreamRequest, type GetSignedDownloadUrlRequest,
 } from '../types';
 
 interface StoredObject {
@@ -27,10 +24,13 @@ export class InMemoryStorageClient implements StorageProvider {
     const fileHash = crypto.createHash('sha256').update(request.pdfBuffer).digest('hex');
     const storageKey = this.getObjectKey(request.storageBucket, request.storageKey);
 
+    if (request.ifNotExists && this.storage.has(storageKey)) {
+      return Promise.reject(new ObjectAlreadyExistsError('Object already exists'));
+    }
     this.storage.set(storageKey, {
       buffer: request.pdfBuffer,
       contentType: request.contentType,
-      metadata: request.metadata,
+      metadata: { ...request.metadata, 'sha256-checksum': fileHash },
     });
 
     return Promise.resolve({
@@ -44,12 +44,13 @@ export class InMemoryStorageClient implements StorageProvider {
     const item = this.storage.get(memoryStorageKey);
 
     if (!item) {
-      return Promise.reject(new Error(`File not found or empty: s3://${storageBucket}/${storageKey}`));
+      return Promise.reject(new ObjectNotFoundError(`File not found or empty: s3://${storageBucket}/${storageKey}`));
     }
 
     return Promise.resolve({
       stream: Readable.from(item.buffer),
       contentType: item.contentType,
+      metadata: item.metadata,
     });
   }
 

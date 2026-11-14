@@ -73,7 +73,7 @@ describe('useTopologyQuery (Base Hook Primitives)', () => {
     expect(result.current.error).toBe('Custom Service Fallback');
   });
 
-  it('silently swallows AbortError exceptions when request is cancelled', async () => {
+  it('reports an unexpected AbortError instead of treating it as a successful empty result', async () => {
     const abortError = new Error('The user aborted a request.');
     abortError.name = 'AbortError';
 
@@ -90,7 +90,7 @@ describe('useTopologyQuery (Base Hook Primitives)', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBeNull();
+    expect(result.current.error).toBe('The user aborted a request.');
     expect(result.current.items).toEqual([]);
   });
 
@@ -106,5 +106,40 @@ describe('useTopologyQuery (Base Hook Primitives)', () => {
     act(() => setTestSession());
 
     await waitFor(() => expect(mockFetcher).toHaveBeenCalledTimes(1));
+  });
+
+  it('clears previous results and ignores late responses when query parameters change', async () => {
+    let resolveOld!: (value: { status: number; body: { id: string }[] }) => void;
+    const mockFetcher = vi.fn()
+      .mockResolvedValueOnce({ status: 200, body: [{ id: 'initial' }] })
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }))
+      .mockResolvedValueOnce({ status: 200, body: [{ id: 'current' }] });
+    const { result, rerender } = renderHook(
+      ({ filter }) => useTopologyQuery({ params: { filter }, fetcher: mockFetcher, fallbackErrorMessage: 'Failed' }),
+      { initialProps: { filter: 'initial' } },
+    );
+
+    await waitFor(() => expect(result.current.items).toEqual([{ id: 'initial' }]));
+    rerender({ filter: 'old' });
+    expect(result.current.items).toEqual([]);
+    rerender({ filter: 'current' });
+    await waitFor(() => expect(result.current.items).toEqual([{ id: 'current' }]));
+    await act(async () => resolveOld({ status: 200, body: [{ id: 'old' }] }));
+    expect(result.current.items).toEqual([{ id: 'current' }]);
+  });
+
+  it('refetches and clears results when an identity changes organization without changing its id', async () => {
+    let resolveSecond!: (value: { status: number; body: { id: string }[] }) => void;
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ status: 200, body: [{ id: 'first-org-asset' }] })
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve; }));
+    const { result } = renderHook(() => useTopologyQuery({ fetcher, fallbackErrorMessage: 'Failed' }));
+
+    await waitFor(() => expect(result.current.items).toEqual([{ id: 'first-org-asset' }]));
+    act(() => setTestSession('another-org'));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    expect(result.current.items).toEqual([]);
+    await act(async () => resolveSecond({ status: 200, body: [{ id: 'second-org-asset' }] }));
+    expect(result.current.items).toEqual([{ id: 'second-org-asset' }]);
   });
 });

@@ -1,4 +1,4 @@
-// File: services/core/topology-service/server/src/services/transfer.service.unit.test.ts
+// File: services/core/compliance-service/server/src/services/transfer.service.unit.test.ts
 import { zocker } from 'zocker';
 import {
   transferEventCreatedDataSchema,
@@ -9,15 +9,17 @@ import {
   handleTransferEventCreatedDataSchema,
   handleTransferEventUpdatedDataSchema,
   handleTransferEventCompletedDataSchema,
+  TransferService,
 } from './transfer.service';
 import type { DocumentsRepository } from '../repositories';
-import { TransferService } from './transfer.service';
 
 describe('Compliance TransferService', () => {
   let documents: {
     updateForDocNumber: ReturnType<typeof vi.fn>;
     updateForReqNumber: ReturnType<typeof vi.fn>;
     getRequisitionNumberById: ReturnType<typeof vi.fn>;
+    recordTransferParticipants: ReturnType<typeof vi.fn>;
+    markTopologyApplied: ReturnType<typeof vi.fn>;
   };
   let service: TransferService;
 
@@ -27,8 +29,19 @@ describe('Compliance TransferService', () => {
       updateForDocNumber: vi.fn().mockResolvedValue(undefined),
       updateForReqNumber: vi.fn().mockResolvedValue(undefined),
       getRequisitionNumberById: vi.fn().mockResolvedValue('REQ-TEST'),
+      recordTransferParticipants: vi.fn().mockResolvedValue(undefined),
+      markTopologyApplied: vi.fn().mockResolvedValue(undefined),
     };
     service = new TransferService(documents as unknown as DocumentsRepository);
+  });
+
+  it('marks a signed document applied only after processing the matching topology result', async () => {
+    const appliedDocumentId = '00000000-0000-4000-8000-000000000001';
+    const event = { ...zocker(transferEventCreatedDataSchema).generate(), appliedDocumentId };
+    await service.handleTransferEventCreated(handleTransferEventCreatedDataSchema.parse(event));
+    expect(documents.markTopologyApplied).toHaveBeenCalledWith(appliedDocumentId, event.transferEventId);
+    expect(documents.updateForReqNumber.mock.invocationCallOrder[0])
+      .toBeLessThan(documents.markTopologyApplied.mock.invocationCallOrder[0]);
   });
 
   it('maps created transfer events to an IN_PROGRESS requisition update', async () => {
@@ -37,7 +50,13 @@ describe('Compliance TransferService', () => {
 
     await service.handleTransferEventCreated(input);
 
-    expect(documents.updateForReqNumber).toHaveBeenCalledWith(input);
+    expect(documents.recordTransferParticipants).toHaveBeenCalledWith({
+      requisitionNumber: input.requisitionNumber, transferEventId: input.transferEventId,
+      senderOrgId: input.sender.id, receiverOrgId: input.receiver.id,
+    });
+    expect(documents.updateForReqNumber).toHaveBeenCalledWith(expect.objectContaining({
+      requisitionNumber: input.requisitionNumber, transferEventId: input.transferEventId, status: input.status,
+    }));
   });
 
   it('maps completed transfer events to a COMPLETED requisition update', async () => {
@@ -46,7 +65,22 @@ describe('Compliance TransferService', () => {
 
     await service.handleTransferEventCompleted(input);
 
-    expect(documents.updateForReqNumber).toHaveBeenCalledWith(input);
+    expect(documents.recordTransferParticipants).toHaveBeenCalledWith({
+      requisitionNumber: input.requisitionNumber, transferEventId: input.transferEventId,
+      senderOrgId: input.sender.id, receiverOrgId: input.receiver.id,
+    });
+
+    expect(documents.updateForReqNumber).toHaveBeenCalledWith(expect.objectContaining({
+      requisitionNumber: input.requisitionNumber, transferEventId: input.transferEventId, status: input.status,
+    }));
+  });
+
+  it('does not update documents when participant metadata conflicts', async () => {
+    documents.recordTransferParticipants.mockRejectedValueOnce(new Error('Conflicting transfer participant metadata'));
+    const input = handleTransferEventCreatedDataSchema.parse(zocker(transferEventCreatedDataSchema).generate());
+
+    await expect(service.handleTransferEventCreated(input)).rejects.toThrow('Conflicting transfer participant metadata');
+    expect(documents.updateForReqNumber).not.toHaveBeenCalled();
   });
 
   it('updates the document and resolves the requisition number when an updated event omits it', async () => {

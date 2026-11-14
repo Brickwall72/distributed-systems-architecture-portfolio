@@ -29,6 +29,7 @@ export const transferDraftEntitySchema = z.object({
   authorization: ledgerAuthorizationSchema.optional(),
   receiptDocuments: z.record(receiptDocumentEntitySchema).default({}),
   receivedAssets: z.record(z.array(transferAssetSnapshotSchema)).default({}),
+  committedReceiptDocumentIds: z.array(z.string().uuid()).optional(),
   topologyCompleted: z.boolean().default(false),
   completedAt: z.string().datetime().optional(),
   eventIds: z.array(z.string()).default([]),

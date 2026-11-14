@@ -2,9 +2,8 @@
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 import { generatePdfCommandSchema, generatePdfResponseSchema, PDF_SUBJECTS } from '@contracts/pdf';
 import type { EventBroker } from '@shared/messaging';
-import { overviewRecord } from '../registry/overview.test-support';
-import { renditionSchema, type RenditionsRepository } from '../repositories/renditions';
-import type { SealedTransfersRepository } from '../repositories/sealed/sealed.repository';
+import { overviewRecord } from '../registry';
+import { renditionSchema, type RenditionsRepository, type SealedTransfersRepository } from '../repositories';
 import { RenditionService } from './rendition.service';
 
 describe('RenditionService', () => {

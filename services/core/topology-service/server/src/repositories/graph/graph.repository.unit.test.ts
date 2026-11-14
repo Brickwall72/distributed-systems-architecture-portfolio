@@ -3,6 +3,7 @@ import { GraphRepository } from './graph.repository';
 import type { Driver, Session } from 'neo4j-driver';
 
 describe('GraphRepository', () => {
+  const auditor = { kind: 'auditor' } as const;
   let repository: GraphRepository;
   let mockSession: Partial<Session>;
   let mockDriver: Partial<Driver>;
@@ -53,7 +54,7 @@ describe('GraphRepository', () => {
   });
 
   it('should successfully execute read query and return structured GraphDTO', async () => {
-    const graph = await repository.getGraph();
+    const graph = await repository.getGraph(undefined, auditor);
 
     expect(mockSession.executeRead).toHaveBeenCalledTimes(1);
     expect(graph).toHaveProperty('timestamp');
@@ -75,7 +76,7 @@ describe('GraphRepository', () => {
       return callback(tx);
     });
 
-    const graph = await repository.getGraph();
+    const graph = await repository.getGraph(undefined, auditor);
 
     expect(graph.organizations).toEqual([]);
     expect(graph.assets).toEqual([]);
@@ -91,7 +92,7 @@ describe('GraphRepository', () => {
       whitelistAssets: ['asset-1'],
       whitelistTransfers: ['transfer-1'],
       includeCompletedTransferEvents: true,
-    });
+    }, auditor);
 
     expect(queryParams).toEqual({
       whitelistSenders: ['sender-1'],
@@ -99,6 +100,7 @@ describe('GraphRepository', () => {
       whitelistAssets: ['asset-1'],
       whitelistTransfers: ['transfer-1'],
       includeCompletedTransferEvents: true,
+      scopeOrgId: null,
     });
   });
 });

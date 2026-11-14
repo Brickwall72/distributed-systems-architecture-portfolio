@@ -3,13 +3,22 @@ import { BaseRepository } from '../base.repository';
 import { mapRecordToAssetEntity } from '../../mappers';
 import type { AssetEntity } from '../../domain';
 import { GetAssetsQuery, AssetDTO, ASSET_STATUS } from '@contracts/topology';
+import type { AccessScope } from '@shared/express';
 
 export class AssetsRepository extends BaseRepository {
-  async findAssets(filters: GetAssetsQuery): Promise<AssetEntity[]> {
+  async findAssets(filters: GetAssetsQuery, scope: AccessScope): Promise<AssetEntity[]> {
 
     const cypher = `
       MATCH (a:Asset)
-      WHERE ($filterOwnerId IS NULL OR EXISTS {
+      WHERE ($scopeOrgId IS NULL OR EXISTS {
+        MATCH (:Organization {id: $scopeOrgId})-[:HAS_CUSTODY]->(a)
+      } OR EXISTS {
+        MATCH (e:TransferEvent)-[inv:INVOLVES]->(a)
+        MATCH (e)-[:DELIVERED_TO]->(:Organization {id: $scopeOrgId})
+        WHERE a.status = 'IN_TRANSIT'
+          AND e.status IN ['IN_PROGRESS', 'PARTIALLY_COMPLETED'] AND inv.status = 'IN_TRANSIT'
+      })
+      AND ($filterOwnerId IS NULL OR EXISTS {
         MATCH (o:Organization {id: $filterOwnerId})-[:HAS_CUSTODY]->(a)
       })
       AND ($excludeOwnerId IS NULL OR NOT EXISTS {
@@ -41,6 +50,7 @@ export class AssetsRepository extends BaseRepository {
     return this.executeReadQuery(
       cypher,
       {
+        scopeOrgId: scope.kind === 'auditor' ? null : scope.orgId,
         filterOwnerId: filters.filterOwnerId ?? null,
         excludeOwnerId: filters.excludeOwnerId ?? null,
         includeInTransit: filters.includeInTransit,

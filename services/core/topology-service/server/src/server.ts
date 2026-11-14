@@ -1,11 +1,12 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
 import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
-import { EventBroker } from '@shared/messaging';
+import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
-import { TransfersRepository } from './repositories';
-import { TransferService } from './services';
-import { TopologyEventConsumer, TopologyPublisher } from './messaging';
+import { TransferOutboxService } from './services';
+import { TransferOutboxRepository, TransferClaimsRepository, TransferDraftRepository } from './repositories';
+import { registerTransferRequestResponders, startSignedTransferConsumer } from './messaging';
+import { TOPOLOGY_EVENT_SUBJECTS } from '@contracts/topology';
 import {
   initializeDatabaseConnection, terminateDatabaseClient,
   getDatabaseClient, seedSpaceCustodyGraphTopology
@@ -17,6 +18,7 @@ const logger = createLogger('topology-server');
 
 app.disable('x-powered-by');
 app.use(express.json());
+app.get('/live', (_req, res) => res.sendStatus(200));
 
 /* Safety net for unhandled exceptions. */
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -34,12 +36,18 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
  */
 async function bootstrapApplicationServer() {
   const natsUrl = process.env.NATS_URL || 'nats://localhost:4222';
-  const broker = new EventBroker(natsUrl, logger);
+  const credentials = natsCredentialsFromEnv(process.env);
+  if (!credentials) throw new Error('Authenticated NATS service credentials are required');
+  const broker = new EventBroker(natsUrl, logger, credentials);
   let server: ReturnType<typeof app.listen>;
+  let outbox: TransferOutboxService | undefined;
+  const startup = new AbortController();
 
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Initializing graceful shutdown...`);
+    startup.abort();
     try {
+      await outbox?.stop();
       await broker.disconnect();
       logger.info('NATS broker connection closed cleanly.');
 
@@ -64,6 +72,9 @@ async function bootstrapApplicationServer() {
   process.on('SIGINT', () => void shutdown('SIGINT'));
 
   try {
+    server = app.listen(Number(PORT), '0.0.0.0', () => {
+      logger.info(`Topology liveness endpoint listening on port ${PORT}`);
+    });
     if (process.env.NODE_ENV !== 'test') {
       const driver = await initializeDatabaseConnection();
       await seedSpaceCustodyGraphTopology(driver);
@@ -73,22 +84,21 @@ async function bootstrapApplicationServer() {
     await broker.connect();
     logger.info('NATS broker connected.');
 
-    const transfersRepository = new TransfersRepository(getDatabaseClient());
-    const publisher = new TopologyPublisher(broker);
-    await publisher.init();
-    const transferService = new TransferService(transfersRepository, publisher);
-    const topologyConsumer = new TopologyEventConsumer(broker, transferService);
-    await topologyConsumer.start();
-    logger.info('Topology event consumer started and listening for transfer events.');
+    await broker.ensureStream(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [TOPOLOGY_EVENT_SUBJECTS.WILDCARD_ALL]);
+    outbox = new TransferOutboxService(new TransferOutboxRepository(getDatabaseClient()), broker);
+    outbox.start();
+    const claims = new TransferClaimsRepository(getDatabaseClient());
+    registerTransferRequestResponders(broker, claims, new TransferDraftRepository(getDatabaseClient()));
+    await broker.flush();
+    await startSignedTransferConsumer(broker, claims, startup.signal);
 
     // ✅ Instantiate routes ONLY after dependencies initialize successfully
     const topologyGateway = createTopologyGateway();
     app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), topologyGateway);
 
-    server = app.listen(Number(PORT), '0.0.0.0', () => {
-      logger.info(`Safe isolated execution thread pool listening on port ${PORT}`);
-    });
+    logger.info('Topology server is ready.');
   } catch (error_: any) {
+    if (startup.signal.aborted) return;
     logger.error(`Subsystem container failed to boot cleanly: ${error_?.message || error_}`);
     process.exit(1);
   }

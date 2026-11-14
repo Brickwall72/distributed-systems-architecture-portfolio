@@ -21,6 +21,32 @@ fi
 
 kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
+bash scripts/generate-nats-credentials.sh
+ensure_nats_secret() {
+  local name="$1"
+  local env_file="$2"
+  local existing
+  existing=$(kubectl get secret "$name" --namespace "$namespace" --ignore-not-found -o name)
+  if [[ -z "$existing" ]]; then
+    kubectl create secret generic "$name" --namespace "$namespace" --from-env-file="$env_file" >/dev/null
+  else
+    local key value actual
+    while IFS='=' read -r key value; do
+      actual=$(kubectl get secret "$name" --namespace "$namespace" -o "jsonpath={.data.$key}" | base64 --decode)
+      if [[ "$actual" != "$value" ]]; then
+        echo "Existing Kubernetes secret $name differs from $env_file; it was not changed." >&2
+        exit 1
+      fi
+    done < "$env_file"
+  fi
+  echo "Kubernetes secret $name/$namespace is available."
+}
+
+ensure_nats_secret nats-broker-credentials .auth-keys/nats/broker.env
+for user in compliance topology audit esign pdf; do
+  ensure_nats_secret "nats-$user-credentials" ".auth-keys/nats/$user.env"
+done
+
 # Helper function to safely read variables from a service .env file
 load_env_val() {
   local env_file="$1"

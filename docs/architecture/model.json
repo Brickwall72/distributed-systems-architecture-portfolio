@@ -129,13 +129,19 @@
       "from": "audit-client",
       "to": "audit-server",
       "type": "http",
-      "label": "Topology REST API"
+      "label": "Audit REST API"
     },
     {
       "from": "auth-client",
       "to": "auth-server",
       "type": "http",
-      "label": "Topology REST API"
+      "label": "Authentication and profiles REST API"
+    },
+    {
+      "from": "compliance-server",
+      "to": "topology-server",
+      "type": "nats-request-reply",
+      "label": "Validate drafts and reserve transfers"
     },
     {
       "from": "compliance-server",
@@ -159,37 +165,37 @@
       "from": "compliance-server",
       "to": "nats",
       "type": "nats-pub-sub",
-      "label": "Publish transfer initiated / received"
+      "label": "Publish signed transfer and audit document events"
     },
     {
       "from": "nats",
       "to": "topology-server",
       "type": "nats-pub-sub",
-      "label": "Deliver transfer initiated / received"
+      "label": "Deliver signed transfer for reserved application"
     },
     {
       "from": "topology-server",
       "to": "nats",
       "type": "nats-pub-sub",
-      "label": "Publish transfer event updates"
+      "label": "Publish committed transfer results"
     },
     {
       "from": "nats",
       "to": "compliance-server",
       "type": "nats-pub-sub",
-      "label": "Deliver transfer event updates"
+      "label": "Deliver transfer results for reconciliation"
     },
     {
       "from": "nats",
       "to": "audit-server",
       "type": "nats-pub-sub",
-      "label": "Deliver transfer event updates"
+      "label": "Deliver committed transfer results"
     },
     {
       "from": "nats",
       "to": "audit-server",
       "type": "nats-pub-sub",
-      "label": "Deliver transfer initiated / received"
+      "label": "Deliver signed authorization / receipt facts"
     }
   ]
 }

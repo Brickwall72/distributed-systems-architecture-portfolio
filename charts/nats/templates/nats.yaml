@@ -31,6 +31,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: nats
+      annotations:
+        checksum/config: {{ .Files.Get "files/nats.conf" | sha256sum }}
     spec:
       serviceAccountName: nats
       automountServiceAccountToken: false
@@ -42,7 +44,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
-          command: ["nats-server", "-m", "8222", "-js"]
+          command: ["nats-server", "-c", "/etc/nats/nats.conf"]
+          envFrom:
+            - secretRef:
+                name: nats-broker-credentials
           ports:
             - name: client
               containerPort: 4222
@@ -51,6 +56,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: config
+              mountPath: /etc/nats
+              readOnly: true
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
@@ -74,6 +82,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: nats
+        - name: config
+          configMap:
+            name: nats-config
 ---
 apiVersion: v1
 kind: Service

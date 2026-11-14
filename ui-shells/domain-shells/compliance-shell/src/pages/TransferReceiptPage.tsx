@@ -20,11 +20,15 @@ const AssetSelector = lazyRemote<AssetSelectorProps>('topology_client/AssetSelec
 const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('compliance_client/ComplianceWorkflowWidget');
 
 export default function TransferReceiptPage() {
+  const identity = useIdentity();
+  return <TransferReceiptSession key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} />;
+}
+
+function TransferReceiptSession({ identity }: { readonly identity: ReturnType<typeof useIdentity> }) {
   const [assets, setAssets] = useState<AssetDTOList>([]);
   const [transferEventId, setTransferEventId] = useState<string>();
   const [requisitionNumber, setRequisitionNumber] = useState<string>();
   const [authorizingTemplateId, setAuthorizingTemplateId] = useState<FormId>();
-  const identity = useIdentity();
   const [fromOrg, setFromOrg] = useState<OrganizationDTO>();
   const [receivingOrg, setReceivingOrg] = useState<OrganizationDTO>();
 

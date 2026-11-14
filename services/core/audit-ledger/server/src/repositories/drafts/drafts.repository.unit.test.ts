@@ -70,6 +70,12 @@ describe('DraftsRepository', () => {
     expect(updateOne).toHaveBeenCalledOnce();
   });
 
+  it('accepts a known event redelivered after the transfer was sealed', async () => {
+    updateOne.mockRejectedValueOnce({ code: 11000 });
+    findOne.mockResolvedValueOnce({ ...draft, status: LEDGER_STATUS.SEALED, eventIds: ['event-1'] });
+    expect(await repository.apply('REQ-1', {}, 'event-1', now)).toBe('APPLIED');
+  });
+
   it.each([draft, null])('retries an upsert race when the existing draft is %s', async (existing) => {
     updateOne.mockRejectedValueOnce({ code: 11000 }).mockResolvedValueOnce({ matchedCount: 1, upsertedCount: 0 });
     findOne.mockResolvedValueOnce(existing);
@@ -103,19 +109,29 @@ describe('DraftsRepository', () => {
   });
 
   it.each([undefined, LEDGER_STATUS.OPEN])('lists validated drafts with status %s and pagination', async (status) => {
-    expect(await repository.list(status, 10, 20)).toEqual([draft]);
+    expect(await repository.list(status, 10, 20, { kind: 'auditor' })).toEqual([draft]);
     expect(find).toHaveBeenCalledWith(status ? { status } : {}, { projection: { _id: 0 } });
     expect(sort).toHaveBeenCalledWith({ updatedAt: -1 });
     expect(skip).toHaveBeenCalledWith(20);
     expect(limit).toHaveBeenCalledWith(10);
   });
 
+  it('filters by participation before pagination', async () => {
+    await repository.list(LEDGER_STATUS.OPEN, 10, 20, { kind: 'organization', orgId: 'org-a' });
+    expect(find).toHaveBeenCalledWith({
+      status: LEDGER_STATUS.OPEN,
+      'sender.id': { $type: 'string', $ne: '' },
+      'receiver.id': { $type: 'string', $ne: '' },
+      $or: [{ 'sender.id': 'org-a' }, { 'receiver.id': 'org-a' }],
+    }, { projection: { _id: 0 } });
+  });
+
   it('rejects invalid stored drafts and propagates query failures', async () => {
     toArray.mockResolvedValueOnce([{ ...draft, status: 'invalid' }]);
-    await expect(repository.list(undefined, 10, 0)).rejects.toThrow();
+    await expect(repository.list(undefined, 10, 0, { kind: 'auditor' })).rejects.toThrow();
     const error = new Error('database unavailable');
     toArray.mockRejectedValueOnce(error);
-    await expect(repository.list(undefined, 10, 0)).rejects.toBe(error);
+    await expect(repository.list(undefined, 10, 0, { kind: 'auditor' })).rejects.toBe(error);
     updateOne.mockRejectedValueOnce(error);
     await expect(repository.markSealed('REQ-1', now)).rejects.toBe(error);
   });

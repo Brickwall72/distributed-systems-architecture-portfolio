@@ -1,11 +1,15 @@
 // File: packages/messaging/src/index.ts
-import { connect, NatsConnection } from '@nats-io/transport-node';
+import { connect, NatsConnection, TimeoutError, NoRespondersError } from '@nats-io/transport-node';
 import { 
   jetstream, 
   jetstreamManager, 
   JetStreamClient, 
   JetStreamManager,
+  JetStreamApiError,
+  JetStreamApiCodes,
   AckPolicy,
+  DeliverPolicy,
+  RetentionPolicy,
   Consumer
 } from '@nats-io/jetstream';
 import { CloudEvent } from '@contracts/common';
@@ -20,12 +24,27 @@ export interface Logger {
   debug(message: string, correlationId?: string | null): void;
 }
 
+export interface NatsCredentials {
+  user: string;
+  pass: string;
+  inboxPrefix: string;
+}
+
+export function natsCredentialsFromEnv(env: NodeJS.ProcessEnv): NatsCredentials | undefined {
+  const { NATS_USER: user, NATS_PASSWORD: pass } = env;
+  if (!user && !pass) return undefined;
+  if (!user || !pass || !/^[a-zA-Z0-9_-]+$/.test(user)) {
+    throw new Error('NATS_USER and NATS_PASSWORD must both be provided; the user must be a valid subject token');
+  }
+  return { user, pass, inboxPrefix: `_INBOX.${user}` };
+}
+
 export class EventBroker {
   private nc!: NatsConnection;
   private js!: JetStreamClient;
   private jsm!: JetStreamManager;
 
-  constructor(private readonly natsUrl: string, readonly logger?: Logger) {
+  constructor(private readonly natsUrl: string, readonly logger?: Logger, private readonly credentials?: NatsCredentials) {
     if (!natsUrl) {
       throw new Error('EventBroker initialization failed: NATS URL is required but was undefined or empty.');
     }
@@ -39,6 +58,7 @@ export class EventBroker {
     
     this.nc = await connect({ 
       servers: this.natsUrl,
+      ...this.credentials,
       maxReconnectAttempts: 10,
       reconnectTimeWait: 2000,
       waitOnFirstConnect: true,
@@ -59,31 +79,57 @@ export class EventBroker {
     }
   }
 
-  /**
-   * Idempotently creates or updates a JetStream stream to capture designated subjects.
-   */
+  async flush(): Promise<void> {
+    await this.nc.flush();
+  }
+
+  /** Create the publisher-owned stream or verify its existing subject configuration. */
   async ensureStream(streamName: string, subjects: string[]) {
     try {
-      // Try to get info first, or use streams.upsert() if available in your client version
-      const existing = await this.jsm.streams.info(streamName).catch(() => null);
-
-      if (!existing) {
-        await this.jsm.streams.add({ name: streamName, subjects });
-        this.logger?.debug(`Created JetStream '${streamName}' for subjects: ${subjects.join(', ')}`);
-      } else {
-        // Merge existing subjects with new ones to prevent overwriting other services' subjects
-        const mergedSubjects = Array.from(new Set([...existing.config.subjects, ...subjects]));
-        
-        await this.jsm.streams.update(streamName, {
-          ...existing.config,
-          subjects: mergedSubjects,
-        });
-        this.logger?.debug(`Updated JetStream '${streamName}' with subjects: ${mergedSubjects.join(', ')}`);
+      let existing;
+      try {
+        existing = await this.jsm.streams.info(streamName);
+      } catch (error) {
+        if (!(error instanceof JetStreamApiError) || error.code !== JetStreamApiCodes.StreamNotFound) throw error;
+        existing = await this.jsm.streams.add({ name: streamName, subjects });
+      }
+      const actual = existing.config.subjects ?? [];
+      if (actual.length !== subjects.length || subjects.some((subject) => !actual.includes(subject))
+        || existing.config.retention !== RetentionPolicy.Limits) {
+        throw new Error(`Stream '${streamName}' has unexpected subjects or retention policy`);
       }
     } catch (err) {
       this.logger?.error(`Failed to ensure stream '${streamName}': ${(err as Error).message}`);
       throw err;
     }
+  }
+
+  async waitForStream(streamName: string, subjects: string[], signal?: AbortSignal): Promise<void> {
+    const wait = async (): Promise<void> => {
+      signal?.throwIfAborted();
+      try {
+        const info = await this.jsm.streams.info(streamName);
+        const actual = info.config.subjects ?? [];
+        if (actual.length !== subjects.length || subjects.some((subject) => !actual.includes(subject))
+          || info.config.retention !== RetentionPolicy.Limits) {
+          throw new Error(`Stream '${streamName}' has unexpected subjects or retention policy`);
+        }
+        signal?.throwIfAborted();
+        return;
+      } catch (error) {
+        if (!(error instanceof TimeoutError) && !(error instanceof NoRespondersError)
+          && (!(error instanceof JetStreamApiError) || error.code !== JetStreamApiCodes.StreamNotFound)) throw error;
+        this.logger?.warn(`Waiting for publisher-owned stream '${streamName}'`);
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve(); }, 5000);
+          const abort = () => { clearTimeout(timeout); reject(signal?.reason); };
+          signal?.addEventListener('abort', abort, { once: true });
+          if (signal?.aborted) abort();
+        });
+        return wait();
+      }
+    };
+    return wait();
   }
 
   /**
@@ -115,9 +161,10 @@ export class EventBroker {
    */
   respond(
     subject: string,
-    handler: (payload: any) => Promise<unknown>
+    handler: (payload: any) => Promise<unknown>,
+    options: { queue?: string } = {}
   ): void {
-    const subscription = this.nc.subscribe(subject);
+    const subscription = this.nc.subscribe(subject, options.queue ? { queue: options.queue } : undefined);
     this.logger?.info(`Listening for NATS requests on subject '${subject}'`);
 
     void (async () => {
@@ -176,15 +223,20 @@ export class EventBroker {
     let consumer: Consumer;
 
     try {
-      consumer = await this.js.consumers.get(streamName, durableName);
-    } catch {
+      await this.jsm.consumers.info(streamName, durableName);
+    } catch (error) {
+      if (!(error instanceof JetStreamApiError) || error.code !== JetStreamApiCodes.ConsumerNotFound) throw error;
       await this.jsm.consumers.add(streamName, {
         durable_name: durableName,
         filter_subject: filterSubject,
         ack_policy: AckPolicy.Explicit,
       });
-
-      consumer = await this.js.consumers.get(streamName, durableName);
+    }
+    consumer = await this.js.consumers.get(streamName, durableName);
+    const info = await consumer.info(true);
+    if (info.config.filter_subject !== filterSubject || info.config.ack_policy !== AckPolicy.Explicit
+      || info.config.deliver_policy !== DeliverPolicy.All) {
+      throw new Error(`Consumer '${durableName}' has an unexpected configuration`);
     }
 
     const messages = await consumer.consume();

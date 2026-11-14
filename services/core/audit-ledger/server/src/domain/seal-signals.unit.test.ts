@@ -38,4 +38,18 @@ describe('getMissingSignals', () => {
       getMissingSignals(draft({ ...base, receiptDocuments: { d1: doc('d1', ['a1']), d2: doc('d2', ['a2']) } }))
     ).toEqual([]);
   });
+
+  it('waits for every committed receipt and topology snapshot regardless of event order', () => {
+    const id = '00000000-0000-4000-8000-000000000001';
+    const base = {
+      transferType: 'PHYSICAL_TRANSFER' as const, topologyCompleted: true, authorization: auth,
+      assets: [asset('a1')], committedReceiptDocumentIds: [id],
+    };
+    expect(getMissingSignals(draft({ ...base, receiptDocuments: { [id]: doc(id, ['a1']) } })))
+      .toEqual([SEAL_SIGNAL.RECEIPT_DOCUMENTS]);
+    expect(getMissingSignals(draft({ ...base, receivedAssets: { [id]: [asset('a1')] } })))
+      .toEqual([SEAL_SIGNAL.RECEIPT_DOCUMENTS]);
+    expect(getMissingSignals(draft({ ...base, receiptDocuments: { [id]: doc(id, ['a1']) }, receivedAssets: { [id]: [asset('a1')] } })))
+      .toEqual([]);
+  });
 });

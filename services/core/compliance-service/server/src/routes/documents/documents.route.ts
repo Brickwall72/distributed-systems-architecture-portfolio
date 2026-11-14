@@ -1,27 +1,23 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.ts
 import { initServer } from '@ts-rest/express';
-import { createLogger } from '@shared/express';
+import { accessScope, createLogger, orgScope } from '@shared/express';
 import { documentsRoutes, DocumentSchema, FORM_TYPE } from 'compliance-shared';
-import { DocumentsRepository, insertDataSchema } from '../../repositories';
-import { EventBroker } from '@shared/messaging';
-import { ESIGN_COMMAND_SUBJECTS, SignDocumentCommandSchema, SignDocumentResponseSchema } from '@contracts/esign';
-import { DOCUMENT_STATUS } from '@contracts/compliance';
 import {
-  CompliancePublisher, publishtransferInitiatedDataSchema,
-  publishtransferReceivedDataSchema,
-} from '../../messaging';
+  draftBindingMatches, draftBindingSchema, SigningRequestConflict,
+  type DocumentsRepository, type SigningOperationsRepository,
+} from '../../repositories';
+import { SignDocumentCommandSchema } from '@contracts/esign';
+import { transferClaimSchema } from '@contracts/topology';
+import { TopologyConflict, TopologyUnavailable } from '../../messaging/topology';
+import type { NatsSigningCoordinator } from '../../services';
 import { getSignedDownloadUrlRequestSchema, type GetSignedDownloadUrlRequest } from '@shared/filestore';
-import { z } from 'zod';
 
-export const documentsRouterDepsSchema = z.object({
-  broker: z.instanceof(EventBroker),
-  publisher: z.instanceof(CompliancePublisher),
-  repository: z.instanceof(DocumentsRepository),
-  getSignedDownloadUrl: z.custom<(request: GetSignedDownloadUrlRequest) => Promise<string>>(
-    (value) => typeof value === 'function',
-  ),
-})
-type DocumentsRouterDeps = z.infer<typeof documentsRouterDepsSchema>;
+export interface DocumentsRouterDeps {
+  repository: Pick<DocumentsRepository, 'findAll' | 'findById' | 'findTransferParticipants' | 'findDraftBinding'>;
+  signingOperations: Pick<SigningOperationsRepository, 'enqueue' | 'find'>;
+  signingCoordinator: Pick<NatsSigningCoordinator, 'processNext'>;
+  getSignedDownloadUrl: (request: GetSignedDownloadUrlRequest) => Promise<string>;
+}
 
 const logger = createLogger('compliance-server:documents');
 const s = initServer();
@@ -29,12 +25,19 @@ const s = initServer();
 export function createDocumentsRouter(deps: DocumentsRouterDeps) {
   return s.router(documentsRoutes, {
     getDocuments: async ({ req, query }) => {
+      if (!req.identity) {
+        return { status: 401 as const, body: { error: 'Authentication required', code: 'UNAUTHORIZED', timestamp: new Date().toISOString() } };
+      }
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
+      }
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug('Retrieving all compliance records from database.', correlationId);
       const { repository } = deps;
 
       try {
-        const documents = await repository.findAll({ statuses: query?.status, requisitionNumbers: query?.requisitionNumbers });
+        const documents = await repository.findAll({ statuses: query?.status, requisitionNumbers: query?.requisitionNumbers }, scope);
         return { status: 200 as const, body: documents.map(doc => DocumentSchema.parse(doc)) };
       } catch (error) {
         logger.error(`Database query failed in GET /documents: ${error}`, correlationId);
@@ -50,12 +53,19 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
     },
 
     getDocumentById: async ({ params: { id }, req }) => {
+      if (!req.identity) {
+        return { status: 401 as const, body: { error: 'Authentication required', code: 'UNAUTHORIZED', timestamp: new Date().toISOString() } };
+      }
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
+      }
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug(`Retrieving document record for ID: ${id}`, correlationId);
       const { repository } = deps;
 
       try {
-        const document = await repository.findById(id);
+        const document = await repository.findById(id, scope);
 
         if (!document) {
           return {
@@ -82,13 +92,20 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       }
     },
     getDocumentContentById: async ({ params: { id }, req }) => {
+      if (!req.identity) {
+        return { status: 401 as const, body: { error: 'Authentication required', code: 'UNAUTHORIZED', timestamp: new Date().toISOString() } };
+      }
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
+      }
       const correlationId = (req.headers['x-correlation-id'] as string) || null;
       logger.debug(`Retrieving document content for ID: ${id}`, correlationId);
       req.res?.setHeader('Cache-Control', 'no-store');
       const { repository } = deps;
 
       try {
-        const document = await repository.findById(id);
+        const document = await repository.findById(id, scope);
 
         if (!document?.storageBucket || !document?.storageKey) {
           return {
@@ -119,13 +136,39 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
     },
 
     signDocument: async ({ body: requestBody, req }) => {
-      // The verified token, not the client payload, decides who the signer is.
-      const body = { ...requestBody, signerId: req.identity?.signerId ?? requestBody.signerId };
+      if (!req.identity) {
+        return {
+          status: 401 as const,
+          body: { error: 'Authentication required', code: 'UNAUTHORIZED', timestamp: new Date().toISOString() },
+        };
+      }
+      const signerOrgId = orgScope(req.identity);
+      if (typeof signerOrgId !== 'string') {
+        return {
+          status: 403 as const,
+          body: { error: 'Signing requires an organization member', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
+        };
+      }
+      const body = { ...requestBody, signerId: req.identity.signerId };
+      if (!body.signerId || body.signerId.length > 100) {
+        return {
+          status: 400 as const,
+          body: { error: 'Invalid signer identity', code: 'BAD_REQUEST', timestamp: new Date().toISOString() },
+        };
+      }
+      if (body.documentType === FORM_TYPE.AUTHORIZATION && body.senderOrgId !== signerOrgId) {
+        return {
+          status: 403 as const,
+          body: { error: 'Authorization requires the sender organization', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
+        };
+      }
       const correlationId = (req.headers['x-correlation-id'] as string);
       logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
-      const { broker, publisher, repository } = deps;
-      try {
-        if (body.documentType === FORM_TYPE.RECEIPT && !body.transferEventId) {
+      const { repository, signingOperations, signingCoordinator } = deps;
+
+      const validateReceipt = async () => {
+        if (body.documentType !== FORM_TYPE.RECEIPT) return null;
+        if (!body.transferEventId) {
           return {
             status: 400 as const,
             body: {
@@ -136,52 +179,99 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
           };
         }
 
-        const responseData = SignDocumentResponseSchema.parse(await broker.request(
-          ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT,
-          SignDocumentCommandSchema.parse(body),
-          { timeout: 10000, correlationId }
-        ));
-
-        if (!responseData.success) {
-          throw new Error('Remote signature generation failed.');
+        const participants = await repository.findTransferParticipants(body.transferEventId, body.requisitionNumber);
+        if (!participants) {
+          return {
+            status: 409 as const,
+            body: { error: 'Transfer participants are not available', code: 'TRANSFER_NOT_READY', timestamp: new Date().toISOString() },
+          };
         }
-
-        // Await upsert indexing before querying repository
-        const document = await repository.insert(
-          insertDataSchema.parse({...body, ...responseData, status: DOCUMENT_STATUS.SIGNED})
-        );
-
-        if(document.type === FORM_TYPE.AUTHORIZATION){
-          const data = publishtransferInitiatedDataSchema.parse({
-            ...body,
-            ...responseData,
-            ...document,
-          });
-          void publisher.publishTransferInitiated(data, correlationId);
-        } else if(document.type === FORM_TYPE.RECEIPT) {
-          const data = publishtransferReceivedDataSchema.parse({
-            ...body,
-            ...responseData,
-            ...document,
-            transferEventId: document.transferEventId ?? body.transferEventId,
-          })
-          void publisher.publishTransferReceived(data, correlationId);
+        if (participants.receiverOrgId !== signerOrgId
+          || participants.senderOrgId !== body.senderOrgId || participants.receiverOrgId !== body.receiverOrgId) {
+          return {
+            status: 403 as const,
+            body: { error: 'Receipt requires the transfer receiver', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
+          };
         }
+        return null;
+      };
 
-        return {
-          status: 200 as const,
-          body: { presignedUrl: responseData.presignedUrl },
-        };
+      const hasMatchingDraft = async () => {
+        const draft = await repository.findDraftBinding(body.documentId, req.identity!.sub, signerOrgId);
+        const requestedBinding = draftBindingSchema.safeParse(body);
+        return Boolean(draft && requestedBinding.success && draftBindingMatches(draft, requestedBinding.data));
+      };
+
+      try {
+        const receiptError = await validateReceipt();
+        if (receiptError) return receiptError;
+
+        if (!await hasMatchingDraft()) {
+          return {
+            status: 409 as const,
+            body: { error: 'Draft does not match the signing request', code: 'DRAFT_CONFLICT', timestamp: new Date().toISOString() },
+          };
+        }
+        const parsedClaim = transferClaimSchema.safeParse({
+          ...body, draftHash: body.fileHash, creatorId: req.identity.sub, templateId: body.documentName,
+          signerOrgId, operation: body.documentType,
+        });
+        if (!parsedClaim.success) {
+          return {
+            status: 409 as const,
+            body: { error: 'Draft does not describe a valid transfer', code: 'DRAFT_CONFLICT', timestamp: new Date().toISOString() },
+          };
+        }
+        const claim = parsedClaim.data;
+        const command = SignDocumentCommandSchema.parse({ ...body, customPath: `compliance/transfers/${body.documentType}` });
+        await signingOperations.enqueue(claim, command);
+        await signingCoordinator.processNext(body.documentId);
+        const operation = await signingOperations.find(body.documentId);
+        if (operation?.state === 'CONFLICT') {
+          return {
+            status: 409 as const,
+            body: { error: 'Transfer state is no longer available', code: 'TRANSFER_CONFLICT', timestamp: new Date().toISOString() },
+          };
+        }
+        if (operation?.state !== 'COMPLETED') {
+          return {
+            status: 503 as const,
+            body: { error: 'Signing is being reconciled; retry the same request', code: 'SIGNING_PENDING', timestamp: new Date().toISOString() },
+          };
+        }
+        const document = await repository.findById(body.documentId, { kind: 'organization', orgId: signerOrgId });
+        if (!document) throw new Error('Completed signed document is not available');
+        const presignedUrl = await deps.getSignedDownloadUrl(getSignedDownloadUrlRequestSchema.parse(document));
+        req.res?.setHeader('Cache-Control', 'no-store');
+        return { status: 200 as const, body: { presignedUrl } };
       } catch (error) {
         logger.error(`Signature request failed in POST /documents/sign: ${error}`, correlationId);
-        return {
-          status: 500 as const,
-          body: {
-            error: error instanceof Error ? error.message : 'Internal server error processing signature.',
-            code: 'SIGNATURE_PROCESSING_FAILED',
-            timestamp: new Date().toISOString(),
-          },
-        };
+        switch (true) {
+          case error instanceof SigningRequestConflict:
+            return {
+              status: 409 as const,
+              body: { error: 'A different signing request already exists for this draft', code: 'SIGNING_REQUEST_CONFLICT', timestamp: new Date().toISOString() },
+            };
+          case error instanceof TopologyConflict:
+            return {
+              status: 409 as const,
+              body: { error: 'Signing request conflicts with the transfer state', code: 'TRANSFER_CONFLICT', timestamp: new Date().toISOString() },
+            };
+          case error instanceof TopologyUnavailable:
+            return {
+              status: 503 as const,
+              body: { error: 'Topology service is unavailable; signing will be retried', code: 'TOPOLOGY_UNAVAILABLE', timestamp: new Date().toISOString() },
+            };
+          default:
+            return {
+              status: 500 as const,
+              body: {
+                error: 'Signing failed or is pending reconciliation; retry the same request.',
+                code: 'SIGNATURE_PROCESSING_FAILED',
+                timestamp: new Date().toISOString(),
+              },
+            };
+        }
       }
     },
   });

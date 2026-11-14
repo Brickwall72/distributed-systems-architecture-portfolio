@@ -2,5 +2,6 @@
 import { createNodeServerConfig } from "@shared/tsup-config";
 
 export default createNodeServerConfig({
+  entry: ["src/server.ts"],
   noExternal: ["topology-shared"],
 });

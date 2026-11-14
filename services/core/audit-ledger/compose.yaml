@@ -25,6 +25,8 @@ services:
       target: prod
     image: audit-server:prod
     container_name: audit-server
+    env_file:
+      - ../../../.auth-keys/nats/audit.env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.audit-api.rule=PathPrefix(`/audit/api`)"
@@ -48,6 +50,8 @@ services:
       - auth_public_key
     depends_on:
       audit-db:
+        condition: service_healthy
+      nats:
         condition: service_healthy
     networks:
       - platform-mesh

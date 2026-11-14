@@ -26,6 +26,8 @@ services:
       target: prod
     image: topology-server:prod
     container_name: topology-server
+    env_file:
+      - ../../../.auth-keys/nats/topology.env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.topology-api.rule=PathPrefix(`/topology/api`)"
@@ -44,6 +46,8 @@ services:
       - auth_public_key
     depends_on:
       topology-db:
+        condition: service_healthy
+      nats:
         condition: service_healthy
     networks:
       - platform-mesh

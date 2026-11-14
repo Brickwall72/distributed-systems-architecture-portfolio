@@ -1,6 +1,6 @@
 // File: services/core/topology-service/client/src/widgets/AssetSelector/AssetSelector.tsx
-import { useEffect, useMemo, useState } from 'react';
-import { Select, type SelectOption } from '@shared/ui-components';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Select, useIdentity, type SelectOption } from '@shared/ui-components';
 import { useGetAssets } from '../../hooks';
 import {
   AssetSelectorInputSchema,
@@ -27,12 +27,27 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   // 2. Local Selection State (supports string for single, string[] for multi)
   const [selectedId, setSelectedId] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const identity = useIdentity();
+  const identityKey = JSON.stringify([identity?.id, identity?.orgId, identity?.roles]);
+  const previousIdentityKey = useRef(identityKey);
 
   // 3. Query Data Access Layer
   const { items, isLoading, error } = useGetAssets(queryParams);
 
   // 4. Synchronize Selection: Clear selection if active assets are filtered out
   useEffect(() => {
+    if (previousIdentityKey.current !== identityKey) {
+      previousIdentityKey.current = identityKey;
+      if (isMulti && selectedIds.length) {
+        setSelectedIds([]);
+        (onSelect as (assets: []) => void)([]);
+      } else if (!isMulti && selectedId) {
+        setSelectedId('');
+        (onSelect as (asset: undefined) => void)(undefined);
+      }
+      return;
+    }
+    if (isLoading || error) return;
     if (isMulti) {
       const validIds = selectedIds.filter((id) => items.some((item) => item.id === id));
       if (validIds.length !== selectedIds.length) {
@@ -44,7 +59,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
       setSelectedId('');
       (onSelect as (asset: undefined) => void)(undefined);
     }
-  }, [items, selectedId, selectedIds, isMulti, onSelect]);
+  }, [items, selectedId, selectedIds, isMulti, onSelect, isLoading, error, identityKey]);
 
   // 5. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {

@@ -26,8 +26,19 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
     await session.executeWrite((tx) =>
       tx.run('CREATE CONSTRAINT idx_transfer_req IF NOT EXISTS FOR (e:TransferEvent) REQUIRE e.requisitionNumber IS UNIQUE')
     );
+    await session.executeWrite((tx) =>
+      tx.run('CREATE CONSTRAINT idx_transfer_claim_document IF NOT EXISTS FOR (c:TransferClaim) REQUIRE c.documentId IS UNIQUE')
+    );
+    await session.executeWrite((tx) =>
+      tx.run('CREATE CONSTRAINT idx_transfer_claim_req IF NOT EXISTS FOR (r:TransferClaimRequisition) REQUIRE r.requisitionNumber IS UNIQUE')
+    );
 
     const advancedSeedQuery = `
+      OPTIONAL MATCH (existing)
+      WHERE existing:Organization OR existing:Asset OR existing:TransferEvent
+      WITH count(existing) AS existingCount
+      WHERE existingCount = 0
+
       // ==========================================
       // 1. ORGANIZATIONS
       // ==========================================
@@ -60,10 +71,10 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
       // ==========================================
       // 3. MULTI-ASSET TRANSFER EVENT (Partial Completion)
       // ==========================================
-      MERGE (multiEvent:TransferEvent { id: 'REQ-KSP-MULTI-001' })
+      MERGE (multiEvent:TransferEvent { requisitionNumber: 'REQ-KSP-MULTI-001' })
         ON CREATE SET 
-          multiEvent.requisitionNumber = 'REQ-KSP-MULTI-001',
-          multiEvent.date = '20260915',
+          multiEvent.id = '10000000-0000-4000-8000-000000000001',
+          multiEvent.date = '2026-09-15T00:00:00.000Z',
           multiEvent.type = 'PHYSICAL_TRANSFER',
           multiEvent.status = 'PARTIALLY_COMPLETED'
 
@@ -80,7 +91,7 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           assetA.controlType = 'LOCAL',
           assetA.status = 'AVAILABLE'
       
-      MERGE (multiEvent)-[:INVOLVES { itemNumber: '0001', status: 'RECEIVED' }]->(assetA)
+      MERGE (multiEvent)-[:INVOLVES { itemNumber: '0001', status: 'COMPLETED' }]->(assetA)
       MERGE (ksc)-[:HAS_CUSTODY]->(assetA)
 
       // Asset B in multi-transfer: PENDING / IN-TRANSIT (Custody still with Jeb, locked)
@@ -109,28 +120,28 @@ export async function seedSpaceCustodyGraphTopology(driver: Driver): Promise<voi
           historicalAsset.status = 'AVAILABLE'
 
       // Hop 1: Reaction Engines -> Jeb's Junkyard (Past Event)
-      MERGE (eventHop1:TransferEvent { id: 'REQ-KSP-HIST-001' })
+      MERGE (eventHop1:TransferEvent { requisitionNumber: 'REQ-KSP-HIST-001' })
         ON CREATE SET 
-          eventHop1.requisitionNumber = 'REQ-KSP-HIST-001',
-          eventHop1.date = '20260110',
+          eventHop1.id = '10000000-0000-4000-8000-000000000002',
+          eventHop1.date = '2026-01-10T00:00:00.000Z',
           eventHop1.type = 'PHYSICAL_TRANSFER',
           eventHop1.status = 'COMPLETED'
       
       MERGE (rcs)-[:DELIVERED_FROM]->(eventHop1)
       MERGE (eventHop1)-[:DELIVERED_TO]->(jeb)
-      MERGE (eventHop1)-[:INVOLVES { itemNumber: '0001', status: 'RECEIVED' }]->(historicalAsset)
+      MERGE (eventHop1)-[:INVOLVES { itemNumber: '0001', status: 'COMPLETED' }]->(historicalAsset)
 
       // Hop 2: Jeb's Junkyard -> KSC (Most Recent Completed Event)
-      MERGE (eventHop2:TransferEvent { id: 'REQ-KSP-HIST-002' })
+      MERGE (eventHop2:TransferEvent { requisitionNumber: 'REQ-KSP-HIST-002' })
         ON CREATE SET 
-          eventHop2.requisitionNumber = 'REQ-KSP-HIST-002',
-          eventHop2.date = '20260801',
+          eventHop2.id = '10000000-0000-4000-8000-000000000003',
+          eventHop2.date = '2026-08-01T00:00:00.000Z',
           eventHop2.type = 'PHYSICAL_TRANSFER',
           eventHop2.status = 'COMPLETED'
       
       MERGE (jeb)-[:DELIVERED_FROM]->(eventHop2)
       MERGE (eventHop2)-[:DELIVERED_TO]->(ksc)
-      MERGE (eventHop2)-[:INVOLVES { itemNumber: '0001', status: 'RECEIVED' }]->(historicalAsset)
+      MERGE (eventHop2)-[:INVOLVES { itemNumber: '0001', status: 'COMPLETED' }]->(historicalAsset)
 
       // Current active custody rests with KSC
       MERGE (ksc)-[:HAS_CUSTODY]->(historicalAsset)

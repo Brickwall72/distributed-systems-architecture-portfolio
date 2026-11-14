@@ -65,11 +65,20 @@ describe('SealedTransfersRepository', () => {
   });
 
   it('lists records in descending order with offset and limit', async () => {
-    expect(await repository.list(10, 20)).toEqual([record]);
+    expect(await repository.list(10, 20, { kind: 'auditor' })).toEqual([record]);
     expect(find).toHaveBeenCalledWith({}, { projection: { _id: 0 } });
     expect(sort).toHaveBeenCalledWith({ sequence: -1 });
     expect(skip).toHaveBeenCalledWith(20);
     expect(limit).toHaveBeenCalledWith(10);
+  });
+
+  it('filters by participation before pagination', async () => {
+    await repository.list(10, 20, { kind: 'organization', orgId: 'org-a' });
+    expect(find).toHaveBeenCalledWith({
+      'sender.id': { $type: 'string', $ne: '' },
+      'receiver.id': { $type: 'string', $ne: '' },
+      $or: [{ 'sender.id': 'org-a' }, { 'receiver.id': 'org-a' }],
+    }, { projection: { _id: 0 } });
   });
 
   it('uses ascending keyset pagination for reconciliation', async () => {
@@ -104,6 +113,6 @@ describe('SealedTransfersRepository', () => {
     findOne.mockRejectedValueOnce(error);
     await expect(repository.findByRequisition('REQ-1')).rejects.toBe(error);
     toArray.mockRejectedValueOnce(error);
-    await expect(repository.list(10, 0)).rejects.toBe(error);
+    await expect(repository.list(10, 0, { kind: 'auditor' })).rejects.toBe(error);
   });
 });

@@ -1,9 +1,10 @@
 // File: services/core/audit-ledger/server/src/repositories/drafts/drafts.repository.ts
 import type { Db } from 'mongodb';
 import { LEDGER_STATUS, type LedgerStatus } from 'audit-shared';
-import { COLLECTIONS } from '../../db';
+import { COLLECTIONS } from '../../db/indexes';
 import { transferDraftEntitySchema, type TransferDraftEntity } from '../../domain';
 import { isDuplicateKeyError } from '../mongo-errors';
+import { participantFilter, type AccessScope } from '../access-scope';
 
 export type DraftApplyOutcome = 'APPLIED' | 'ALREADY_SEALED';
 
@@ -45,7 +46,9 @@ export class DraftsRepository {
         if (!isDuplicateKeyError(err)) throw err;
         // Either a sealed draft blocked the upsert, or two upserts raced; the next pass tells them apart.
         const existing = await this.findByRequisition(requisitionNumber);
-        if (existing?.status === LEDGER_STATUS.SEALED) return 'ALREADY_SEALED';
+        if (existing?.status === LEDGER_STATUS.SEALED) {
+          return existing.eventIds.includes(eventId) ? 'APPLIED' : 'ALREADY_SEALED';
+        }
       }
     }
     throw new Error(`Unable to apply event to draft ${requisitionNumber}`);
@@ -58,9 +61,9 @@ export class DraftsRepository {
     );
   }
 
-  async list(status: LedgerStatus | undefined, limit: number, offset: number): Promise<TransferDraftEntity[]> {
+  async list(status: LedgerStatus | undefined, limit: number, offset: number, scope: AccessScope): Promise<TransferDraftEntity[]> {
     const docs = await this.collection
-      .find(status ? { status } : {}, { projection: { _id: 0 } })
+      .find({ ...(status ? { status } : {}), ...participantFilter(scope) }, { projection: { _id: 0 } })
       .sort({ updatedAt: -1 })
       .skip(offset)
       .limit(limit)

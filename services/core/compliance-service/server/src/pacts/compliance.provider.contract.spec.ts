@@ -1,16 +1,20 @@
+// File: services/core/compliance-service/server/src/pacts/compliance.provider.contract.spec.ts
 import { Verifier } from '@pact-foundation/pact';
 import express from 'express';
 import type { Server } from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { createComplianceGateway } from '../routes';
-import { CompliancePublisher } from '../messaging';
 import { EventBroker } from '@shared/messaging';
-import { DocumentsRepository } from '../repositories';
+import { DocumentsRepository, draftBindingSchema, SigningOperationsRepository } from '../repositories';
 import type { Pool } from 'pg';
 import { PDF_SUBJECTS, generatePdfResponseSchema } from '@contracts/pdf';
 import { SignDocumentResponseSchema } from '@contracts/esign';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
+import { TopologyNatsClient } from '../messaging';
+import { transferDraftFactsSchema } from '@contracts/topology';
+
+const pactRequest = vi.hoisted(() => ({ body: {} as unknown }));
 
 vi.mock('../db', () => ({ pool: {} }));
 
@@ -33,6 +37,8 @@ vi.mock('../repositories', async (importOriginal) => {
       findAll = () => entity().then((doc) => [doc]);
       findById = (id: string) => entity({ id });
       insert = () => entity({ type: 'AUTHORIZATION', name: 'asset-transfer-authorization' });
+      saveDraftBinding = async () => {};
+      findDraftBinding = async () => draftBindingSchema.parse(pactRequest.body);
     },
     TemplateRepository: {
       findAllManifests: () => [
@@ -58,6 +64,17 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
   beforeAll(async () => {
     const app = express();
     app.use(express.json());
+    app.use((req, _res, next) => {
+      req.identity = {
+        sub: 'pact-member',
+        orgId: req.path.endsWith('/documents/sign') && typeof req.body?.senderOrgId === 'string'
+          ? req.body.senderOrgId : 'org-1',
+        roles: ['org-member'],
+        signerId: 'pact-member',
+      };
+      pactRequest.body = req.body;
+      next();
+    });
 
     const mockBroker = new EventBroker('nats://provider-test');
     mockBroker.request = vi.fn((subject: string) => {
@@ -70,15 +87,20 @@ describe('Pact Provider Verification - Compliance Server (Unified)', () => {
           mockFromSchema(SignDocumentResponseSchema, { success: true, fileHash: SHA256_HEX }, { seed: 1 }),
         );
       }) as typeof mockBroker.request;
-    const mockPublisher = new CompliancePublisher(mockBroker);
-    mockPublisher.publishTransferInitiated = vi.fn();
-    mockPublisher.publishTransferReceived = vi.fn();
     const repository = new DocumentsRepository({} as Pool);
+    const topology = new TopologyNatsClient(mockBroker);
+    topology.validateDraft = vi.fn().mockResolvedValue(mockFromSchema(transferDraftFactsSchema));
+    const signingOperations = new SigningOperationsRepository({} as Pool);
+    signingOperations.enqueue = vi.fn().mockResolvedValue({});
+    signingOperations.find = vi.fn().mockResolvedValue({ state: 'COMPLETED' });
+    const signingCoordinator = { processNext: vi.fn().mockResolvedValue(true) };
 
     const gateway = createComplianceGateway({
       broker: mockBroker,
-      publisher: mockPublisher,
       repository,
+      topology,
+      signingOperations,
+      signingCoordinator,
       getSignedDownloadUrl: async () => 'http://localhost:9000/dsap/test.pdf?signature=xyz',
     });
 

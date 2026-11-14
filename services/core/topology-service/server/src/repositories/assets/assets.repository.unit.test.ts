@@ -10,6 +10,7 @@ function createMockRecord(data: object): Neo4jRecord {
 }
 
 describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
+  const auditor = { kind: 'auditor' } as const;
   let mockTx: Partial<ManagedTransaction>;
   let mockSession: Partial<Session>;
   let mockDriver: Partial<Driver>;
@@ -24,18 +25,19 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
     mockDriver = { session: vi.fn().mockReturnValue(mockSession as Session) };
   });
 
-  it('passes normalized null and optional filters to Cypher execution when params are omitted', async () => {
+  it('passes normalized null filters to Cypher execution when optional params are omitted', async () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    await repo.findAssets({});
+    await repo.findAssets({ includeInTransit: false, includeAvailable: true }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('MATCH (a:Asset)'),
       {
+        scopeOrgId: null,
         filterOwnerId: null,
         excludeOwnerId: null,
-        includeInTransit: undefined,
+        includeInTransit: false,
         includeAvailable: true,
         transferEventId: null,
         filterControlType: null,
@@ -52,7 +54,7 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
     });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    const results = await repo.findAssets({ filterOwnerId: entity.currentOwnerId, includeInTransit: false });
+    const results = await repo.findAssets({ filterOwnerId: entity.currentOwnerId, includeInTransit: false, includeAvailable: true }, auditor);
 
     expect(results).toEqual([entity]);
   });
@@ -61,7 +63,7 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    await repo.findAssets({ filterControlType: 'LOCAL', includeInTransit: false });
+    await repo.findAssets({ filterControlType: 'LOCAL', includeInTransit: false, includeAvailable: true }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('a.controlType = $filterControlType'),
@@ -74,13 +76,26 @@ describe('AssetsRepository (Domain Mapping & Cypher Params)', () => {
     vi.mocked(mockTx.run!).mockResolvedValue({ records: [createMockRecord(entity)], summary: {} as any });
 
     const repo = new AssetsRepository(mockDriver as Driver);
-    const results = await repo.findAssets({ includeInTransit: true });
+    const results = await repo.findAssets({ includeInTransit: true, includeAvailable: true }, auditor);
 
     expect(mockTx.run).toHaveBeenCalledWith(
       expect.stringContaining('AS requisitionNumber'),
       expect.anything()
     );
     expect(results[0].requisitionNumber).toBe('REQ-42');
+  });
+
+  it('passes the verified organization scope separately from user filters', async () => {
+    vi.mocked(mockTx.run!).mockResolvedValue({ records: [], summary: {} as any });
+    const repo = new AssetsRepository(mockDriver as Driver);
+    await repo.findAssets(
+      { filterOwnerId: 'other-org', includeInTransit: true, includeAvailable: true },
+      { kind: 'organization', orgId: 'org-a' },
+    );
+    expect(mockTx.run).toHaveBeenCalledWith(
+      expect.stringContaining('id: $scopeOrgId'),
+      expect.objectContaining({ filterOwnerId: 'other-org', scopeOrgId: 'org-a' }),
+    );
   });
 
   it('executes createAsset write query and returns mapped AssetEntity', async () => {

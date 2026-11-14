@@ -1,4 +1,4 @@
-// File: services/core/topology-service/server/src/routes/organizations/organizations.unit.test.ts
+// File: services/core/topology-service/server/src/routes/organizations/organizations.route.unit.test.ts
 import { OrganizationDTOListSchema } from '@contracts/topology';
 import { createOrganizationsRouter } from './organizations.route';
 import type { OrganizationsRepository } from '../../repositories';
@@ -36,7 +36,7 @@ describe('createOrganizationsRouter (API Boundary Handler)', () => {
     const response = await router.getOrganizations({
       query: { filterOwnedId: 'asset-99', requireActiveAssets: true },
       headers: {} as any,
-      req: {} as any,
+      req: { identity: { sub: 'user', orgId: 'org-001', roles: ['org-member'], signerId: 'user' } } as any,
       res: {} as any,
     });
 
@@ -49,7 +49,7 @@ describe('createOrganizationsRouter (API Boundary Handler)', () => {
     expect(mockRepository.findOrganizations).toHaveBeenCalledWith({
       filterOwnedId: 'asset-99',
       requireActiveAssets: true,
-    });
+    }, { kind: 'organization', orgId: 'org-001' });
   });
 
   it('catches repository exceptions and returns sanitized HTTP 500 error payload matching schema', async () => {
@@ -62,7 +62,7 @@ describe('createOrganizationsRouter (API Boundary Handler)', () => {
     const response = await router.getOrganizations({
       query: { requireActiveAssets: true },
       headers: {} as any,
-      req: {} as any,
+      req: { identity: { sub: 'user', orgId: 'org-001', roles: ['org-member'], signerId: 'user' } } as any,
       res: {} as any,
     });
 

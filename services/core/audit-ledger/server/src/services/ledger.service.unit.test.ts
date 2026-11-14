@@ -10,6 +10,7 @@ const RECEIPT_1 = '33333333-3333-4333-8333-333333333333';
 const RECEIPT_2 = '44444444-4444-4444-8444-444444444444';
 const HASH = 'a'.repeat(64);
 const T = '2025-01-01T00:00:00.000Z';
+const auditor = { kind: 'auditor' } as const;
 
 const org = (id: string) => ({ id, name: `Org ${id}`, type: 'GOV_AGENCY' as never });
 const asset = (id: string) => ({
@@ -85,8 +86,37 @@ describe('LedgerService', () => {
     });
 
     expect(sealed).toHaveLength(0);
-    const [summary] = await service.listTransfers({ status: LEDGER_STATUS.OPEN });
+    const [summary] = await service.listTransfers({ status: LEDGER_STATUS.OPEN }, auditor);
     expect(summary).toMatchObject({ requisitionNumber: REQ, status: LEDGER_STATUS.OPEN, missingSignals: ['RECEIPT_DOCUMENTS'] });
+  });
+
+  it('waits for all committed receipt snapshots when completion arrives before an earlier update', async () => {
+    const { service, sealed } = createInMemoryLedger();
+    await service.handleTransferInitiated(initiated(['a1', 'a2']));
+    await service.handleTransferReceived(received(RECEIPT_1, ['a1']));
+    await service.handleTransferReceived(received(RECEIPT_2, ['a2']));
+    await service.handleTransferCompleted({
+      meta: meta('completed'),
+      data: { ...topologyBase('PHYSICAL_TRANSFER', ['a1', 'a2']), transferEventStatus: 'COMPLETED',
+        documentId: RECEIPT_2, receivedAssets: [asset('a2')], receiptDocumentIds: [RECEIPT_1, RECEIPT_2] },
+    });
+    expect(sealed).toHaveLength(0);
+    await service.handleTransferUpdated(updated(RECEIPT_1, ['a1']));
+    expect(sealed).toHaveLength(1);
+    expect(sealed[0].receipts.map((receipt) => receipt.documentId).sort()).toEqual([RECEIPT_1, RECEIPT_2]);
+    expect(sealed[0].receipts.find((receipt) => receipt.documentId === RECEIPT_1)?.receivedAssets).toHaveLength(1);
+  });
+
+  it('keeps drafts hidden from members until topology supplies participant identities', async () => {
+    const { service, drafts } = createInMemoryLedger();
+    const member = { kind: 'organization', orgId: 'org-a' } as const;
+    await service.handleTransferInitiated(initiated(['a1']));
+    expect(await service.listTransfers({ status: LEDGER_STATUS.OPEN }, member)).toEqual([]);
+    Object.assign(drafts.get(REQ)!, { sender: org('org-a') });
+    expect(await service.listTransfers({ status: LEDGER_STATUS.OPEN }, member)).toEqual([]);
+    await service.handleTransferCreated({ meta: meta('created'), data: topologyBase('PHYSICAL_TRANSFER', ['a1']) });
+    expect(await service.listTransfers({ status: LEDGER_STATUS.OPEN }, member)).toHaveLength(1);
+    expect(await service.listTransfers({ status: LEDGER_STATUS.OPEN }, { kind: 'organization', orgId: 'unrelated' })).toEqual([]);
   });
 
   it('is idempotent when the same event is redelivered', async () => {
@@ -129,8 +159,8 @@ describe('LedgerService', () => {
     const result = await service.verifyLedger();
     expect(result.valid).toBe(false);
     expect(result.failures.map((f) => f.reason)).toEqual(expect.arrayContaining(['HASH_MISMATCH']));
-    expect((await service.verifyTransfer('REQ-A'))?.valid).toBe(false);
-    expect(await service.verifyTransfer('missing')).toBeNull();
+    expect((await service.verifyTransfer('REQ-A', auditor))?.valid).toBe(false);
+    expect(await service.verifyTransfer('missing', auditor)).toBeNull();
   });
 
   it('dead-letters events arriving after the seal without changing the sealed record', async () => {
@@ -166,7 +196,7 @@ describe('LedgerService', () => {
       data: { ...topologyBase('C2_TRANSFER', ['a1']), requisitionNumber: 'REQ-C2', transferEventStatus: 'COMPLETED', receivedAssets: [] },
     });
 
-    const all = await service.listTransfers({});
+    const all = await service.listTransfers({}, auditor);
     expect(all.map((t) => [t.requisitionNumber, t.status]).sort()).toEqual([[REQ, LEDGER_STATUS.OPEN], ['REQ-C2', LEDGER_STATUS.SEALED]]);
   });
 });

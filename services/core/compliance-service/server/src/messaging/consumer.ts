@@ -3,6 +3,7 @@ import { EventBroker } from '@shared/messaging';
 import { 
   TOPOLOGY_EVENT_SUBJECTS, TransferEventCreatedEvent, TransferEventUpdatedEvent, TransferEventCompletedEvent,
 } from '@contracts/topology';
+import { TOPOLOGY_DURABLE_CONSUMERS } from './durableConsumers';
 import { 
   TransferService, handleTransferEventCreatedDataSchema, 
   handleTransferEventUpdatedDataSchema, handleTransferEventCompletedDataSchema
@@ -17,15 +18,15 @@ export class ComplianceEventConsumer {
     private readonly transferService: TransferService
   ) {}
 
-  public async start(): Promise<void> {
-    await this.broker.ensureStream(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [
+  public async start(signal?: AbortSignal): Promise<void> {
+    await this.broker.waitForStream(TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME, [
       TOPOLOGY_EVENT_SUBJECTS.WILDCARD_ALL,
-    ]);
+    ], signal);
 
     // 1. Listen for Transfer Initiated
     await this.broker.subscribe(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
-      'compliance-service-transfer-event-created-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.COMPLIANCE_CREATED,
       async (event: TransferEventCreatedEvent, ack) => {
         logger.info(`Transfer Initiated Event received:${JSON.stringify(event)}`);
         await this.transferService.handleTransferEventCreated(
@@ -39,7 +40,7 @@ export class ComplianceEventConsumer {
     // 2. Listen for Transfer Received
     await this.broker.subscribe(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
-      'compliance-service-transfer-event-updated-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.COMPLIANCE_UPDATED,
       async (event: TransferEventUpdatedEvent, ack) => {
         logger.info(`Transfer Initiated Event received:${JSON.stringify(event)}`);
         await this.transferService.handleTransferEventUpdated(
@@ -53,7 +54,7 @@ export class ComplianceEventConsumer {
     // 2. Listen for Transfer Completed
     await this.broker.subscribe(
       TOPOLOGY_EVENT_SUBJECTS.STREAM_NAME,
-      'compliance-service-transfer-event-completed-consumer',
+      TOPOLOGY_DURABLE_CONSUMERS.COMPLIANCE_COMPLETED,
       async (event: TransferEventCompletedEvent, ack) => {
         logger.info(`Transfer Initiated Event received:${JSON.stringify(event)}`);
         await this.transferService.handleTransferEventCompleted(

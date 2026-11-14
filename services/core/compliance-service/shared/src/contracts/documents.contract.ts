@@ -24,6 +24,8 @@ export const documentsRoutes = {
     query: GetDocumentsQuerySchema,
     responses: {
       200: z.array(DocumentSchema),
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Retrieve all document records.',
@@ -36,6 +38,8 @@ export const documentsRoutes = {
     }),
     responses: {
       200: DocumentSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
@@ -49,6 +53,8 @@ export const documentsRoutes = {
     }),
     responses: {
       200: z.object({ presignedUrl: z.string().url() }),
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
@@ -61,7 +67,11 @@ export const documentsRoutes = {
     responses: {
       200: z.object({ presignedUrl: z.string() }),
       400: ApiErrorResponseSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
+      409: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
+      503: ApiErrorResponseSchema,
     },
     summary: 'Sign a compliance document via NATS request-response to esign-service.',
   }),

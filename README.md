@@ -1,95 +1,67 @@
+<!-- File: README.md -->
 # Distributed Systems Architecture Portfolio
 
-Aerospace distributed systems portfolio. Features a Kubernetes monorepo orchestrating 5 core microservices—UI Shell, Compliance coordinator, Graph topology, Resource cache, and an event-driven Immutable ledger—supported by 2 platform utility services for automated flight readiness document engineering.
+An aerospace-themed portfolio demonstrating custody transfers across a
+microservice system. Organizations use federated UI workflows to prepare and
+sign transfer authorizations and receipts; services validate custody, reconcile
+events, and preserve an audit record. This is a local demonstration, not a
+production flight-readiness or telemetry system.
 
-## 1. System Vision & Architecture Map
-
-### The Strategic Focus: Automated Launch & Flight Readiness Verification
-In aerospace and defense software, mission assurance requires validating complex system constraints before executing operational commands. Human-in-the-loop verification introduces latency and safety risks. 
-
-The primary mission of this platform is to demonstrate an automated, hands-free gateway architecture for **Aviation and UAV Fleet Operations**. The platform handles a core mission workflow: executing a cross-operation asset handover while automatically verifying relational structures and physical system telemetry over the network before generating cryptographically secure clearance documentation.
+## 1. System and architecture
 
 ```mermaid
-graph TD
-	%% Define Styles for Aerospace theme
-	classDef ui fill:#2b3a4a,stroke:#3b82f6,stroke-width:2px,color:#fff;
-	classDef core fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#fff;
-	classDef platform fill:#0f172a,stroke:#a855f7,stroke-width:1px,color:#fff;
-	classDef database fill:#020617,stroke:#10b981,stroke-width:1px,color:#fff;
-	classDef broker fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
-
-	%% Elements
-	UI[global-shell <br> Micro-Frontend Host]:::ui
-	
-	subgraph Core Domain Services [Core Domain Services]
-		COMP[compliance-service <br> Workflow Coordinator]:::core
-		TOPO[topology-service <br> Graph Rules Engine]:::core
-		CACHE[resource-cache <br> Telemetry Store]:::core
-		LEDGER[audit-ledger <br> Event Consumer]:::core
-	end
-
-	subgraph Platform Utilities [Platform Utility Services]
-		PDF[pdf-generator]:::platform
-		SIGN[esign-service]:::platform
-	end
-
-	subgraph Storage Layer [Isolated Data Stores]
-		DB_C[(Compliance Relational DB)]:::database
-		DB_G[(Graph NoSQL)]:::database
-		DB_M[(Mutable Cache)]:::database
-		DB_I[(Immutable Ledger)]:::database
-	end
-
-	MB[[Message Broker Topic <br> Pub/Sub Channels]]:::broker
-
-	%% Parallel Validation Interactions
-	UI -->|1. Request Flight Clearance| COMP
-	
-	COMP -->|2a. Validate Structure via HTTP | TOPO
-	COMP -->|2b. Check Telemetry via HTTP | CACHE
-	
-	TOPO ===> DB_G
-	CACHE ===> DB_M
-	
-	%% Document Execution Loop
-	COMP -->|3. Post Hydrated Template Data| PDF
-	PDF -->|Return Compiled PDF File| COMP
-	COMP -->|Sign Document| SIGN
-	SIGN -->|4. Return Signed Document File| COMP
-	COMP ===> DB_C
-	
-	%% Async Pub/Sub Broadcast Loop
-	COMP -->|5. Publish: FlightClearanceFinalized| MB
-	MB -.->|Asynchronous Fan-out Link| CACHE
-	MB -.->|Asynchronous Fan-out Link| LEDGER
-	
-	LEDGER ===> DB_I
+flowchart LR
+  UI[Global and domain shells] -->|HTTP APIs| AUTH[Auth service]
+  UI -->|HTTP APIs| COMP[Compliance service]
+  UI -->|HTTP APIs| TOPO[Topology service]
+  UI -->|HTTP APIs| AUDIT[Audit ledger]
+  COMP <-->|NATS request/reply: validate and reserve| TOPO
+  COMP <-->|NATS request/reply: generate| PDF[PDF generator]
+  COMP <-->|NATS request/reply: sign| ESIGN[E-sign service]
+  AUDIT <-->|NATS request/reply: overview| PDF
+  COMP -->|durable signed and document events| NATS[(NATS JetStream)]
+  NATS -.->|signed transfer| TOPO
+  TOPO -->|durable transfer results| NATS
+  NATS -.->|transfer results| COMP
+  NATS -.->|document facts and results| AUDIT
+  COMP --- PG[(PostgreSQL)]
+  TOPO --- NEO[(Neo4j)]
+  AUDIT --- MONGO[(MongoDB)]
+  PDF --- S3[(MinIO)]
+  ESIGN --- S3
+  COMP --- S3
+  AUDIT --- S3
 ```
 
-The generated [service composition and interaction view](./docs/generated/architecture/architecture.md) shows federated widgets and distinguishes HTTP, NATS request/reply, and NATS pub/sub interactions.
+The arrows between services labeled request/reply are blocking NATS requests,
+not direct HTTP links. Event delivery is asynchronous and retried using durable
+outboxes. The [generated service composition and interaction view](./docs/generated/architecture/architecture.md)
+shows the federated widgets and communication types.
 
+### Services and workflow
 
-### Subsystem Architecture Breakdown
-The monorepo separates presentation layout orchestration and mission-specific business domains from generic utility logic:
+- **Global and domain shells** compose the auth, topology, compliance, and audit
+  micro-frontends. Users select a demo profile and work with the scoped data.
+- **Auth** issues identities and roles. The profile picker is impersonable and
+  intended for fictional local data, not production authentication.
+- **Topology** owns the Neo4j custody graph. It validates draft facts and
+  reserves assets synchronously over NATS. It consumes signed events, applies
+  physical or C2 transitions, and publishes committed results.
+- **Compliance** coordinates draft generation and signing, records documents
+  and participant access in PostgreSQL, and durably publishes signed events.
+  Signing returns without waiting for topology's eventual application; the UI
+  shows pending, applied, or attention-required synchronization.
+- **Audit ledger** consumes document facts and topology snapshots, seals
+  completed transfer records only when required receipts are present, and
+  requests PDF overviews. Its MongoDB-backed records are participant-scoped.
+- **PDF generator and e-sign** render and cryptographically sign documents;
+  MinIO stores artifacts and serves time-limited signed downloads.
 
-* **Presentation Layer (Orchestration Shells):**
-  * `global-shell`: Top-level micro-frontend host container dynamically composing page-based layouts.
-* **Core Services (The Domain Layer):**
-  * `compliance-service`: The central process coordinator managing background network validation loops.
-  * `topology-service`: Graph NoSQL-backed engine mapping asset dependencies and structural boundaries.
-  * `resource-cache`: Volatile, fast-access memory store tracking real-time asset capacity and metrics.
-  * `audit-ledger`: Append-only, event-driven database acting as the immutable "black box" flight log.
-* **Platform Services (The Utility Layer):**
-  * `pdf-generator`: Stateless utility wrapper converting structured verification payloads into PDF templates.
-  * `esign-service`: Cryptographic signing utility to securely authorize generated clearance files.
-
-
-### Architectural Standards
-* **Isolation Pattern:** True Database-per-Service model ensuring zero cross-domain leakage over the cluster network.
-* **Communication Protocols:** Synchronous REST HTTP (JSON) for blocking coordination checks; asynchronous message broker channels for resilient audit settlement.
-* **Environment Strategy:** Microservices containerized via Docker and orchestrated natively via Kubernetes to ensure exact runtime parity across all development environments.
-
-*Detailed architectural records and engineering rationales can be reviewed chronologically under `docs/adrs/`.*
+Current custodians and intended receivers of in-transit assets may view the
+asset's full visual transfer history. Transfer participants can access their
+own documents, while platform auditors have global read-only access.
+Reservations cover authorizations and receipts to prevent overlapping
+signatures. See the [ADRs](./docs/adr/) for design decisions.
 
 ### Generated Architecture and Software Inventory
 
@@ -144,7 +116,9 @@ source ~/.bashrc  # Linux/WSL
 # or: source ~/.zshrc  # macOS
 ```
 
-Create local environment files after pnpm is available:
+Create local environment files after pnpm is available. This copies every
+`.env.example` over its corresponding `.env`; do not run it if you need to
+preserve existing local configuration without first backing it up:
 
 ```bash
 pnpm env:copy
@@ -212,7 +186,10 @@ curl -i http://localhost:8081/topology/api/v1/health
 curl -i http://localhost:8081/pdf/api/v1/health
 ```
 
-The expected Kubernetes context is `k3d-platform-cluster`. The frontend federation and API configuration intentionally uses `localhost:8081`, while the internal client ports remain topology `3011`, compliance `3021`, and PDF `4011`.
+The expected Kubernetes context is `k3d-platform-cluster`. The browser reaches
+the application and APIs through Traefik on `localhost:8081`. The charts use
+port `3000` for client/shell containers and `8080` for server containers;
+these are internal ports, not separately published host ports.
 
 PDF presigned URLs use `http://minio.localhost:8081`, routed to the MinIO S3 API Service on port `9000` (not the web console on port `9001`). The MinIO API allows browser CORS for this local workflow; a successful presigned download should return `Content-Type: application/pdf`.
 
@@ -223,59 +200,141 @@ credentials from `minio-credentials`. Set the public endpoint to the exact
 browser-reachable S3 origin before deployment; `minio.localhost` works only on
 the local machine. Remote deployments need an HTTPS endpoint, compatible S3
 ingress and CORS permitting the frontend origin; rewriting a URL after signing
-invalidates its signature.
+invalidates its signature. Configure the same browser-reachable
+`S3_PUBLIC_ENDPOINT` for the PDF and e-sign services, which also issue URLs.
 
-The document endpoint verifies a JWT but does **not** yet enforce organization
-access. Demo login allows callers to select any seeded identity, and the root
-Compose setup makes the `dsap` bucket publicly readable. Use fictional data
-only; neither the viewer nor its short-lived URLs protect sensitive documents in
-this configuration. Transfer PDF previews are not implemented.
+Compliance drafts use topology-owned organization and asset facts, and signing
+uses topology-owned reservations and atomic custody transitions. Draft
+validation and authorization/receipt reservations use synchronous NATS
+request/reply. After e-signing, compliance saves the document and durable event
+intents before returning the PDF; topology applies the reserved transition
+asynchronously. The workflow and document table show pending, applied, or
+attention-required synchronization. A pending update needs attention after five
+minutes or when publication fails; the status clears when recovery completes.
+Signing is durable and may continue after a timeout; retry the identical request
+rather than creating a replacement signature. An unresolved signing operation retains
+its signature image in the compliance database until completion or a pre-signing
+conflict. Restrict database access, encrypt backups, and monitor retry failures;
+never discard an uncertain operation or release its signing claim without first
+reconciling the signed artifact and topology state. Fresh topology seeds use UUID
+transfer identifiers; existing development graphs must be reinitialized to use them.
+The demo graph is seeded only when no topology entities exist, so restarting
+the service does not recreate custody relationships after a transfer.
+The e-sign service requires a readable P12 certificate and a matching
+`SIGNING_CERT_PASSWORD`; signing fails rather than returning an unsealed PDF
+when the certificate or cryptographic seal cannot be applied. The legacy
+`CERT_PASSPHRASE` variable is accepted if `SIGNING_CERT_PASSWORD` is unset.
+Demo login also allows callers to select any seeded identity. Compose and Helm
+configure the `dsap` bucket without anonymous access, but a presigned URL can
+be used by anyone holding it until it expires. Use fictional data only; this
+development configuration does not protect sensitive documents. NATS uses
+per-service identities, subject permissions, and private reply inboxes.
+Topology and compliance create or verify their own event streams; subscribers
+create or verify their own durable consumers. Permissions authorize those
+specific JetStream operations rather than granting unrestricted administration.
+The local broker connections are plaintext and the local credentials are not a
+production secret-management solution. Use TLS, network isolation and managed
+secret rotation for a real deployment.
 
 ### Service-Level Compose Development
 
 Use Compose when working on individual containers without the Kubernetes stack. The root Compose file includes the service-owned definitions and does not bind port `8081`:
 
 ```bash
-docker compose up --build
+pnpm docker:base
+docker compose up --build -d
 ```
 
-The direct development ports are:
+`pnpm docker:base` generates persistent local NATS credentials under the
+ignored `.auth-keys/nats/` directory, retaining existing passwords on subsequent
+runs. Compose starts an authenticated broker, then services initialize their own
+streams and consumers. Existing JetStream data and consumer acknowledgements are
+preserved; incompatible subject or consumer configuration fails rather than being
+silently replaced. Do not commit these credentials.
+Any old topology key in the root `.env` is left untouched but is no longer used.
+Rebuild the shared base image after changing workspace packages; service image
+builds otherwise use the existing `base-image:local` snapshot.
+For local Kubernetes, `pnpm k8s:secrets` creates matching broker and per-service
+Secrets if absent. It refuses to overwrite an existing Secret that differs from
+the local credentials. Older broker Secrets may retain an unused admin key; it
+is ignored and need not be deleted. Coordinate credential rotation across the
+broker and services, and use a secure secret manager outside local development.
 
-| Component | Port |
-| --- | ---: |
-| Global shell | `3000` |
-| Topology shell | `3010` |
-| Topology client | `3011` |
-| Compliance shell | `3020` |
-| Compliance client | `3021` |
-| Topology API | `8083` |
-| PDF API | `4001` |
-| Neo4j browser | `7474` |
-| Neo4j Bolt | `7687` |
+Publishers initialize their streams before publishing; subscribers wait for
+upstream streams and remain unready until their durable consumers are available.
+Retained stream events are available to a newly created consumer, subject to
+JetStream retention limits. Events published before a stream exists cannot be
+retained by that stream; the transfer outboxes retry publication on failure.
+NATS permissions are subject-based: authorizing a service to create its own
+stream or consumer is not a general validation of every field in its request.
+Contracts and service validation remain necessary.
 
-Stop Compose with `Ctrl+C`, or remove its containers with:
+#### Signing and synchronization recovery
+
+The database twin shows signed documents even while topology is unavailable.
+The topology and compliance outboxes retry publication; topology also retries
+rejected signed events. Check service logs and the following read-only local
+queries when synchronization needs attention:
+
+```bash
+docker compose exec compliance-db sh -c \
+  'psql -U "$POSTGRES_USER" -d compliance -c "SELECT document_id, state, last_error_code, updated_at FROM compliance_signing_operations WHERE state <> '\''COMPLETED'\'' ORDER BY updated_at;"'
+docker compose exec compliance-db sh -c \
+  'psql -U "$POSTGRES_USER" -d compliance -c "SELECT document_id, subject, last_error, next_attempt_at FROM compliance_signed_outbox WHERE published_at IS NULL ORDER BY created_at;"'
+```
+
+In the Neo4j browser, `MATCH (c:TransferClaim {state: 'SIGNING'}) RETURN
+c.documentId, c.transferEventId, c.createdAt` lists reservations still held
+for signing. Restore the failed dependency and let the existing workers retry;
+inspect both databases and the signed object when intervention is needed.
+These reservations do not expire and there is no automatic release for an
+uncertain signature. Do not delete an operation, acknowledge a rejected event,
+or release a claim merely because a request timed out: doing so can create
+conflicting signed documents or incomplete audit records.
+
+The root Compose deployment exposes the application through Traefik at
+`http://localhost/` (port `80`). Client/shell and server containers use
+internal ports `3000` and `8080`; access their routes through Traefik rather
+than assuming distinct host ports for each application. Other default
+published host ports are:
+
+| Component | Host port | Notes |
+| --- | --- | --- |
+| Traefik dashboard | `8090` | Local development dashboard |
+| NATS / monitoring | `4222` / `8222` | Broker and health/monitoring |
+| MinIO API / console | `9000` / `9001` | S3 and web console |
+| Neo4j browser / Bolt | `7474` / `7687` | Browser port is configurable |
+| PostgreSQL / MongoDB | `5432` / `27017` | Database ports are configurable |
+| DbGate | `3040` | Database administration UI |
+
+These are defaults from the Compose configuration; service `.env` files may
+change database mappings. Inspect the resolved ports with
+`docker compose config`. The Kubernetes setup instead exposes Traefik at
+`localhost:8081` and does not imply the same host-port mappings.
+
+Stop and remove the Compose containers with:
 
 ```bash
 docker compose down
 ```
 
+### Integration tests
+
+Run `pnpm test:integration` separately from `pnpm test`. It requires Docker
+with Compose, pnpm, OpenSSL and curl. The command starts disposable PostgreSQL,
+Neo4j, NATS JetStream (including an authenticated broker) and MinIO containers on dynamically allocated loopback
+ports after building required workspace dependencies, runs the integration tests,
+and removes only its own project resources.
+It uses a separate empty Neo4j instance for the seed test. Existing development
+databases and containers are not used.
+
+The cross-service boundary test uses real PostgreSQL, Neo4j, NATS and the audit
+consumer but simulates PDF generation and e-sign responses. The e-sign
+integration test independently verifies a real PDF signature with a temporary
+certificate and OpenSSL. Run individual tests with explicitly configured,
+isolated test services only; never point them at development or production data.
+
 Do not run the Compose and Skaffold workflows on the same service ports at the same time.
-
-To preserve Compose Neo4j graph data intentionally, start the topology project
-with its persistence override. Use the same project name and files when stopping
-it:
-
-```bash
-docker compose -p topology-service \
-	-f services/core/topology-service/compose.yaml \
-	-f services/core/topology-service/compose.persist.yaml up --build
-```
-
-```bash
-docker compose -p topology-service \
-	-f services/core/topology-service/compose.yaml \
-	-f services/core/topology-service/compose.persist.yaml down
-```
 
 ### Cleanup and Storage
 
@@ -317,18 +376,12 @@ Docker storage:
 pnpm docker:df
 ```
 
-Kubernetes and default Compose Neo4j deployments are ephemeral. `pnpm k3d:down`
-removes the `platform-cluster` and only Docker volumes mounted by its named k3d
-nodes, including anonymous k3d volumes. It does not remove volumes from other
-projects. If you used the persistent topology Compose workflow, stop that exact
-project before resetting its graph data. The following intentionally removes the
-Neo4j volume and all data stored in it:
-
-```bash
-docker compose -p topology-service \
-  -f services/core/topology-service/compose.yaml \
-  -f services/core/topology-service/compose.persist.yaml down -v
-```
+The root Compose deployment uses named volumes for Neo4j, PostgreSQL, MongoDB,
+MinIO, and NATS. `docker compose down` preserves them; `docker compose down -v`
+deletes that Compose project's volumes and their data. Inspect the project and
+its volumes before choosing the latter. `pnpm k3d:down` removes the
+`platform-cluster` and Docker volumes mounted by its named k3d nodes, including
+anonymous k3d volumes; it does not remove volumes from other projects.
 
 Use `pnpm docker:df` for a detailed Docker storage report. `pnpm docker:prune`
 removes unused BuildKit cache and dangling images without pruning volumes. Run it

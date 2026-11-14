@@ -4,7 +4,7 @@ import { ZodError } from 'zod';
 import { createAuditGateway } from './routes';
 import { connectDatabaseWithRetry, closeDatabase } from './db';
 import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
-import { EventBroker } from '@shared/messaging';
+import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { LedgerService, RenditionService } from './services';
 import { EventsRepository, DraftsRepository, SealedTransfersRepository, DeadLettersRepository, RenditionsRepository } from './repositories';
 import { ObjectStorageClient } from '@shared/filestore';
@@ -16,6 +16,7 @@ const logger = createLogger('audit-server');
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '10mb' }));
+app.get('/live', (_req, res) => res.sendStatus(200));
 
 // ==========================================
 // CENTRALIZED EXPRESS ERROR MIDDLEWARE
@@ -48,19 +49,21 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
  * Boots application dependencies (DB pool, NATS stream/consumer/publisher) and instantiates gateway routes.
  */
 async function bootstrapApplicationServer() {
-  const broker = new EventBroker(env.NATS_URL, logger);
-  let server: ReturnType<typeof app.listen>;
+  const broker = new EventBroker(env.NATS_URL, logger, natsCredentialsFromEnv(process.env));
+  let server: ReturnType<typeof app.listen> | undefined;
+  const startup = new AbortController();
   let renditionService: RenditionService | undefined;
 
   const shutdown = (signal: string) => {
     logger.info(`Received ${signal}. Initiating graceful shutdown...`);
+    startup.abort();
 
     const forceExitTimeout = setTimeout(() => {
       logger.error('Graceful shutdown timed out after 10s. Forcing exit.');
       process.exit(1);
     }, 10000);
 
-    server.close(async () => {
+    const cleanup = async () => {
       logger.info('HTTP server closed.');
       try {
         await renditionService?.stop();
@@ -77,7 +80,9 @@ async function bootstrapApplicationServer() {
         clearTimeout(forceExitTimeout);
         process.exit(1);
       }
-    });
+    };
+    if (server) server.close(() => void cleanup());
+    else void cleanup();
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -92,6 +97,9 @@ async function bootstrapApplicationServer() {
   });
 
   try {
+    server = app.listen(env.PORT, '0.0.0.0', () => {
+      logger.info(`Audit liveness endpoint listening on port ${env.PORT}`);
+    });
     const db = await connectDatabaseWithRetry();
     logger.info('Audit ledger database connection established.');
 
@@ -112,15 +120,14 @@ async function bootstrapApplicationServer() {
       onSealed: () => renditionService?.nudge(),
       getSignedDownloadUrl: (request) => storage.getSignedDownloadUrl(request),
     });
-    await new AuditEventConsumer(broker, ledgerService).start();
+    await new AuditEventConsumer(broker, ledgerService).start(startup.signal);
     renditionService.start();
 
     app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), createAuditGateway({ ledgerService }));
 
-    server = app.listen(env.PORT, '0.0.0.0', () => {
-      logger.info(`Audit Server running on port ${env.PORT}`);
-    });
+    logger.info('Audit server is ready.');
   } catch (err) {
+    if (startup.signal.aborted) return;
     logger.error(`Failed to initialize application dependencies: ${err}`);
     process.exit(1);
   }

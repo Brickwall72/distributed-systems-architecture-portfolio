@@ -1,7 +1,8 @@
+// File: services/platform/esign-service/server/src/services/signing/signDocumentFromStorage.unit.test.ts
 import { zocker } from 'zocker';
-import { signDocumentFromStorage, signDocumentFromStorageParamsSchema } from './signDocumentFromStorage';
+import { signDocumentFromStorage, signDocumentFromStorageParamsSchema, signDocument, signDocumentReturnSchema } from './index';
 import { downloadDocumentStream } from '../storage';
-import { signDocument, signDocumentReturnSchema } from './signing';
+import { createHash } from 'node:crypto';
 
 vi.mock('../storage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../storage')>();
@@ -35,7 +36,8 @@ describe('signDocumentFromStorage', () => {
     } as never);
 
     const params = signDocumentFromStorageParamsSchema.parse(
-      zocker(signDocumentFromStorageParamsSchema.omit({ client: true })).generate(),
+      { ...zocker(signDocumentFromStorageParamsSchema.omit({ client: true, fileHash: true })).generate(),
+        fileHash: createHash('sha256').update(pdfContent).digest('hex') },
     );
 
     const result = await signDocumentFromStorage(params);
@@ -48,5 +50,18 @@ describe('signDocumentFromStorage', () => {
       signatureImageBase64: params.signatureImageBase64,
     });
     expect(signDocumentReturnSchema.parse(result)).toEqual(result);
+  });
+
+  it('rejects a modified draft before signing', async () => {
+    vi.mocked(downloadDocumentStream).mockResolvedValueOnce({
+      stream: (async function* () { yield Buffer.from('modified'); })(),
+    } as never);
+    const params = signDocumentFromStorageParamsSchema.parse({
+      ...zocker(signDocumentFromStorageParamsSchema.omit({ client: true, fileHash: true })).generate(),
+      fileHash: createHash('sha256').update('original').digest('hex'),
+    });
+
+    await expect(signDocumentFromStorage(params)).rejects.toThrow('Stored draft hash does not match');
+    expect(signDocument).not.toHaveBeenCalled();
   });
 });

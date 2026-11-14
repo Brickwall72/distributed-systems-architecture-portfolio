@@ -21,16 +21,18 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
   const [error, setError] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (background = false) => {
+    if (background && controllerRef.current) return;
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
-    setLoading(true);
+    if (!background) setLoading(true);
     setError(null);
     if (matchesNothing || !identityId) {
       setDocuments([]);
       setDocumentsIdentityId(undefined);
       setLoading(false);
+      controllerRef.current = null;
       return;
     }
     try {
@@ -54,7 +56,10 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Failed to retrieve dataset');
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        if (!background) setLoading(false);
+      }
     }
   }, [statusQuery, requisitionQuery, matchesNothing, identityId]);
 
@@ -62,6 +67,21 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
     void fetchDocuments();
     return () => controllerRef.current?.abort();
   }, [fetchDocuments]);
+
+  const hasUnresolved = documentsIdentityId === identityId
+    && documents.some((document) => document.topologyApplicationStatus !== 'APPLIED');
+  useEffect(() => {
+    if (!hasUnresolved) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      timer = setTimeout(() => {
+        void fetchDocuments(true).finally(() => { if (active) refresh(); });
+      }, 5000);
+    };
+    refresh();
+    return () => { active = false; clearTimeout(timer); };
+  }, [fetchDocuments, hasUnresolved]);
 
   return {
     documents: identityId && documentsIdentityId === identityId ? documents : [],

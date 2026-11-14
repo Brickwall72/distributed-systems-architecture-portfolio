@@ -1,4 +1,4 @@
-// File: packages/file-storage/src/in-ememory-storage-client/in-ememory-storage-client.unit.test.ts
+// File: packages/file-storage/src/in-memory-storage-client/in-memory-storage-client.unit.test.ts
 import crypto from 'node:crypto';
 import { InMemoryStorageClient } from './in-memory-storage-client';
 
@@ -31,7 +31,18 @@ describe('InMemoryStorageClient (Testing Adapter)', () => {
       const item = inMemoryClient.storage.get('test-bucket/docs/test.pdf');
       expect(item?.buffer).toEqual(pdfBuffer);
       expect(item?.contentType).toBe('application/pdf');
-      expect(item?.metadata).toEqual({ 'test-key': 'test-value' });
+      expect(item?.metadata).toEqual({ 'test-key': 'test-value', 'sha256-checksum': expectedHash });
+    });
+
+    it('conditionally creates an object without overwriting an existing one', async () => {
+      const request = {
+        storageBucket: 'test-bucket', storageKey: 'signed.pdf', pdfBuffer: Buffer.from('first'),
+        contentType: 'application/pdf', metadata: {}, ifNotExists: true,
+      };
+      await inMemoryClient.uploadFile(request);
+      await expect(inMemoryClient.uploadFile({ ...request, pdfBuffer: Buffer.from('second') }))
+        .rejects.toThrow('Object already exists');
+      expect(inMemoryClient.storage.get('test-bucket/signed.pdf')?.buffer.toString()).toBe('first');
     });
   });
 

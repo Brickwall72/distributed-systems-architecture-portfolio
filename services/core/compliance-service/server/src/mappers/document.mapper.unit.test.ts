@@ -1,3 +1,4 @@
+// File: services/core/compliance-service/server/src/mappers/document.mapper.unit.test.ts
 import { mockFromSchema } from '@shared/testing';
 import { mapDbRowToDocument } from './document.mapper';
 import { documentEntitySchema, type DocumentEntity } from '../domain';
@@ -11,6 +12,7 @@ const toDbRow = (entity: DocumentEntity) => ({
   storage_bucket: entity.storageBucket,
   storage_key: entity.storageKey,
   status: entity.status,
+  topology_application_status: entity.topologyApplicationStatus,
   signer_id: entity.signerId,
   transfer_event_id: entity.transferEventId,
   file_hash: entity.fileHash,

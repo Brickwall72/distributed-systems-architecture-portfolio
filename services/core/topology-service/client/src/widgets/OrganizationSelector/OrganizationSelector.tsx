@@ -1,5 +1,5 @@
 // File: services/core/topology-service/client/src/widgets/OrganizationSelector/OrganizationSelector.tsx
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Select, type SelectOption } from '@shared/ui-components';
 import { useGetOrganizations } from '../../hooks';
 import {
@@ -10,6 +10,76 @@ import {
   type OrganizationDTO,
   type OrganizationDTOList,
 } from '@contracts/topology';
+
+function hasLockedSelectionChanged(
+  isMulti: boolean,
+  selectedIds: string[],
+  selectedId: string,
+  nextId: string | undefined,
+  organizationChanged: boolean,
+): boolean {
+  if (organizationChanged) return true;
+  if (isMulti) {
+    return selectedIds.length !== (nextId ? 1 : 0) || (nextId !== undefined && selectedIds[0] !== nextId);
+  }
+  return selectedId !== (nextId ?? '');
+}
+
+type FilterProps = {
+  filterOwnedId: string | undefined;
+  excludeOrgId: string | undefined;
+  transferEventId: string | undefined;
+};
+
+function updateFilterTracking(
+  previous: React.RefObject<FilterProps>,
+  current: FilterProps,
+  userCleared: React.RefObject<boolean>,
+): void {
+  const prev = previous.current;
+  if (
+    prev.filterOwnedId === current.filterOwnedId &&
+    prev.excludeOrgId === current.excludeOrgId &&
+    prev.transferEventId === current.transferEventId
+  ) {
+    return;
+  }
+
+  userCleared.current = Boolean(
+    (prev.filterOwnedId && !current.filterOwnedId) ||
+      (prev.excludeOrgId && !current.excludeOrgId) ||
+      (prev.transferEventId && !current.transferEventId),
+  );
+  previous.current = current;
+}
+
+function buildOrganizationOptions(
+  orgs: OrganizationDTO[],
+  onlyOrgId: string | undefined,
+  filterOwnedId: string | undefined,
+  excludeOrgId: string | undefined,
+): SelectOption[] {
+  const candidateOrgs = onlyOrgId ? orgs.filter((org) => org.id === onlyOrgId) : orgs;
+  const effectiveOrgs =
+    filterOwnedId && candidateOrgs.length === 1
+      ? candidateOrgs
+      : candidateOrgs.filter((org) => org.id !== excludeOrgId);
+  return effectiveOrgs.map((org) => ({ id: org.id, name: org.name }));
+}
+
+function renderLockedSelection(
+  onlyOrgId: string,
+  isLoading: boolean,
+  error: string | undefined,
+  options: SelectOption[],
+): React.ReactElement | null {
+  if (isLoading) return <output>Loading organization...</output>;
+  if (error) return <p role="alert">{error}</p>;
+  if (!options.some((option) => option.id === onlyOrgId)) {
+    return <p role="alert">Your organization is unavailable for this selection.</p>;
+  }
+  return null;
+}
 
 export default function OrganizationSelector(props: Readonly<OrganizationSelectorProps>) {
   // 1. Safe MFE Boundary Parsing
@@ -34,50 +104,21 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   const [selectedId, setSelectedId] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const userClearedRef = useRef(false);
+  const previousOnlyOrgId = useRef(onlyOrgId);
+  const emittedLockedOrganization = useRef<OrganizationDTO | undefined>(undefined);
 
   // Track previous filtering props to determine filter transitions
   const prevPropsRef = useRef({ filterOwnedId, excludeOrgId, transferEventId });
 
-  // Evaluate filtering prop changes on every render pass
-  if (
-    prevPropsRef.current.filterOwnedId !== filterOwnedId ||
-    prevPropsRef.current.excludeOrgId !== excludeOrgId ||
-    prevPropsRef.current.transferEventId !== transferEventId
-  ) {
-    const prevOwned = prevPropsRef.current.filterOwnedId;
-    const prevExclude = prevPropsRef.current.excludeOrgId;
-    const prevTransferEventId = prevPropsRef.current.transferEventId;
-
-    // RULE: If filter is being removed/cleared (broadening context), suppress auto-selection!
-    const isFilterCleared =
-      (prevOwned && !filterOwnedId) || (prevExclude && !excludeOrgId) || (prevTransferEventId && !transferEventId);
-
-    if (isFilterCleared) {
-      userClearedRef.current = true; // Block auto-selection when clearing filters
-    } else {
-      userClearedRef.current = false; // Reset flag on narrowing/changing filters
-    }
-
-    prevPropsRef.current = { filterOwnedId, excludeOrgId, transferEventId };
-  }
+  // Evaluate filtering prop changes on every render pass.
+  updateFilterTracking(prevPropsRef, { filterOwnedId, excludeOrgId, transferEventId }, userClearedRef);
 
   // 3. Query Data Access Layer
   const { items: orgs, isLoading, error } = useGetOrganizations(queryParams);
 
   // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
-    // PRECEDENCE RULE: If an explicit asset filter returns exactly 1 holding org, 
-    // bypass excludeOrgId so the true owner can still be selected.
-    const candidateOrgs = onlyOrgId ? orgs.filter((org) => org.id === onlyOrgId) : orgs;
-    const effectiveOrgs =
-      filterOwnedId && candidateOrgs.length === 1
-        ? candidateOrgs
-        : candidateOrgs.filter((org) => org.id !== excludeOrgId);
-
-    return effectiveOrgs.map((org) => ({
-      id: org.id,
-      name: org.name,
-    }));
+    return buildOrganizationOptions(orgs, onlyOrgId, filterOwnedId, excludeOrgId);
   }, [orgs, excludeOrgId, filterOwnedId, onlyOrgId]);
 
   // 5. Handle User Selection
@@ -104,32 +145,96 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     emitMulti(orgs.filter((organization) => values.includes(organization.id)));
   };
 
-  // 6. Synchronize Selection & Auto-Select
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (isMulti) {
-      // Prune selections that are no longer available
-      const validIds = selectedIds.filter((id) => options.some((option) => option.id === id));
-      if (validIds.length !== selectedIds.length) {
-        setSelectedIds(validIds);
-        emitMulti(orgs.filter((organization) => validIds.includes(organization.id)));
-      }
-      return;
+  const clearUnlockedSelection = useCallback(() => {
+    emittedLockedOrganization.current = undefined;
+    userClearedRef.current = true;
+    if (isMulti && selectedIds.length) {
+      setSelectedIds([]);
+      emitMulti([]);
+    } else if (!isMulti && selectedId) {
+      setSelectedId('');
+      emitSingle(undefined);
     }
+  }, [isMulti, selectedIds.length, selectedId, emitMulti, emitSingle]);
 
-    // Case A: Active selection is no longer present in available options -> Clear
+  const syncLockedSelection = useCallback(() => {
+    const option = !isLoading && !error ? options.find((item) => item.id === onlyOrgId) : undefined;
+    const organization = option ? orgs.find((item) => item.id === option.id) : undefined;
+    const organizationChanged = JSON.stringify(emittedLockedOrganization.current) !== JSON.stringify(organization);
+    emittedLockedOrganization.current = organization;
+    const nextId = organization?.id;
+    const selectionChanged = hasLockedSelectionChanged(isMulti, selectedIds, selectedId, nextId, organizationChanged);
+
+    if (selectionChanged) {
+      if (isMulti) {
+        setSelectedIds(nextId ? [nextId] : []);
+        emitMulti(organization ? [organization] : []);
+      } else {
+        setSelectedId(nextId ?? '');
+        emitSingle(organization);
+      }
+    }
+  }, [isLoading, error, options, onlyOrgId, orgs, isMulti, selectedIds, selectedId, emitMulti, emitSingle]);
+
+  const pruneMultiSelection = useCallback(() => {
+    const validIds = selectedIds.filter((id) => options.some((option) => option.id === id));
+    if (validIds.length !== selectedIds.length) {
+      setSelectedIds(validIds);
+      emitMulti(orgs.filter((organization) => validIds.includes(organization.id)));
+    }
+  }, [selectedIds, options, emitMulti, orgs]);
+
+  const syncSingleSelection = useCallback(() => {
     if (selectedId && !options.some((option) => option.id === selectedId)) {
       setSelectedId('');
       emitSingle(undefined);
       return;
     }
 
-    // Case B: Auto-select single option ONLY when NOT suppressed by explicit clear/deselection
     if (options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
       handleOrganizationSelect(options[0].id);
     }
-  }, [options, selectedId, selectedIds, isMulti, isLoading, transferEventId]);
+  }, [selectedId, options, emitSingle, handleOrganizationSelect]);
+
+  // 6. Synchronize Selection & Auto-Select
+  useEffect(() => {
+    const previousLockedId = previousOnlyOrgId.current;
+    previousOnlyOrgId.current = onlyOrgId;
+    if (previousLockedId !== undefined && previousLockedId !== onlyOrgId) {
+      clearUnlockedSelection();
+      return;
+    }
+
+    if (isLoading) return;
+
+    if (onlyOrgId) {
+      syncLockedSelection();
+      return;
+    }
+
+    if (error) return;
+
+    if (isMulti) {
+      pruneMultiSelection();
+      return;
+    }
+
+    syncSingleSelection();
+  }, [
+    isMulti,
+    isLoading,
+    error,
+    transferEventId,
+    onlyOrgId,
+    clearUnlockedSelection,
+    syncLockedSelection,
+    pruneMultiSelection,
+    syncSingleSelection,
+  ]);
+
+  if (onlyOrgId) {
+    return renderLockedSelection(onlyOrgId, isLoading, error ?? undefined, options);
+  }
 
   if (isMulti) {
     return (

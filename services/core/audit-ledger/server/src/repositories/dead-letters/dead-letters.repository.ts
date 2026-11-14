@@ -1,7 +1,7 @@
 // File: services/core/audit-ledger/server/src/repositories/dead-letters/dead-letters.repository.ts
 import type { Db } from 'mongodb';
 import { deadLetterSchema, type DeadLetter } from 'audit-shared';
-import { COLLECTIONS } from '../../db';
+import { COLLECTIONS } from '../../db/indexes';
 
 export class DeadLettersRepository {
   constructor(private readonly db: Db) {}

@@ -30,6 +30,10 @@ describe('Pact Provider Verification - Audit Server', () => {
 
     const app = express();
     app.use(express.json());
+    app.use((req, _res, next) => {
+      req.identity = { sub: 'pact-auditor', orgId: null, roles: ['auditor'], signerId: 'pact-auditor' };
+      next();
+    });
     const gateway = createAuditGateway({ ledgerService });
     app.use('/audit/api/v1', gateway);
     app.use('/api/v1', gateway);

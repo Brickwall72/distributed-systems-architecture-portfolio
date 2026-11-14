@@ -5,7 +5,7 @@ import { assetsRoutes } from 'topology-shared';
 import { AssetsRepository } from '../../repositories';
 import { assetEntityToDTO } from '../../mappers';
 import { getDatabaseClient } from '../../database';
-import { createLogger } from '@shared/express';
+import { accessScope, createLogger, orgScope } from '@shared/express';
 
 const logger = createLogger('topology/assets');
 const s = initServer();
@@ -14,9 +14,20 @@ export function createAssetsRouter(repository?: AssetsRepository) {
   const assetRepository = repository ?? new AssetsRepository(getDatabaseClient());
 
   return s.router(assetsRoutes, {
-    getAssets: async ({ query }) => {
+    getAssets: async ({ query, req }) => {
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return {
+          status: req.identity ? 403 : 401,
+          body: {
+            error: req.identity ? 'Organization access denied' : 'Authentication required',
+            code: req.identity ? 'FORBIDDEN' : 'UNAUTHORIZED',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
       try {
-        const domainEntities = await assetRepository.findAssets(query);
+        const domainEntities = await assetRepository.findAssets(query, scope);
         const dtos: AssetDTOList = domainEntities.map(assetEntityToDTO);
 
         return {
@@ -35,7 +46,19 @@ export function createAssetsRouter(repository?: AssetsRepository) {
         };
       }
     },
-    createAsset: async ({ body }) => {
+    createAsset: async ({ body, req }) => {
+      if (!req.identity) {
+        return {
+          status: 401,
+          body: { error: 'Authentication required', code: 'UNAUTHORIZED', timestamp: new Date().toISOString() },
+        };
+      }
+      if (orgScope(req.identity) !== body.currentOwnerId) {
+        return {
+          status: 403,
+          body: { error: 'Organization access denied', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
+        };
+      }
       try {
         const entity = await assetRepository.createAsset(body);
         const dto = assetEntityToDTO(entity);

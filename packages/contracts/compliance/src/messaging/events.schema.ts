@@ -1,4 +1,4 @@
-// File: packages/contracts/compliance/src/messaging/events.ts
+// File: packages/contracts/compliance/src/messaging/events.schema.ts
 import { z } from 'zod';
 import { createCloudEventSchema, transferTypeEnum } from '@contracts/common';
 

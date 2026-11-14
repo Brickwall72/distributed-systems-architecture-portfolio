@@ -3,7 +3,7 @@ import { initServer } from '@ts-rest/express';
 import { graphRoutes } from 'topology-shared';
 import { GraphRepository } from '../../repositories';
 import { getDatabaseClient } from '../../database';
-import { createLogger } from '@shared/express';
+import { accessScope, createLogger } from '@shared/express';
 
 const logger = createLogger('topology/graph');
 const s = initServer();
@@ -12,9 +12,20 @@ export function createGraphRouter(repository?: GraphRepository) {
   const graphRepository = repository ?? new GraphRepository(getDatabaseClient());
 
   return s.router(graphRoutes, {
-    getGraph: async ({ query }) => {
+    getGraph: async ({ query, req }) => {
+      const scope = accessScope(req.identity);
+      if (!scope) {
+        return {
+          status: req.identity ? 403 : 401,
+          body: {
+            error: req.identity ? 'Organization access denied' : 'Authentication required',
+            code: req.identity ? 'FORBIDDEN' : 'UNAUTHORIZED',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
       try {
-        const graphData = await graphRepository.getGraph(query);
+        const graphData = await graphRepository.getGraph(query, scope);
         return {
           status: 200,
           body: graphData,

@@ -73,6 +73,62 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     expect(mockOnSelect).not.toHaveBeenCalled();
   });
 
+  it('hides a profile-locked selector and emits the resolved organization', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
+
+    const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
+
+    rerender(<OrganizationSelector onlyOrgId="org-002" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[1]);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    rerender(<OrganizationSelector onSelect={mockOnSelect} />);
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
+  it('does not clear or re-emit an unchanged locked organization during refetch', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
+    const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenCalledTimes(1);
+
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: true, error: null });
+    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenCalledTimes(1);
+
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList.map((org) => ({ ...org })), isLoading: false, error: null });
+    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a locked selection and reports when the organization becomes unavailable', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
+    const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: false, error: null });
+    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+
+    expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
+    expect(screen.getByRole('alert')).toHaveTextContent('Your organization is unavailable');
+  });
+
+  it('shows locked selection loading and errors and supports multi-select payloads', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: true, error: null });
+    const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" multiSelect onSelect={mockOnSelect} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading organization');
+
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
+    rerender(<OrganizationSelector onlyOrgId="org-001" multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockOrgList[0]]);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: false, error: 'Network error' });
+    rerender(<OrganizationSelector onlyOrgId="org-001" multiSelect onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+    expect(screen.getByRole('alert')).toHaveTextContent('Network error');
+  });
+
   it('filters out excluded organization and auto-selects when only one option remains', () => {
     vi.mocked(useGetOrganizations).mockReturnValue({
       items: mockOrgList,

@@ -14,6 +14,7 @@ export const TemplateDraftResponseSchema = SignDocumentCommandSchema.omit({
   requisitionNumber: z.string(),
   documentType: formTypeEnum,
   transferType: transferTypeEnum,
+  fileHash: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
 export type TemplateDraftResponse = z.infer<typeof TemplateDraftResponseSchema>;
@@ -52,8 +53,12 @@ export const templatesRoutes = {
     responses: {
       201: TemplateDraftResponseSchema,
       400: ApiErrorResponseSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
+      409: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
+      503: ApiErrorResponseSchema,
     },
     summary: 'Generate a compliance template draft PDF',
   }),

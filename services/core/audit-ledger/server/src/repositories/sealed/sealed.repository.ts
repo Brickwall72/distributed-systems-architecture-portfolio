@@ -1,7 +1,8 @@
 // File: services/core/audit-ledger/server/src/repositories/sealed/sealed.repository.ts
 import type { Db } from 'mongodb';
 import { sealedTransferSchema, type SealedTransfer } from 'audit-shared';
-import { COLLECTIONS } from '../../db';
+import { COLLECTIONS } from '../../db/indexes';
+import { participantFilter, type AccessScope } from '../access-scope';
 
 /** Insert-only: this repository intentionally exposes no update or delete. */
 export class SealedTransfersRepository {
@@ -26,9 +27,9 @@ export class SealedTransfersRepository {
     return doc ? sealedTransferSchema.parse(doc) : null;
   }
 
-  async list(limit: number, offset: number): Promise<SealedTransfer[]> {
+  async list(limit: number, offset: number, scope: AccessScope): Promise<SealedTransfer[]> {
     const docs = await this.collection
-      .find({}, { projection: { _id: 0 } })
+      .find(participantFilter(scope), { projection: { _id: 0 } })
       .sort({ sequence: -1 })
       .skip(offset)
       .limit(limit)

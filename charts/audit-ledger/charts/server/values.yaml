@@ -43,7 +43,9 @@ env:
       secretKeyRef:
         name: minio-credentials
         key: S3_SECRET_KEY
-envFrom: []
+envFrom:
+  - secretRef:
+      name: nats-audit-credentials
 
 volumeMounts:
   - name: auth-public-key
@@ -77,7 +79,7 @@ probes:
     periodSeconds: 10
   liveness:
     httpGet:
-      path: /api/v1/health
+      path: /live
       port: 8080
     initialDelaySeconds: 10
     periodSeconds: 10

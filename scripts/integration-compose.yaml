@@ -1,0 +1,75 @@
+# File: scripts/integration-compose.yaml
+services:
+  neo4j:
+    image: neo4j:5.26.0
+    environment:
+      NEO4J_AUTH: none
+    ports:
+      - "127.0.0.1::7687"
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 'RETURN 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+  seed-neo4j:
+    image: neo4j:5.26.0
+    environment:
+      NEO4J_AUTH: none
+    ports:
+      - "127.0.0.1::7687"
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 'RETURN 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: integration
+      POSTGRES_PASSWORD: integration
+      POSTGRES_DB: integration
+    ports:
+      - "127.0.0.1::5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U integration -d integration"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  nats:
+    image: nats:2.15-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "127.0.0.1::4222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  nats-auth:
+    image: nats:2.15-alpine
+    command: ["-c", "/etc/nats/nats.conf"]
+    environment:
+      NATS_COMPLIANCE_PASSWORD: test-compliance
+      NATS_TOPOLOGY_PASSWORD: test-topology
+      NATS_AUDIT_PASSWORD: test-audit
+      NATS_ESIGN_PASSWORD: test-esign
+      NATS_PDF_PASSWORD: test-pdf
+    volumes:
+      - ../charts/nats/files/nats.conf:/etc/nats/nats.conf:ro
+    ports:
+      - "127.0.0.1::4222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    environment:
+      MINIO_ROOT_USER: integration
+      MINIO_ROOT_PASSWORD: integration-password
+    command: server /data
+    ports:
+      - "127.0.0.1::9000"

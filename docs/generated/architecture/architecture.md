@@ -43,17 +43,18 @@ flowchart LR
   compliance_shell ==>|Transfer Receipt: ComplianceWorkflowWidget| compliance_client
   compliance_client -->|Compliance REST API| compliance_server
   topology_client -->|Topology REST API| topology_server
-  audit_client -->|Topology REST API| audit_server
-  auth_client -->|Topology REST API| auth_server
+  audit_client -->|Audit REST API| audit_server
+  auth_client -->|Authentication and profiles REST API| auth_server
+  compliance_server <-->|Validate drafts and reserve transfers| topology_server
   compliance_server <-->|Generate PDF| pdf_server
   audit_server <-->|Generate PDF| pdf_server
   compliance_server <-->|Sign document| esign_server
-  compliance_server -.->|Publish transfer initiated / received| nats
-  nats -.->|Deliver transfer initiated / received| topology_server
-  topology_server -.->|Publish transfer event updates| nats
-  nats -.->|Deliver transfer event updates| compliance_server
-  nats -.->|Deliver transfer event updates| audit_server
-  nats -.->|Deliver transfer initiated / received| audit_server
+  compliance_server -.->|Publish signed transfer and audit document events| nats
+  nats -.->|Deliver signed transfer for reserved application| topology_server
+  topology_server -.->|Publish committed transfer results| nats
+  nats -.->|Deliver transfer results for reconciliation| compliance_server
+  nats -.->|Deliver committed transfer results| audit_server
+  nats -.->|Deliver signed authorization / receipt facts| audit_server
   linkStyle 0 stroke:#a78bfa,stroke-width:3px
   linkStyle 1 stroke:#a78bfa,stroke-width:3px
   linkStyle 2 stroke:#a78bfa,stroke-width:3px
@@ -78,12 +79,13 @@ flowchart LR
   linkStyle 21 stroke:#c2410c,stroke-width:2px
   linkStyle 22 stroke:#c2410c,stroke-width:2px
   linkStyle 23 stroke:#c2410c,stroke-width:2px
-  linkStyle 24 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 24 stroke:#c2410c,stroke-width:2px
   linkStyle 25 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 26 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 28 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
   linkStyle 29 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 30 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
 ```
 
 ## Interaction legend

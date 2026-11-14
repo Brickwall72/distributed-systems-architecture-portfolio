@@ -28,9 +28,9 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
 
       // Directly invoke the ts-rest handler method
       const response = await router.getAssets({
-        query: { filterOwnerId: 'org-10', includeInTransit: false },
+        query: { filterOwnerId: 'org-10', includeInTransit: false, includeAvailable: false },
         headers: {} as any,
-        req: {} as any,
+        req: { identity: { sub: 'user', orgId: 'org-10', roles: ['org-member'], signerId: 'user' } } as any,
         res: {} as any,
       });
 
@@ -43,7 +43,10 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       expect(parsedBody.success).toBe(true);
 
       // 3. Verify repository receives all query parameters sent through the request
-      expect(mockRepository.findAssets).toHaveBeenCalledWith({ filterOwnerId: 'org-10', includeInTransit: false });
+      expect(mockRepository.findAssets).toHaveBeenCalledWith(
+        { filterOwnerId: 'org-10', includeInTransit: false, includeAvailable: false },
+        { kind: 'organization', orgId: 'org-10' },
+      );
     });
 
     it('catches repository exceptions and returns sanitized HTTP 500 error payload matching schema', async () => {
@@ -54,9 +57,9 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       const router = createAssetsRouter(mockRepository as AssetsRepository);
 
       const response = await router.getAssets({
-        query: { includeInTransit: false },
+        query: { includeInTransit: false, includeAvailable: false },
         headers: {} as any,
-        req: {} as any,
+        req: { identity: { sub: 'user', orgId: 'org-10', roles: ['org-member'], signerId: 'user' } } as any,
         res: {} as any,
       });
 
@@ -68,9 +71,23 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
         timestamp: expect.any(String),
       });
     });
+
+    it('does not query assets without an authorized identity', async () => {
+      const router = createAssetsRouter(mockRepository as AssetsRepository);
+      const response = await router.getAssets({
+        query: { includeInTransit: false, includeAvailable: true },
+        headers: {} as any,
+        req: {} as any,
+        res: {} as any,
+      });
+      expect(response.status).toBe(401);
+      expect(mockRepository.findAssets).not.toHaveBeenCalled();
+    });
   });
 
   describe('createAsset', () => {
+    const identity = { sub: 'user', orgId: 'org-10', roles: ['org-member'], signerId: 'user' };
+
     it('returns HTTP 201 with contract-compliant AssetDTO when creation succeeds', async () => {
       const requestBody = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' });
       const createdEntity = mockFromSchema(assetEntitySchema, { id: requestBody.id, nomenclature: 'GPS-III' });
@@ -84,7 +101,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
         headers: {} as any,
         files: undefined,
         file: undefined,
-        req: {} as any,
+        req: { identity } as any,
         res: {} as any,
       });
 
@@ -108,7 +125,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
         headers: {} as any,
         files: undefined,
         file: undefined,
-        req: {} as any,
+        req: { identity } as any,
         res: {} as any,
       });
 
@@ -118,6 +135,26 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
         code: 'INTERNAL_SERVER_ERROR',
         timestamp: expect.any(String),
       });
+    });
+
+    it.each([
+      [undefined, 'org-10', 401],
+      [identity, 'org-other', 403],
+      [{ ...identity, orgId: null }, 'org-10', 403],
+      [{ ...identity, roles: ['auditor'] }, 'org-10', 403],
+    ])('rejects unauthorized asset creation', async (caller, owner, status) => {
+      const router = createAssetsRouter(mockRepository as AssetsRepository);
+      const response = await router.createAsset({
+        body: mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: owner }),
+        headers: {} as any,
+        files: undefined,
+        file: undefined,
+        req: { identity: caller } as any,
+        res: {} as any,
+      });
+
+      expect(response.status).toBe(status);
+      expect(mockRepository.createAsset).not.toHaveBeenCalled();
     });
   });
 });

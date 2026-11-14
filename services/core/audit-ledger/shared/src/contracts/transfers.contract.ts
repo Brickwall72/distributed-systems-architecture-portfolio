@@ -22,6 +22,8 @@ export const transfersRoutes = {
     query: GetTransfersQuerySchema,
     responses: {
       200: z.array(transferSummarySchema),
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'List sealed and still-open transfer records.',
@@ -32,6 +34,8 @@ export const transfersRoutes = {
     pathParams: requisitionNumberParamsSchema,
     responses: {
       200: sealedTransferSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
@@ -43,6 +47,8 @@ export const transfersRoutes = {
     pathParams: requisitionNumberParamsSchema,
     responses: {
       200: z.object({ presignedUrl: z.string().url() }),
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       409: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
@@ -55,6 +61,8 @@ export const transfersRoutes = {
     pathParams: requisitionNumberParamsSchema,
     responses: {
       200: verificationResultSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       404: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
@@ -65,6 +73,8 @@ export const transfersRoutes = {
     path: '/ledger/verify',
     responses: {
       200: verificationResultSchema,
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Verify the entire hash chain.',
@@ -74,6 +84,8 @@ export const transfersRoutes = {
     path: '/dead-letters',
     responses: {
       200: z.array(deadLetterSchema),
+      401: ApiErrorResponseSchema,
+      403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,
     },
     summary: 'Retrieve events held for review.',

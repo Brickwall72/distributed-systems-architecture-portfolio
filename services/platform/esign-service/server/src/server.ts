@@ -1,7 +1,7 @@
-// File: services/platform/esignature-service/server/src/server.ts
+// File: services/platform/esign-service/server/src/server.ts
 import express from 'express';
 import { createLogger, createErrorHandler, createHealthCheck } from '@shared/express';
-import { EventBroker } from '@shared/messaging';
+import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerESignResponder } from './messaging';
 import { env } from './config';
 
@@ -16,7 +16,7 @@ app.get('/api/v1/health', createHealthCheck('esign-server'));
 app.use(createErrorHandler(logger));
 
 if (process.env.NODE_ENV !== 'test') {
-  const broker = new EventBroker(env.NATS_URL, logger);
+  const broker = new EventBroker(env.NATS_URL, logger, natsCredentialsFromEnv(process.env));
   await broker.connect();
 
   registerESignResponder(broker);
