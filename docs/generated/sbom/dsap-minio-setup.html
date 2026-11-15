@@ -1,0 +1,2724 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunshine - SBOM visualization tool</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.8/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.8/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://fastly.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 20px;
+            height: 100vh;
+            background: linear-gradient(to right, #032c57, #1C538E);
+        }
+        #output {
+            white-space: pre-line;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: "Courier New", "Lucida Console", monospace;
+        }
+
+        #chart-container {
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        #chart-container-inner, #chart-container-only-vulnerable-inner {
+            background-color: #ffffff;
+            padding: 10px;
+            position: relative;
+            height: 90vh;
+            overflow: hidden;
+        }
+        #chart-container-placeholder {
+            background-color: #fffffF;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #table-container, #info-table-container, #vulnerabilities-table-container {
+            background-color: #fffffF;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-x:auto;
+            max-width:100%;
+        }
+        #table-container-placeholder, #info-table-container-placeholder, #vulnerabilities-table-container-placeholder {
+            background-color: #fffffF;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #upload-file-container {
+            background-color: #fffffF;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #file-input {
+            margin: 20px;
+        }
+
+        .dataTables_filter {
+            display: none;
+        }
+        th input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dataTables_length {
+            padding-bottom: 10px !important;
+        }
+        .light-text {
+            color: #baccde;
+        }
+
+        .dt-buttons {
+            float: right;
+        }
+        .active>.page-link, .page-link.active {
+            background-color: #1C538E !important;
+            color: white !important;
+        }
+
+        .page-link {
+            color: #1C538E;
+        }
+
+        #components-table_paginate, #vulnerabilities-table_paginate {
+            float: right;
+            margin-top: -33px;
+        }
+
+        .bg-dark-red {
+            background-color: #a10a0a;
+            color: white;
+        }
+
+        .bg-orange {
+            background-color: #ff9335;
+            color: white;
+        }
+
+        .bg-yellow {
+            background-color: #fccd58;
+            color: white;
+        }
+
+        .bg-light-blue {
+            background-color: #9fc5e8;
+            color: black;
+        }
+
+        #footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #032c57;
+            color: #baccde;
+            text-align: center;
+            z-index: 100000;
+        }
+
+        #footer a {
+            color: #baccde;
+        }
+
+        #info-table_paginate, #info-table_length, #info-table_info {
+            display: none;
+        }
+
+        .opaque {
+            opacity: 0.5;
+        }
+
+        @media print {
+            body {
+                background-color: transparent !important;
+                background-image: none !important;
+            }
+        }
+
+        .loading-overlay {
+          position: fixed;
+          width: 100%;
+          height: 100vh;
+          background: #032c57;
+          top: 0;
+          left: 0;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          color: #baccde;
+          text-transform: uppercase;
+          letter-spacing: 0.3rem;
+          font-weight: bold;
+        }
+
+        .spinner {
+          border: 4px solid #baccde;
+          border-top: 4px solid #3498db;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          animation: spin 2s linear infinite;
+          margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+    
+    </style>
+</head>
+
+
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading Sunshine SBOM...</div>
+    </div>
+
+    <h1 class="light-text">Sunshine - SBOM visualization tool</h1>
+    <br>
+    <div id="upload-file-container">
+        <span>Analyzed CycloneDX JSON file: <i>dsap-minio-setup.cdx.json</i></span>
+    </div>
+
+    <br>
+    <h3 class="light-text">Summary</h3>
+    <div id="info-table-container">
+        <table id="info-table" class="table table-striped table-bordered" style="width:100%"><thead><tr><th>No. of Components</th><th>Vulnerabilities</th><th>Main Component</th><th>Spec Version</th><th>Serial Number</th><th>Version</th><th>Tool</th></tr></thead><tbody><tr><td>154</td><td><span style="display: none;">Critical: </span><span class="badge bg-dark-red opaque">0</span><span style="display: none;">, </span>&nbsp;<span style="display: none;">High: </span><span class="badge bg-danger opaque">0</span><span style="display: none;">, </span>&nbsp;<span style="display: none;">Medium: </span><span class="badge bg-orange opaque">0</span><span style="display: none;">, </span>&nbsp;<span style="display: none;">Low: </span><span class="badge bg-yellow opaque">0</span><span style="display: none;">, </span>&nbsp;<span style="display: none;">Information: </span><span class="badge bg-success opaque">0</span></td><td><i>Type</i>&nbsp;&#x2192;&nbsp;container<span style="display: none;">, </span><br><i>Name</i>&nbsp;&#x2192;&nbsp;dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2<span style="display: none;">, </span><br><i>PURL</i>&nbsp;&#x2192;&nbsp;pkg:oci/dsap-minio-setup@sha256:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2?arch=amd64&amp;repository_url=index.docker.io%2Flibrary%2Fdsap-minio-setup<span style="display: none;">, </span><br><i>Aquasecurity:trivy:DiffID</i>&nbsp;&#x2192;&nbsp;sha256:a5d3271739d2d8ea1f1ef972ed849135ab4d06356fe430d2a527f90b3968ee4c<span style="display: none;">, </span><br><i>Aquasecurity:trivy:ImageID</i>&nbsp;&#x2192;&nbsp;sha256:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2<span style="display: none;">, </span><br><i>Aquasecurity:trivy:Reference</i>&nbsp;&#x2192;&nbsp;dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2<span style="display: none;">, </span><br><i>Aquasecurity:trivy:RepoDigest</i>&nbsp;&#x2192;&nbsp;dsap-minio-setup@sha256:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2<span style="display: none;">, </span><br><i>Aquasecurity:trivy:RepoTag</i>&nbsp;&#x2192;&nbsp;dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2<span style="display: none;">, </span><br><i>Aquasecurity:trivy:SchemaVersion</i>&nbsp;&#x2192;&nbsp;2<span style="display: none;">, </span><br><i>Aquasecurity:trivy:Size</i>&nbsp;&#x2192;&nbsp;85109760</td></td><td>1.7</td><td>urn:uuid:03cf4c5b-4989-4d9f-8c2b-7c0845fa94cb</td><td>1</td><td><i>Component Type</i>&nbsp;&#x2192;&nbsp;application<span style="display: none;">, </span><br><i>Component Group</i>&nbsp;&#x2192;&nbsp;aquasecurity<span style="display: none;">, </span><br><i>Component Name</i>&nbsp;&#x2192;&nbsp;trivy<span style="display: none;">, </span><br><i>Component Version</i>&nbsp;&#x2192;&nbsp;0.76.1</td></td></tr></tbody></table>
+    </div>
+
+    <br><br>
+    <h3  class="light-text">Components chart</h3>
+    <div id="chart-container">
+    This chart visualizes components and their dependencies, with each segment representing a single component. The chart provides a hierarchical view of the dependency structure, with relationships radiating outward from the core components.<br>
+    <ul>
+        <li><b>Innermost circle:</b> represents components that are independent and not dependencies for any other components.</li>
+        <li><b>Outer circles:</b> each segment represents a dependency of the corresponding segment in the circle immediately inside it. The farther a segment is from the center, the deeper the dependency level.</li>
+    </ul>
+    <i>Note: If there is only one circle, it means that no dependency relationships are defined in the input file.</i>
+    <br><br>
+    The colors of the segments indicate the vulnerability status of the components:
+    <ul>
+        <li><b>Dark red:</b> affected by at least one critical severity vulnerability.</li>
+        <li><b>Red:</b> affected by at least one high severity vulnerability.</li>
+        <li><b>Orange:</b> affected by at least one medium severity vulnerability.</li>  
+        <li><b>Yellow:</b> affected by at least one low severity vulnerability.</li>  
+        <li><b>Green:</b> affected by at least one informational severity vulnerability.</li>  
+        <li><b>Light blue:</b> not directly affected by vulnerabilities but has at least one vulnerable dependency.</li>  
+        <li><b>Grey:</b> neither the component nor its dependencies are affected by any vulnerabilities.</li>
+    </ul>
+    The chart is interactive:  
+    <ul>
+        <li><b>Hovering:</b> displays details about a component, including its name, version, and list of vulnerabilities.</li>
+        <li><b>Clicking:</b> refocuses the chart. The clicked segment becomes the center (second innermost circle), showing only that component and its dependencies. In this view, the innermost circle is always blue. Clicking the blue circle navigates back up one level in the dependency hierarchy.</li>
+    </ul>
+    <hr>
+    <div class="form-check" id="sunburst-selector-all">
+      <input class="form-check-input" type="radio" name="showComponentsSwitch" id="allComponents" value="allComponents" checked onchange="handleShowComponentsSwitchChange(this)">
+      <label class="form-check-label" for="allComponents">
+        Show all components
+      </label>
+    </div>
+    <div class="form-check" id="sunburst-selector-vulnerable">
+      <input class="form-check-input" type="radio" name="showComponentsSwitch" id="vulnerableComponents" value="vulnerableComponents" onchange="handleShowComponentsSwitchChange(this)">
+      <label class="form-check-label" for="vulnerableComponents">
+        Show only components with direct or transitive vulnerabilities
+      </label>
+    </div>
+    <hr>
+    <div id="chart-container-inner" style="display: block"></div>
+    <div id="chart-container-only-vulnerable-inner" style="display: none"></div>
+    </div>
+    <br>
+    <h3  class="light-text">Components table</h3>
+    <div id="table-container">
+        This table visualizes components, their dependencies, vulnerabilities and licenses.<br>
+        The colors of the elements in columns "Component", "Depends on" and "Dependency of" indicate the vulnerability status of the components:
+        <ul>
+            <li><b>Dark red:</b> affected by at least one critical severity vulnerability.</li>
+            <li><b>Red:</b> affected by at least one high severity vulnerability.</li>
+            <li><b>Orange:</b> affected by at least one medium severity vulnerability.</li>  
+            <li><b>Yellow:</b> affected by at least one low severity vulnerability.</li>  
+            <li><b>Green:</b> affected by at least one informational severity vulnerability.</li>  
+            <li><b>Light blue:</b> not directly affected by vulnerabilities but has at least one vulnerable dependency.</li>  
+            <li><b>Grey:</b> neither the component nor its dependencies are affected by any vulnerabilities.</li>
+        </ul>
+        <br>
+        The colors of the elements in columns "Direct vulnerabilities" and "Transitive vulnerabilities" indicate the severity of the vulnerabilities:
+        <ul>
+            <li><b>Dark red:</b> critical.</li>
+            <li><b>Red:</b> high.</li>
+            <li><b>Orange:</b> medium.</li>  
+            <li><b>Yellow:</b>low.</li>  
+            <li><b>Green:</b>informational.</li> 
+        </ul>
+        <br>
+        The "Depth" column indicates a component's position in the dependency graph:
+        <ul>
+            <li>A <b>"root"</b> value means it is a root component, meaning it resides in the innermost circle of the chart.</li>
+            <li>An <b>integer</b> value represents the component's depth level within the dependency chain.</li>
+        </ul>
+        <i>Note: since a single component may be a dependency for multiple components in different places in the dependency graph, it may be associated with multiple depths. Also, please note that when there are too many dependency relationships, the 'Depth' field may be missing for some components.</i>
+        <hr><br>
+            <div id="table-container-inner">
+                <table id="components-table" class="table table-striped table-bordered" style="width:100%"><thead>
+        <tr>
+            <th>Component</th>
+            <th>Depth</th>
+            <th>Depends on</th>
+            <th>Dependency of</th>
+            <th>Direct <br>vulnerabilities</th>
+            <th>Transitive <br>vulnerabilities</th>
+            <th>License</th>
+        </tr>
+        <tr>
+            <th><input type="text" placeholder="Search Component" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search Depth" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search Depends on" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search Dependency of" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search Direct vulnerabilities" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search Transitive vulnerabilities" class="form-control search-in-table-comp"></th>
+            <th><input type="text" placeholder="Search License" class="form-control search-in-table-comp"></th>
+        </tr>
+    </thead><tbody><tr><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>root</td><td><span class="badge bg-secondary">setuptools 70.3.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">idna 3.18</span><span style="display: none;">, </span><br><span class="badge bg-secondary">msgpack 1.1.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">urllib3 2.7.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">pygments 2.20.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">usr/local/bin/mc</span><span style="display: none;">, </span><br><span class="badge bg-secondary">pyproject-hooks 1.2.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">pip 26.2.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">CacheControl 0.14.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">tomli 2.4.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">distro 1.9.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">certifi 2026.10.19</span><span style="display: none;">, </span><br><span class="badge bg-secondary">rich 14.2.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">packaging 26.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">distlib 0.4.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">tomli-w 1.2.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">truststore 0.10.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">requests 2.34.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">resolvelib 1.2.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">alpine 3.24.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">platformdirs 4.10.0</span></td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>1</td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">apk-tools 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ca-certificates 20261020-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl-utils 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">alpine-release 3.24.4-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ssl_client 1.37.0-r31</span><span style="display: none;">, </span><br><span class="badge bg-secondary">tzdata 2026f-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">alpine-baselayout 3.7.2-r1</span></td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">usr/local/bin/mc</span></td><td>1</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>2</td><td><span class="badge bg-secondary">libffi 3.5.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libuuid 2.42.3-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libpanelw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">sqlite-libs 3.53.4-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">gdbm 1.26-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libbz2 1.0.8-r6</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zlib 1.3.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">readline 8.3.3-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zstd-libs 1.5.7-r2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">xz-libs 5.8.4-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libssl3 3.5.9-r0</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">alpine-baselayout-data 3.7.2-r1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">alpine-baselayout 3.7.2-r1</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">alpine-baselayout 3.7.2-r1</span></td><td>2</td><td><span class="badge bg-secondary">alpine-baselayout-data 3.7.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">busybox-binsh 1.37.0-r31</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">alpine-keys 2.6-r0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">alpine-release 3.24.4-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">alpine-release 3.24.4-r0</span></td><td>2</td><td><span class="badge bg-secondary">alpine-keys 2.6-r0</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">apk-tools 3.0.9-r0</span></td><td>2</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ca-certificates-bundle 20261020-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zlib 1.3.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libapk 3.0.9-r0</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">busybox-binsh 1.37.0-r31</span></td><td>3</td><td><span class="badge bg-secondary">busybox 1.37.0-r31</span></td><td><span class="badge bg-secondary">ca-certificates 20261020-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">alpine-baselayout 3.7.2-r1</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">busybox 1.37.0-r31</span></td><td>4</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">busybox-binsh 1.37.0-r31</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">ca-certificates-bundle 20261020-r0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">apk-tools 3.0.9-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">MPL-2.0</span></td></tr>
+<tr><td><span class="badge bg-secondary">ca-certificates 20261020-r0</span></td><td>2</td><td><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">busybox-binsh 1.37.0-r31</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">MPL-2.0</span></td></tr>
+<tr><td><span class="badge bg-secondary">gdbm 1.26-r0</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-3.0-or-later</span></td></tr>
+<tr><td><span class="badge bg-secondary">libapk 3.0.9-r0</span></td><td>3</td><td><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zlib 1.3.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libssl3 3.5.9-r0</span></td><td><span class="badge bg-secondary">apk-tools 3.0.9-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">libbz2 1.0.8-r6</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">bzip-2-1.0.6</span></td></tr>
+<tr><td><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span></td><td>3, 4, 5</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">libapk 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">apk-tools 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ca-certificates 20261020-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ssl_client 1.37.0-r31</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libssl3 3.5.9-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">Apache-2.0</span></td></tr>
+<tr><td><span class="badge bg-secondary">libffi 3.5.2-r1</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span></td><td>3, 4</td><td><span class="badge bg-secondary">ncurses-terminfo-base 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">readline 8.3.3-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libpanelw 6.6_p20260516-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">X-11</span></td></tr>
+<tr><td><span class="badge bg-secondary">libpanelw 6.6_p20260516-r0</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ncurses-terminfo-base 6.6_p20260516-r0</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">X-11</span></td></tr>
+<tr><td><span class="badge bg-secondary">libssl3 3.5.9-r0</span></td><td>3, 4</td><td><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">ssl_client 1.37.0-r31</span><span style="display: none;">, </span><br><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libapk 3.0.9-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">Apache-2.0</span></td></tr>
+<tr><td><span class="badge bg-secondary">libuuid 2.42.3-r1</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">BSD-3-Clause</span></td></tr>
+<tr><td><span class="badge bg-secondary">musl-utils 1.2.6-r3</span></td><td>2</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">scanelf 1.3.9-r1</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">BSD-2-Clause</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">GPL-2.0-or-later</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td>3, 4, 5, 6</td><td>-</td><td><span class="badge bg-secondary">libuuid 2.42.3-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">sqlite-libs 3.53.4-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zstd-libs 1.5.7-r2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">busybox 1.37.0-r31</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libapk 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">apk-tools 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">scanelf 1.3.9-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">gdbm 1.26-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ssl_client 1.37.0-r31</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libbz2 1.0.8-r6</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">ca-certificates 20261020-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">zlib 1.3.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">readline 8.3.3-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libssl3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libffi 3.5.2-r1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libpanelw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl-utils 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">xz-libs 5.8.4-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">ncurses-terminfo-base 6.6_p20260516-r0</span></td><td>4, 5</td><td>-</td><td><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libpanelw 6.6_p20260516-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">X-11</span></td></tr>
+<tr><td><span class="badge bg-secondary">readline 8.3.3-r1</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libncursesw 6.6_p20260516-r0</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-3.0-or-later</span></td></tr>
+<tr><td><span class="badge bg-secondary">scanelf 1.3.9-r1</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">musl-utils 1.2.6-r3</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">sqlite-libs 3.53.4-r0</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">blessing</span></td></tr>
+<tr><td><span class="badge bg-secondary">ssl_client 1.37.0-r31</span></td><td>2</td><td><span class="badge bg-secondary">libcrypto3 3.5.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">musl 1.2.6-r3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libssl3 3.5.9-r0</span></td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">GPL-2.0-only</span></td></tr>
+<tr><td><span class="badge bg-secondary">tzdata 2026f-r0</span></td><td>2</td><td>-</td><td><span class="badge bg-secondary">alpine 3.24.4</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">Public-Domain</span></td></tr>
+<tr><td><span class="badge bg-secondary">xz-libs 5.8.4-r0</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">0BSD</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">GPL-2.0-or-later</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">LGPL-2.1-or-later</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">Public-Domain</span></td></tr>
+<tr><td><span class="badge bg-secondary">zlib 1.3.2-r1</span></td><td>3, 4</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">apk-tools 3.0.9-r0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">.python-rundeps 20261105.192804</span><span style="display: none;">, </span><br><span class="badge bg-secondary">libapk 3.0.9-r0</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">Zlib</span></td></tr>
+<tr><td><span class="badge bg-secondary">zstd-libs 1.5.7-r2</span></td><td>3</td><td><span class="badge bg-secondary">musl 1.2.6-r3</span></td><td><span class="badge bg-secondary">.python-rundeps 20261105.192804</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">BSD-3-Clause</span><span style="display: none;">, </span><br><span class="badge border border-dark text-dark">GPL-2.0-or-later</span></td></tr>
+<tr><td><span class="badge bg-secondary">aead.dev/minisign v0.3.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/aymanbagabas/go-osc52/v2 v2.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/beorn7/perks v1.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/cespare/xxhash/v2 v2.3.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/charmbracelet/bubbles v0.20.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/charmbracelet/bubbletea v1.3.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/charmbracelet/lipgloss v1.0.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/charmbracelet/x/ansi v0.8.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/charmbracelet/x/term v0.2.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/cheggaaa/pb v1.0.29</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/coreos/go-semver v0.3.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/coreos/go-systemd/v22 v22.6.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/dustin/go-humanize v1.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/fatih/color v1.18.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/fatih/structs v1.1.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/go-ini/ini v1.67.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/goccy/go-json v0.10.5</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/gogo/protobuf v1.3.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/golang-jwt/jwt/v4 v4.5.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/golang/protobuf v1.5.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/google/uuid v1.6.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/hashicorp/errwrap v1.1.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/hashicorp/go-multierror v1.1.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/inconshreveable/mousetrap v1.1.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/jedib0t/go-pretty/v6 v6.6.7</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/juju/ratelimit v1.0.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/klauspost/compress v1.20.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/klauspost/cpuid/v2 v2.2.10</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/blackmagic v1.0.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/httpcc v1.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/httprc v1.0.6</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/iter v1.0.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/jwx/v2 v2.1.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lestrrat-go/option v1.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/lucasb-eyer/go-colorful v1.2.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/mattn/go-colorable v0.1.14</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/mattn/go-ieproxy v0.0.12</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/mattn/go-isatty v0.0.20</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/mattn/go-runewidth v0.0.16</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/matttproud/golang_protobuf_extensions v1.0.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/cli v1.24.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/colorjson v1.0.8</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/crc64nvme v1.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/filepath v1.0.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/madmin-go/v3 v3.0.107-0.20250415152934-4b504b82db63</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>2</td><td><span class="badge bg-secondary">github.com/rjeczalik/notify v0.9.3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/cheggaaa/pb v1.0.29</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/procfs v0.16.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/rivo/uniseg v0.4.7</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/fatih/color v1.18.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/client_model v0.6.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/jwx/v2 v2.1.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/coreos/go-semver v0.3.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tidwall/gjson v1.18.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tidwall/match v1.1.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/sys v0.48.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/vbauerster/mpb/v8 v8.9.3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/juju/ratelimit v1.0.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">google.golang.org/protobuf v1.36.11</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/charmbracelet/bubbles v0.20.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/charmbracelet/x/term v0.2.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/golang/protobuf v1.5.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/charmbracelet/bubbletea v1.3.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/charmbracelet/lipgloss v1.0.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/minio-go/v7 v7.0.90</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/text v0.42.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/klauspost/compress v1.20.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.uber.org/multierr v1.11.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/net v0.60.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/cespare/xxhash/v2 v2.3.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/crc64nvme v1.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/prom2json v1.4.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/httpcc v1.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tinylib/msgp v1.2.5</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.etcd.io/etcd/api/v3 v3.5.19</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/aymanbagabas/go-osc52/v2 v2.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/term v0.46.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/go-ini/ini v1.67.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/safchain/ethtool v0.5.10</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/prometheus v0.311.3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/md5-simd v1.1.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/blackmagic v1.0.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/httprc v1.0.6</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/muesli/cancelreader v0.2.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/klauspost/cpuid/v2 v2.2.10</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/hashicorp/go-multierror v1.1.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tidwall/pretty v1.2.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/charmbracelet/x/ansi v0.8.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tklauser/numcpus v0.10.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">google.golang.org/grpc v1.83.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/iter v1.0.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/olekukonko/tablewriter v0.0.5</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/mattn/go-runewidth v0.0.16</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/pkg/v3 v3.1.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/filepath v1.0.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/muesli/reflow v0.3.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">gopkg.in/yaml.v3 v3.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/mattn/go-colorable v0.1.14</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lucasb-eyer/go-colorful v1.2.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/goccy/go-json v0.10.5</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.etcd.io/etcd/client/pkg/v3 v3.5.19</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/beorn7/perks v1.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/fatih/structs v1.1.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/madmin-go/v3 v3.0.107-0.20250415152934-4b504b82db63</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/pkg/xattr v0.4.10</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/matttproud/golang_protobuf_extensions v1.0.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/mattn/go-ieproxy v0.0.12</span><span style="display: none;">, </span><br><span class="badge bg-secondary">aead.dev/minisign v0.3.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/lestrrat-go/option v1.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/posener/complete v1.2.3</span><span style="display: none;">, </span><br><span class="badge bg-secondary">gopkg.in/yaml.v2 v2.4.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/common v0.67.5</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/hashicorp/errwrap v1.1.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/secure-io/sio-go v0.3.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/prometheus/client_golang v1.23.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/tklauser/go-sysconf v0.3.15</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/crypto v0.57.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/inconshreveable/mousetrap v1.1.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/google/uuid v1.6.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/golang-jwt/jwt/v4 v4.5.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/jedib0t/go-pretty/v6 v6.6.7</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/gogo/protobuf v1.3.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/mitchellh/go-homedir v1.1.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/selfupdate v0.6.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/muesli/termenv v0.16.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.yaml.in/yaml/v2 v2.4.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">stdlib v1.27.4</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/mattn/go-isatty v0.0.20</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/coreos/go-systemd/v22 v22.6.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/cli v1.24.2</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/shirou/gopsutil/v3 v3.24.5</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.uber.org/zap v1.27.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">golang.org/x/sync v0.23.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/dustin/go-humanize v1.0.1</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/VividCortex/ewma v1.2.0</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/minio/colorjson v1.0.8</span><span style="display: none;">, </span><br><span class="badge bg-secondary">go.etcd.io/etcd/client/v3 v3.5.19</span><span style="display: none;">, </span><br><span class="badge bg-secondary">github.com/rs/xid v1.6.0</span></td><td><span class="badge bg-secondary">usr/local/bin/mc</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/md5-simd v1.1.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/minio-go/v7 v7.0.90</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/pkg/v3 v3.1.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/minio/selfupdate v0.6.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/mitchellh/go-homedir v1.1.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/muesli/cancelreader v0.2.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/muesli/reflow v0.3.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/muesli/termenv v0.16.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/olekukonko/tablewriter v0.0.5</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/pkg/xattr v0.4.10</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/posener/complete v1.2.3</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/client_golang v1.23.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/client_model v0.6.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/common v0.67.5</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/procfs v0.16.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/prom2json v1.4.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/prometheus/prometheus v0.311.3</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/rivo/uniseg v0.4.7</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/rjeczalik/notify v0.9.3</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/rs/xid v1.6.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/safchain/ethtool v0.5.10</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/secure-io/sio-go v0.3.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/shirou/gopsutil/v3 v3.24.5</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tidwall/gjson v1.18.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tidwall/match v1.1.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tidwall/pretty v1.2.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tinylib/msgp v1.2.5</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tklauser/go-sysconf v0.3.15</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/tklauser/numcpus v0.10.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/vbauerster/mpb/v8 v8.9.3</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">github.com/VividCortex/ewma v1.2.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.etcd.io/etcd/api/v3 v3.5.19</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.etcd.io/etcd/client/pkg/v3 v3.5.19</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.etcd.io/etcd/client/v3 v3.5.19</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.uber.org/multierr v1.11.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.uber.org/zap v1.27.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">go.yaml.in/yaml/v2 v2.4.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/crypto v0.57.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/net v0.60.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/sync v0.23.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/sys v0.48.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/term v0.46.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">golang.org/x/text v0.42.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">google.golang.org/grpc v1.83.2</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">google.golang.org/protobuf v1.36.11</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">gopkg.in/yaml.v2 v2.4.0</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">gopkg.in/yaml.v3 v3.0.1</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">stdlib v1.27.4</span></td><td>3</td><td>-</td><td><span class="badge bg-secondary">github.com/minio/mc v0.0.0-20250813083541-7394ce0dd2a8+dirty</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">CacheControl 0.14.4</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">certifi 2026.10.19</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">distlib 0.4.2</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">distro 1.9.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">idna 3.18</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">msgpack 1.1.2</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">packaging 26.2</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">pip 26.2.2</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td><span class="badge border border-dark text-dark">MIT</span></td></tr>
+<tr><td><span class="badge bg-secondary">platformdirs 4.10.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">pygments 2.20.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">pyproject-hooks 1.2.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">requests 2.34.2</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">resolvelib 1.2.1</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">rich 14.2.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">setuptools 70.3.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">tomli-w 1.2.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">tomli 2.4.1</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">truststore 0.10.4</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><span class="badge bg-secondary">urllib3 2.7.0</span></td><td>1</td><td>-</td><td><span class="badge bg-secondary">dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2</span></td><td>-</td><td>-</td><td>-</td></tr>
+</tbody></table>
+            </div>
+    </div>
+    <br>
+    <h3 class="light-text">Vulnerabilities table</h3>
+    <div id="vulnerabilities-table-container">
+        This table focuses on vulnerabilities and shows the components that are affected either directly or transitively.<br>
+        The colors of the elements in column "Vulnerability" indicate the severity of the vulnerabilities:
+        <ul>
+            <li><b>Dark red:</b> critical.</li>
+            <li><b>Red:</b> high.</li>
+            <li><b>Orange:</b> medium.</li>  
+            <li><b>Yellow:</b>low.</li>  
+            <li><b>Green:</b>informational.</li> 
+        </ul>
+        <br>
+        The colors of the elements in columns "Directly vulnerable components" and "Transitively vulnerable components" indicate the vulnerability status of the components:
+        <ul>
+            <li><b>Dark red:</b> affected by at least one critical severity vulnerability.</li>
+            <li><b>Red:</b> affected by at least one high severity vulnerability.</li>
+            <li><b>Orange:</b> affected by at least one medium severity vulnerability.</li>  
+            <li><b>Yellow:</b> affected by at least one low severity vulnerability.</li>  
+            <li><b>Green:</b> affected by at least one informational severity vulnerability.</li>  
+            <li><b>Light blue:</b> not directly affected by vulnerabilities but has at least one vulnerable dependency.</li> 
+        </ul>
+        <hr><br>
+                <table id="vulnerabilities-table" class="table table-striped table-bordered" style="width:100%"><thead>
+        <tr>
+            <th>Vulnerability</th>
+            <th>Severity</th>
+            <th>Score</th>
+            <th>Vector</th>
+            <th>Directly vulnerable <br>components</th>
+            <th>Transitively vulnerable <br>components</th>
+        </tr>
+        <tr>
+            <th><input type="text" placeholder="Search Vulnerability" class="form-control search-in-table-vuln"></th>
+            <th><input type="text" placeholder="Search Severity" class="form-control search-in-table-vuln"></th>
+            <th><input type="text" placeholder="Search Score" class="form-control search-in-table-vuln"></th>
+            <th><input type="text" placeholder="Search Vector" class="form-control search-in-table-vuln"></th>
+            <th><input type="text" placeholder="Search Directly vulnerable components" class="form-control search-in-table-vuln"></th>
+            <th><input type="text" placeholder="Search Transitively vulnerable components" class="form-control search-in-table-vuln"></th>
+        </tr>
+    </thead><tbody></tbody></table>
+    </div>
+    <script type="text/javascript">
+        window.addEventListener('load', function() {
+          const loadingOverlay = document.getElementById('loadingOverlay');
+          loadingOverlay.style.opacity = '0';
+          loadingOverlay.style.transition = 'opacity 0.5s ease';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 500);
+        });
+
+        function showDiv(divId) {
+            var div = document.getElementById(divId);
+            if (div.style.display === "none") {
+                div.style.display = "block";
+            }
+        }
+
+        function hideDiv(divId) {
+            var div = document.getElementById(divId);
+            if (div.style.display === "block") {
+                div.style.display = "none";
+            }
+        }
+
+        function handleShowComponentsSwitchChange(radio) {
+            if (radio.value == "allComponents") {
+                hideDiv("chart-container-only-vulnerable-inner");
+                showDiv("chart-container-inner");
+                var shownChart = echarts.getInstanceByDom(document.getElementById("chart-container-inner"));
+                shownChart.resize();
+            }
+            else if (radio.value == "vulnerableComponents") {
+                hideDiv("chart-container-inner");
+                showDiv("chart-container-only-vulnerable-inner");
+                var shownChart = echarts.getInstanceByDom(document.getElementById("chart-container-only-vulnerable-inner"));
+                shownChart.resize();
+            }
+        }
+
+        var dom = document.getElementById('chart-container-inner');
+        var myChart = echarts.init(dom, null, {
+          renderer: 'canvas',
+          useDirtyRect: false
+        });
+        var app = {};
+
+        var option;
+
+        const data = [
+  {
+    "name": "dsap-minio-setup:f6b182f3e1785823c39ab75df8ecd985fbfcee7d729c54cbb6f61fe282c3c8f2",
+    "children": [
+      {
+        "name": "setuptools <b>70.3.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "idna <b>3.18</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "msgpack <b>1.1.2</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "urllib3 <b>2.7.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "pygments <b>2.20.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "usr/local/bin/mc",
+        "children": [
+          {
+            "name": "github.com/minio/mc <b>v0.0.0-20250813083541-7394ce0dd2a8+dirty</b>",
+            "children": [
+              {
+                "name": "github.com/rjeczalik/notify <b>v0.9.3</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/cheggaaa/pb <b>v1.0.29</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/procfs <b>v0.16.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/rivo/uniseg <b>v0.4.7</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/fatih/color <b>v1.18.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/munnerz/goautoneg <b>v0.0.0-20191010083416-a7dc8b61c822</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/client_model <b>v0.6.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/jwx/v2 <b>v2.1.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/google/shlex <b>v0.0.0-20191202100458-e7afc7fbc510</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/coreos/go-semver <b>v0.3.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tidwall/gjson <b>v1.18.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tidwall/match <b>v1.1.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/sys <b>v0.48.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/vbauerster/mpb/v8 <b>v8.9.3</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/juju/ratelimit <b>v1.0.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "google.golang.org/protobuf <b>v1.36.11</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/charmbracelet/bubbles <b>v0.20.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/charmbracelet/x/term <b>v0.2.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/golang/protobuf <b>v1.5.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/charmbracelet/bubbletea <b>v1.3.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/charmbracelet/lipgloss <b>v1.0.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/minio-go/v7 <b>v7.0.90</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/text <b>v0.42.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/klauspost/compress <b>v1.20.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.uber.org/multierr <b>v1.11.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/net <b>v0.60.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/cespare/xxhash/v2 <b>v2.3.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/crc64nvme <b>v1.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/prom2json <b>v1.4.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/httpcc <b>v1.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tinylib/msgp <b>v1.2.5</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.etcd.io/etcd/api/v3 <b>v3.5.19</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/aymanbagabas/go-osc52/v2 <b>v2.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/term <b>v0.46.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/go-ini/ini <b>v1.67.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/safchain/ethtool <b>v0.5.10</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/acarl005/stripansi <b>v0.0.0-20180116102854-5a71ef0e047d</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/prometheus <b>v0.311.3</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/md5-simd <b>v1.1.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/blackmagic <b>v1.0.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/httprc <b>v1.0.6</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/muesli/cancelreader <b>v0.2.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/klauspost/cpuid/v2 <b>v2.2.10</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/hashicorp/go-multierror <b>v1.1.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/muesli/ansi <b>v0.0.0-20230316100256-276c6243b2f6</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tidwall/pretty <b>v1.2.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/charmbracelet/x/ansi <b>v0.8.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tklauser/numcpus <b>v0.10.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "google.golang.org/grpc <b>v1.83.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "google.golang.org/genproto/googleapis/api <b>v0.0.0-20260526163538-3dc84a4a5aaa</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/iter <b>v1.0.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/grafana/regexp <b>v0.0.0-20250905093917-f7b3be9d1853</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/olekukonko/tablewriter <b>v0.0.5</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/mattn/go-runewidth <b>v0.0.16</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/pkg/v3 <b>v3.1.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/filepath <b>v1.0.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/muesli/reflow <b>v0.3.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "gopkg.in/yaml.v3 <b>v3.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/mattn/go-colorable <b>v0.1.14</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lucasb-eyer/go-colorful <b>v1.2.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/goccy/go-json <b>v0.10.5</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/philhofer/fwd <b>v1.1.3-0.20240916144458-20a13a1f6b7c</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.etcd.io/etcd/client/pkg/v3 <b>v3.5.19</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/beorn7/perks <b>v1.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/fatih/structs <b>v1.1.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/madmin-go/v3 <b>v3.0.107-0.20250415152934-4b504b82db63</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/pkg/xattr <b>v0.4.10</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/matttproud/golang_protobuf_extensions <b>v1.0.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/mattn/go-ieproxy <b>v0.0.12</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "aead.dev/minisign <b>v0.3.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/lestrrat-go/option <b>v1.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/posener/complete <b>v1.2.3</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "gopkg.in/yaml.v2 <b>v2.4.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/common <b>v0.67.5</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/hashicorp/errwrap <b>v1.1.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/secure-io/sio-go <b>v0.3.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/prometheus/client_golang <b>v1.23.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/tklauser/go-sysconf <b>v0.3.15</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/crypto <b>v0.57.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/inconshreveable/mousetrap <b>v1.1.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/google/uuid <b>v1.6.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/golang-jwt/jwt/v4 <b>v4.5.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/jedib0t/go-pretty/v6 <b>v6.6.7</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/gogo/protobuf <b>v1.3.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/mitchellh/go-homedir <b>v1.1.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/selfupdate <b>v0.6.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "google.golang.org/genproto/googleapis/rpc <b>v0.0.0-20260526163538-3dc84a4a5aaa</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/muesli/termenv <b>v0.16.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.yaml.in/yaml/v2 <b>v2.4.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "stdlib <b>v1.27.4</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/mattn/go-isatty <b>v0.0.20</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/coreos/go-systemd/v22 <b>v22.6.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/cli <b>v1.24.2</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/shirou/gopsutil/v3 <b>v3.24.5</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.uber.org/zap <b>v1.27.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "golang.org/x/sync <b>v0.23.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/dustin/go-humanize <b>v1.0.1</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/VividCortex/ewma <b>v1.2.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/minio/colorjson <b>v1.0.8</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "go.etcd.io/etcd/client/v3 <b>v3.5.19</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "github.com/rs/xid <b>v1.6.0</b>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 101,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          }
+        ],
+        "value": 101,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "pyproject-hooks <b>1.2.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "pip <b>26.2.2</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "CacheControl <b>0.14.4</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "tomli <b>2.4.1</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "distro <b>1.9.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "certifi <b>2026.10.19</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "rich <b>14.2.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "packaging <b>26.2</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "distlib <b>0.4.2</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "tomli-w <b>1.2.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "truststore <b>0.10.4</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "requests <b>2.34.2</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "resolvelib <b>1.2.1</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "alpine <b>3.24.4</b>",
+        "children": [
+          {
+            "name": ".python-rundeps <b>20261105.192804</b>",
+            "children": [
+              {
+                "name": "libffi <b>3.5.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libncursesw <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                "children": [
+                  {
+                    "name": "ncurses-terminfo-base <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 2,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libuuid <b>2.42.3-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>BSD-3-Clause</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libpanelw <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "libncursesw <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                    "children": [
+                      {
+                        "name": "ncurses-terminfo-base <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      },
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 2,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "ncurses-terminfo-base <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 4,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "sqlite-libs <b>3.53.4-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>blessing</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "gdbm <b>1.26-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-3.0-or-later</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libbz2 <b>1.0.8-r6</b><br><br>License:<br><ul style='margin-bottom: 0'><li>bzip-2-1.0.6</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "zlib <b>1.3.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Zlib</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "readline <b>8.3.3-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-3.0-or-later</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "libncursesw <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                    "children": [
+                      {
+                        "name": "ncurses-terminfo-base <b>6.6_p20260516-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>X-11</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      },
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 2,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 3,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "zstd-libs <b>1.5.7-r2</b><br><br>License:<br><ul style='margin-bottom: 0'><li>BSD-3-Clause</li><li>GPL-2.0-or-later</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "xz-libs <b>5.8.4-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>0BSD</li><li>GPL-2.0-or-later</li><li>LGPL-2.1-or-later</li><li>Public-Domain</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libssl3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 2,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 21,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "apk-tools <b>3.0.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+            "children": [
+              {
+                "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "ca-certificates-bundle <b>20261020-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li><li>MPL-2.0</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "zlib <b>1.3.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Zlib</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libapk <b>3.0.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                "children": [
+                  {
+                    "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "zlib <b>1.3.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Zlib</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "libssl3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                    "children": [
+                      {
+                        "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                        "children": [
+                          {
+                            "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                            "children": [],
+                            "value": 1,
+                            "itemStyle": {
+                              "color": "#bcbcbc",
+                              "borderWidth": 2
+                            }
+                          }
+                        ],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      },
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 2,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 5,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 9,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "ca-certificates <b>20261020-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li><li>MPL-2.0</li></ul>",
+            "children": [
+              {
+                "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "busybox-binsh <b>1.37.0-r31</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                "children": [
+                  {
+                    "name": "busybox <b>1.37.0-r31</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 3,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "musl-utils <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>BSD-2-Clause</li><li>GPL-2.0-or-later</li><li>MIT</li></ul>",
+            "children": [
+              {
+                "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "scanelf <b>1.3.9-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 2,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "alpine-release <b>3.24.4-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+            "children": [
+              {
+                "name": "alpine-keys <b>2.6-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 1,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "ssl_client <b>1.37.0-r31</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+            "children": [
+              {
+                "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "libssl3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                "children": [
+                  {
+                    "name": "libcrypto3 <b>3.5.9-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Apache-2.0</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  },
+                  {
+                    "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                    "children": [],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 2,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 4,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "tzdata <b>2026f-r0</b><br><br>License:<br><ul style='margin-bottom: 0'><li>Public-Domain</li></ul>",
+            "children": [],
+            "value": 1,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          },
+          {
+            "name": "alpine-baselayout <b>3.7.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+            "children": [
+              {
+                "name": "alpine-baselayout-data <b>3.7.2-r1</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                "children": [],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              },
+              {
+                "name": "busybox-binsh <b>1.37.0-r31</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                "children": [
+                  {
+                    "name": "busybox <b>1.37.0-r31</b><br><br>License:<br><ul style='margin-bottom: 0'><li>GPL-2.0-only</li></ul>",
+                    "children": [
+                      {
+                        "name": "musl <b>1.2.6-r3</b><br><br>License:<br><ul style='margin-bottom: 0'><li>MIT</li></ul>",
+                        "children": [],
+                        "value": 1,
+                        "itemStyle": {
+                          "color": "#bcbcbc",
+                          "borderWidth": 2
+                        }
+                      }
+                    ],
+                    "value": 1,
+                    "itemStyle": {
+                      "color": "#bcbcbc",
+                      "borderWidth": 2
+                    }
+                  }
+                ],
+                "value": 1,
+                "itemStyle": {
+                  "color": "#bcbcbc",
+                  "borderWidth": 2
+                }
+              }
+            ],
+            "value": 2,
+            "itemStyle": {
+              "color": "#bcbcbc",
+              "borderWidth": 2
+            }
+          }
+        ],
+        "value": 43,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      },
+      {
+        "name": "platformdirs <b>4.10.0</b>",
+        "children": [],
+        "value": 1,
+        "itemStyle": {
+          "color": "#bcbcbc",
+          "borderWidth": 2
+        }
+      }
+    ],
+    "value": 163,
+    "itemStyle": {
+      "color": "#bcbcbc",
+      "borderWidth": 2
+    }
+  }
+];
+
+        option = {
+          tooltip: {
+                formatter: function(params) {
+                    return `${params.name}`;
+                },
+            },
+          series: {
+            radius: ['15%', '100%'],
+            type: 'sunburst',
+            sort: undefined,
+            emphasis: {
+              focus: 'ancestor'
+            },
+            data: data,
+            label: {
+              rotate: 'radial',
+              show: false
+            },
+            levels: []
+          }
+        };
+
+        if (option && typeof option === 'object') {
+          myChart.setOption(option);
+        }
+
+        window.addEventListener('resize', myChart.resize);
+
+        var domVuln = document.getElementById('chart-container-only-vulnerable-inner');
+        var myChartVuln = echarts.init(domVuln, null, {
+          renderer: 'canvas',
+          useDirtyRect: false
+        });
+
+        var optionVuln;
+
+        const dataVuln = [];
+
+        optionVuln = {
+          tooltip: {
+                formatter: function(params) {
+                    return `${params.name}`;
+                },
+            },
+          series: {
+            radius: ['15%', '100%'],
+            type: 'sunburst',
+            sort: undefined,
+            emphasis: {
+              focus: 'ancestor'
+            },
+            data: dataVuln,
+            label: {
+              rotate: 'radial',
+              show: false
+            },
+            levels: []
+          }
+        };
+
+        if (optionVuln && typeof optionVuln === 'object') {
+          myChartVuln.setOption(optionVuln);
+        }
+
+        window.addEventListener('resize', myChartVuln.resize);
+
+        let table = $('#components-table').DataTable({
+            "order": [[ 1, "asc" ]],
+            pageLength: 10,
+            dom: 'Blfrtip',
+            lengthMenu: [
+                [10, 25, 50, -1],
+                [10, 25, 50, 'All']
+            ],
+            buttons: [
+              { extend: 'copy', className: 'btn btn-dark mb-3 btn-sm' },
+              { extend: 'csv', className: 'btn btn-secondary mb-3 btn-sm' },
+              { extend: 'excel', className: 'btn btn-success mb-3 btn-sm' },
+              { extend: 'print', className: 'btn btn-danger mb-3 btn-sm', 
+                customize: function (win) {
+                    $(win.document.body).css('font-size', '10pt');
+                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+
+                    // Add landscape mode
+                    var css = '@page { size: landscape; }',
+                        head = win.document.head || win.document.getElementsByTagName('head')[0],
+                        style = win.document.createElement('style');
+
+                    style.type = 'text/css';
+                    style.media = 'print';
+
+                    if (style.styleSheet) {
+                        style.styleSheet.cssText = css;
+                    } else {
+                        style.appendChild(win.document.createTextNode(css));
+                    }
+                    head.appendChild(style);
+                }
+              }
+            ],
+            orderCellsTop: true,
+            "autoWidth": true
+          });
+
+        $('#components-table thead input').on('keyup change', function () {
+            let columnIndex = $(this).parent().index();
+            table.column(columnIndex).search(this.value).draw();
+        });
+
+        let summaryTable = $('#info-table').DataTable({
+            "order": [[ 1, "asc" ]],
+            pageLength: 10,
+            dom: 'Blfrtip',
+            lengthMenu: [
+                [10, 25, 50, -1],
+                [10, 25, 50, 'All']
+            ],
+            buttons: [
+              { extend: 'copy', className: 'btn btn-dark mb-3 btn-sm' },
+              { extend: 'csv', className: 'btn btn-secondary mb-3 btn-sm' },
+              { extend: 'excel', className: 'btn btn-success mb-3 btn-sm' },
+              { extend: 'print', className: 'btn btn-danger mb-3 btn-sm', 
+                customize: function (win) {
+                    $(win.document.body).css('font-size', '10pt');
+                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+
+                    // Add landscape mode
+                    var css = '@page { size: landscape; }',
+                        head = win.document.head || win.document.getElementsByTagName('head')[0],
+                        style = win.document.createElement('style');
+
+                    style.type = 'text/css';
+                    style.media = 'print';
+
+                    if (style.styleSheet) {
+                        style.styleSheet.cssText = css;
+                    } else {
+                        style.appendChild(win.document.createTextNode(css));
+                    }
+                    head.appendChild(style);
+                }
+              }
+            ],
+            orderCellsTop: true,
+            "autoWidth": true
+          });
+
+          let vulnerabilitiesTable = $('#vulnerabilities-table').DataTable({
+            "order": [[ 1, "asc" ]],
+            pageLength: 10,
+            dom: 'Blfrtip',
+            lengthMenu: [
+                [10, 25, 50, -1],
+                [10, 25, 50, 'All']
+            ],
+            buttons: [
+              { extend: 'copy', className: 'btn btn-dark mb-3 btn-sm' },
+              { extend: 'csv', className: 'btn btn-secondary mb-3 btn-sm' },
+              { extend: 'excel', className: 'btn btn-success mb-3 btn-sm' },
+              { extend: 'print', className: 'btn btn-danger mb-3 btn-sm', 
+                customize: function (win) {
+                    $(win.document.body).css('font-size', '10pt');
+                    $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
+
+                    // Add landscape mode
+                    var css = '@page { size: landscape; }',
+                        head = win.document.head || win.document.getElementsByTagName('head')[0],
+                        style = win.document.createElement('style');
+
+                    style.type = 'text/css';
+                    style.media = 'print';
+
+                    if (style.styleSheet) {
+                        style.styleSheet.cssText = css;
+                    } else {
+                        style.appendChild(win.document.createTextNode(css));
+                    }
+                    head.appendChild(style);
+                }
+              }
+            ],
+            orderCellsTop: true,
+            "autoWidth": true
+          });
+
+        $('#vulnerabilities-table thead input').on('keyup change', function () {
+            let columnIndex = $(this).parent().index();
+            vulnerabilitiesTable.column(columnIndex).search(this.value).draw();
+        });
+
+        function countSegments(node) {
+          let count = 1;
+          if (node.children) {
+            node.children.forEach(child => {
+              count += countSegments(child);
+            });
+          }
+          return count;
+        }
+
+
+        function turnChartIntoImageIfTooManySegments(chartContainerId) {
+            var chartContainerInnerDiv = document.getElementById(chartContainerId);
+            var echartsInstance = echarts.getInstanceByDom(chartContainerInnerDiv);
+            var echartsInstanceData = echartsInstance.getOption().series[0].data;
+            let totalSegments = echartsInstanceData.reduce((sum, node) => sum + countSegments(node), 0);
+
+            if (totalSegments > 10000) {
+                var chartContainerInnerDivOnlyVuln = document.getElementById("chart-container-only-vulnerable-inner");
+                echarts.getInstanceByDom(chartContainerInnerDivOnlyVuln).dispose();
+                chartContainerInnerDivOnlyVuln.remove();
+
+                document.getElementById("sunburst-selector-all").innerHTML = '<div class="alert alert-warning" role="alert">WARNING: the chart is not displayed in interactive mode because there are too many dependency relationships. You can still explore components and relationships in the components table.</div>';
+                document.getElementById("sunburst-selector-vulnerable").remove();
+
+                chartContainerInnerDiv.style.display = "block";
+                echartsInstance.resize();
+
+                var imgData = echartsInstance.getDataURL({
+                  type: 'png',
+                  pixelRatio: 2, // Adjust as needed for resolution
+                  backgroundColor: '#fff' // Optional: set background color
+                });
+
+                echartsInstance.dispose();
+                
+                var img = document.createElement('img');
+                img.src = imgData;
+                img.style.width = '100%';
+                img.style.height = 'auto';
+
+                chartContainerInnerDiv.innerHTML = '';
+                chartContainerInnerDiv.appendChild(img);
+                chartContainerInnerDiv.style.height = 'auto';
+            }
+        }
+
+        function showWarningIfChartWasNotCreated(chartContainerId) {
+            var chartContainerInnerDiv = document.getElementById(chartContainerId);
+
+            var chartContainerInnerDivOnlyVuln = document.getElementById("chart-container-only-vulnerable-inner");
+            echarts.getInstanceByDom(chartContainerInnerDivOnlyVuln).dispose();
+            chartContainerInnerDivOnlyVuln.remove();
+
+            document.getElementById("sunburst-selector-all").innerHTML = '<div class="alert alert-danger" role="alert">WARNING: the chart is not displayed because there are too many dependency relationships. You can still explore components and relationships in the components table.</div>';
+            document.getElementById("sunburst-selector-vulnerable").remove();
+
+            chartContainerInnerDiv.style.display = "block";
+
+            chartContainerInnerDiv.innerHTML = '';
+            chartContainerInnerDiv.style.height = 'auto';
+        }
+
+        turnChartIntoImageIfTooManySegments("chart-container-inner");
+        
+
+
+      </script>
+      <br><br>
+      <div id="footer">Sunshine - SBOM visualization tool | Made by <a href="https://www.linkedin.com/in/lucacapacci/">Luca Capacci</a> | Contributor <a href="https://www.linkedin.com/in/mattiafierro/">Mattia Fierro</a> | <a href="https://github.com/CycloneDX/Sunshine/">GitHub repository</a> | <a href="https://github.com/CycloneDX/Sunshine/blob/main/LICENSE">License</a></div>
+    </body>
+</html>
