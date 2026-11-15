@@ -84,6 +84,7 @@ describe('signDocument', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
+    process.env.SIGNING_CERT_PASSWORD = 'changeit';
   });
 
   afterEach(() => {
@@ -163,7 +164,16 @@ describe('signDocument', () => {
     expect(P12Signer).toHaveBeenCalledWith(expect.any(Buffer), { passphrase: 'deployed-password' });
   });
 
+  it('rejects a missing signing password', async () => {
+    delete process.env.SIGNING_CERT_PASSWORD;
+    delete process.env.CERT_PASSPHRASE;
+    await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('SIGNING_CERT_PASSWORD or CERT_PASSPHRASE is required'));
+    expect(fs.readFile).not.toHaveBeenCalled();
+  });
+
   it('should respect custom environment variables for cert path and signature metadata', async () => {
+    delete process.env.SIGNING_CERT_PASSWORD;
     process.env.SIGNING_CERT_PATH = '/custom/certs/prod.p12';
     process.env.SIGNING_CONTACT_INFO = 'secops@defense.gov';
     process.env.SIGNING_AUTHOR_NAME = 'HQ Armory Authority';

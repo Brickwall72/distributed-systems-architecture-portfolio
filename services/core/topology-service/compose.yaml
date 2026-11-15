@@ -3,8 +3,8 @@ services:
   topology-db:
     image: neo4j:5.26.0
     container_name: topology-db
-    environment:
-      - NEO4J_AUTH=${DB_USER}/${DB_PASSWORD}
+    env_file:
+      - ../../../.auth-keys/local/topology-db.env
     ports:
       - "${DB_EXTERNAL_PORT}:7474"
       - "7687:7687"
@@ -13,7 +13,7 @@ services:
     networks:
       - platform-mesh
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u \"${DB_USER}\" -p \"${DB_PASSWORD}\" 'RETURN 1' >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u \"$$DB_USER\" -p \"$$DB_PASSWORD\" 'RETURN 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -28,6 +28,7 @@ services:
     container_name: topology-server
     env_file:
       - ../../../.auth-keys/nats/topology.env
+      - ../../../.auth-keys/local/topology-server.env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.topology-api.rule=PathPrefix(`/topology/api`)"
@@ -38,8 +39,6 @@ services:
       - "traefik.http.services.topology-api.loadbalancer.server.port=8080"
     environment:
       DB_URI: bolt://topology-db:7687
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
       NATS_URL: nats://nats:4222
       AUTH_PUBLIC_KEY_FILE: /run/secrets/auth_public_key
     secrets:

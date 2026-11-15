@@ -45,9 +45,15 @@ spec:
           args: ["server", "/data", "--console-address", ":9001"]
           env:
             - name: MINIO_ROOT_USER
-              value: {{ .Values.rootUser | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret | quote }}
+                  key: MINIO_ROOT_USER
             - name: MINIO_ROOT_PASSWORD
-              value: {{ .Values.rootPassword | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret | quote }}
+                  key: MINIO_ROOT_PASSWORD
             - name: MINIO_API_CORS_ALLOW_ORIGIN
               value: "*"
           ports:
@@ -128,9 +134,15 @@ spec:
             {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
           env:
             - name: MINIO_ROOT_USER
-              value: {{ .Values.rootUser | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret | quote }}
+                  key: MINIO_ROOT_USER
             - name: MINIO_ROOT_PASSWORD
-              value: {{ .Values.rootPassword | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret | quote }}
+                  key: MINIO_ROOT_PASSWORD
           command:
             - /bin/sh
             - -c

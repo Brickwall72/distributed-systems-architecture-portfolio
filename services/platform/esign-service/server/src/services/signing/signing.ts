@@ -68,6 +68,10 @@ export async function signDocument({
   const certPath = process.env.SIGNING_CERT_PATH || path.resolve(process.cwd(), 'certs/certificate.p12');
 
   try {
+    const passphrase = process.env.SIGNING_CERT_PASSWORD || process.env.CERT_PASSPHRASE;
+    if (!passphrase) {
+      throw new Error('SIGNING_CERT_PASSWORD or CERT_PASSPHRASE is required.');
+    }
     const p12Buffer = await fs.readFile(certPath);
     logger.debug('Applying P12 cryptographic certificate seal.');
 
@@ -83,7 +87,7 @@ export async function signDocument({
     pdfBuffer = Buffer.from(await pdfDoc.save());
 
     const signer = new P12Signer(p12Buffer, {
-      passphrase: process.env.SIGNING_CERT_PASSWORD || process.env.CERT_PASSPHRASE || 'changeit',
+      passphrase,
     });
     const signPdf = new SignPdf();
     pdfBuffer = Buffer.from(await signPdf.sign(pdfBuffer, signer));
