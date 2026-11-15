@@ -6,7 +6,6 @@ const logger = createLogger('topology-service');
 
 const DB_URI = process.env.DB_URI || 'bolt://localhost:7687';
 const DB_USER = process.env.DB_USER || 'neo4j';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'password';
 
 let driverInstance: Driver | null = null;
 
@@ -14,11 +13,15 @@ export async function initializeDatabaseConnection(
   retries = Number.parseInt(process.env.DB_CONNECT_RETRIES || '30', 10),
   delayMs = Number.parseInt(process.env.DB_CONNECT_RETRY_DELAY_MS || '3000', 10)
 ): Promise<Driver> {
+  const password = process.env.DB_PASSWORD;
+  if (!password) {
+    throw new Error('DB_PASSWORD is required to connect to Neo4j.');
+  }
   logger.info(`Attempting secure connection to graph infrastructure node at URI: [${DB_URI}]`);
 
   const connect = async (attempt: number): Promise<Driver> => {
     try {
-      driverInstance = neo4j.driver(DB_URI, neo4j.auth.basic(DB_USER, DB_PASSWORD), {
+      driverInstance = neo4j.driver(DB_URI, neo4j.auth.basic(DB_USER, password), {
         maxConnectionPoolSize: 50,
         connectionTimeout: 5000
       });

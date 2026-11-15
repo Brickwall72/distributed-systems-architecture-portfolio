@@ -89,6 +89,10 @@ fi
 
 echo "✓ Homebrew verified and active ($(brew --version | head -n1))"
 
+# --- PYTHON RUNTIME FOR LOCAL ENVIRONMENT AND SECRET BOOTSTRAP ---
+source "$(dirname "${BASH_SOURCE[0]}")/scripts/ensure-python.sh"
+ensure_python "${TARGET_PROFILE}"
+
 # --- STEP 2: CROSS-PLATFORM BROWSER SETUP (Puppeteer Gate) ---
 echo "Verifying system browser for Puppeteer test suites..."
 if [[ "${OS_TYPE}" == "Linux" ]]; then
@@ -163,8 +167,8 @@ else
 fi
 
 # --- STEP 4: CLUSTER & DEVOPS TOOLING GATE (Kubectl, K3d, Skaffold) ---
-echo "Verifying Kubernetes & DevOps toolchain (kubectl, k3d, skaffold)..."
-for tool in kubectl k3d skaffold; do
+echo "Verifying Kubernetes & DevOps toolchain (kubectl, k3d, skaffold, helm)..."
+for tool in kubectl k3d skaffold helm; do
   if ! command -v "${tool}" &> /dev/null; then
     echo "Installing ${tool} via Homebrew..."
     brew install "${tool}"
@@ -235,6 +239,8 @@ pnpm setup --force
 echo "Executing pnpm workspace package compilation loops..."
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm build
+
+pnpm dev:prepare
 
 if [[ "${BUILD_DOCKER_BASE:-false}" == "true" ]]; then
     echo "Building shared Docker base image..."

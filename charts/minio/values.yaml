@@ -10,8 +10,7 @@ setupImage:
   tag: "latest-dev" # Required: -dev variant includes /bin/sh for the setup script
   pullPolicy: IfNotPresent
 
-rootUser: minioadmin
-rootPassword: minioadmin
+credentialsSecret: minio-credentials
 
 bucket: dsap
 

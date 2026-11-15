@@ -22,6 +22,17 @@ describe('topology database connection lifecycle', () => {
   beforeEach(async () => {
     await terminateDatabaseClient();
     vi.clearAllMocks();
+    vi.stubEnv('DB_PASSWORD', 'test-password');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('rejects a missing database password before connecting', async () => {
+    vi.stubEnv('DB_PASSWORD', '');
+    await expect(initializeDatabaseConnection(1, 0)).rejects.toThrow('DB_PASSWORD is required');
+    expect(neo4j.driver).not.toHaveBeenCalled();
   });
 
   it('initializes and returns the verified driver, then closes it on termination', async () => {

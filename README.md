@@ -100,14 +100,13 @@ git clone git@github.com:Brickwall72/distributed-systems-architecture-portfolio.
 cd distributed-systems-architecture-portfolio
 ```
 
-Make the bootstrap executable and run it. Do not use pnpm before this step; the script installs pnpm when it is missing:
+Run the bootstrap with Bash. Do not use pnpm before this step; the script installs pnpm when it is missing:
 
 ```bash
-chmod +x setup.sh
-BUILD_DOCKER_BASE=true ./setup.sh
+BUILD_DOCKER_BASE=true bash setup.sh
 ```
 
-`setup.sh` installs or verifies Node.js, pnpm, kubectl, Helm, k3d, and Skaffold; installs workspace dependencies; builds the workspace; builds `base-image:local`; creates or selects the `platform-cluster` k3d cluster; and installs or upgrades Traefik. The k3d cluster maps host ports `8081` and `8443` to the Traefik load balancer.
+`setup.sh` installs or verifies Python 3.9 or newer, Node.js, pnpm, kubectl, Helm, k3d, and Skaffold; installs workspace dependencies; builds the workspace; and prepares local environment files and credentials. If Python is missing or too old, it installs Python 3.12 through Homebrew and adds it to your shell profile. With `BUILD_DOCKER_BASE=true`, it also builds `base-image:local`. Cluster creation and Traefik installation are separate commands below. The k3d cluster maps host ports `8081` and `8443` to the Traefik load balancer.
 
 If the script updates your shell profile, reload it before using pnpm in a new shell:
 
@@ -116,19 +115,28 @@ source ~/.bashrc  # Linux/WSL
 # or: source ~/.zshrc  # macOS
 ```
 
-Create local environment files after pnpm is available. This copies every
-`.env.example` over its corresponding `.env`; do not run it if you need to
-preserve existing local configuration without first backing it up:
+Prepare or update local environment files after pnpm is available:
 
 ```bash
 pnpm env:copy
 ```
 
+The environment and secret bootstrap scripts require Python 3.9 or newer.
+The command creates missing `.env` files and adds variables missing from existing
+files. It preserves existing values and local-only variables, and reports
+differences from the template by variable name. In particular, changed template
+defaults are not automatically applied to existing values; review those
+differences after pulling changes. To deliberately replace all local files with
+their templates, run `pnpm env:reset` and confirm the warning. Replacing
+credentials in `.env` does not update passwords already stored in persistent
+databases and can prevent the platform from starting.
+The credential helpers accept simple `KEY=value` or fully quoted values; they
+reject interpolation and unsupported escaping rather than interpreting a
+credential differently from Compose.
+
 ### Start the Local Platform
 
-Run these steps in order from a freshly bootstrapped workspace. `setup.sh`
-already creates the cluster and installs Traefik; the explicit commands below
-are idempotent checks that also recover a stopped local cluster.
+Run these steps in order from a freshly bootstrapped workspace.
 
 Select or create the k3d cluster:
 
@@ -154,9 +162,14 @@ Create the Kubernetes database credentials while the cluster API is available:
 pnpm k8s:secrets
 ```
 
-If `DB_PASSWORD` is omitted, the helper generates a local value. The command is
-idempotent when the Secret already exists, so restarting Skaffold does not
-silently rotate credentials used by running pods.
+The helper operates only on context `k3d-platform-cluster` and the
+`platform-local` namespace. It prepares credentials from the service `.env`
+files and requires all relevant values to be present. If a database Secret does
+not exist and its storage is new, it uses those credentials. On subsequent runs it
+checks the existing Secrets rather than overwriting them. It refuses conflicting
+local values or missing credentials alongside existing storage or workloads;
+recover the original credentials before retrying instead of deleting data.
+NATS and auth key files must match any existing Kubernetes Secrets.
 
 Start the integrated development deployment and leave it running:
 
@@ -245,9 +258,27 @@ pnpm docker:base
 docker compose up --build -d
 ```
 
-`pnpm docker:base` generates persistent local NATS credentials under the
-ignored `.auth-keys/nats/` directory, retaining existing passwords on subsequent
-runs. Compose starts an authenticated broker, then services initialize their own
+`pnpm docker:base` runs `pnpm dev:prepare` before building. To prepare credentials
+without rebuilding the image, run `pnpm dev:prepare`; afterward plain
+`docker compose up` is supported. Service `.env` files are the editable
+credential source for both Compose and `pnpm k8s:secrets`. Re-run preparation
+after editing them. Per-workload generated files in the ignored
+`.auth-keys/local/` directory feed Compose and local Kubernetes; exported shell
+DB, S3 and signing-password variables do not override those credentials.
+Non-secret Compose settings can still be overridden as usual. Local S3 settings
+must agree across the relevant services, and the signing password must match the
+local P12 certificate. Reconcile errors before starting.
+
+The local directory is a symlink to a protected, atomically published generation
+in `.auth-keys/local-generations/`. Old generations remain for readers that may
+already be using them and contain old credentials: protect them and remove
+unneeded generations only after stopping concurrent preparation and deployments.
+If preparation reports a stale `.local-credentials.lock`, verify no preparation
+is running before removing that lock directory. NATS passwords live separately
+in `.auth-keys/nats/`; JWT keys and the P12 certificate retain their existing
+locations. Preserve and back up matching key and password files; partial NATS
+or JWT material is rejected rather than silently replaced. The `.auth-keys`
+directory is private to the host user. Compose starts an authenticated broker, then services initialize their own
 streams and consumers. Existing JetStream data and consumer acknowledgements are
 preserved; incompatible subject or consumer configuration fails rather than being
 silently replaced. Do not commit these credentials.
@@ -259,6 +290,80 @@ Secrets if absent. It refuses to overwrite an existing Secret that differs from
 the local credentials. Older broker Secrets may retain an unused admin key; it
 is ignored and need not be deleted. Coordinate credential rotation across the
 broker and services, and use a secure secret manager outside local development.
+
+The MinIO chart reads `minio-credentials` for both the server and setup job,
+as do its application clients. If an existing MinIO deployment used different
+chart values from that Secret, local bootstrap stops instead of silently
+changing credentials. Recover and reconcile the existing credentials before
+upgrading. Changing a Secret is not a database or NATS password rotation.
+
+### Reset disposable Compose data
+
+Changing a password in `.env` and preparing credentials does **not** change an
+already-initialized database or MinIO account. Normal setup and startup never
+delete data. If local Compose state is disposable, first preview the reset:
+
+```bash
+pnpm dev:reset:compose --project distributed-systems-architecture-portfolio
+```
+
+The project name above is the standard Compose project for a checkout with the
+repository's default directory name. `dsap-local` is also supported when
+explicitly selected using `docker compose -p dsap-local`. The preview lists
+the exact containers and volumes, and refuses an unexpected project, foreign
+workspace, unknown volume, or unverifiable orphaned volumes. It uses the current
+Docker context; check that context before proceeding. To remove the listed state,
+repeat the command with `--execute` and type the displayed confirmation:
+
+```bash
+pnpm dev:reset:compose --project distributed-systems-architecture-portfolio --execute
+pnpm dev:prepare
+docker compose up --build -d
+```
+
+This deletes the listed Neo4j, PostgreSQL, MongoDB, MinIO, JetStream and DBGate
+data, including documents and event history, but retains `.env` files and keys.
+For the alternate project, include `-p dsap-local` when starting Compose.
+Kubernetes is not affected. Kubernetes Secret conflicts require recovery or a
+separately coordinated reset of the local cluster's workloads and data; this
+command does not reset Kubernetes. Resetting only one deployment or part of the
+platform can leave database, object and event histories inconsistent.
+
+### Future public-demo secrets
+
+The public demo intentionally permits selection of fictional identities. Its
+secrets are separate from local `.env` files, the tracked local signing
+certificate, and local Kubernetes Secrets. For the future home server, create a
+dedicated namespace, then explicitly initialize its material:
+
+```bash
+kubectl --context YOUR_CONTEXT create namespace platform-demo
+pnpm k8s:demo-secrets --context YOUR_CONTEXT --namespace platform-demo \
+  --dir "$HOME/.local/share/dsap-demo" --init
+```
+
+The command generates high-entropy credentials, JWT keys, and a separate
+self-signed fictional signing certificate. It stores a mode-0600 bundle in the
+private directory and creates Kubernetes Secrets without putting their values
+in Helm settings or command arguments. Keep a protected backup of the bundle:
+it is required for repeat provisioning and recovery. Later runs use the same
+arguments (without `--init` is sufficient); existing Secrets are compared, not
+replaced. The bundle is bound to the named Kubernetes context and namespace.
+If material, an existing Secret, or persistent state conflicts, stop and
+recover the original material rather than generating replacements. The
+certificate is for a fictional demo, not a trusted real-world signature.
+
+This command provisions **secrets only**. It does not configure Funnel, install
+application releases, deploy DBGate, secure the Kubernetes API or dashboards,
+or enable TLS. A future demo deployment must omit DBGate and other admin
+surfaces, configure its own namespace-aware NATS and browser-reachable S3
+endpoints, and verify network policy enforcement. Kubernetes Secrets also
+require appropriate RBAC, encryption at rest, and protected host and backup
+access. MinIO and database application accounts still use the existing shared
+account boundaries. Intentional rotation requires coordinated updates to the
+backing service, clients, and any restore procedure; changing a Secret alone
+does not rotate a persisted database account. A demo data reset must not replace
+current credentials.
 
 Publishers initialize their streams before publishing; subscribers wait for
 upstream streams and remain unready until their durable consumers are available.
