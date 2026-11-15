@@ -26,7 +26,7 @@ describe('RenditionService', () => {
       renditions as unknown as RenditionsRepository, broker as unknown as EventBroker);
     await service.tick();
     expect(renditions.ensure).toHaveBeenCalledWith(record);
-    expect(broker.request).toHaveBeenCalledWith(PDF_SUBJECTS.GENERATE_PDF, expect.objectContaining({
+    expect(broker.request).toHaveBeenCalledWith(PDF_SUBJECTS.GENERATE_AUDIT_PDF, expect.objectContaining({
       requisitionNumber: record.requisitionNumber, html: expect.stringContaining(record.requisitionNumber),
     }), { timeout: 45_000 });
     expect(renditions.complete).toHaveBeenCalledWith(job, {

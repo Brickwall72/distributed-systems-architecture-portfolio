@@ -23,13 +23,14 @@ vi.mock('../services', async (importOriginal) => {
 });
 
 describe('registerPdfResponder', () => {
-  let registeredHandler: (payload: unknown) => Promise<unknown>;
+  let handlers: Record<string, (payload: unknown) => Promise<unknown>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    handlers = {};
     const mockBroker = {
       respond: vi.fn((subject, handler) => {
-        if (subject === PDF_SUBJECTS.GENERATE_PDF) registeredHandler = handler;
+        handlers[subject] = handler;
       }),
     } as unknown as EventBroker;
 
@@ -37,9 +38,9 @@ describe('registerPdfResponder', () => {
   });
 
   it('accepts a globally-contracted command and returns a globally-contracted response', async () => {
-    const command = zocker(globalCommandSchema).generate();
+    const command = { ...zocker(globalCommandSchema).generate(), documentId: 'document-1', customPath: 'compliance/drafts' };
 
-    const response = generatePdfResponseSchema.parse(await registeredHandler(command));
+    const response = generatePdfResponseSchema.parse(await handlers[PDF_SUBJECTS.GENERATE_PDF](command));
 
     expect(response.success).toBe(true);
     expect(response.presignedUrl).toContain('https://');
@@ -47,7 +48,15 @@ describe('registerPdfResponder', () => {
   });
 
   it('rejects payloads that do not satisfy the local schema', async () => {
-    const command = zocker(globalCommandSchema).generate();
-    await expect(registeredHandler({ ...command, html: undefined })).rejects.toThrow();
+    const command = { ...zocker(globalCommandSchema).generate(), documentId: 'document-1', customPath: 'compliance/drafts' };
+    await expect(handlers[PDF_SUBJECTS.GENERATE_PDF]({ ...command, html: undefined })).rejects.toThrow();
+  });
+
+  it('only allows paths belonging to the caller-specific subject', async () => {
+    const command = { ...zocker(globalCommandSchema).generate(), documentId: 'document-1', customPath: 'audit/transfers/1/overview-v1' };
+    await expect(handlers[PDF_SUBJECTS.GENERATE_AUDIT_PDF](command)).resolves.toBeDefined();
+    await expect(handlers[PDF_SUBJECTS.GENERATE_PDF](command)).rejects.toThrow('permitted storage prefix');
+    await expect(handlers[PDF_SUBJECTS.GENERATE_AUDIT_PDF]({ ...command, customPath: 'audit/transfers/../overview-v1' })).rejects.toThrow('permitted storage prefix');
+    await expect(handlers[PDF_SUBJECTS.GENERATE_AUDIT_PDF]({ ...command, documentId: '../other' })).rejects.toThrow('permitted storage prefix');
   });
 });

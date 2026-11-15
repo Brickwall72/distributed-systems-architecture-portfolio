@@ -8,6 +8,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ $name }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - ReadWriteOnce
@@ -28,6 +30,10 @@ metadata:
   {{- end }}
 spec:
   replicas: 1
+  {{- if .Values.deploymentStrategy }}
+  strategy:
+    {{- toYaml .Values.deploymentStrategy | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- $labels | nindent 6 }}
@@ -43,11 +49,23 @@ spec:
       serviceAccountName: {{ $name }}
       automountServiceAccountToken: false
       securityContext:
+        {{- if .Values.podSecurityContext }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- else }}
         {{- include "platform-lib.databasePodSecurityContext" . | nindent 8 }}
+        {{- end }}
       containers:
         - name: database
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.command }}
+          command:
+            {{- toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          {{- end }}
           ports:
             {{- range .Values.ports }}
             - name: {{ .name }}
@@ -61,21 +79,31 @@ spec:
           envFrom:
             {{- toYaml .Values.envFrom | nindent 12 }}
           {{- end }}
-          {{- if .Values.persistence.enabled }}
+          {{- if or .Values.persistence.enabled .Values.volumeMounts }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           readinessProbe:
             {{- toYaml .Values.probes.readiness | nindent 12 }}
           livenessProbe:
             {{- toYaml .Values.probes.liveness | nindent 12 }}
           {{- include "platform-lib.resources" .Values.resources | nindent 10 }}
-      {{- if .Values.persistence.enabled }}
+      {{- if or .Values.persistence.enabled .Values.volumes }}
       volumes:
+        {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ $name }}
+        {{- end }}
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
 ---
 apiVersion: v1

@@ -1,0 +1,39 @@
+{{/* File: charts/network-policies/templates/database-setup.yaml */}}
+{{- range $db := list (dict "name" "compliance" "port" 5432) (dict "name" "audit" "port" 27017) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-{{ $db.name }}-database-setup-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $db.name }}-db
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $db.name }}-db-setup
+      ports:
+        - protocol: TCP
+          port: {{ $db.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-{{ $db.name }}-database-setup-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $db.name }}-db-setup
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $db.name }}-db
+      ports:
+        - protocol: TCP
+          port: {{ $db.port }}
+---
+{{- end }}

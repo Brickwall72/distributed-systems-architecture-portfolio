@@ -7,6 +7,10 @@ build:
   local:
     useBuildkit: true
   artifacts:
+    - image: dsap-minio-setup
+      context: charts/minio
+      docker:
+        dockerfile: Dockerfile.setup
     - image: topology-server
       context: services/core/topology-service
       docker:
@@ -140,6 +144,9 @@ deploy:
       - name: minio
         chartPath: charts/minio
         namespace: platform-local
+        setValueTemplates:
+          setupImage.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
+          setupImage.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
       - name: nats
         chartPath: charts/nats
         namespace: platform-local
@@ -155,6 +162,8 @@ deploy:
         chartPath: charts/compliance-service
         namespace: platform-local
         setValueTemplates:
+          server.minioReadiness.image.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
+          server.minioReadiness.image.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
           server.image.repository: "{{.IMAGE_REPO_compliance_server}}"
           server.image.tag: "{{.IMAGE_TAG_compliance_server}}"
           client.image.repository: "{{.IMAGE_REPO_compliance_client}}"
@@ -163,6 +172,8 @@ deploy:
         chartPath: charts/audit-ledger
         namespace: platform-local
         setValueTemplates:
+          server.minioReadiness.image.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
+          server.minioReadiness.image.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
           server.image.repository: "{{.IMAGE_REPO_audit_server}}"
           server.image.tag: "{{.IMAGE_TAG_audit_server}}"
           client.image.repository: "{{.IMAGE_REPO_audit_client}}"
@@ -171,12 +182,16 @@ deploy:
         chartPath: charts/pdf-service
         namespace: platform-local
         setValueTemplates:
+          server.minioReadiness.image.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
+          server.minioReadiness.image.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
           server.image.repository: "{{.IMAGE_REPO_pdf_server}}"
           server.image.tag: "{{.IMAGE_TAG_pdf_server}}"
       - name: esign-service
         chartPath: charts/esign-service
         namespace: platform-local
         setValueTemplates:
+          server.minioReadiness.image.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
+          server.minioReadiness.image.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
           server.image.repository: "{{.IMAGE_REPO_esign_server}}"
           server.image.tag: "{{.IMAGE_TAG_esign_server}}"
       - name: auth-service

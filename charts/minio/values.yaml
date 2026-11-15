@@ -6,8 +6,8 @@ image:
   pullPolicy: IfNotPresent
 
 setupImage:
-  repository: cgr.dev/chainguard/minio-client
-  tag: "latest-dev" # Required: -dev variant includes /bin/sh for the setup script
+  repository: dsap-minio-setup
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 credentialsSecret: minio-credentials
@@ -24,6 +24,16 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+setupResources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+    ephemeral-storage: 256Mi
 
 ingress:
   enabled: true

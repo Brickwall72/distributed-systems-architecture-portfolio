@@ -115,7 +115,8 @@ source ~/.bashrc  # Linux/WSL
 # or: source ~/.zshrc  # macOS
 ```
 
-Prepare or update local environment files after pnpm is available:
+The setup script already prepares local environment files after installing
+Python and pnpm. To repeat only the non-destructive template merge later, run:
 
 ```bash
 pnpm env:copy
@@ -133,6 +134,18 @@ databases and can prevent the platform from starting.
 The credential helpers accept simple `KEY=value` or fully quoted values; they
 reject interpolation and unsupported escaping rather than interpreting a
 credential differently from Compose.
+
+If setup reports conflicting MinIO identities after a pull, `env:copy` has
+preserved older shared `S3_ACCESS_KEY` or `S3_SECRET_KEY` values. The error
+identifies the affected file and variable names without printing their values.
+Compare those entries with the adjacent `.env.example` files; the root MinIO
+credentials and each service's access key and secret must be distinct.
+Back up current credentials and data before changing them. If all existing
+local data is disposable, use the explicitly confirmed reset procedures below,
+then update the conflicting entries from their templates and rerun
+`pnpm dev:prepare` or `bash setup.sh`. If data must be retained, follow the
+manual credential recovery/rotation guidance below instead: changing `.env`
+alone does not provision accounts or rotate passwords in persistent stores.
 
 ### Start the Local Platform
 
@@ -229,10 +242,31 @@ rather than creating a replacement signature. An unresolved signing operation re
 its signature image in the compliance database until completion or a pre-signing
 conflict. Restrict database access, encrypt backups, and monitor retry failures;
 never discard an uncertain operation or release its signing claim without first
-reconciling the signed artifact and topology state. Fresh topology seeds use UUID
-transfer identifiers; existing development graphs must be reinitialized to use them.
-The demo graph is seeded only when no topology entities exist, so restarting
-the service does not recreate custody relationships after a transfer.
+reconciling the signed artifact and topology state. Fresh topology graphs start
+with fictional organizations and at least twelve available assets, but no
+transfer history. The seed runs only when no topology entities exist, so it
+does not replace existing graphs or recreate custody relationships on restart.
+New transfers must be created through the normal workflow.
+
+The topology Kubernetes chart now uses a PVC for Neo4j data. An upgrade from a
+running non-persistent topology deployment is blocked by default because
+switching volumes would replace its currently visible graph with a different
+one. Back up or deliberately discard that graph before enabling the explicit
+Helm override `database.persistence.allowStorageTransition=true`. The override
+does not migrate data. The Neo4j deployment uses the Recreate strategy to avoid
+concurrent writers to the PVC, so upgrades and restarts cause brief downtime.
+Compose already uses a named volume.
+The Helm charts retain database, MinIO, NATS and DBGate PVCs when a release is
+uninstalled, including Skaffold cleanup. Their contents and credentials remain
+the operator's responsibility; deleting a namespace, PVC, backing volume, or
+cluster is a separate destructive operation and is not prevented by Helm's
+retention annotation. Reinstall the same releases against the retained claims
+and original Secrets, or deliberately remove the claims only after a backup and
+an explicit decision to discard their contents.
+Neo4j Community Edition does not provide the fine-grained role commands needed
+to enforce graph permissions per demo profile. The topology service connects
+using its database credentials and enforces profile and organization access at
+the application boundary; signing into the UI does not create a database user.
 The e-sign service requires a readable P12 certificate and a matching
 `SIGNING_CERT_PASSWORD`; signing fails rather than returning an unsealed PDF
 when the certificate or cryptographic seal cannot be applied. The legacy
@@ -245,6 +279,13 @@ per-service identities, subject permissions, and private reply inboxes.
 Topology and compliance create or verify their own event streams; subscribers
 create or verify their own durable consumers. Permissions authorize those
 specific JetStream operations rather than granting unrestricted administration.
+PDF generation uses separate NATS subjects for compliance drafts and audit
+overviews; each caller is permitted only its own subject, and the PDF service
+rejects keys outside the subject's domain prefix. Deploy the broker policy,
+PDF worker, and both callers together: older audit clients still using the
+compliance subject will be denied. E-sign currently accepts only compliance draft
+keys and matching compliance transfer destinations; future domains require
+their own authorized request boundary before being enabled.
 The local broker connections are plaintext and the local credentials are not a
 production secret-management solution. Use TLS, network isolation and managed
 secret rotation for a real deployment.
@@ -265,9 +306,10 @@ credential source for both Compose and `pnpm k8s:secrets`. Re-run preparation
 after editing them. Per-workload generated files in the ignored
 `.auth-keys/local/` directory feed Compose and local Kubernetes; exported shell
 DB, S3 and signing-password variables do not override those credentials.
-Non-secret Compose settings can still be overridden as usual. Local S3 settings
-must agree across the relevant services, and the signing password must match the
-local P12 certificate. Reconcile errors before starting.
+Non-secret Compose settings can still be overridden as usual. MinIO root and
+each service have distinct credentials, as do the PostgreSQL and MongoDB
+administrator and application users. The signing password must match the local
+P12 certificate. Reconcile errors before starting.
 
 The local directory is a symlink to a protected, atomically published generation
 in `.auth-keys/local-generations/`. Old generations remain for readers that may
@@ -290,12 +332,65 @@ Secrets if absent. It refuses to overwrite an existing Secret that differs from
 the local credentials. Older broker Secrets may retain an unused admin key; it
 is ignored and need not be deleted. Coordinate credential rotation across the
 broker and services, and use a secure secret manager outside local development.
+Skaffold builds and supplies the `dsap-minio-setup` image for the MinIO job
+and service readiness checks. A direct Helm installation must build or publish
+that image itself and set the MinIO `setupImage` and each applicable server's
+`minioReadiness.image` to the same accessible image.
 
-The MinIO chart reads `minio-credentials` for both the server and setup job,
-as do its application clients. If an existing MinIO deployment used different
-chart values from that Secret, local bootstrap stops instead of silently
-changing credentials. Recover and reconcile the existing credentials before
-upgrading. Changing a Secret is not a database or NATS password rotation.
+MinIO root credentials are available only to the MinIO server and setup job.
+Applications use their own `minio-<service>-credentials` Secrets. PostgreSQL and
+MongoDB administrators likewise have separate Secrets from their application
+users; DBGate uses the application accounts and inherits their restrictions.
+Setup jobs verify existing accounts rather than rotating passwords or silently
+replacing conflicting policies. Kubernetes application startup waits for the
+provisioned database and MinIO accounts. The MinIO setup reserves a
+`.dsap-ready` object under each authorized prefix for this readiness check.
+Changing a Secret is not a database, MinIO, or NATS password rotation.
+Database and MinIO setup jobs have configurable `setupResources` requests and
+limits, including ephemeral storage. Service readiness init containers also have
+resource settings in their server chart values. These are starting points to
+adjust for the cluster; ephemeral storage is not a persistent volume.
+MinIO provisioning also uses `dsap/.dsap-provision-lock` to serialize setup.
+If an interrupted provisioner leaves this object behind, first confirm that no
+setup job or container is running, inspect the lock using an administrator
+interface, and explicitly remove only that lock before retrying. Do not remove
+the lock while another provisioner may be active.
+
+For a deliberate, data-preserving local credential change, back up the existing
+credentials and data first. Use the relevant administrator tools to provision
+or rotate the backing accounts and their exact policies/roles; for PostgreSQL,
+reconcile application-object ownership explicitly if changing the runtime
+username. Update the corresponding local `.env` files, then stop all
+recognized Compose projects. Only after the backing accounts are ready, publish
+the new local files with the explicit confirmation below:
+
+```bash
+python3 scripts/prepare-local-compose.py --accept-provisioned-credentials
+```
+
+This command refuses running Compose containers and **does not** change any
+backing account or Kubernetes Secret. On restart the setup jobs verify the
+credentials and policies and fail on conflicts. For Kubernetes, coordinate
+Secret changes with the backing services separately using a secure operator
+workflow; normal `pnpm k8s:secrets` refuses to overwrite conflicting Secrets.
+Retain the old material until the new accounts and recovery procedure have
+been verified.
+
+| Identity | Data access |
+| --- | --- |
+| Compliance | Reads `dsap/compliance/drafts/` and `dsap/compliance/transfers/`; PostgreSQL application account can create and manage its schema but cannot administer roles or databases. |
+| Audit | Reads `dsap/audit/transfers/`; MongoDB application account can read and insert ledger events, sealed transfers and dead letters, but cannot update or delete them. Drafts and rendition state remain mutable. |
+| PDF and e-sign | Separate MinIO identities read and write the allowed compliance and audit prefixes; neither can delete objects. Request validation and NATS permissions constrain which operations callers can invoke. |
+| Database and storage administrators | Initialize accounts, policies and indexes; credentials are not supplied to application servers or DBGate. |
+
+These are **service** accounts: a profile selected in the UI is authorized by
+application services, not by a separate database login. Neo4j Community
+Edition uses a shared service identity, so its profile restrictions are enforced
+in the application. MongoDB append-only access protects against updates and
+deletes by the application account, not by administrators or against false
+inserts. MinIO write permission is not itself immutability; document creation
+uses conditional writes. DBGate is a local administrative interface and must
+not be exposed publicly.
 
 ### Reset disposable Compose data
 
@@ -328,6 +423,54 @@ Kubernetes is not affected. Kubernetes Secret conflicts require recovery or a
 separately coordinated reset of the local cluster's workloads and data; this
 command does not reset Kubernetes. Resetting only one deployment or part of the
 platform can leave database, object and event histories inconsistent.
+Legacy local Kubernetes Secrets containing shared administrator credentials are
+rejected. Preserve or export the data and original credentials before manually
+coordinating any local cluster reset; this bootstrap does not delete Kubernetes
+Secrets or PVCs. Existing PostgreSQL objects owned by the legacy account also
+require explicit ownership reconciliation before the new runtime role can use
+them; provisioning refuses to take ownership automatically.
+
+For a **disposable** local Kubernetes reset, stop Skaffold and any other
+controller that can recreate workloads. Verify the context, review the
+releases, workloads, claims and Secrets, and back up anything to retain:
+
+```bash
+kubectl config current-context
+helm --kube-context k3d-platform-cluster -n platform-local list
+kubectl --context k3d-platform-cluster -n platform-local get deployments,jobs,pods,pvc,secrets
+```
+
+Only if you have decided to discard the entire local platform state, remove
+the platform releases below. Older releases may not have the PVC-retention
+annotation, so their uninstallation can itself delete data. Inspect their
+manifests and PVCs before running this command:
+
+```bash
+helm --kube-context k3d-platform-cluster -n platform-local uninstall --ignore-not-found \
+  topology-service compliance-service audit-ledger pdf-service esign-service \
+  auth-service topology-shell compliance-shell global-shell minio nats dbgate network-policies
+```
+
+Confirm that the listed platform writers have stopped. Then explicitly remove
+the named remaining claims and scoped database/MinIO Secrets; this permanently
+deletes graph, compliance, audit, object, event and DBGate data. JWT, NATS and
+signing Secrets are intentionally retained. Do not run these commands against
+the demo or another context:
+
+```bash
+kubectl --context k3d-platform-cluster -n platform-local delete pvc --ignore-not-found \
+  topology-db compliance-db audit-db minio nats dbgate
+kubectl --context k3d-platform-cluster -n platform-local delete secret --ignore-not-found \
+  topology-db-credentials compliance-db-credentials compliance-db-admin-credentials \
+  audit-db-credentials audit-db-admin-credentials minio-credentials \
+  minio-compliance-credentials minio-audit-credentials minio-esign-credentials minio-pdf-credentials
+pnpm k8s:secrets
+```
+
+After confirming the current context is still `k3d-platform-cluster`, redeploy
+the local releases. A reset of only some stores can leave histories
+inconsistent. This procedure is manual, context-specific and separate from
+normal startup; it does not delete the namespace or cluster.
 
 ### Future public-demo secrets
 
@@ -359,11 +502,26 @@ or enable TLS. A future demo deployment must omit DBGate and other admin
 surfaces, configure its own namespace-aware NATS and browser-reachable S3
 endpoints, and verify network policy enforcement. Kubernetes Secrets also
 require appropriate RBAC, encryption at rest, and protected host and backup
-access. MinIO and database application accounts still use the existing shared
-account boundaries. Intentional rotation requires coordinated updates to the
+access. Intentional rotation requires coordinated updates to the
 backing service, clients, and any restore procedure; changing a Secret alone
 does not rotate a persisted database account. A demo data reset must not replace
 current credentials.
+
+For a version-1 demo bundle, an explicit access-model upgrade preserves the
+existing administrator, JWT, NATS and signing material and writes a protected
+`demo-secrets-v1.backup.json`. The upgrade is resumable after an interruption:
+
+```bash
+pnpm k8s:demo-secrets --context YOUR_CONTEXT --namespace platform-demo \
+  --dir "$HOME/.local/share/dsap-demo" --upgrade-access-model
+```
+
+The upgrade refuses to proceed if the database or MinIO deployments or PVCs,
+or dependent service deployments, exist. It does not migrate live database
+objects or delete storage. Preserve data and arrange an explicit migration or
+recovery before upgrading an already deployed demo. Inspect and retain the
+backup and any staged upgrade file; never generate replacement credentials to
+recover an existing deployment.
 
 Publishers initialize their streams before publishing; subscribers wait for
 upstream streams and remain unready until their durable consumers are available.
@@ -427,17 +585,22 @@ docker compose down
 
 Run `pnpm test:integration` separately from `pnpm test`. It requires Docker
 with Compose, pnpm, OpenSSL and curl. The command starts disposable PostgreSQL,
-Neo4j, NATS JetStream (including an authenticated broker) and MinIO containers on dynamically allocated loopback
-ports after building required workspace dependencies, runs the integration tests,
-and removes only its own project resources.
+MongoDB, Neo4j, NATS JetStream (including an authenticated broker) and MinIO
+containers on dynamically allocated loopback ports after building required
+workspace dependencies, runs the integration tests, and removes only its own
+project resources. The PostgreSQL and MongoDB tests exercise candidate restricted
+runtime roles; the MinIO test exercises candidate domain-scoped policies and
+presigned reads. These tests do not configure application deployments to use
+those accounts.
 It uses a separate empty Neo4j instance for the seed test. Existing development
 databases and containers are not used.
 
 The cross-service boundary test uses real PostgreSQL, Neo4j, NATS and the audit
 consumer but simulates PDF generation and e-sign responses. The e-sign
-integration test independently verifies a real PDF signature with a temporary
-certificate and OpenSSL. Run individual tests with explicitly configured,
-isolated test services only; never point them at development or production data.
+integration tests independently verify a real PDF signature with a temporary
+certificate and OpenSSL, and exercise the signing responder using separate
+scoped MinIO accounts. Run individual tests with explicitly configured, isolated
+test services only; never point them at development or production data.
 
 Do not run the Compose and Skaffold workflows on the same service ports at the same time.
 
@@ -520,6 +683,16 @@ Use `docker buildx prune -a` only when you are comfortable rebuilding all cached
 **Traefik returns `404`:** A `404` from `localhost:8081` before Skaffold deploys application Ingress resources confirms that Traefik is reachable. Start `pnpm skaffold` and inspect `kubectl get ingress -A`.
 
 **Skaffold appears stuck loading images:** The PDF server image contains Chromium and can take a while to import into k3d. Check `docker ps`, wait for the import to finish, and avoid interrupting it unless the process is genuinely stalled.
+
+**Servers wait for MinIO accounts and topology health returns `404`:** Inspect
+the MinIO setup Job and the servers' `wait-for-minio-account` logs. Network
+policies must allow compliance, audit, PDF and e-sign pods to reach MinIO on
+TCP port 9000 in both directions (client egress and MinIO ingress).
+Init containers use their parent pod's network identity. A successful setup Job
+does not prove application pods can connect. Topology does not expose its ready
+health route until its compliance-stream consumer initializes, so a topology
+readiness failure can be a downstream symptom of compliance failing to start.
+Do not bypass readiness or reset credentials to fix a connectivity failure.
 
 **Skaffold cannot find `base-image:local`:** Run `pnpm docker:base`; `pnpm skaffold`
 and `pnpm skaffold:reset` perform this base build automatically.

@@ -9,6 +9,14 @@ image:
 
 replicas: 1
 
+minioReadiness:
+  image: {repository: dsap-minio-setup, tag: latest, pullPolicy: IfNotPresent}
+  credentialsSecret: minio-compliance-credentials
+  prefix: compliance/drafts/
+  resources:
+    requests: {cpu: 100m, memory: 128Mi, ephemeral-storage: 64Mi}
+    limits: {cpu: 500m, memory: 512Mi, ephemeral-storage: 256Mi}
+
 env:
   - name: DATABASE_URL
     valueFrom:
@@ -16,7 +24,7 @@ env:
         name: compliance-db-credentials
         key: DATABASE_URL
   - name: NATS_URL
-    value: "nats://nats.platform-local.svc.cluster.local:4222"
+    value: "nats://nats:4222"
   - name: AUTH_PUBLIC_KEY_FILE
     value: "/app/auth/public.pem"
   - name: S3_PUBLIC_ENDPOINT
@@ -26,12 +34,12 @@ env:
   - name: S3_ACCESS_KEY
     valueFrom:
       secretKeyRef:
-        name: minio-credentials
+        name: minio-compliance-credentials
         key: S3_ACCESS_KEY
   - name: S3_SECRET_KEY
     valueFrom:
       secretKeyRef:
-        name: minio-credentials
+        name: minio-compliance-credentials
         key: S3_SECRET_KEY
 envFrom:
   - secretRef:
@@ -52,8 +60,26 @@ volumes:
 
 initContainers:
   - name: wait-for-db
-    image: busybox
-    command: ['sh', '-c', 'until nc -z compliance-db 5432; do echo waiting for db; sleep 2; done']
+    image: postgres:18.6-alpine
+    resources:
+      requests: {cpu: 50m, memory: 64Mi, ephemeral-storage: 64Mi}
+      limits: {cpu: 500m, memory: 256Mi, ephemeral-storage: 256Mi}
+    command: ['sh', '-c', 'until psql -X --no-psqlrc --quiet -c "SELECT 1" >/dev/null 2>&1; do echo waiting for provisioned database account; sleep 2; done']
+    env:
+      - name: PGHOST
+        value: compliance-db
+      - name: PGDATABASE
+        value: compliance
+      - name: PGUSER
+        valueFrom:
+          secretKeyRef:
+            name: compliance-db-credentials
+            key: DB_USER
+      - name: PGPASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: compliance-db-credentials
+            key: DB_PASSWORD
 
 annotations:
   prometheus.io/scrape: "true"

@@ -89,7 +89,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
     const identity = { sub: 'user', orgId: 'org-10', roles: ['org-member'], signerId: 'user' };
 
     it('returns HTTP 201 with contract-compliant AssetDTO when creation succeeds', async () => {
-      const requestBody = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' });
+      const requestBody = mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10', status: 'AVAILABLE', requisitionNumber: undefined });
       const createdEntity = mockFromSchema(assetEntitySchema, { id: requestBody.id, nomenclature: 'GPS-III' });
 
       vi.mocked(mockRepository.createAsset!).mockResolvedValue(createdEntity);
@@ -121,7 +121,7 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       const router = createAssetsRouter(mockRepository as AssetsRepository);
 
       const response = await router.createAsset({
-        body: mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10' }),
+        body: mockFromSchema(AssetDTOSchema, { name: 'GPS Navigation Unit', currentOwnerId: 'org-10', status: 'AVAILABLE', requisitionNumber: undefined }),
         headers: {} as any,
         files: undefined,
         file: undefined,
@@ -154,6 +154,23 @@ describe('createAssetsRouter (API Boundary Handler)', () => {
       });
 
       expect(response.status).toBe(status);
+      expect(mockRepository.createAsset).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { status: 'IN_TRANSIT' as const },
+      { status: 'AVAILABLE' as const, requisitionNumber: 'REQ-1' },
+    ])('rejects registration with transfer state', async (transferState) => {
+      const router = createAssetsRouter(mockRepository as AssetsRepository);
+      const response = await router.createAsset({
+        body: mockFromSchema(AssetDTOSchema, { name: 'Test asset', currentOwnerId: 'org-10', ...transferState }),
+        headers: {} as any,
+        files: undefined,
+        file: undefined,
+        req: { identity } as any,
+        res: {} as any,
+      });
+      expect(response.status).toBe(400);
       expect(mockRepository.createAsset).not.toHaveBeenCalled();
     });
   });

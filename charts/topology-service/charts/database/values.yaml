@@ -33,6 +33,9 @@ envFrom: []
 
 annotations: {}
 
+deploymentStrategy:
+  type: Recreate
+
 ports:
   - name: bolt
     port: 7687
@@ -56,9 +59,11 @@ probes:
     initialDelaySeconds: 30
     periodSeconds: 20
 
-# k8s/local/topology-service/db.yaml has no PVC for Neo4j either - not proven yet.
 persistence:
-  enabled: false
+  enabled: true
+  size: 1Gi
+  mountPath: /data
+  allowStorageTransition: false
 
 resources:
   requests:

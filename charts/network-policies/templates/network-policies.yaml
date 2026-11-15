@@ -281,6 +281,12 @@ spec:
     - from:
         - podSelector:
             matchLabels:
+              app.kubernetes.io/name: compliance-server
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-server
+        - podSelector:
+            matchLabels:
               app.kubernetes.io/name: esign-server
         - podSelector:
             matchLabels:
@@ -317,13 +323,15 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-pdf-and-esign-minio-egress
+  name: allow-storage-clients-minio-egress
 spec:
   podSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
         operator: In
         values:
+          - compliance-server
+          - audit-server
           - esign-server
           - pdf-server
   policyTypes:

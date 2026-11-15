@@ -23,7 +23,7 @@ env:
         name: topology-db-credentials
         key: DB_PASSWORD
   - name: NATS_URL
-    value: "nats://nats.platform-local.svc.cluster.local:4222"
+    value: "nats://nats:4222"
   - name: AUTH_PUBLIC_KEY_FILE
     value: "/app/auth/public.pem"
 envFrom:
@@ -46,6 +46,9 @@ volumes:
 initContainers:
   - name: wait-for-db
     image: busybox
+    resources:
+      requests: {cpu: 25m, memory: 32Mi, ephemeral-storage: 64Mi}
+      limits: {cpu: 250m, memory: 128Mi, ephemeral-storage: 256Mi}
     command: ['sh', '-c', 'until nc -z topology-db 7687; do echo waiting for topology-db; sleep 2; done']
 
 annotations:

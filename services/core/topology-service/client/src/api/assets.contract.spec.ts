@@ -61,7 +61,7 @@ describe('Topology Client -> Topology Server Contract (Assets API)', () => {
   });
 
   it('successfully registers a new asset via POST createAsset endpoint', async () => {
-    const newAssetPayload = mockAsset({ id: 'ast-202', name: 'AN/PRC-152A' });
+    const newAssetPayload = mockAsset({ id: 'ast-202', name: 'AN/PRC-152A', status: 'AVAILABLE', requisitionNumber: undefined });
 
     provider
       .given('organization org-1 exists')

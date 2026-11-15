@@ -22,6 +22,11 @@ vi.mock('../services', async (importOriginal) => {
 
 describe('registerESignResponder', () => {
   let handler: (payload: unknown) => Promise<unknown>;
+  const command = () => mockFromSchema(SignDocumentCommandSchema, {
+    fileHash: SHA256_HEX, documentId: 'document-1', documentType: 'AUTHORIZATION',
+    storageBucket: 'dsap', storageKey: 'compliance/drafts/document-1.pdf',
+    customPath: 'compliance/transfers/AUTHORIZATION',
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,7 +40,7 @@ describe('registerESignResponder', () => {
   });
 
   it('signs via claim-check, uploads, and returns a globally-contracted response', async () => {
-    const command = mockFromSchema(SignDocumentCommandSchema, { fileHash: SHA256_HEX });
+    const request = command();
 
     vi.mocked(signDocumentFromStorage).mockResolvedValueOnce(
       mockFromSchema(signDocumentReturnSchema, {
@@ -50,17 +55,17 @@ describe('registerESignResponder', () => {
       'http://localhost:9000/bucket/key.pdf?signature=xyz',
     );
 
-    const response = SignDocumentResponseSchema.parse(await handler(command));
+    const response = SignDocumentResponseSchema.parse(await handler(request));
 
     // Services must receive payloads that satisfy their own schemas
     signDocumentFromStorageParamsSchema.parse(vi.mocked(signDocumentFromStorage).mock.calls[0][0]);
     uploadSignedDocumentParamsSchema.parse(vi.mocked(uploadSignedDocument).mock.calls[0][0]);
 
     expect(vi.mocked(signDocumentFromStorage).mock.calls[0][0]).toMatchObject({
-      storageBucket: command.storageBucket,
-      storageKey: command.storageKey,
+      storageBucket: request.storageBucket,
+      storageKey: request.storageKey,
       fileHash: SHA256_HEX,
-      signatureImageBase64: command.signatureImageBase64,
+      signatureImageBase64: request.signatureImageBase64,
     });
     expect(response.success).toBe(true);
     expect(response.fileHash).toBe(SHA256_HEX);
@@ -79,14 +84,14 @@ describe('registerESignResponder', () => {
       pdfBuffer: Buffer.from('signed-pdf'), signedAt: '2026-01-01T00:00:00.000Z',
     });
     vi.mocked(publicStorageClient.getSignedDownloadUrl).mockResolvedValue('http://localhost:9000/bucket/key.pdf');
-    const command = mockFromSchema(SignDocumentCommandSchema, { fileHash: SHA256_HEX });
+    const request = command();
 
-    const first = SignDocumentResponseSchema.parse(await handler(command));
-    const retry = SignDocumentResponseSchema.parse(await handler(command));
+    const first = SignDocumentResponseSchema.parse(await handler(request));
+    const retry = SignDocumentResponseSchema.parse(await handler(request));
     expect(retry).toEqual(first);
     expect(signDocumentFromStorage).toHaveBeenCalledTimes(1);
     expect(uploadSignedDocument).toHaveBeenCalledTimes(1);
-    await expect(handler({ ...command, signatureImageBase64: 'different' })).rejects.toThrow('different request');
+    await expect(handler({ ...request, signatureImageBase64: 'different' })).rejects.toThrow('different request');
   });
 
   it('resolves concurrent identical requests to one stored signed artifact', async () => {
@@ -98,10 +103,21 @@ describe('registerESignResponder', () => {
       pdfBuffer: Buffer.from(`signed-pdf-${++counter}`), signedAt: '2026-01-01T00:00:00.000Z',
     }));
     vi.mocked(publicStorageClient.getSignedDownloadUrl).mockResolvedValue('http://localhost:9000/bucket/key.pdf');
-    const command = mockFromSchema(SignDocumentCommandSchema, { fileHash: SHA256_HEX });
+    const request = command();
 
-    const [first, second] = await Promise.all([handler(command), handler(command)]);
+    const [first, second] = await Promise.all([handler(request), handler(request)]);
     expect(SignDocumentResponseSchema.parse(first)).toEqual(SignDocumentResponseSchema.parse(second));
     expect(storage.storage.size).toBe(1);
+  });
+
+  it.each([
+    { storageBucket: 'another-bucket' },
+    { storageKey: 'audit/transfers/1/overview.pdf' },
+    { customPath: 'audit/transfers/1' },
+    { documentId: '../other' },
+    { documentType: 'OTHER' },
+  ])('rejects signing requests outside compliance paths', async (override) => {
+    await expect(handler({ ...command(), ...override })).rejects.toThrow('permitted compliance storage paths');
+    expect(downloadDocumentStream).not.toHaveBeenCalled();
   });
 });
