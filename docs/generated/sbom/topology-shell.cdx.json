@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:9e0be1dc-8639-4c1a-b878-e9f402a10ba8",
+  "serialNumber": "urn:uuid:578abe9e-6e64-4bff-aeac-6ce931c5ae4f",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-14T04:51:58+00:00",
+    "timestamp": "2026-11-15T01:41:37+00:00",
     "tools": {
       "components": [
         {
@@ -20,14 +20,18 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/topology-shell@sha256:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "bom-ref": "pkg:oci/topology-shell@sha256:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "type": "container",
-      "name": "topology-shell:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b",
-      "purl": "pkg:oci/topology-shell@sha256:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "name": "topology-shell:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6",
+      "purl": "pkg:oci/topology-shell@sha256:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:0cdb207ff3c3767879176a4f6f88925b8e248ef01a66ba766cd53f634fc82e85"
+          "value": "sha256:071d40fba6d13b735d46c31839e6619c59dec59724427c85b3ed7890aa075d2c"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:0dcfc59a7383fe96eeb2533ff1546b3e0377c7d5283547d96169f6267447beb7"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -35,11 +39,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:12d98d3bcf12d5c89525af4c64712eec1d461a73dcebd5f92e85297405857a9a"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:21da8d1a196ccf38914aae64063af749feb2ac4068ddc1f0147c155994bd27cc"
+          "value": "sha256:16e629867796c67203003a05e0a6ea4a6a00d5655a50cac9fda0ba0017263802"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -51,10 +51,6 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:5984b8799c4880237e7e4fb5d9096fd026cc2da020975190d1408d7354a50409"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:70b1e8c0d27469b83f38554586be41de0fa14f003aed9a98d69012ce29609976"
         },
         {
@@ -63,7 +59,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:80a73c6e1767dde1291144a4eeaa5eaa2ae9b98d02e1e7576f6be6fadcd92af3"
+          "value": "sha256:810386bab3d3ab8b9451b19d0ddccb3f76214ae2e8fe0dafbd4c4ad4b76becfc"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -79,11 +75,15 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:ed0bfa54d596612df3a906af80462d20c2e7281366265fbd435cca89a93beefe"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b"
+          "value": "sha256:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -123,19 +123,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "topology-shell:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b"
+          "value": "topology-shell:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "topology-shell@sha256:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b"
+          "value": "topology-shell@sha256:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "topology-shell:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b"
+          "value": "topology-shell:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "topology-shell:e585c10"
+          "value": "topology-shell:691404c"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -150,7 +150,7 @@
   },
   "components": [
     {
-      "bom-ref": "053da6ee-37db-4ffd-94f8-025bd8b986b1",
+      "bom-ref": "07ee1fd1-3d72-4ca7-9b9b-d837724a1897",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3812,7 +3812,7 @@
   ],
   "dependencies": [
     {
-      "ref": "053da6ee-37db-4ffd-94f8-025bd8b986b1",
+      "ref": "07ee1fd1-3d72-4ca7-9b9b-d837724a1897",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4345,9 +4345,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/topology-shell@sha256:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "ref": "pkg:oci/topology-shell@sha256:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "dependsOn": [
-        "053da6ee-37db-4ffd-94f8-025bd8b986b1"
+        "07ee1fd1-3d72-4ca7-9b9b-d837724a1897"
       ]
     }
   ],

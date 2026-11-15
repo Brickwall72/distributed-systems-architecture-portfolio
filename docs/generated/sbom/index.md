@@ -6,16 +6,16 @@ Generated with Trivy `0.76.1` and CycloneDX Sunshine revision `beaab3faf2bab2340
 
 | Image | SBOM | Visual report |
 | --- | --- | --- |
-| `audit-client:ef784afa5c01463f0c33425d2813f35130051c6cf2f1e3c12d5ad21399b6cb65` | [CycloneDX JSON](audit-client.cdx.json) | [HTML report](audit-client.html) |
-| `audit-server:8e47400ecbe202857ea70af164b0d25459fc286bb0719c7f4056bfdf1cbb358e` | [CycloneDX JSON](audit-server.cdx.json) | [HTML report](audit-server.html) |
-| `auth-client:e09607d988cdb516d9a6f79e2c1747bbb8d636bb488975f51a703754ef411407` | [CycloneDX JSON](auth-client.cdx.json) | [HTML report](auth-client.html) |
-| `auth-server:66d650562c3dd54eb04f39d7960948993d353d7225db0da1979f34be9c5d0470` | [CycloneDX JSON](auth-server.cdx.json) | [HTML report](auth-server.html) |
-| `compliance-client:3a7755861dd4c0d922683da776311b2cb0d761ffe27799d93bd8281fb4372804` | [CycloneDX JSON](compliance-client.cdx.json) | [HTML report](compliance-client.html) |
-| `compliance-server:712093f041885070ccb59fdb0ef1ac6e48a46e54d5843ecd80c180433be6cb5c` | [CycloneDX JSON](compliance-server.cdx.json) | [HTML report](compliance-server.html) |
-| `compliance-shell:8b7882c9f53f933433158695276de515864ce1c0ee58daeb9888d06198c4174c` | [CycloneDX JSON](compliance-shell.cdx.json) | [HTML report](compliance-shell.html) |
-| `esign-server:6b0cc27c8fb38ea5742e1fce7c55a8b26ca47af6045bc1cd73107149bd43c790` | [CycloneDX JSON](esign-server.cdx.json) | [HTML report](esign-server.html) |
-| `global-shell:3f45c52433db2dfc2d5a31447823354e25cfd2a2808bbc07d4c81676813cbea2` | [CycloneDX JSON](global-shell.cdx.json) | [HTML report](global-shell.html) |
-| `pdf-server:3c8bf728870c0b3ba74e975832fb9796c006a6737dec69de5b3f26d7972c7c51` | [CycloneDX JSON](pdf-server.cdx.json) | [HTML report](pdf-server.html) |
-| `topology-client:cadee8e23ca50daeb55a3de7e5ae3a8422fa1e267a93c91f1f91e70721aa4f4b` | [CycloneDX JSON](topology-client.cdx.json) | [HTML report](topology-client.html) |
-| `topology-server:433a3f5d8aed5abd2e8b312da8956d4224e07976274413da4a217f12d08364be` | [CycloneDX JSON](topology-server.cdx.json) | [HTML report](topology-server.html) |
-| `topology-shell:d56b37472a8b1a2aec8718b4775ff7cf46253b8253e14e5ccd9ea774c767283b` | [CycloneDX JSON](topology-shell.cdx.json) | [HTML report](topology-shell.html) |
+| `audit-client:0876fb75678ec3918809ae09f5ca1a5e8f66b5ef70164b57093899dc1c879149` | [CycloneDX JSON](audit-client.cdx.json) | [HTML report](audit-client.html) |
+| `audit-server:6c697c02dcc4065a34df594ba66a00abc8b902a5c0c4afe72ca6b6843ee4267a` | [CycloneDX JSON](audit-server.cdx.json) | [HTML report](audit-server.html) |
+| `auth-client:ff6d39559e4b9b40c8c409981025184b5b33e0b1ff4a7c932b95c061081aa7f8` | [CycloneDX JSON](auth-client.cdx.json) | [HTML report](auth-client.html) |
+| `auth-server:e3cb57d64870d7294b925bca84346b99957b454f927f16daf59f257114419e04` | [CycloneDX JSON](auth-server.cdx.json) | [HTML report](auth-server.html) |
+| `compliance-client:31d3d89e5370b2a2231366d2217734d50a7042bcf8437b8375a7a7c86df9800a` | [CycloneDX JSON](compliance-client.cdx.json) | [HTML report](compliance-client.html) |
+| `compliance-server:161401553d1c0445e6228e8b64a9d1b3cfaa25773de4ad38c8967ec3fa725bac` | [CycloneDX JSON](compliance-server.cdx.json) | [HTML report](compliance-server.html) |
+| `compliance-shell:ebf76524b119e39be0d80988d40ef6865ec5dd8f1fc0482a503ca2b138e53c84` | [CycloneDX JSON](compliance-shell.cdx.json) | [HTML report](compliance-shell.html) |
+| `esign-server:e37a4854fc7d7655aec65afed9c8a4fde5aa647eb6807e8b6ecb46b01b1867d6` | [CycloneDX JSON](esign-server.cdx.json) | [HTML report](esign-server.html) |
+| `global-shell:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210` | [CycloneDX JSON](global-shell.cdx.json) | [HTML report](global-shell.html) |
+| `pdf-server:5ebbc88decc463f08f1c2b8f4b8b774651925db8967895568e5e20b8ace3e82e` | [CycloneDX JSON](pdf-server.cdx.json) | [HTML report](pdf-server.html) |
+| `topology-client:5614cc6c34a7d99a8e423f0383e7f109e5b4f86885f713475eb4ee93414ce306` | [CycloneDX JSON](topology-client.cdx.json) | [HTML report](topology-client.html) |
+| `topology-server:7ac98e507bca7ad03d56c913299c717452203b02398c4158ef69246000c56747` | [CycloneDX JSON](topology-server.cdx.json) | [HTML report](topology-server.html) |
+| `topology-shell:468d825cb328ebe195e4cf48a3d035904a98a7111a9620975110eaf26bcc46f6` | [CycloneDX JSON](topology-shell.cdx.json) | [HTML report](topology-shell.html) |
