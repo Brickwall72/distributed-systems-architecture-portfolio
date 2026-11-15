@@ -67,10 +67,12 @@ services:
       - LABEL_compliance=Compliance DB
       - SERVER_compliance=compliance-db
       - PORT_compliance=5432
+      - DATABASE_compliance=compliance
       - ENGINE_compliance=postgres@dbgate-plugin-postgres
       - LABEL_audit=Audit Ledger DB
       - SERVER_audit=audit-db
       - PORT_audit=27017
+      - DATABASE_audit=audit
       - ENGINE_audit=mongo@dbgate-plugin-mongo
     volumes:
       - dbgate-data:/root/.dbgate  # <-- Persists queries, history, and settings
@@ -92,21 +94,19 @@ services:
       - minio-data:/data
 
   minio-setup:
-    image: cgr.dev/chainguard/minio-client:latest-dev
+    image: dsap-minio-setup:local
+    build:
+      context: ./charts/minio
+      dockerfile: Dockerfile.setup
     env_file:
-      - .auth-keys/local/minio.env
+      - .auth-keys/local/minio-setup.env
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: dsap
     depends_on:
       - minio
     networks:
       - platform-mesh
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -e
-        until mc alias set localmfe http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do echo 'Waiting for MinIO...'; sleep 1; done
-        mc mb --ignore-existing localmfe/dsap
-        mc anonymous set none localmfe/dsap
 volumes:
   dbgate-data:
   minio-data:

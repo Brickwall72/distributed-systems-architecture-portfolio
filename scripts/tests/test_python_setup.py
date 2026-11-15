@@ -1,3 +1,4 @@
+# File: scripts/tests/test_python_setup.py
 import os
 from pathlib import Path
 import subprocess
@@ -10,6 +11,12 @@ HELPER = ROOT / "scripts/ensure-python.sh"
 
 
 class PythonSetupTests(unittest.TestCase):
+    def test_setup_prepares_environment_after_python_and_before_build(self):
+        setup = (ROOT / "setup.sh").read_text()
+        self.assertLess(setup.index('ensure_python "${TARGET_PROFILE}"'), setup.index("pnpm dev:prepare"))
+        self.assertLess(setup.index("pnpm install --frozen-lockfile --ignore-scripts"), setup.index("pnpm dev:prepare"))
+        self.assertLess(setup.index("pnpm dev:prepare"), setup.index("pnpm build"))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

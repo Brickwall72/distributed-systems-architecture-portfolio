@@ -11,6 +11,7 @@ const envSchema = z.object({
   DB_PORT: z.coerce.number().default(27017),
   DB_NAME: z.string().default('audit'),
   DB_AUTH_SOURCE: z.string().default('admin'),
+  AUDIT_IMMUTABLE_INDEXES_PROVISIONED: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
   S3_PUBLIC_ENDPOINT: z.string().url().default('http://localhost:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().min(1),

@@ -1,10 +1,13 @@
 # File: charts/compliance-service/charts/database/values.yaml
+# File: charts/compliance-service/charts/database/values.yaml
 # Credentials come from the compliance-db-credentials secret bootstrapped by
 # scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
 
 # services/core/compliance-service/server/src/db/database.ts hardcodes "compliance-db"
 # as the fallback connection hostname, so the Service name must match literally.
 nameOverride: compliance-db
+deploymentStrategy:
+  type: Recreate
 
 image:
   repository: postgres
@@ -15,22 +18,39 @@ env:
   - name: POSTGRES_USER
     valueFrom:
       secretKeyRef:
-        name: compliance-db-credentials
+        name: compliance-db-admin-credentials
         key: POSTGRES_USER
   - name: POSTGRES_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: compliance-db-credentials
+        name: compliance-db-admin-credentials
         key: POSTGRES_PASSWORD
   - name: POSTGRES_DB
     valueFrom:
       secretKeyRef:
-        name: compliance-db-credentials
+        name: compliance-db-admin-credentials
         key: POSTGRES_DB
   - name: PGDATA
     value: /var/lib/postgresql/data/pgdata
 
 envFrom: []
+
+args: ["postgres", "-c", "hba_file=/etc/dsap/pg_hba.conf"]
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 70
+  runAsGroup: 70
+  fsGroup: 70
+  seccompProfile:
+    type: RuntimeDefault
+volumeMounts:
+  - name: bootstrap-config
+    mountPath: /etc/dsap
+    readOnly: true
+volumes:
+  - name: bootstrap-config
+    configMap:
+      name: compliance-db-bootstrap
 
 annotations:
   prometheus.io/scrape: "true"
@@ -65,3 +85,13 @@ resources:
   limits:
     cpu: 1
     memory: 1Gi
+
+setupResources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+    ephemeral-storage: 256Mi

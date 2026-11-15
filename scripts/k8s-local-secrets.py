@@ -113,9 +113,36 @@ def database_values(service, username, password):
             raise ValueError("Neo4j username/password cannot contain '/'.")
         values["NEO4J_AUTH"] = f"{username}/{password}"
     if service == "compliance":
-        values.update(POSTGRES_USER=username, POSTGRES_PASSWORD=password, POSTGRES_DB="compliance",
-                      DATABASE_URL=f"postgresql://{quote(username, safe='')}:{quote(password, safe='')}@compliance-db:5432/compliance")
+        values["DATABASE_URL"] = f"postgresql://{quote(username, safe='')}:{quote(password, safe='')}@compliance-db:5432/compliance"
     return encode(values)
+
+
+def _validate_database_secret(service, name, existing, values):
+    legacy_keys = {
+        "compliance": ("POSTGRES_USER", "POSTGRES_PASSWORD"),
+        "audit": ("MONGO_INITDB_ROOT_USERNAME", "MONGO_INITDB_ROOT_PASSWORD"),
+    }
+    if any(key in existing for key in legacy_keys.get(service, ())):
+        if service == "compliance":
+            raise ValueError("Legacy compliance-db-credentials contains administrator keys; explicitly recover or reset local state before upgrading.")
+        raise ValueError("audit-db-credentials contains administrator keys; explicitly recover or reset local state before upgrading.")
+    compare(name, existing, values)
+
+
+def _provision_database_admin(service, workload, local, current, pending):
+    admin_name = f"{service}-db-admin-credentials"
+    if service == "compliance":
+        admin_values = encode({"POSTGRES_USER": local["DB_ADMIN_USER"],
+                               "POSTGRES_PASSWORD": local["DB_ADMIN_PASSWORD"], "POSTGRES_DB": "compliance"})
+    else:
+        admin_values = encode({"MONGO_INITDB_ROOT_USERNAME": local["DB_ADMIN_USER"],
+                               "MONGO_INITDB_ROOT_PASSWORD": local["DB_ADMIN_PASSWORD"]})
+    admin = current[admin_name]
+    if admin:
+        compare(admin_name, admin, admin_values)
+        return
+    check_empty_storage(admin_name, workload)
+    pending[admin_name] = admin_values
 
 
 def provision_databases(current, local_values):
@@ -132,18 +159,20 @@ def provision_databases(current, local_values):
         username, password = database_credentials(name, workload, local, existing)
         values = database_values(service, username, password)
         if existing:
-            compare(name, existing, values)
+            _validate_database_secret(service, name, existing, values)
         else:
             pending[name] = values
+        if service in ("compliance", "audit"):
+            _provision_database_admin(service, workload, local, current, pending)
     return pending
 
 
 def minio_credentials(name, local, existing):
     if existing:
-        require_keys(name, existing, ("S3_ACCESS_KEY", "S3_SECRET_KEY", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"))
+        require_keys(name, existing, ("MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"))
     else:
         check_empty_storage(name, "minio")
-    return local["S3_ACCESS_KEY"], local["S3_SECRET_KEY"]
+    return local["MINIO_ROOT_USER"], local["MINIO_ROOT_PASSWORD"]
 
 
 def validate_minio_deployment(existing):
@@ -159,17 +188,30 @@ def validate_minio_deployment(existing):
 
 def provision_minio(current, local_values):
     pending = {}
-    local = local_values["esign"]
+    local = local_values["platform"]
     name = "minio-credentials"
     existing = current[name]
     user, password = minio_credentials(name, local, existing)
-    values = encode({"S3_ACCESS_KEY": user, "S3_SECRET_KEY": password, "MINIO_ROOT_USER": user, "MINIO_ROOT_PASSWORD": password})
+    values = encode({"MINIO_ROOT_USER": user, "MINIO_ROOT_PASSWORD": password})
     if existing:
+        if any(key in existing for key in ("S3_ACCESS_KEY", "S3_SECRET_KEY")):
+            raise ValueError("Legacy minio-credentials contains application keys; explicitly recover or reset local state before upgrading.")
         compare(name, existing, values)
         validate_minio_deployment(existing)
     else:
         pending[name] = values
-    return pending, local
+    for service in ("compliance", "audit", "esign", "pdf"):
+        service_name = f"minio-{service}-credentials"
+        service_values = encode({key: local_values[service][key] for key in ("S3_ACCESS_KEY", "S3_SECRET_KEY")})
+        if current[service_name]:
+            if any(key in current[service_name] for key in ("MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD")):
+                raise ValueError(f"Secret {service_name} contains MinIO administrator keys; recover it before retrying.")
+            compare(service_name, current[service_name], service_values)
+        else:
+            check_empty_storage(service_name, "minio")
+            check_empty_storage(service_name, f"{service}-server")
+            pending[service_name] = service_values
+    return pending, local_values["esign"]
 
 
 def validate_nats_credentials(current, nats_dir):
@@ -292,8 +334,10 @@ def main():
     if not get_resource("namespace", NAMESPACE):
         command("kubectl", "create", "namespace", NAMESPACE)
     names = ["topology-db-credentials", "compliance-db-credentials", "audit-db-credentials",
+             "compliance-db-admin-credentials", "audit-db-admin-credentials",
              "minio-credentials", "esign-secrets", "auth-signing-key", "auth-public-key",
-             "nats-broker-credentials"] + [f"nats-{user}-credentials" for user in USERS]
+             "nats-broker-credentials"] + [f"nats-{user}-credentials" for user in USERS] \
+             + [f"minio-{user}-credentials" for user in ("compliance", "audit", "esign", "pdf")]
     current = {name: get_secret(name) for name in names}
     pending = provision_databases(current, local_values)
     minio_pending, local = provision_minio(current, local_values)

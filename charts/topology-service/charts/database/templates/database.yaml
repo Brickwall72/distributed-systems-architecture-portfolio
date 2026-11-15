@@ -1,3 +1,18 @@
 # File: charts/topology-service/charts/database/templates/database.yaml
 
+{{- if .Values.persistence.enabled }}
+{{- $name := .Values.nameOverride }}
+{{- $deployment := lookup "apps/v1" "Deployment" .Release.Namespace $name }}
+{{- if $deployment }}
+{{- $hasClaim := false }}
+{{- range $deployment.spec.template.spec.volumes }}
+  {{- if and .persistentVolumeClaim (eq .persistentVolumeClaim.claimName $name) }}
+    {{- $hasClaim = true }}
+  {{- end }}
+{{- end }}
+{{- if and (not $hasClaim) (not .Values.persistence.allowStorageTransition) }}
+{{- fail "Existing topology-db uses non-persistent storage. Back up or deliberately discard its graph before setting database.persistence.allowStorageTransition=true." }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{ include "platform-lib.database" . }}

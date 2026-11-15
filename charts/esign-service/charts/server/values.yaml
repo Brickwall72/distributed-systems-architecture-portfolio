@@ -9,6 +9,14 @@ image:
 
 replicas: 1
 
+minioReadiness:
+  image: {repository: dsap-minio-setup, tag: latest, pullPolicy: IfNotPresent}
+  credentialsSecret: minio-esign-credentials
+  prefix: compliance/transfers/
+  resources:
+    requests: {cpu: 100m, memory: 128Mi, ephemeral-storage: 64Mi}
+    limits: {cpu: 500m, memory: 512Mi, ephemeral-storage: 256Mi}
+
 env: 
   - name: SIGNING_CERT_PATH
     value: "/app/certs/certificate.p12"
@@ -20,21 +28,21 @@ env:
   - name: S3_ACCESS_KEY
     valueFrom:
       secretKeyRef:
-        name: minio-credentials
+        name: minio-esign-credentials
         key: S3_ACCESS_KEY
   - name: S3_SECRET_KEY
     valueFrom:
       secretKeyRef:
-        name: minio-credentials
+        name: minio-esign-credentials
         key: S3_SECRET_KEY
   - name: S3_ENDPOINT
-    value: "http://minio.platform-local.svc.cluster.local:9000"
+    value: "http://minio:9000"
   - name: S3_PUBLIC_ENDPOINT
     value: "http://minio.localhost:8081" # Browser-accessible ingress/port-forward endpoint
   - name: S3_BUCKET
     value: "dsap"
   - name: NATS_URL
-    value: "nats://nats.platform-local.svc.cluster.local:4222"
+    value: "nats://nats:4222"
 envFrom:
   - secretRef:
       name: nats-esign-credentials

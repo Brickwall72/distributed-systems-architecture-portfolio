@@ -17,6 +17,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  audit-db-setup:
+    image: mongo:9.0.4
+    env_file:
+      - ../../../.auth-keys/local/audit-db-setup.env
+    environment:
+      AUDIT_DATABASE: audit
+      AUDIT_MONGO_HOST: audit-db
+      AUDIT_MONGO_PORT: "27017"
+    volumes:
+      - ../../../charts/audit-ledger/charts/database/files/provision.js:/opt/dsap/provision.js:ro
+    entrypoint:
+      - mongosh
+      - --quiet
+      - --host
+      - audit-db
+      - --eval
+      - 'if (!db.getSiblingDB("admin").auth(process.env.MONGO_ADMIN_USER, process.env.MONGO_ADMIN_PASSWORD)) throw new Error("MongoDB administrator authentication failed"); load("/opt/dsap/provision.js")'
+    depends_on:
+      audit-db:
+        condition: service_healthy
+    networks:
+      - platform-mesh
   audit-server:
     build:
       context: .
@@ -40,6 +62,7 @@ services:
       AUTH_PUBLIC_KEY_FILE: /run/secrets/auth_public_key
       DB_HOST: audit-db
       DB_PORT: ${DB_PORT}
+      AUDIT_IMMUTABLE_INDEXES_PROVISIONED: "true"
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_REGION: ${S3_REGION}
     secrets:
@@ -47,6 +70,10 @@ services:
     depends_on:
       audit-db:
         condition: service_healthy
+      audit-db-setup:
+        condition: service_completed_successfully
+      minio-setup:
+        condition: service_completed_successfully
       nats:
         condition: service_healthy
     networks:

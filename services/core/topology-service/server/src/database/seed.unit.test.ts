@@ -34,21 +34,21 @@ describe('seedSpaceCustodyGraphTopology', () => {
         expect.stringContaining('idx_transfer_req'),
         expect.stringContaining('idx_transfer_claim_document'),
         expect.stringContaining('idx_transfer_claim_req'),
-        expect.stringContaining('MERGE (jeb:Organization'),
+        expect.stringContaining('UNWIND $organizations'),
       ]),
     );
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it('creates seeded transfer identities and dates in the API contract formats', async () => {
+  it('seeds at least twelve available assets and no transfer history only into an empty graph', async () => {
     await seedSpaceCustodyGraphTopology(driver);
-    const seedQuery = run.mock.calls.find(([query]) => query.includes('MERGE (jeb:Organization'))?.[0] as string;
-    expect(seedQuery).toContain("multiEvent.id = '10000000-0000-4000-8000-000000000001'");
-    expect(seedQuery).toContain("multiEvent.date = '2026-09-15T00:00:00.000Z'");
-    expect(seedQuery).toContain("eventHop1.id = '10000000-0000-4000-8000-000000000002'");
-    expect(seedQuery).toContain("eventHop2.id = '10000000-0000-4000-8000-000000000003'");
+    const seedCall = run.mock.calls.find(([query]) => query.includes('UNWIND $organizations'));
+    const seedQuery = seedCall?.[0] as string;
     expect(seedQuery).toContain('WHERE existingCount = 0');
-    expect(seedQuery).not.toContain("status: 'RECEIVED'");
+    expect(seedQuery).toContain("status: 'AVAILABLE'");
+    expect(seedQuery).not.toMatch(/CREATE\s+\([^)]*:TransferEvent/);
+    expect(seedCall?.[1].assets.length).toBeGreaterThanOrEqual(12);
+    expect(new Set(seedCall?.[1].assets.map((asset: { id: string }) => asset.id)).size).toBe(seedCall?.[1].assets.length);
   });
 
   it('closes the session and propagates a seed failure', async () => {

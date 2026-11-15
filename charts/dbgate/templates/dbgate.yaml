@@ -4,6 +4,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: dbgate
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - ReadWriteOnce
@@ -56,12 +58,14 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: compliance-db-credentials
-                  key: POSTGRES_USER
+                  key: DB_USER
             - name: PASSWORD_compliance
               valueFrom:
                 secretKeyRef:
                   name: compliance-db-credentials
-                  key: POSTGRES_PASSWORD
+                  key: DB_PASSWORD
+            - name: DATABASE_compliance
+              value: "compliance"
             - name: ENGINE_compliance
               value: "postgres@dbgate-plugin-postgres"
             - name: LABEL_audit
@@ -70,6 +74,8 @@ spec:
               value: "audit-db"
             - name: PORT_audit
               value: "27017"
+            - name: DATABASE_audit
+              value: "audit"
             - name: USER_audit
               valueFrom:
                 secretKeyRef:

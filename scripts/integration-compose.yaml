@@ -1,4 +1,5 @@
 # File: scripts/integration-compose.yaml
+# Disposable test credentials only; never use this Compose file for deployment.
 services:
   neo4j:
     image: neo4j:5.26.0
@@ -18,6 +19,8 @@ services:
       NEO4J_AUTH: none
     ports:
       - "127.0.0.1::7687"
+    volumes:
+      - seed-neo4j-data:/data
     healthcheck:
       test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 'RETURN 1' >/dev/null 2>&1"]
       interval: 5s
@@ -26,12 +29,50 @@ services:
       start_period: 20s
   postgres:
     image: postgres:18.6-alpine
+    command: ["postgres", "-c", "hba_file=/tmp/integration-postgres-hba.conf"]
     environment:
       POSTGRES_USER: integration
       POSTGRES_PASSWORD: integration
       POSTGRES_DB: integration
+    volumes:
+      - ../charts/compliance-service/charts/database/files/provision.sh:/tmp/provision-compliance-postgres.sh:ro
+      - ../charts/compliance-service/charts/database/files/pg_hba.conf:/tmp/integration-postgres-hba.conf:ro
     ports:
       - "127.0.0.1::5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U integration -d integration"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  mongo:
+    image: mongo:9.0.4
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: integration-admin
+      MONGO_INITDB_ROOT_PASSWORD: integration-admin-password
+      AUDIT_RUNTIME_USER: integration-audit
+      AUDIT_RUNTIME_PASSWORD: integration-audit-password
+      AUDIT_DATABASE: audit
+      AUDIT_MONGO_HOST: localhost
+      AUDIT_MONGO_PORT: "27017"
+    ports:
+      - "127.0.0.1::27017"
+    volumes:
+      - ../charts/audit-ledger/charts/database/files/provision.js:/tmp/provision-audit-mongo.js:ro
+      - ./test-audit-mongo-authorization.js:/tmp/test-audit-mongo-authorization.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+  postgres-trust:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: integration
+      POSTGRES_PASSWORD: integration
+      POSTGRES_DB: integration
+    volumes:
+      - ../charts/compliance-service/charts/database/files/provision.sh:/tmp/provision-compliance-postgres.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U integration -d integration"]
       interval: 3s
@@ -73,3 +114,23 @@ services:
     command: server /data
     ports:
       - "127.0.0.1::9000"
+  minio-policy-setup:
+    image: dsap-minio-setup:integration
+    build:
+      context: ../charts/minio
+      dockerfile: Dockerfile.setup
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: integration
+      MINIO_ROOT_PASSWORD: integration-password
+      COMPLIANCE_ACCESS_KEY: compliance-test
+      COMPLIANCE_SECRET_KEY: compliance-test-password
+      AUDIT_ACCESS_KEY: audit-test
+      AUDIT_SECRET_KEY: audit-test-password
+      PDF_ACCESS_KEY: pdf-test
+      PDF_SECRET_KEY: pdf-test-password
+      ESIGN_ACCESS_KEY: esign-test
+      ESIGN_SECRET_KEY: esign-test-password
+
+volumes:
+  seed-neo4j-data:

@@ -1,9 +1,6 @@
 // File: services/core/topology-service/server/src/database/seed.integration.test.ts
 import neo4j, { type Driver } from 'neo4j-driver';
-import { randomUUID } from 'node:crypto';
-import { TOPOLOGY_SIGNED_EVENT_TYPE } from '@contracts/topology';
 import { seedSpaceCustodyGraphTopology } from './seed';
-import { TransferClaimsRepository } from '../repositories';
 
 const uri = process.env.SEED_TEST_NEO4J_URI;
 
@@ -30,35 +27,40 @@ describe('fresh topology seed with Neo4j', () => {
     await driver?.close();
   });
 
-  it('completes the remaining seeded partial receipt and does not restore prior custody on restart', async () => {
-    const repository = new TransferClaimsRepository(driver);
-    const transferId = '10000000-0000-4000-8000-000000000001';
-    const claim = {
-      documentId: randomUUID(), draftHash: 'a'.repeat(64), creatorId: 'test',
-      templateId: 'asset-transfer-receipt', storageBucket: 'bucket', storageKey: 'draft',
-      signerOrgId: 'org-ksc-gov', senderOrgId: 'org-jeb-junkyard', receiverOrgId: 'org-ksc-gov',
-      requisitionNumber: 'REQ-KSP-MULTI-001', transferType: 'PHYSICAL_TRANSFER' as const,
-      operation: 'RECEIPT' as const, transferEventId: transferId, assetIds: ['asset-heavy-lifter-tanks'],
-    };
-    await repository.reserveForSigning(claim);
-    const result = await repository.commitSigned({
-      specversion: '1.0', id: `evt_compliance_signed_${claim.documentId}`, source: 'service:compliance-server',
-      type: TOPOLOGY_SIGNED_EVENT_TYPE, time: '2026-01-01T00:00:00.000Z', datacontenttype: 'application/json',
-      data: { documentId: claim.documentId, transferEventId: transferId, draftHash: claim.draftHash, signedFileHash: 'b'.repeat(64) },
-    });
-    expect(result.status).toBe('COMPLETED');
-
-    await seedSpaceCustodyGraphTopology(driver);
+  it('creates an available inventory with one custodian each and no history', async () => {
     const session = driver.session();
     try {
       const result = await session.run(`
-        MATCH (owner:Organization)-[:HAS_CUSTODY]->(asset:Asset {id: 'asset-heavy-lifter-tanks'})
-        RETURN collect(owner.id) AS owners, asset.status AS status
+        MATCH (asset:Asset)
+        OPTIONAL MATCH (owner:Organization)-[:HAS_CUSTODY]->(asset)
+        RETURN asset.id AS id, asset.status AS status, collect(owner.id) AS owners
       `);
-      expect(result.records[0].get('owners')).toEqual(['org-ksc-gov']);
-      expect(result.records[0].get('status')).toBe('AVAILABLE');
+      expect(result.records.length).toBeGreaterThanOrEqual(12);
+      for (const record of result.records) {
+        expect(record.get('status')).toBe('AVAILABLE');
+        expect(record.get('owners')).toHaveLength(1);
+      }
+      const history = await session.run('MATCH (n) WHERE n:TransferEvent OR n:TransferClaim RETURN count(n) AS count');
+      expect(history.records[0].get('count').toNumber()).toBe(0);
+      await session.run(`
+        MATCH (:Organization {id: 'org-jeb-junkyard'})-[custody:HAS_CUSTODY]->(asset:Asset {id: 'asset-heavy-lifter-tanks'})
+        MATCH (newOwner:Organization {id: 'org-ksc-gov'})
+        DELETE custody
+        CREATE (newOwner)-[:HAS_CUSTODY]->(asset)
+      `);
     } finally {
       await session.close();
+    }
+    await seedSpaceCustodyGraphTopology(driver);
+    const check = driver.session();
+    try {
+      const result = await check.run(`
+        MATCH (owner:Organization)-[:HAS_CUSTODY]->(:Asset {id: 'asset-heavy-lifter-tanks'})
+        RETURN collect(owner.id) AS owners
+      `);
+      expect(result.records[0].get('owners')).toEqual(['org-ksc-gov']);
+    } finally {
+      await check.close();
     }
   }, 30000);
 });

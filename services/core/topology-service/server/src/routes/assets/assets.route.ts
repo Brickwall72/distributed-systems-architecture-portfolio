@@ -1,6 +1,6 @@
 // File: services/core/topology-service/server/src/routes/assets/assets.route.ts
 import { initServer } from '@ts-rest/express';
-import type { AssetDTOList } from '@contracts/topology';
+import { ASSET_STATUS, type AssetDTOList } from '@contracts/topology';
 import { assetsRoutes } from 'topology-shared';
 import { AssetsRepository } from '../../repositories';
 import { assetEntityToDTO } from '../../mappers';
@@ -57,6 +57,12 @@ export function createAssetsRouter(repository?: AssetsRepository) {
         return {
           status: 403,
           body: { error: 'Organization access denied', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
+        };
+      }
+      if (body.status !== ASSET_STATUS.AVAILABLE || body.requisitionNumber) {
+        return {
+          status: 400,
+          body: { error: 'New assets must be available and cannot have a transfer requisition', code: 'INVALID_ASSET_STATE', timestamp: new Date().toISOString() },
         };
       }
       try {

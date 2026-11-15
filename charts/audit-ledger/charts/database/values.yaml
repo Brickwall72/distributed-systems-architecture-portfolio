@@ -4,6 +4,8 @@
 
 # The server chart sets DB_HOST to "audit-db", so the Service name must match literally.
 nameOverride: audit-db
+deploymentStrategy:
+  type: Recreate
 
 image:
   repository: mongo
@@ -14,15 +16,23 @@ env:
   - name: MONGO_INITDB_ROOT_USERNAME
     valueFrom:
       secretKeyRef:
-        name: audit-db-credentials
-        key: DB_USER
+        name: audit-db-admin-credentials
+        key: MONGO_INITDB_ROOT_USERNAME
   - name: MONGO_INITDB_ROOT_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: audit-db-credentials
-        key: DB_PASSWORD
+        name: audit-db-admin-credentials
+        key: MONGO_INITDB_ROOT_PASSWORD
 
 envFrom: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+  seccompProfile:
+    type: RuntimeDefault
 
 annotations: {}
 
@@ -54,3 +64,13 @@ resources:
   limits:
     cpu: 1
     memory: 1Gi
+
+setupResources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+    ephemeral-storage: 256Mi

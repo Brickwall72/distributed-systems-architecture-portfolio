@@ -1,0 +1,74 @@
+# File: charts/compliance-service/charts/database/templates/bootstrap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compliance-db-bootstrap
+data:
+  pg_hba.conf: |-
+{{ .Files.Get "files/pg_hba.conf" | indent 4 }}
+  provision.sh: |-
+{{ .Files.Get "files/provision.sh" | indent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: compliance-db-setup-{{ printf "%s%s%s%s" (.Files.Get "files/provision.sh") .Values.image.repository .Values.image.tag (toJson .Values.setupResources) | sha256sum | trunc 10 }}
+spec:
+  backoffLimit: 12
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: compliance-db-setup
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      containers:
+        - name: provision
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.setupResources | nindent 12 }}
+          command:
+            - sh
+            - -ec
+            - |
+              until pg_isready -h "$PGHOST" -p "$PGPORT"; do
+                echo "Waiting for PostgreSQL."
+                sleep 2
+              done
+              exec sh /opt/dsap/provision.sh
+          env:
+            - name: PGHOST
+              value: compliance-db
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: compliance
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-admin-credentials
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-admin-credentials
+                  key: POSTGRES_PASSWORD
+            - name: COMPLIANCE_RUNTIME_USER
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-credentials
+                  key: DB_USER
+            - name: COMPLIANCE_RUNTIME_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: compliance-db-credentials
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: bootstrap
+              mountPath: /opt/dsap
+              readOnly: true
+      volumes:
+        - name: bootstrap
+          configMap:
+            name: compliance-db-bootstrap

@@ -7,11 +7,13 @@ services:
       - "${DB_PORT}:${DB_PORT}"
     env_file:
       - ../../../.auth-keys/local/compliance-db.env
+    command: ["postgres", "-c", "hba_file=/etc/dsap/pg_hba.conf"]
     environment:
       POSTGRES_DB: compliance
     volumes:
       # Postgres 18+ stores data in /var/lib/postgresql/18/docker; mount the parent
       - compliance_db_data:/var/lib/postgresql
+      - ../../../charts/compliance-service/charts/database/files/pg_hba.conf:/etc/dsap/pg_hba.conf:ro
     networks:
       - platform-mesh
     healthcheck:
@@ -19,6 +21,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  compliance-db-setup:
+    image: postgres:18.6-alpine
+    env_file:
+      - ../../../.auth-keys/local/compliance-db-setup.env
+    environment:
+      PGHOST: compliance-db
+      PGPORT: "5432"
+      PGDATABASE: compliance
+    volumes:
+      - ../../../charts/compliance-service/charts/database/files/provision.sh:/opt/dsap/provision.sh:ro
+    entrypoint: ["sh", "/opt/dsap/provision.sh"]
+    depends_on:
+      compliance-db:
+        condition: service_healthy
+    networks:
+      - platform-mesh
   compliance-server:
     build:
       context: .
@@ -49,6 +67,10 @@ services:
     depends_on:
       compliance-db:
         condition: service_healthy
+      compliance-db-setup:
+        condition: service_completed_successfully
+      minio-setup:
+        condition: service_completed_successfully
       nats:
         condition: service_healthy
     networks:

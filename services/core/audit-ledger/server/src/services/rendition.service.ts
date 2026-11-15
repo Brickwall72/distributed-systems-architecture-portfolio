@@ -106,7 +106,7 @@ export class RenditionService {
         html,
       });
       stage = 'request PDF generation';
-      const result = responseSchema.parse(await this.broker.request(PDF_SUBJECTS.GENERATE_PDF, command, { timeout: 45_000 }));
+      const result = responseSchema.parse(await this.broker.request(PDF_SUBJECTS.GENERATE_AUDIT_PDF, command, { timeout: 45_000 }));
       if (result.storageKey !== `${command.customPath}/${command.documentId}.pdf`) {
         throw new Error('PDF storage key does not match the claimed attempt');
       }

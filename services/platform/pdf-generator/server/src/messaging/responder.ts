@@ -23,9 +23,12 @@ export const generatePdfCommandSchema = getStorageMetadataParamsSchema.omit({sig
 const logger = createLogger('pdf-server:messaging');
 
 export function registerPdfResponder(broker: EventBroker): void {
-  broker.respond(PDF_SUBJECTS.GENERATE_PDF, async (rawPayload: GeneratePdfCommand) => {
+  const register = (subject: string, allowedPath: RegExp) => broker.respond(subject, async (rawPayload: GeneratePdfCommand) => {
     const request = generatePdfCommandSchema.parse(rawPayload);
     const { html, documentId } = request;
+    if (!/^[A-Za-z0-9_-]+$/.test(documentId) || !request.customPath || !allowedPath.test(request.customPath)) {
+      throw new Error('PDF generation request is outside the permitted storage prefix');
+    }
 
     logger.info(`Received NATS PDF generation request for document [${documentId}]`);
 
@@ -58,4 +61,6 @@ export function registerPdfResponder(broker: EventBroker): void {
       presignedUrl,
     });
   });
+  register(PDF_SUBJECTS.GENERATE_PDF, /^compliance\/drafts$/);
+  register(PDF_SUBJECTS.GENERATE_AUDIT_PDF, /^audit\/transfers\/[1-9]\d*\/overview-v\d+$/);
 }

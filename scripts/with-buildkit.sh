@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# File: scripts/with-buildkit.sh
 set -eu
 
 if ! command -v docker >/dev/null 2>&1; then

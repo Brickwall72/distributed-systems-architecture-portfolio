@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 export const PDF_SUBJECTS = {
   GENERATE_PDF: 'pdf.command.generate-draft',
+  GENERATE_AUDIT_PDF: 'pdf.command.generate-audit',
 } as const;
 
 export const generatePdfCommandSchema = z.object({

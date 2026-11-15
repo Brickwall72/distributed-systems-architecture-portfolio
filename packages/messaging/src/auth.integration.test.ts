@@ -28,6 +28,7 @@ integration('authenticated NATS permissions', () => {
     const services = [compliance, topology, esign, pdf, audit];
     const rawTopology = await connect({ servers: natsUrl!, ...credentials('topology') });
     const rawAudit = await connect({ servers: natsUrl!, ...credentials('audit') });
+    const rawCompliance = await connect({ servers: natsUrl!, ...credentials('compliance') });
     try {
       await Promise.all(services.map((service) => service.connect()));
       await Promise.all([
@@ -37,11 +38,16 @@ integration('authenticated NATS permissions', () => {
       topology.respond('requests.topology.transfer.reserve', async () => ({ status: 'OK' }));
       esign.respond('esign.command.sign-document', async () => ({ status: 'SIGNED' }));
       pdf.respond('pdf.command.generate-draft', async () => ({ status: 'GENERATED' }));
+      pdf.respond('pdf.command.generate-audit', async () => ({ status: 'GENERATED' }));
       await Promise.all([topology.flush(), esign.flush(), pdf.flush()]);
       expect(await compliance.request('requests.topology.transfer.reserve', {})).toEqual({ status: 'OK' });
       expect(await compliance.request('esign.command.sign-document', {})).toEqual({ status: 'SIGNED' });
       expect(await compliance.request('pdf.command.generate-draft', {})).toEqual({ status: 'GENERATED' });
-      expect(await audit.request('pdf.command.generate-draft', {})).toEqual({ status: 'GENERATED' });
+      expect(await audit.request('pdf.command.generate-audit', {})).toEqual({ status: 'GENERATED' });
+      await expect(rawAudit.request('pdf.command.generate-draft', new Uint8Array(), { timeout: 1000 }))
+        .rejects.toThrow(/permission/i);
+      await expect(rawCompliance.request('pdf.command.generate-audit', new Uint8Array(), { timeout: 1000 }))
+        .rejects.toThrow(/permission/i);
 
       let resolveReceived!: (payload: unknown) => void;
       const received = new Promise<unknown>((resolve) => { resolveReceived = resolve; });
@@ -103,7 +109,7 @@ integration('authenticated NATS permissions', () => {
       await expect(rawAudit.request('events.topology.transfer.created', new Uint8Array(), { timeout: 1000 }))
         .rejects.toThrow(/permission/i);
     } finally {
-      await Promise.all([rawTopology.close(), rawAudit.close()]);
+      await Promise.all([rawTopology.close(), rawAudit.close(), rawCompliance.close()]);
       await Promise.all(services.map((service) => service.disconnect()));
     }
   }, 15000);

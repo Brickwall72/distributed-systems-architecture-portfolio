@@ -31,7 +31,7 @@ export async function connectDatabase(): Promise<Db> {
     await candidate.connect();
     const handle = candidate.db(env.DB_NAME);
     await handle.command({ ping: 1 });
-    await ensureIndexes(handle);
+    await ensureIndexes(handle, { immutableIndexesProvisioned: env.AUDIT_IMMUTABLE_INDEXES_PROVISIONED });
     client = candidate;
     db = handle;
     logger.info('Connected to MongoDB audit ledger.');

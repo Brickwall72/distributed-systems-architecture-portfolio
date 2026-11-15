@@ -13,6 +13,8 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.esign-api.rule=PathPrefix(`/esign/api`)"

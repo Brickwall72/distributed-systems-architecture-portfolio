@@ -27,9 +27,36 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         {{- include "platform-lib.podSecurityContext" . | nindent 8 }}
-      {{- if .Values.initContainers }}
+      {{- if or .Values.initContainers .Values.minioReadiness }}
       initContainers:
+        {{- if .Values.minioReadiness }}
+        - name: wait-for-minio-account
+          image: "{{ .Values.minioReadiness.image.repository }}:{{ .Values.minioReadiness.image.tag }}"
+          imagePullPolicy: {{ .Values.minioReadiness.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.minioReadiness.resources | nindent 12 }}
+          securityContext:
+            {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}
+          command: ["sh", "-c", "until python3 /opt/dsap-minio/provision.py --check-ready; do echo waiting for provisioned MinIO account; sleep 2; done"]
+          env:
+            - name: MINIO_ENDPOINT
+              value: http://minio:9000
+            - name: MINIO_READY_PREFIX
+              value: {{ .Values.minioReadiness.prefix | quote }}
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minioReadiness.credentialsSecret }}
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minioReadiness.credentialsSecret }}
+                  key: S3_SECRET_KEY
+        {{- end }}
+        {{- if .Values.initContainers }}
         {{- toYaml .Values.initContainers | nindent 8 }}
+        {{- end }}
       {{- end }}
       containers:
         - name: server

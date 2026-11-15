@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# File: setup.sh
 
 # =========================================================================
 # SYSTEM INFRASTRUCTURE BOOTSTRAP SCRIPT (Self-Healing IaC Environment Gate)
@@ -238,9 +239,8 @@ pnpm setup --force
 # --- STEP 7: WORKSPACE DEPENDENCY LINKING EXECUTION ---
 echo "Executing pnpm workspace package compilation loops..."
 pnpm install --frozen-lockfile --ignore-scripts
-pnpm build
-
 pnpm dev:prepare
+pnpm build
 
 if [[ "${BUILD_DOCKER_BASE:-false}" == "true" ]]; then
     echo "Building shared Docker base image..."

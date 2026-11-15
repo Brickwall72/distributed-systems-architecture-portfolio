@@ -20,6 +20,7 @@ import {
 import { getSignedDownloadUrlRequestSchema, getStorageMetadata, getStorageMetadataParamsSchema, getStorageMetadataReturnSchema, ObjectAlreadyExistsError, ObjectNotFoundError } from '@shared/filestore';
 import { z } from 'zod';
 import { omitSchemaKeys } from '@shared/zod';
+import { env } from '../config';
 
 export const signDocumentCommandSchema = z.object({
   ...signDocumentFromStorageParamsSchema.shape,
@@ -67,6 +68,13 @@ export function registerESignResponder(broker: EventBroker): void {
   broker.respond(ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT, async (rawRequest: SignDocumentCommand) => {
     const request = signDocumentCommandSchema.parse(rawRequest);
     const { documentId } = request;
+    if (!/^[A-Za-z0-9_-]+$/.test(documentId)
+      || request.storageBucket !== env.DOCUMENT_BUCKET
+      || request.storageKey !== `compliance/drafts/${documentId}.pdf`
+      || !['AUTHORIZATION', 'RECEIPT'].includes(request.documentType)
+      || request.customPath !== `compliance/transfers/${request.documentType}`) {
+      throw new Error('Signing request is outside the permitted compliance storage paths');
+    }
     logger.info(`Received NATS sign-document request for document: [${documentId}]`);
 
     const requestHash = createHash('sha256').update(JSON.stringify(request)).digest('hex');
