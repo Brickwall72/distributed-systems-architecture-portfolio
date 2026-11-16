@@ -16,6 +16,7 @@ flowchart LR
     compliance_client["compliance-client"]:::application
     compliance_server["compliance-server"]:::application
     compliance_shell["compliance-shell"]:::shell
+    dsap_minio_setup["dsap-minio-setup"]:::application
     esign_server["esign-server"]:::application
     global_shell["global-shell"]:::shell
     pdf_server["pdf-server"]:::application

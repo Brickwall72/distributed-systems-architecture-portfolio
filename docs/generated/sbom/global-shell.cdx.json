@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:6e64b122-dabb-4b34-b769-aa6012ffbc68",
+  "serialNumber": "urn:uuid:cc0f9aeb-9db3-4bad-8d8b-a5ae76828aad",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-15T01:41:08+00:00",
+    "timestamp": "2026-11-15T23:58:46+00:00",
     "tools": {
       "components": [
         {
@@ -20,10 +20,10 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/global-shell@sha256:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "bom-ref": "pkg:oci/global-shell@sha256:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "type": "container",
-      "name": "global-shell:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210",
-      "purl": "pkg:oci/global-shell@sha256:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "name": "global-shell:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120",
+      "purl": "pkg:oci/global-shell@sha256:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -31,7 +31,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:196aad090e5ebe59e95a71d5c25b25ea1a936d327ccb2ec98eb5368d0fadb755"
+          "value": "sha256:35bcaa1bef7e4e7a3e7f3ae6bc29f65aaa2f77d2d31f7405dad6f14be873c007"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -39,11 +39,11 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:4c63abbab09c3d35dd28981c42cf3800686cabb333bd1c0213e9eecff0da3bac"
+          "value": "sha256:3d53a85d1c50cf47716096165563879aa41d49974b2d0517aa6ed33f1cfe5f90"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:5c3fcb2b4f8f19a1a6b4953aa060e181c4623f26ecab93f0b2436f739fb3a609"
+          "value": "sha256:4c63abbab09c3d35dd28981c42cf3800686cabb333bd1c0213e9eecff0da3bac"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -59,11 +59,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:8c92bd8c4b6668e1c39dda47e1af09c2e92937db58c45a33fc8243670c7c4e15"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:9c1aa6fa8d1acdbd04e78b2627e36a2954bc619dac78a97a5e6904857100c60f"
+          "value": "sha256:940381f2e25b69446c318a590615da6f3474f4f5cd251b2f856208fee00cb24d"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -71,7 +67,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:aa049baae4a04eb10bca55b653a6360595133cdc729fcccd3ec931ee2ebd9ced"
+          "value": "sha256:bb9d5f5f9454e9e8e8f20f128145faf2e4ec3ec6671b52c1985d60b618804dbc"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -79,11 +75,15 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:fadbfe4f66affd16c2e661f002440a6f90092bfb74d08ac72254c79e2ca18ea2"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210"
+          "value": "sha256:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -123,19 +123,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "global-shell:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210"
+          "value": "global-shell:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "global-shell@sha256:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210"
+          "value": "global-shell@sha256:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "global-shell:691404c"
+          "value": "global-shell:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "global-shell:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210"
+          "value": "global-shell:e8d11ad"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -150,7 +150,7 @@
   },
   "components": [
     {
-      "bom-ref": "0b68937d-20e8-485c-b28b-c92cb69b799e",
+      "bom-ref": "25ce15ce-4967-4527-82bb-677daa68ecd9",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3812,7 +3812,7 @@
   ],
   "dependencies": [
     {
-      "ref": "0b68937d-20e8-485c-b28b-c92cb69b799e",
+      "ref": "25ce15ce-4967-4527-82bb-677daa68ecd9",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4345,9 +4345,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/global-shell@sha256:8de2f390f62cfcb2c9554afc71bc8a09fc2659dc0a7b947f8bbc2ed3cceb6210?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "ref": "pkg:oci/global-shell@sha256:bdb8e561a5b28b5b9b774340faae3ea687579fee4f9ea8eff726b9e40d314120?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "dependsOn": [
-        "0b68937d-20e8-485c-b28b-c92cb69b799e"
+        "25ce15ce-4967-4527-82bb-677daa68ecd9"
       ]
     }
   ],
