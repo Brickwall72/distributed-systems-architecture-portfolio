@@ -141,15 +141,22 @@ deploy:
       - name: dbgate
         chartPath: charts/dbgate
         namespace: platform-local
+        setValues:
+          enabled: true
+          ingress.enabled: true
       - name: minio
         chartPath: charts/minio
         namespace: platform-local
+        setValues:
+          ingress.enabled: true
         setValueTemplates:
           setupImage.repository: "{{.IMAGE_REPO_dsap_minio_setup}}"
           setupImage.tag: "{{.IMAGE_TAG_dsap_minio_setup}}"
       - name: nats
         chartPath: charts/nats
         namespace: platform-local
+        setValues:
+          ingress.enabled: true
       - name: topology-service
         chartPath: charts/topology-service
         namespace: platform-local

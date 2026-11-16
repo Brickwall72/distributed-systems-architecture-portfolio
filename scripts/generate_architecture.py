@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# File: scripts/generate_architecture.py
 
 import argparse
 import html
@@ -14,9 +15,10 @@ MODEL_PATH = ROOT / "docs/architecture/model.json"
 OUTPUT_DIR = ROOT / "docs/generated/architecture"
 IMAGE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 EDGE_TYPES = {
-    "http": ("-->", "HTTP / REST", "#2563eb", "solid"),
-    "nats-request-reply": ("<-->", "NATS request / reply", "#c2410c", "solid"),
-    "nats-pub-sub": ("-.->", "NATS pub / sub", "#0f766e", "dashed"),
+    "http": ("-->", "HTTP / REST", "#2563eb", "solid", "blue"),
+    "nats-request-reply": ("<-->", "NATS request / reply", "#c2410c", "solid", "orange"),
+    "nats-pub-sub": ("-.->", "NATS pub / sub", "#0f766e", "dashed", "teal"),
+    "storage": ("-->", "Database / object storage", "#16a34a", "solid", "green"),
 }
 
 
@@ -90,6 +92,8 @@ def _validate_external_nodes(model: dict[str, Any], rendered_image_ids: list[str
             raise ValueError(f"Duplicate architecture node ID: {node_id}")
         if not isinstance(node.get("label"), str) or not node["label"]:
             raise ValueError(f"External node {node_id} must have a label")
+        if node.get("kind", "broker") not in ("broker", "storage"):
+            raise ValueError(f"External node {node_id} must have kind 'broker' or 'storage'")
         external_ids.add(node_id)
         rendered_node_ids.add(rendered_id)
     return external_ids
@@ -161,6 +165,7 @@ def render_mermaid(images: list[str], model: dict[str, Any]) -> str:
         "  classDef application fill:#172554,stroke:#60a5fa,color:#fff",
         "  classDef shell fill:#312e81,stroke:#a78bfa,color:#fff",
         "  classDef broker fill:#78350f,stroke:#f59e0b,color:#fff",
+        "  classDef storage fill:#14532d,stroke:#4ade80,color:#fff",
     ]
 
     shell_images = {
@@ -176,9 +181,12 @@ def render_mermaid(images: list[str], model: dict[str, Any]) -> str:
     lines.append("  end")
 
     for node in model.get("externalNodes", []):
-        lines.append(
-            f'  {mermaid_node_id(node["id"])}["{mermaid_label(node["label"])}"]:::broker'
-        )
+        node_id = mermaid_node_id(node["id"])
+        label = mermaid_label(node["label"])
+        if node.get("kind", "broker") == "storage":
+            lines.append(f'  {node_id}[("{label}")]:::storage')
+        else:
+            lines.append(f'  {node_id}["{label}"]:::broker')
 
     edge_styles: list[tuple[int, str, str]] = []
     edge_index = 0
@@ -192,7 +200,7 @@ def render_mermaid(images: list[str], model: dict[str, Any]) -> str:
             edge_index += 1
 
     for interaction in model["interactions"]:
-        arrow, _legend, color, line_style = EDGE_TYPES[interaction["type"]]
+        arrow, _legend, color, line_style, _color_name = EDGE_TYPES[interaction["type"]]
         source = mermaid_node_id(interaction["from"])
         target = mermaid_node_id(interaction["to"])
         label = mermaid_label(interaction["label"])
@@ -208,22 +216,24 @@ def render_mermaid(images: list[str], model: dict[str, Any]) -> str:
 
 def render_markdown(mermaid: str) -> str:
     legend = "\n".join(
-        f"- **{legend}**"
-        for _arrow, legend, _color, _style in EDGE_TYPES.values()
+        f"- **{legend}** - {color_name}, {line_style} line (`{color}`)."
+        for _arrow, legend, color, line_style, color_name in EDGE_TYPES.values()
     )
     return (
+        "<!-- File: docs/generated/architecture/architecture.md -->\n"
         "# Generated service architecture\n\n"
         "This view is generated from `docs/architecture/model.json`; application image "
         "nodes are discovered from `skaffold.yaml` during CI. Update the model when "
-        "page composition or service interactions change.\n\n"
+        "page composition, storage, or service interactions change.\n\n"
         "```mermaid\n"
         f"{mermaid}\n"
         "```\n\n"
         "## Interaction legend\n\n"
         f"{legend}\n\n"
-        "**UI composition** uses thick purple arrows, labeled by page and widget. "
-        "NATS pub/sub is shown as separate publisher-to-broker and broker-to-subscriber "
-        "edges.\n"
+        "**UI composition** uses thick, solid purple arrows (`#a78bfa`), labeled by page "
+        "and widget. Arrowheads show direction; request/reply uses a two-headed arrow. "
+        "NATS pub/sub uses separate publisher-to-broker and broker-to-subscriber edges. "
+        "Storage nodes use a cylinder shape; edges identify the protocol or operation.\n"
     )
 
 
@@ -232,10 +242,11 @@ def render_html(mermaid: str) -> str:
     legend_items = "\n".join(
         f'<li><span class="swatch" style="border-color:{color};'
         f'border-style:{"dashed" if line_style == "dashed" else "solid"}"></span>'
-        f"{html.escape(label)}</li>"
-        for _arrow, label, color, line_style in EDGE_TYPES.values()
+        f"{html.escape(label)} - {color_name}, {line_style} line ({color})</li>"
+        for _arrow, label, color, line_style, color_name in EDGE_TYPES.values()
     )
     return f"""<!doctype html>
+<!-- File: docs/generated/architecture/architecture.html -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -257,9 +268,10 @@ def render_html(mermaid: str) -> str:
   <main>
     <h1>Generated service architecture</h1>
     <p>Generated from <code>docs/architecture/model.json</code>; application image nodes are discovered from Skaffold.</p>
-    <ul>{legend_items}<li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition</li></ul>
+    <ul>{legend_items}<li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition - thick, solid purple (#a78bfa)</li></ul>
+    <p>Arrowheads show direction; request/reply uses a two-headed arrow. NATS pub/sub uses separate publisher-to-broker and broker-to-subscriber edges. Storage nodes use a cylinder shape; edges identify the protocol or operation.</p>
     <section class="diagram"><pre class="mermaid">{escaped_diagram}</pre></section>
-    <p>Update the architecture model when page composition or service interactions change.</p>
+    <p>Update the architecture model when page composition, storage, or service interactions change.</p>
   </main>
   <script type="module">
     import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

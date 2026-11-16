@@ -9,6 +9,8 @@ image:
 
 replicas: 1
 
+s3PublicEndpoint: "http://minio.localhost:8081"
+
 minioReadiness:
   image: {repository: dsap-minio-setup, tag: latest, pullPolicy: IfNotPresent}
   credentialsSecret: minio-esign-credentials
@@ -38,7 +40,7 @@ env:
   - name: S3_ENDPOINT
     value: "http://minio:9000"
   - name: S3_PUBLIC_ENDPOINT
-    value: "http://minio.localhost:8081" # Browser-accessible ingress/port-forward endpoint
+    value: '{{ .Values.s3PublicEndpoint }}'
   - name: S3_BUCKET
     value: "dsap"
   - name: NATS_URL

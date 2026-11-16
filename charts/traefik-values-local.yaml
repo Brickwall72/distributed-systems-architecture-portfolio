@@ -1,0 +1,16 @@
+# File: charts/traefik-values-local.yaml
+# Local development dashboard; do not use for a public deployment.
+
+ports:
+  web:
+    exposedPort: 80
+  dashboard:
+    port: 8090
+    expose:
+      default: true
+    exposedPort: 8090
+    protocol: TCP
+
+additionalArguments:
+  - "--api.dashboard=true"
+  - "--api.insecure=true"

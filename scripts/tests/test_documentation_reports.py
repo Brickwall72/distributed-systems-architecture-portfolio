@@ -24,7 +24,7 @@ class ArchitectureReportTests(unittest.TestCase):
         self.assertIn('global_shell["global-shell"]', diagram)
         self.assertIn("Unified Custody: TemplateSelector", diagram)
         self.assertIn("NATS request / reply", " ".join(
-            legend for _arrow, legend, _color, _style in generate_architecture.EDGE_TYPES.values()
+            legend for _arrow, legend, _color, _style, _color_name in generate_architecture.EDGE_TYPES.values()
         ))
         self.assertIn("compliance_server <-->|Generate PDF| pdf_server", diagram)
         self.assertNotIn("nats_bootstrap", diagram)
@@ -33,6 +33,62 @@ class ArchitectureReportTests(unittest.TestCase):
         self.assertIn("topology_server -.->|Publish committed transfer results| nats", diagram)
         self.assertIn("audit_server <-->|Generate PDF| pdf_server", diagram)
         self.assertNotIn("Deliver transfer initiated / received", diagram)
+
+    def test_storage_nodes_and_relationships_are_rendered(self) -> None:
+        diagram = generate_architecture.render_mermaid(APPLICATION_IMAGES, self.model)
+
+        for node in (
+            'topology_db[("Neo4j (topology)")]:::storage',
+            'compliance_db[("PostgreSQL (compliance)")]:::storage',
+            'audit_db[("MongoDB (audit)")]:::storage',
+            'minio[("MinIO object storage")]:::storage',
+        ):
+            self.assertIn(node, diagram)
+        for edge in (
+            "topology_server -->|Neo4j Bolt| topology_db",
+            "compliance_server -->|PostgreSQL| compliance_db",
+            "audit_server -->|MongoDB| audit_db",
+            "pdf_server -->|S3 document upload| minio",
+            "esign_server -->|S3 document read / upload| minio",
+            "compliance_client -->|Presigned document download| minio",
+            "audit_client -->|Presigned overview download| minio",
+        ):
+            self.assertIn(edge, diagram)
+
+    def test_legends_describe_rendered_edge_styles(self) -> None:
+        diagram = generate_architecture.render_mermaid(APPLICATION_IMAGES, self.model)
+        markdown = generate_architecture.render_markdown(diagram)
+        html = generate_architecture.render_html(diagram)
+        edge_index = sum(len(composition["widgets"]) for composition in self.model["compositions"])
+
+        for interaction in self.model["interactions"]:
+            arrow, label, color, line_style, color_name = generate_architecture.EDGE_TYPES[interaction["type"]]
+            source = generate_architecture.mermaid_node_id(interaction["from"])
+            target = generate_architecture.mermaid_node_id(interaction["to"])
+            self.assertIn(f'{source} {arrow}|{interaction["label"]}| {target}', diagram)
+            style = f"linkStyle {edge_index} stroke:{color},stroke-width:2px"
+            if line_style == "dashed":
+                style += ",stroke-dasharray: 6 4"
+            self.assertIn(style, diagram)
+            self.assertIn(f"**{label}** - {color_name}, {line_style} line (`{color}`)", markdown)
+            self.assertIn(f"{label} - {color_name}, {line_style} line ({color})", html)
+            edge_index += 1
+
+        self.assertIn("thick, solid purple", markdown)
+        self.assertIn("thick, solid purple", html)
+
+    def test_external_nodes_reject_unknown_kind(self) -> None:
+        invalid_model = dict(self.model)
+        invalid_model["externalNodes"] = [{"id": "test", "label": "Test", "kind": "unknown"}]
+        invalid_model["interactions"] = []
+
+        with self.assertRaisesRegex(ValueError, "must have kind"):
+            generate_architecture.validate_model(APPLICATION_IMAGES, invalid_model)
+
+    def test_external_node_without_kind_remains_a_broker(self) -> None:
+        model = {"externalNodes": [{"id": "test", "label": "Test"}], "compositions": [], "interactions": []}
+
+        self.assertIn('test["Test"]:::broker', generate_architecture.render_mermaid([], model))
 
     def test_new_skaffold_image_is_discovered_without_model_changes(self) -> None:
         diagram = generate_architecture.render_mermaid(

@@ -1,6 +1,10 @@
 # File: charts/traefik-values.yaml
-# Mirrors config/traefik/traefik.yaml (entryPoints, dashboard) so the k3d Traefik
-# release matches the compose static config instead of relying on chart defaults.
+# Safe base values: only expose the web entry point; local development opts into
+# its dashboard through traefik-values-local.yaml.
+
+api:
+  dashboard: false
+  insecure: false
 
 ports:
   web:
@@ -8,10 +12,6 @@ ports:
   dashboard:
     port: 8090
     expose:
-      default: true
+      default: false
     exposedPort: 8090
     protocol: TCP
-
-additionalArguments:
-  - "--api.dashboard=true"
-  - "--api.insecure=true"
