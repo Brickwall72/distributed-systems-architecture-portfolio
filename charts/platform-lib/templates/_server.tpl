@@ -69,7 +69,7 @@ spec:
               containerPort: 8080
           {{- if .Values.env }}
           env:
-            {{- toYaml .Values.env | nindent 12 }}
+            {{- tpl (toYaml .Values.env) . | nindent 12 }}
           {{- end }}
           {{- if .Values.envFrom }}
           envFrom:

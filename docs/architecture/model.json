@@ -4,6 +4,26 @@
       "id": "nats",
       "label": "NATS JetStream",
       "kind": "broker"
+    },
+    {
+      "id": "topology-db",
+      "label": "Neo4j (topology)",
+      "kind": "storage"
+    },
+    {
+      "id": "compliance-db",
+      "label": "PostgreSQL (compliance)",
+      "kind": "storage"
+    },
+    {
+      "id": "audit-db",
+      "label": "MongoDB (audit)",
+      "kind": "storage"
+    },
+    {
+      "id": "minio",
+      "label": "MinIO object storage",
+      "kind": "storage"
     }
   ],
   "compositions": [
@@ -136,6 +156,48 @@
       "to": "auth-server",
       "type": "http",
       "label": "Authentication and profiles REST API"
+    },
+    {
+      "from": "compliance-client",
+      "to": "minio",
+      "type": "http",
+      "label": "Presigned document download"
+    },
+    {
+      "from": "audit-client",
+      "to": "minio",
+      "type": "http",
+      "label": "Presigned overview download"
+    },
+    {
+      "from": "topology-server",
+      "to": "topology-db",
+      "type": "storage",
+      "label": "Neo4j Bolt"
+    },
+    {
+      "from": "compliance-server",
+      "to": "compliance-db",
+      "type": "storage",
+      "label": "PostgreSQL"
+    },
+    {
+      "from": "audit-server",
+      "to": "audit-db",
+      "type": "storage",
+      "label": "MongoDB"
+    },
+    {
+      "from": "pdf-server",
+      "to": "minio",
+      "type": "storage",
+      "label": "S3 document upload"
+    },
+    {
+      "from": "esign-server",
+      "to": "minio",
+      "type": "storage",
+      "label": "S3 document read / upload"
     },
     {
       "from": "compliance-server",

@@ -65,13 +65,13 @@ signatures. See the [ADRs](./docs/adr/) for design decisions.
 
 ### Generated Architecture and Software Inventory
 
-CI builds every application image declared in `skaffold.yaml`, then generates a CycloneDX JSON SBOM and a visual HTML report for each image. The [generated SBOM index](./docs/generated/sbom/index.md) links to each report. The structured [architecture model](./docs/architecture/model.json) separately records page/widget composition and communication patterns; it is rendered as both Markdown (Mermaid) and HTML.
+CI builds every application image declared in `skaffold.yaml`, then generates a CycloneDX JSON SBOM and a visual HTML report for each image. The [generated SBOM index](./docs/generated/sbom/index.md) links to each report. The structured [architecture model](./docs/architecture/model.json) separately records page/widget composition, storage, and communication patterns; it is rendered as both Markdown (Mermaid) and HTML.
 
 On pull requests and pushes, the reports are attached to the GitHub Actions run as the `sbom-and-architecture-reports` artifact. On pushes to `master`, after the verification and report-generation jobs pass, CI opens or updates a pull request with changed outputs under `docs/generated/`, then explicitly runs verification against that report branch. It avoids replacing a committed image report when the image digest and report-tool versions are unchanged. This requires GitHub Actions to have Actions, repository contents, and pull-request write permissions; the report updates still go through the normal `master` review and branch-protection process.
 
 Trivy runs with its license scanner for inventory metadata, not its vulnerability scanner. Sunshine displays a vulnerability summary, but a zero count here means vulnerability data was not included; it does not mean a vulnerability scan passed.
 
-Adding a deployable image to `skaffold.yaml` is enough for it to be included in SBOM generation. Update `docs/architecture/model.json` only when the image participates in a UI composition or service interaction that should appear in the architecture view. For local generation, prepare the pinned [CycloneDX Sunshine revision](https://github.com/CycloneDX/Sunshine/tree/beaab3faf2bab234069a8677fc627de2f0f01a3d):
+Adding a deployable image to `skaffold.yaml` is enough for it to be included in SBOM generation. Update `docs/architecture/model.json` when UI composition, storage nodes, or interactions should change in the architecture view. For local generation, prepare the pinned [CycloneDX Sunshine revision](https://github.com/CycloneDX/Sunshine/tree/beaab3faf2bab234069a8677fc627de2f0f01a3d):
 
 ```bash
 mkdir -p .tools
@@ -506,6 +506,106 @@ access. Intentional rotation requires coordinated updates to the
 backing service, clients, and any restore procedure; changing a Secret alone
 does not rotate a persisted database account. A demo data reset must not replace
 current credentials.
+
+The Helm chart defaults now keep DBGate disabled and disable the MinIO and NATS
+management ingress routes. The local Skaffold workflow explicitly enables those
+local routes and DBGate for development. The public-safe Traefik values do not
+expose its dashboard; `pnpm helm` deliberately uses the separate
+`charts/traefik-values-local.yaml` for the local development dashboard. A public
+deployment must explicitly configure only the application and browser-facing
+S3 routes it needs; do not use the local Traefik values file.
+
+### Temporary Tailscale Funnel smoke test
+
+The disposable dev-machine test uses the Windows Tailscale client to expose
+only the app and MinIO S3 API. It does not install Tailscale in WSL, use
+`skaffold dev`, expose the MinIO console or NATS monitor, or install DBGate.
+Funnel stays off until the chart deployment and Windows-to-WSL port checks pass.
+
+Create the isolated cluster and initialize its separate demo Secrets:
+
+```bash
+pnpm k3d:funnel:smoke up
+kubectl --context k3d-dsap-funnel-smoke create namespace platform-funnel-smoke
+pnpm k8s:demo-secrets --context k3d-dsap-funnel-smoke \
+  --namespace platform-funnel-smoke \
+  --dir "$HOME/.local/share/dsap-funnel-smoke" --init
+```
+
+Keep the generated bundle protected and reuse it for later runs; omit `--init`
+when the bundle already exists. The cluster script binds host ports 8081 and
+9000 to loopback only, and the Kubernetes API is bound to loopback port 6445.
+If `base-image:local` is missing, build it without running `dev:prepare` (which
+also prepares local-development credentials), then build and import the
+Skaffold images. This uses Skaffold's image build definitions only; all
+deployments are direct Helm installs:
+
+```bash
+scripts/with-buildkit.sh docker build -f Dockerfile.base -t base-image:local .
+pnpm k3d:funnel:smoke images
+pnpm k3d:funnel:smoke deploy YOUR_FUNNEL_HOSTNAME
+```
+
+Use the hostname shown by Tailscale, without a scheme or port. The deploy
+command configures presigned S3 URLs as
+`https://YOUR_FUNNEL_HOSTNAME:8443`, restricts MinIO browser CORS to the app
+origin, and routes only the S3 API through Traefik's `s3` entry point. Review
+pod readiness and the IngressRoutes before continuing:
+
+```bash
+kubectl --context k3d-dsap-funnel-smoke -n platform-funnel-smoke get pods
+kubectl --context k3d-dsap-funnel-smoke -n platform-funnel-smoke \
+  get ingressroutes.traefik.io
+```
+
+On Windows, confirm both WSL-published ports are reachable before starting
+Funnel:
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 8081
+Test-NetConnection 127.0.0.1 -Port 9000
+```
+
+Then configure the Windows Tailscale client from PowerShell. These commands
+forward public HTTPS 443 to the app and public HTTPS 8443 to the S3 API; they do
+not expose an API dashboard or MinIO console:
+
+```powershell
+$tailscale = "$env:ProgramFiles\Tailscale\tailscale.exe"
+& $tailscale funnel --bg --https=443 http://127.0.0.1:8081
+& $tailscale funnel --bg --https=8443 http://127.0.0.1:9000
+& $tailscale funnel status
+```
+
+From a computer outside the tailnet, open the app and exercise a document
+download using a presigned URL. Confirm the URL retains its exact hostname,
+`:8443` port, path, and query string. Also check that the Traefik dashboard,
+MinIO console, and NATS monitor are not publicly reachable.
+
+If a device already connected to the tailnet cannot open the public URL, check
+from a device that is not on the tailnet. Split DNS can resolve the hostname
+to its private Tailscale address on tailnet-connected devices; public DNS
+records can also take up to 10 minutes to propagate after enabling Funnel.
+See [Tailscale's Funnel troubleshooting guidance](https://tailscale.com/docs/features/tailscale-funnel#dns-propagation).
+
+When finished, disable all Funnel listeners and verify they are off:
+
+```powershell
+$tailscale = "$env:ProgramFiles\Tailscale\tailscale.exe"
+& $tailscale funnel reset
+& $tailscale funnel status
+```
+
+Then remove only the disposable cluster:
+
+```bash
+pnpm k3d:funnel:smoke down
+```
+
+Cluster deletion removes its database, object-store, and NATS state. It does
+not delete the protected demo Secrets bundle under the home directory, which
+can be reused for a repeat test. This smoke test does not configure the later
+home-server deployment or provide a database restore point.
 
 For a version-1 demo bundle, an explicit access-model upgrade preserves the
 existing administrator, JWT, NATS and signing material and writes a protected

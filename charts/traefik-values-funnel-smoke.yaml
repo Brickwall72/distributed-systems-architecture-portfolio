@@ -1,0 +1,10 @@
+# File: charts/traefik-values-funnel-smoke.yaml
+# Additional public S3 entry point for the temporary Funnel smoke test.
+# Combine with traefik-values.yaml; do not use the local dashboard values.
+ports:
+  s3:
+    port: 9000
+    exposedPort: 9000
+    protocol: TCP
+    expose:
+      default: true

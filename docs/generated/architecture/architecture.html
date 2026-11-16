@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- File: docs/generated/architecture/architecture.html -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -20,13 +21,16 @@
   <main>
     <h1>Generated service architecture</h1>
     <p>Generated from <code>docs/architecture/model.json</code>; application image nodes are discovered from Skaffold.</p>
-    <ul><li><span class="swatch" style="border-color:#2563eb;border-style:solid"></span>HTTP / REST</li>
-<li><span class="swatch" style="border-color:#c2410c;border-style:solid"></span>NATS request / reply</li>
-<li><span class="swatch" style="border-color:#0f766e;border-style:dashed"></span>NATS pub / sub</li><li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition</li></ul>
+    <ul><li><span class="swatch" style="border-color:#2563eb;border-style:solid"></span>HTTP / REST - blue, solid line (#2563eb)</li>
+<li><span class="swatch" style="border-color:#c2410c;border-style:solid"></span>NATS request / reply - orange, solid line (#c2410c)</li>
+<li><span class="swatch" style="border-color:#0f766e;border-style:dashed"></span>NATS pub / sub - teal, dashed line (#0f766e)</li>
+<li><span class="swatch" style="border-color:#16a34a;border-style:solid"></span>Database / object storage - green, solid line (#16a34a)</li><li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition - thick, solid purple (#a78bfa)</li></ul>
+    <p>Arrowheads show direction; request/reply uses a two-headed arrow. NATS pub/sub uses separate publisher-to-broker and broker-to-subscriber edges. Storage nodes use a cylinder shape; edges identify the protocol or operation.</p>
     <section class="diagram"><pre class="mermaid">flowchart LR
   classDef application fill:#172554,stroke:#60a5fa,color:#fff
   classDef shell fill:#312e81,stroke:#a78bfa,color:#fff
   classDef broker fill:#78350f,stroke:#f59e0b,color:#fff
+  classDef storage fill:#14532d,stroke:#4ade80,color:#fff
 
   subgraph images[Application images from Skaffold]
     audit_client[&quot;audit-client&quot;]:::application
@@ -45,6 +49,10 @@
     topology_shell[&quot;topology-shell&quot;]:::shell
   end
   nats[&quot;NATS JetStream&quot;]:::broker
+  topology_db[(&quot;Neo4j (topology)&quot;)]:::storage
+  compliance_db[(&quot;PostgreSQL (compliance)&quot;)]:::storage
+  audit_db[(&quot;MongoDB (audit)&quot;)]:::storage
+  minio[(&quot;MinIO object storage&quot;)]:::storage
   global_shell ==&gt;|Mission Operations: Fleet Topology tab| topology_shell
   global_shell ==&gt;|Mission Operations: Flight Compliance tab| compliance_shell
   global_shell ==&gt;|Mission Operations: ProfileSelector| auth_client
@@ -66,6 +74,13 @@
   topology_client --&gt;|Topology REST API| topology_server
   audit_client --&gt;|Audit REST API| audit_server
   auth_client --&gt;|Authentication and profiles REST API| auth_server
+  compliance_client --&gt;|Presigned document download| minio
+  audit_client --&gt;|Presigned overview download| minio
+  topology_server --&gt;|Neo4j Bolt| topology_db
+  compliance_server --&gt;|PostgreSQL| compliance_db
+  audit_server --&gt;|MongoDB| audit_db
+  pdf_server --&gt;|S3 document upload| minio
+  esign_server --&gt;|S3 document read / upload| minio
   compliance_server &lt;--&gt;|Validate drafts and reserve transfers| topology_server
   compliance_server &lt;--&gt;|Generate PDF| pdf_server
   audit_server &lt;--&gt;|Generate PDF| pdf_server
@@ -97,17 +112,24 @@
   linkStyle 18 stroke:#2563eb,stroke-width:2px
   linkStyle 19 stroke:#2563eb,stroke-width:2px
   linkStyle 20 stroke:#2563eb,stroke-width:2px
-  linkStyle 21 stroke:#c2410c,stroke-width:2px
-  linkStyle 22 stroke:#c2410c,stroke-width:2px
-  linkStyle 23 stroke:#c2410c,stroke-width:2px
-  linkStyle 24 stroke:#c2410c,stroke-width:2px
-  linkStyle 25 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 26 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 27 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 28 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 29 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
-  linkStyle 30 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
-    <p>Update the architecture model when page composition or service interactions change.</p>
+  linkStyle 21 stroke:#2563eb,stroke-width:2px
+  linkStyle 22 stroke:#2563eb,stroke-width:2px
+  linkStyle 23 stroke:#16a34a,stroke-width:2px
+  linkStyle 24 stroke:#16a34a,stroke-width:2px
+  linkStyle 25 stroke:#16a34a,stroke-width:2px
+  linkStyle 26 stroke:#16a34a,stroke-width:2px
+  linkStyle 27 stroke:#16a34a,stroke-width:2px
+  linkStyle 28 stroke:#c2410c,stroke-width:2px
+  linkStyle 29 stroke:#c2410c,stroke-width:2px
+  linkStyle 30 stroke:#c2410c,stroke-width:2px
+  linkStyle 31 stroke:#c2410c,stroke-width:2px
+  linkStyle 32 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 33 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 34 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 35 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 36 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4
+  linkStyle 37 stroke:#0f766e,stroke-width:2px,stroke-dasharray: 6 4</pre></section>
+    <p>Update the architecture model when page composition, storage, or service interactions change.</p>
   </main>
   <script type="module">
     import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

@@ -59,7 +59,7 @@ spec:
                   name: {{ .Values.credentialsSecret | quote }}
                   key: MINIO_ROOT_PASSWORD
             - name: MINIO_API_CORS_ALLOW_ORIGIN
-              value: "*"
+              value: {{ .Values.corsAllowOrigin | quote }}
           ports:
             - name: api
               containerPort: 9000

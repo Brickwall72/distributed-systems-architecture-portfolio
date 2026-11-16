@@ -14,6 +14,8 @@ credentialsSecret: minio-credentials
 
 bucket: dsap
 
+corsAllowOrigin: "*"
+
 persistence:
   size: 5Gi
 
@@ -36,7 +38,7 @@ setupResources:
     ephemeral-storage: 256Mi
 
 ingress:
-  enabled: true
+  enabled: false
   entryPoints:
     - web
   rule: "Host(`minio.localhost`)"
