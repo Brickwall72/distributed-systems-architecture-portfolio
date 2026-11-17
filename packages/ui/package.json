@@ -23,8 +23,6 @@
     "react-dom": "~19.2.8"
   },
   "dependencies": {
-    "tailwind-merge": "~3.6.0",
-    "clsx": "~2.1.1",
     "@contracts/auth": "workspace:*",
     "@shared/utils": "workspace:*"
   },

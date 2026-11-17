@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { createExpressEndpoints } from '@ts-rest/express';
 import { createOrganizationsRouter } from './organizations';
 import { createAssetsRouter } from './assets';
-import { createGraphRouter } from './graph/graph.route';
+import { createGraphRouter } from './graph';
 import { createHealthCheck } from '@shared/express';
 import { topologyContract } from 'topology-shared';
 

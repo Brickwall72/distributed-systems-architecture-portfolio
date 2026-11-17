@@ -1,4 +1,4 @@
-// File: services/core/compliance-service/server/src/config.ts
+// File: services/core/topology-service/server/src/config.ts
 import { z } from 'zod';
 
 const envSchema = z.object({

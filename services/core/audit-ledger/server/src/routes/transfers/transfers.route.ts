@@ -50,24 +50,6 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
       }
     },
 
-    getTransfer: async ({ params: { requisitionNumber }, req }) => {
-      const correlationId = correlationOf(req.headers);
-      const scope = scopeFor(req);
-      if (!scope) return denied(req);
-      try {
-        const record = await ledgerService.getSealedTransfer(requisitionNumber, scope);
-        if (!record) {
-          return {
-            status: 404 as const,
-            body: errorBody('NOT_FOUND', `No sealed record exists for requisition '${requisitionNumber}'.`),
-          };
-        }
-        return { status: 200 as const, body: record };
-      } catch (err) {
-        return serverError(err, `GET /transfers/${requisitionNumber} failed`, correlationId);
-      }
-    },
-
     getTransferDocument: async ({ params: { requisitionNumber }, req }) => {
       req.res?.setHeader('Cache-Control', 'no-store');
       const scope = scopeFor(req);
@@ -84,46 +66,6 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
       } catch (error) {
         logger.error(`GET /transfers/:requisitionNumber/document failed: ${error instanceof Error ? error.name : 'Unknown error'}`, correlationOf(req.headers));
         return { status: 500 as const, body: errorBody('INTERNAL_SERVER_ERROR', 'Could not retrieve transfer overview.') };
-      }
-    },
-
-    verifyTransfer: async ({ params: { requisitionNumber }, req }) => {
-      const correlationId = correlationOf(req.headers);
-      const scope = scopeFor(req);
-      if (!scope) return denied(req);
-      try {
-        const result = await ledgerService.verifyTransfer(requisitionNumber, scope);
-        if (!result) {
-          return {
-            status: 404 as const,
-            body: errorBody('NOT_FOUND', `No sealed record exists for requisition '${requisitionNumber}'.`),
-          };
-        }
-        return { status: 200 as const, body: result };
-      } catch (err) {
-        return serverError(err, `GET /transfers/${requisitionNumber}/verify failed`, correlationId);
-      }
-    },
-
-    verifyLedger: async ({ req }) => {
-      const correlationId = correlationOf(req.headers);
-      const scope = scopeFor(req);
-      if (scope?.kind !== 'auditor') return denied(req);
-      try {
-        return { status: 200 as const, body: await ledgerService.verifyLedger() };
-      } catch (err) {
-        return serverError(err, 'GET /ledger/verify failed', correlationId);
-      }
-    },
-
-    getDeadLetters: async ({ req }) => {
-      const correlationId = correlationOf(req.headers);
-      const scope = scopeFor(req);
-      if (scope?.kind !== 'auditor') return denied(req);
-      try {
-        return { status: 200 as const, body: await ledgerService.listDeadLetters() };
-      } catch (err) {
-        return serverError(err, 'GET /dead-letters failed', correlationId);
       }
     },
   });
