@@ -8,8 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsup",
     "test": "pnpm test:unit",
-    "test:unit": "vitest run .unit.test",
-    "test.sh": "./src/test.sh"
+    "test:unit": "vitest run .unit.test"
   },
   "dependencies": {
     "@contracts/pdf": "workspace:*",
@@ -19,7 +18,6 @@
     "@shared/zod": "workspace:*",
     "express": "~5.2.1",
     "puppeteer": "~25.10.0",
-    "cors": "~2.8.6",
     "zod": "~3.24.1"
   }
 }

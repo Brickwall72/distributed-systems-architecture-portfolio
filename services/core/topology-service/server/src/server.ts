@@ -7,13 +7,13 @@ import { TransferOutboxService } from './services';
 import { TransferOutboxRepository, TransferClaimsRepository, TransferDraftRepository } from './repositories';
 import { registerTransferRequestResponders, startSignedTransferConsumer } from './messaging';
 import { TOPOLOGY_EVENT_SUBJECTS } from '@contracts/topology';
+import { env } from './config';
 import {
   initializeDatabaseConnection, terminateDatabaseClient,
   getDatabaseClient, seedSpaceCustodyGraphTopology
 } from './database';
 
 const app = express();
-const PORT = 8080;
 const logger = createLogger('topology-server');
 
 app.disable('x-powered-by');
@@ -35,10 +35,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
  * Starts the server lifecycle after the graph driver and NATS broker have been initialized.
  */
 async function bootstrapApplicationServer() {
-  const natsUrl = process.env.NATS_URL || 'nats://localhost:4222';
   const credentials = natsCredentialsFromEnv(process.env);
   if (!credentials) throw new Error('Authenticated NATS service credentials are required');
-  const broker = new EventBroker(natsUrl, logger, credentials);
+  const broker = new EventBroker(env.NATS_URL, logger, credentials);
   let server: ReturnType<typeof app.listen>;
   let outbox: TransferOutboxService | undefined;
   const startup = new AbortController();
@@ -72,10 +71,10 @@ async function bootstrapApplicationServer() {
   process.on('SIGINT', () => void shutdown('SIGINT'));
 
   try {
-    server = app.listen(Number(PORT), '0.0.0.0', () => {
-      logger.info(`Topology liveness endpoint listening on port ${PORT}`);
+    server = app.listen(env.PORT, '0.0.0.0', () => {
+      logger.info(`Topology liveness endpoint listening on port ${env.PORT}`);
     });
-    if (process.env.NODE_ENV !== 'test') {
+    if (env.NODE_ENV !== 'test') {
       const driver = await initializeDatabaseConnection();
       await seedSpaceCustodyGraphTopology(driver);
     }
@@ -104,7 +103,7 @@ async function bootstrapApplicationServer() {
   }
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (env.NODE_ENV !== 'test') {
   await bootstrapApplicationServer();
 }
 

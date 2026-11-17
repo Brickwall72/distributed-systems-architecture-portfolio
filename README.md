@@ -267,6 +267,10 @@ Neo4j Community Edition does not provide the fine-grained role commands needed
 to enforce graph permissions per demo profile. The topology service connects
 using its database credentials and enforces profile and organization access at
 the application boundary; signing into the UI does not create a database user.
+Topology validates `PORT` (default `8080`), `NATS_URL` (default
+`nats://localhost:4222`), and `NODE_ENV` (default `development`) through its
+[server configuration](services/core/topology-service/server/src/config.ts).
+If changing `PORT`, also align the container port mappings and health probes.
 The e-sign service requires a readable P12 certificate and a matching
 `SIGNING_CERT_PASSWORD`; signing fails rather than returning an unsealed PDF
 when the certificate or cryptographic seal cannot be applied. The legacy

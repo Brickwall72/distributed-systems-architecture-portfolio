@@ -20,5 +20,3 @@ export const graphRoutes = {
     summary: 'Fetch full topology network graph projection for NetworkCanvasWidget',
   }),
 };
-
-export const graphContract = c.router(graphRoutes);

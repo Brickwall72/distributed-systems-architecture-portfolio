@@ -33,5 +33,3 @@ export const assetsRoutes = {
     summary: 'Register a new asset and establish custody with an organization',
   }),
 };
-
-export const assetsContract = c.router(assetsRoutes);
