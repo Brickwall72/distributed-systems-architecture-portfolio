@@ -1,0 +1,32 @@
+# File: infrastructure/jaeger/memory.yaml
+service:
+  extensions: [jaeger_storage, jaeger_query]
+  telemetry:
+    metrics:
+      level: none
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]
+extensions:
+  jaeger_query:
+    storage:
+      traces: local
+    http:
+      endpoint: 0.0.0.0:16686
+  jaeger_storage:
+    backends:
+      local:
+        memory:
+          max_traces: 5000
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  batch:
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: local

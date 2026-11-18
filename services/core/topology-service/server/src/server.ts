@@ -2,6 +2,7 @@
 import express from 'express';
 import {
   createLogger, createRequestDiagnostics, createVerifyJwt, loadAuthPublicKeyPem, safeErrorMetadata,
+  startTracing, stopTracing,
 } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
@@ -67,11 +68,13 @@ async function bootstrapApplicationServer() {
       logger.info('Database client terminated.');
 
       if (server) {
-        server.close(() => {
+        server.close(async () => {
           logger.info('HTTP server closed.');
+          await stopTracing(logger);
           process.exit(0);
         });
       } else {
+        await stopTracing(logger);
         process.exit(0);
       }
     } catch (err) {
@@ -88,6 +91,7 @@ async function bootstrapApplicationServer() {
       logger.info(`Topology liveness endpoint listening on port ${env.PORT}`);
     });
     if (env.NODE_ENV !== 'test') {
+      startTracing('topology-server', logger);
       const driver = await initializeDatabaseConnection();
       await seedSpaceCustodyGraphTopology(driver);
     }

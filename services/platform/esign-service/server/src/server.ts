@@ -1,6 +1,6 @@
 // File: services/platform/esign-service/server/src/server.ts
 import express from 'express';
-import { createLogger, createErrorHandler, createHealthCheck, createRequestDiagnostics } from '@shared/express';
+import { createLogger, createErrorHandler, createHealthCheck, createRequestDiagnostics, startTracing, stopTracing } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerESignResponder } from './messaging';
 import { env } from './config';
@@ -17,6 +17,7 @@ app.get('/api/v1/health', createHealthCheck('esign-server'));
 app.use(createErrorHandler(logger));
 
 if (process.env.NODE_ENV !== 'test') {
+  startTracing('esign-server', logger);
   const broker = new EventBroker(env.NATS_URL, logger, natsCredentialsFromEnv(process.env));
   await broker.connect();
 
@@ -35,6 +36,7 @@ if (process.env.NODE_ENV !== 'test') {
       try {
         await broker.disconnect();
         logger.info('NATS broker disconnected cleanly.');
+        await stopTracing(logger);
         process.exit(0);
       } catch (err) {
         logger.error(`Error disconnecting NATS broker: ${err}`);

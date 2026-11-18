@@ -5,6 +5,7 @@ import { createComplianceGateway } from './routes';
 import { initializeDatabaseWithRetry, pool } from './db';
 import {
   createLogger, createRequestDiagnostics, createVerifyJwt, loadAuthPublicKeyPem, safeErrorMetadata,
+  startTracing, stopTracing,
 } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { TransferService, NatsSigningCoordinator, SignedOutboxService } from './services';
@@ -96,6 +97,7 @@ async function bootstrapApplicationServer() {
         await pool.end();
         logger.info('Database connection pool drained and closed.');
 
+        await stopTracing(logger);
         clearTimeout(forceExitTimeout);
         process.exit(0);
       } catch (err) {
@@ -155,6 +157,7 @@ async function bootstrapApplicationServer() {
 }
 
 if (env.NODE_ENV !== 'test') {
+  startTracing('compliance-server', logger);
   await bootstrapApplicationServer();
 }
 

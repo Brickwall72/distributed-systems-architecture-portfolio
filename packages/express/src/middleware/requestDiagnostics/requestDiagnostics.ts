@@ -4,6 +4,7 @@ import {
   beginOperation,
   diagnosticId,
   runWithDiagnosticContext,
+  runWithoutTrace,
   validDiagnosticId,
   type Logger,
 } from '../../telemetry';
@@ -42,7 +43,7 @@ export function createRequestDiagnostics(logger: Logger) {
     const correlationId = validDiagnosticId(selected) ? selected : diagnosticId();
 
     res.setHeader('x-correlation-id', correlationId);
-    runWithDiagnosticContext({ correlationId }, () => {
+    runWithoutTrace(() => runWithDiagnosticContext({ correlationId }, () => {
       if ((canonical.present && !validDiagnosticId(canonical.value))
         || (!canonical.present && fallback?.present && !validDiagnosticId(fallback.value))) {
         logger.warn('Invalid diagnostic correlation ID replaced');
@@ -69,8 +70,8 @@ export function createRequestDiagnostics(logger: Logger) {
         if (!res.writableFinished) finish(true);
       });
 
-      runWithDiagnosticContext(operation.context, next);
-    });
+      operation.run(next);
+    }));
   };
 }
 

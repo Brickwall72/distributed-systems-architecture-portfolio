@@ -25,6 +25,8 @@ services:
       - "traefik.http.services.esign-api.loadbalancer.server.port=8080"
     environment:
       PORT: 8080
+      DSAP_TRACING_ENABLED: ${DSAP_TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
       NATS_URL: nats://nats:4222
       SIGNING_CERT_PATH: /app/certs/certificate.p12
       S3_ENDPOINT: ${S3_ENDPOINT}

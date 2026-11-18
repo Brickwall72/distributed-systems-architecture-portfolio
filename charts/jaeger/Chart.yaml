@@ -1,0 +1,7 @@
+# File: charts/jaeger/Chart.yaml
+apiVersion: v2
+name: jaeger
+description: Private Jaeger trace storage and query for the DSAP demo
+type: application
+version: 0.1.0
+appVersion: "2.23.0"

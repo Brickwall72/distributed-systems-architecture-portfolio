@@ -1,5 +1,6 @@
 // File: packages/diagnostics/src/logger.ts
 import { getDiagnosticContext, validDiagnosticId } from './context';
+import { activeTraceIds } from './tracing';
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 export type OperationOutcome = 'success' | 'rejected' | 'failure' | 'deferred' | 'aborted' | 'discarded'
@@ -25,6 +26,8 @@ export interface DiagnosticMetadata {
 }
 
 export interface StructuredLog extends DiagnosticMetadata {
+  traceId?: string;
+  spanId?: string;
   timestamp: string;
   level: LogLevel;
   subsystem: string;
@@ -85,6 +88,7 @@ export function createLogger(subsystem: string): Logger {
     }
     const log: StructuredLog = {
       ...details,
+      ...activeTraceIds(),
       operation: details.operation ?? context?.operation,
       operationId: details.operationId ?? context?.operationId,
       parentOperationId: details.parentOperationId ?? context?.parentOperationId,

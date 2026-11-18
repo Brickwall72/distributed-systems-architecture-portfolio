@@ -39,6 +39,8 @@ services:
       - "traefik.http.services.topology-api.loadbalancer.server.port=8080"
     environment:
       DB_URI: bolt://topology-db:7687
+      DSAP_TRACING_ENABLED: ${DSAP_TRACING_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
       NATS_URL: nats://nats:4222
       AUTH_PUBLIC_KEY_FILE: /run/secrets/auth_public_key
     secrets:

@@ -1,6 +1,6 @@
 // File: services/platform/pdf-generator/server/src/server.ts
 import express from 'express';
-import { createHealthCheck, createErrorHandler, createLogger, createRequestDiagnostics } from '@shared/express';
+import { createHealthCheck, createErrorHandler, createLogger, createRequestDiagnostics, startTracing, stopTracing } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerPdfResponder } from './messaging';
 import { env } from './config';
@@ -26,8 +26,9 @@ async function bootstrapPdfService() {
     try {
       await broker.disconnect();
       logger.info('NATS broker connection closed.');
-      server.close(() => {
+      server.close(async () => {
         logger.info('HTTP health server closed.');
+        await stopTracing(logger);
         process.exit(0);
       });
     } catch (err) {
@@ -59,6 +60,7 @@ async function bootstrapPdfService() {
 }
 
 if (process.env.NODE_ENV !== 'test') {
+  startTracing('pdf-server', logger);
   await bootstrapPdfService();
 }
 

@@ -5,6 +5,7 @@ import { createAuditGateway } from './routes';
 import { connectDatabaseWithRetry, closeDatabase } from './db';
 import {
   createLogger, createRequestDiagnostics, createVerifyJwt, loadAuthPublicKeyPem, safeErrorMetadata,
+  startTracing, stopTracing,
 } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { LedgerService, RenditionService } from './services';
@@ -91,6 +92,7 @@ async function bootstrapApplicationServer() {
         await closeDatabase();
         logger.info('Database connection closed.');
 
+        await stopTracing(logger);
         clearTimeout(forceExitTimeout);
         process.exit(0);
       } catch (err) {
@@ -152,6 +154,7 @@ async function bootstrapApplicationServer() {
 }
 
 if (env.NODE_ENV !== 'test') {
+  startTracing('audit-server', logger);
   await bootstrapApplicationServer();
 }
 
