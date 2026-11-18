@@ -117,7 +117,7 @@ services:
   minio-policy-setup:
     image: dsap-minio-setup:integration
     build:
-      context: ../charts/minio
+      context: ../infrastructure/minio-setup
       dockerfile: Dockerfile.setup
     environment:
       MINIO_ENDPOINT: http://minio:9000

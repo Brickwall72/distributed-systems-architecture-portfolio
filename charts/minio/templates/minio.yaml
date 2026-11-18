@@ -116,7 +116,7 @@ automountServiceAccountToken: false
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: minio-setup-{{ printf "%s%s%s%s%s%s%s" (.Files.Get "files/provision.py") (.Files.Get "files/policies/compliance.json") (.Files.Get "files/policies/audit.json") (.Files.Get "files/policies/worker.json") .Values.setupImage.repository .Values.setupImage.tag (toJson .Values.setupResources) | sha256sum | trunc 10 }}
+  name: minio-setup-{{ printf "%s%s%s-%d" .Values.setupImage.repository .Values.setupImage.tag (toJson .Values.setupResources) .Release.Revision | sha256sum | trunc 10 }}
 spec:
   backoffLimit: 5
   template:

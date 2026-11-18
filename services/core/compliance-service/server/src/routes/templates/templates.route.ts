@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/server/src/routes/templates/templates.route.ts
 import { initServer } from '@ts-rest/express';
-import { createLogger, orgScope } from '@shared/express';
+import { createLogger, getDiagnosticContext, orgScope, runOperation, safeErrorMetadata } from '@shared/express';
 import { templatesRoutes, TemplateDraftResponseSchema, FormId, FORM_TYPE, templateId2dataSchema } from 'compliance-shared';
 import { TemplateRepository, draftBindingSchema, type DocumentsRepository } from '../../repositories';
 import { hydrateTemplate } from '@shared/utils';
@@ -144,15 +144,15 @@ async function prepareDraft(
 export function createTemplatesRouter(deps: TemplatesRouterDeps) {
   return s.router(templatesRoutes, {
     // eslint-disable-next-line @typescript-eslint/require-await
-    getTemplates: async ({ query, req }) => {
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+    getTemplates: async ({ query }) => {
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
       logger.info('Fetching compliance template manifest', correlationId);
 
       try {
         const manifest = TemplateRepository.findAllManifests(query);
         return { status: 200 as const, body: manifest };
       } catch (err) {
-        logger.error(`Failed to fetch template manifest: ${err}`, correlationId);
+        logger.error('Failed to fetch template manifest', correlationId, safeErrorMetadata(err));
         return {
           status: 500 as const,
           body: {
@@ -165,14 +165,14 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
     },
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    getTemplate: async ({ params: { id }, req }) => {
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+    getTemplate: async ({ params: { id } }) => {
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
 
       try {
         const templateRecord = TemplateRepository.findById(id as FormId);
 
         if (!templateRecord) {
-          logger.warn(`Template lookup failed: [${id}] not found`, correlationId);
+          logger.warn('Template lookup failed', correlationId);
           return {
             status: 404 as const,
             body: {
@@ -183,10 +183,10 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           };
         }
 
-        logger.info(`Serving template DTO for [${id}]`, correlationId);
+        logger.info('Serving template DTO', correlationId);
         return { status: 200 as const, body: templateRecord };
       } catch (err) {
-        logger.error(`Error loading template [${id}]: ${err}`, correlationId);
+        logger.error('Error loading template', correlationId, safeErrorMetadata(err));
         return {
           status: 500 as const,
           body: {
@@ -198,8 +198,11 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
       }
     },
 
-    createTemplateDraft: async ({ params: { id }, body, req }) => {
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+    createTemplateDraft: async ({ params: { id }, body, req }) => runOperation(
+      logger,
+      'compliance.draft.create',
+      async () => {
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
       if (!req.identity) {
         return {
           status: 401 as const,
@@ -214,8 +217,6 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
         };
       }
       req.res?.setHeader('Cache-Control', 'no-store');
-      logger.info(`Generating draft PDF for template [${id}]`, correlationId);
-
       try {
         const template = TemplateRepository.findById(id);
         if (!template) {
@@ -251,11 +252,19 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           html: hydratedHtml,
         };
 
-        const pdfResponse = generatePdfResponseSchema.parse(await broker.request(
-          PDF_SUBJECTS.GENERATE_PDF,
-          generatePdfCommandSchema.parse(documentData),
-          { correlationId: correlationId || undefined, timeout: 15000 }
-        ));
+        const pdfResponse = await runOperation(
+          logger,
+          'compliance.draft.pdf',
+          async () => generatePdfResponseSchema.parse(await broker.request(
+            PDF_SUBJECTS.GENERATE_PDF,
+            generatePdfCommandSchema.parse(documentData),
+            { correlationId: correlationId || undefined, timeout: 15000 }
+          )),
+          {
+            metadata: { subject: PDF_SUBJECTS.GENERATE_PDF, documentId },
+            classify: (response) => response.success ? 'success' : 'failure',
+          },
+        );
 
         if (!pdfResponse.success) {
           throw new Error('PDF generator service returned an unsuccessful response status');
@@ -268,8 +277,12 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           assetIds: draft.assetIds,
           transferEventId: draft.transferEventId,
         });
-        await deps.repository.saveDraftBinding(binding, req.identity.sub, creatorOrgId);
-        logger.info(`Successfully obtained pre-signed PDF URL via NATS for document [${documentData.documentId}]`, correlationId);
+        await runOperation(
+          logger,
+          'compliance.draft.persist',
+          () => deps.repository.saveDraftBinding(binding, req.identity!.sub, creatorOrgId),
+          { metadata: { documentId: documentData.documentId } },
+        );
 
         // 4. Return the storage artifact along with the authoritative requisition number to the client
         return {
@@ -283,8 +296,6 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
         const message = err instanceof Error ? err.message : String(err);
         const stack = err instanceof Error ? err.stack : undefined;
 
-        logger.error(`Failed to create template draft PDF: ${message}`, correlationId);
-
         return {
           status: 500 as const,
           body: {
@@ -295,6 +306,23 @@ export function createTemplatesRouter(deps: TemplatesRouterDeps) {
           },
         };
       }
-    },
+      },
+      {
+        classify: (result) => {
+          let classification: 'deferred' | 'failure' | 'rejected' | 'success';
+          if (result.status >= 500) {
+            classification = 'failure';
+            if (result.status === 503) {
+              classification = 'deferred';
+            }
+          } else if (result.status >= 400) {
+            classification = 'rejected';
+          } else {
+            classification = 'success';
+          }
+          return classification;
+        },
+      },
+    ),
   });
 }

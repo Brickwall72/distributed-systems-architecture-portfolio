@@ -1,6 +1,6 @@
 // File: services/platform/esign-service/server/src/server.ts
 import express from 'express';
-import { createLogger, createErrorHandler, createHealthCheck } from '@shared/express';
+import { createLogger, createErrorHandler, createHealthCheck, createRequestDiagnostics } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerESignResponder } from './messaging';
 import { env } from './config';
@@ -9,6 +9,7 @@ const app = express();
 const logger = createLogger('esign-server');
 
 app.disable('x-powered-by');
+app.use(createRequestDiagnostics(logger));
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/api/v1/health', createHealthCheck('esign-server'));

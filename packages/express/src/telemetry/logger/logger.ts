@@ -1,58 +1,9 @@
 // File: packages/express/src/telemetry/logger/logger.ts
 
-/**
- * Severity levels supported by the shared structured logger.
- */
-export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
-
-/**
- * Standard log payload emitted to stdout for downstream log aggregation.
- */
-export interface StructuredLog {
-  timestamp: string;
-  level: LogLevel;
-  subsystem: string;
-  correlationId: string | null;
-  message: string;
-}
-
-/**
- * Contract for subsystem logging facades across workspace packages.
- */
-export interface Logger {
-  info(message: string, correlationId?: string | null): void;
-  warn(message: string, correlationId?: string | null): void;
-  error(message: string, correlationId?: string | null): void;
-  debug(message: string, correlationId?: string | null): void;
-}
-
-/**
- * Creates a consistent logging facade for a subsystem.
- *
- * Every log entry is serialized as a single JSON object to keep output
- * predictable for log shippers, trace correlation, and operational dashboards.
- *
- * @param subsystemName - Logical component or service name attached to each entry.
- * @returns Logger methods for the supported severity levels.
- */
-export function createLogger(subsystemName: string): Logger {
-  const emit = (level: LogLevel, message: string, correlationId: string | null = null) => {
-    const logPayload: StructuredLog = {
-      timestamp: new Date().toISOString(),
-      level,
-      subsystem: subsystemName,
-      correlationId,
-      message,
-    };
-
-    // Emit each record as a single JSON line so indexing and alerting remain simple.
-    console.log(JSON.stringify(logPayload));
-  };
-
-  return {
-    info: (msg: string, cid: string | null = null) => emit('INFO', msg, cid),
-    warn: (msg: string, cid: string | null = null) => emit('WARN', msg, cid),
-    error: (msg: string, cid: string | null = null) => emit('ERROR', msg, cid),
-    debug: (msg: string, cid: string | null = null) => emit('DEBUG', msg, cid),
-  };
-}
+export {
+  beginOperation, createLogger, diagnosticId, getDiagnosticContext, runInNewDiagnosticContext,
+  runOperation, runWithDiagnosticContext, safeErrorMetadata, validDiagnosticId, withoutDiagnosticContext,
+} from '@shared/diagnostics';
+export type {
+  DiagnosticContext, DiagnosticMetadata, Logger, LogLevel, OperationOutcome, StructuredLog,
+} from '@shared/diagnostics';

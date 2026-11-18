@@ -1,6 +1,6 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.ts
 import { initServer } from '@ts-rest/express';
-import { accessScope, createLogger, orgScope } from '@shared/express';
+import { accessScope, createLogger, getDiagnosticContext, orgScope, safeErrorMetadata } from '@shared/express';
 import { documentsRoutes, DocumentSchema, FORM_TYPE } from 'compliance-shared';
 import {
   draftBindingMatches, draftBindingSchema, SigningRequestConflict,
@@ -32,7 +32,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       if (!scope) {
         return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
       }
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
       logger.debug('Retrieving all compliance records from database.', correlationId);
       const { repository } = deps;
 
@@ -40,7 +40,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         const documents = await repository.findAll({ statuses: query?.status, requisitionNumbers: query?.requisitionNumbers }, scope);
         return { status: 200 as const, body: documents.map(doc => DocumentSchema.parse(doc)) };
       } catch (error) {
-        logger.error(`Database query failed in GET /documents: ${error}`, correlationId);
+        logger.error('Database query failed in GET /documents', correlationId, safeErrorMetadata(error));
         return {
           status: 500 as const,
           body: {
@@ -60,8 +60,8 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       if (!scope) {
         return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
       }
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
-      logger.debug(`Retrieving document record for ID: ${id}`, correlationId);
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
+      logger.debug('Retrieving document record', correlationId);
       const { repository } = deps;
 
       try {
@@ -80,7 +80,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
 
         return { status: 200 as const, body: DocumentSchema.parse(document) };
       } catch (error) {
-        logger.error(`Database query failed in GET /documents/:id: ${error}`, correlationId);
+        logger.error('Database query failed in GET /documents/:id', correlationId, safeErrorMetadata(error));
         return {
           status: 500 as const,
           body: {
@@ -99,8 +99,8 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
       if (!scope) {
         return { status: 403 as const, body: { error: 'Organization access required', code: 'FORBIDDEN', timestamp: new Date().toISOString() } };
       }
-      const correlationId = (req.headers['x-correlation-id'] as string) || null;
-      logger.debug(`Retrieving document content for ID: ${id}`, correlationId);
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
+      logger.debug('Retrieving document content', correlationId);
       req.res?.setHeader('Cache-Control', 'no-store');
       const { repository } = deps;
 
@@ -122,8 +122,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
 
         return { status: 200 as const, body: { presignedUrl } };
       } catch (error) {
-        const errorType = error instanceof Error ? error.name : 'Unknown error';
-        logger.error(`Failed to retrieve document content in GET /documents/:id/content: ${errorType}`, correlationId);
+        logger.error('Failed to retrieve document content in GET /documents/:id/content', correlationId, safeErrorMetadata(error));
         return {
           status: 500 as const,
           body: {
@@ -162,8 +161,8 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
           body: { error: 'Authorization requires the sender organization', code: 'FORBIDDEN', timestamp: new Date().toISOString() },
         };
       }
-      const correlationId = (req.headers['x-correlation-id'] as string);
-      logger.debug(`Dispatching NATS signature command for document ID: ${body.documentId}`, correlationId);
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
+      logger.debug('Dispatching NATS signature command', correlationId);
       const { repository, signingOperations, signingCoordinator } = deps;
 
       const validateReceipt = async () => {
@@ -245,7 +244,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
         req.res?.setHeader('Cache-Control', 'no-store');
         return { status: 200 as const, body: { presignedUrl } };
       } catch (error) {
-        logger.error(`Signature request failed in POST /documents/sign: ${error}`, correlationId);
+        logger.error('Signature request failed in POST /documents/sign', correlationId, safeErrorMetadata(error));
         switch (true) {
           case error instanceof SigningRequestConflict:
             return {

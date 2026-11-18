@@ -32,7 +32,8 @@ const { mockFirstPage, mockPdfDoc, mockSign, mockLogger } = vi.hoisted(() => {
   return { mockFirstPage, mockPdfDoc, mockSign, mockLogger };
 });
 
-vi.mock('@shared/express', () => ({
+vi.mock('@shared/express', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@shared/express')>(),
   createLogger: () => mockLogger,
 }));
 
@@ -143,7 +144,7 @@ describe('signDocument', () => {
 
     await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
     expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('P12 certificate seal failed: ENOENT: no such file or directory')
+      'P12 certificate seal failed', undefined, { errorType: 'Error' },
     );
     expect(mockPdfDoc.save).not.toHaveBeenCalled();
     expect(SignPdf).not.toHaveBeenCalled();
@@ -153,7 +154,8 @@ describe('signDocument', () => {
     vi.mocked(fs.readFile).mockResolvedValueOnce(Buffer.from('certificate'));
     mockSign.mockRejectedValueOnce(new Error('bad certificate'));
     await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
-    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('bad certificate'));
+    expect(mockLogger.error).toHaveBeenCalledWith('P12 certificate seal failed', undefined, { errorType: 'Error' });
+    expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain('bad certificate');
   });
 
   it('uses the deployed signing certificate password in preference to the legacy variable', async () => {
@@ -168,7 +170,7 @@ describe('signDocument', () => {
     delete process.env.SIGNING_CERT_PASSWORD;
     delete process.env.CERT_PASSPHRASE;
     await expect(signDocument(validParams)).rejects.toThrow('Failed to apply the document signature');
-    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('SIGNING_CERT_PASSWORD or CERT_PASSPHRASE is required'));
+    expect(mockLogger.error).toHaveBeenCalledWith('P12 certificate seal failed', undefined, { errorType: 'Error' });
     expect(fs.readFile).not.toHaveBeenCalled();
   });
 

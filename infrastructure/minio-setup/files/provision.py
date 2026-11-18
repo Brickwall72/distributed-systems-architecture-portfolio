@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# File: charts/minio/files/provision.py
+# File: infrastructure/minio-setup/files/provision.py
 """Provision and verify the private DSAP bucket and scoped MinIO accounts."""
 
 from contextlib import contextmanager
@@ -210,7 +210,7 @@ def provision_ready_markers(endpoint, root):
     for prefix in {prefix for _, prefix in USERS.values()}:
         path = f"/dsap/{prefix}.dsap-ready"
         try:
-            with lock_request(endpoint, root, "PUT", READY_MARKER, conditional=True, path=path):
+            with lock_request(endpoint, root, "PUT", READY_MARKER, conditional=True, path=path) as response:
                 response.read()
         except HTTPError as error:
             if error.code != 412:

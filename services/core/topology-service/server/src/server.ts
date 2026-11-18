@@ -1,6 +1,8 @@
 // File: services/core/topology-service/server/src/server.ts
 import express from 'express';
-import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
+import {
+  createLogger, createRequestDiagnostics, createVerifyJwt, loadAuthPublicKeyPem, safeErrorMetadata,
+} from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { createTopologyGateway } from './routes';
 import { TransferOutboxService } from './services';
@@ -15,14 +17,25 @@ import {
 
 const app = express();
 const logger = createLogger('topology-server');
+const apiRouter = express.Router();
 
 app.disable('x-powered-by');
+app.use(createRequestDiagnostics(logger));
 app.use(express.json());
 app.get('/live', (_req, res) => res.sendStatus(200));
+app.use('/api/v1', apiRouter);
 
-/* Safety net for unhandled exceptions. */
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error(`Critical unhandled fault intercepted at root layer: ${err.message || err}`);
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+  logger.error('Unhandled topology HTTP request error', undefined, {
+    method: req.method,
+    route: typeof req.route?.path === 'string' ? req.route.path : 'unmatched',
+    statusCode: 500,
+    ...safeErrorMetadata(err),
+  });
 
   res.status(500).json({
     errorCode: 'INTERNAL_SERVER_ERROR',
@@ -93,7 +106,7 @@ async function bootstrapApplicationServer() {
 
     // ✅ Instantiate routes ONLY after dependencies initialize successfully
     const topologyGateway = createTopologyGateway();
-    app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), topologyGateway);
+    apiRouter.use(createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), topologyGateway);
 
     logger.info('Topology server is ready.');
   } catch (error_: any) {

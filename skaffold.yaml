@@ -8,7 +8,7 @@ build:
     useBuildkit: true
   artifacts:
     - image: dsap-minio-setup
-      context: charts/minio
+      context: infrastructure/minio-setup
       docker:
         dockerfile: Dockerfile.setup
     - image: topology-server

@@ -5,16 +5,20 @@ import type { EventBroker } from '@shared/messaging';
 import { overviewRecord } from '../registry';
 import { renditionSchema, type RenditionsRepository, type SealedTransfersRepository } from '../repositories';
 import { RenditionService } from './rendition.service';
+import { getDiagnosticContext, runWithDiagnosticContext } from '@shared/express';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('RenditionService', () => {
-  it('reconciles sealed records and validates the PDF service boundary without retaining the URL', async () => {
+  it.each([true, false])('records the real persistence outcome when claim completion is %s', async (completed) => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
     const record = overviewRecord();
     const job = mockFromSchema(renditionSchema, {
       sequence: record.sequence, requisitionNumber: record.requisitionNumber,
       sourceRecordHash: record.recordHash, status: 'GENERATING', claimToken: 'claim',
     });
     const sealed = { listAfter: vi.fn().mockResolvedValue([record]), findByRequisition: vi.fn().mockResolvedValue(record) };
-    const renditions = { ensure: vi.fn(), claim: vi.fn().mockResolvedValue(job), complete: vi.fn().mockResolvedValue(true), fail: vi.fn() };
+    const renditions = { ensure: vi.fn(), claim: vi.fn().mockResolvedValue(job), complete: vi.fn().mockResolvedValue(completed), fail: vi.fn() };
     const broker = { request: vi.fn().mockImplementation((_subject, payload) => {
       const command = generatePdfCommandSchema.parse(payload);
       return Promise.resolve(mockFromSchema(generatePdfResponseSchema, {
@@ -33,9 +37,15 @@ describe('RenditionService', () => {
       storageBucket: 'dsap', storageKey: expect.stringMatching(/^audit\/transfers\/1\/overview-v1\/.+\.pdf$/), fileHash: SHA256_HEX,
     }, expect.any(Date));
     expect(renditions.fail).not.toHaveBeenCalled();
+    const records = logs.mock.calls.map(([line]) => JSON.parse(line));
+    expect(records).toContainEqual(expect.objectContaining({
+      operation: 'audit.rendition.attempt', outcome: completed ? 'success' : 'discarded',
+    }));
+    expect(JSON.stringify(records)).not.toContain('https://storage.example/secret');
   });
 
   it('retries malformed or mismatched responses without exposing bearer URLs', async () => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
     const record = overviewRecord();
     const job = mockFromSchema(renditionSchema, {
       sequence: record.sequence, requisitionNumber: record.requisitionNumber,
@@ -52,6 +62,9 @@ describe('RenditionService', () => {
     await service.tick();
     expect(renditions.complete).not.toHaveBeenCalled();
     expect(renditions.fail).toHaveBeenCalledWith(job, 'request PDF generation: Error', expect.any(Date));
+    const records = logs.mock.calls.map(([line]) => JSON.parse(line));
+    expect(records).toContainEqual(expect.objectContaining({ operation: 'audit.rendition.attempt', outcome: 'failure' }));
+    expect(records).not.toContainEqual(expect.objectContaining({ operation: 'audit.rendition.attempt', outcome: 'success' }));
   });
 
   it('finishes a slow paginated sweep before restarting it', async () => {
@@ -69,6 +82,34 @@ describe('RenditionService', () => {
       expect(sealed.listAfter).toHaveBeenNthCalledWith(2, 100, 100);
       expect(renditions.ensure).toHaveBeenCalledTimes(101);
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not retain the triggering request context when a rendition is nudged', async () => {
+    vi.useFakeTimers();
+    const record = overviewRecord();
+    const job = mockFromSchema(renditionSchema, {
+      sequence: record.sequence, requisitionNumber: record.requisitionNumber,
+      sourceRecordHash: record.recordHash, status: 'GENERATING', claimToken: 'claim',
+    });
+    const sealed = { listAfter: vi.fn().mockResolvedValue([]), findByRequisition: vi.fn().mockResolvedValue(record) };
+    const renditions = { ensure: vi.fn(), claim: vi.fn().mockResolvedValueOnce(job).mockResolvedValue(null), fail: vi.fn() };
+    let attemptId: string | undefined;
+    const broker = { request: vi.fn().mockImplementation(async () => {
+      attemptId = getDiagnosticContext()?.correlationId;
+      throw new Error('test failure');
+    }) };
+    const service = new RenditionService(sealed as unknown as SealedTransfersRepository,
+      renditions as unknown as RenditionsRepository, broker as unknown as EventBroker);
+    try {
+      runWithDiagnosticContext({ correlationId: 'triggering-request' }, () => service.start());
+      await vi.advanceTimersByTimeAsync(1);
+      expect(attemptId).toBeTruthy();
+      expect(attemptId).not.toBe('triggering-request');
+      expect(getDiagnosticContext()).toBeUndefined();
+    } finally {
+      await service.stop();
       vi.useRealTimers();
     }
   });

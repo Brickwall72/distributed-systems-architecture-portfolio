@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createErrorHandler } from './errorHandler';
 import { AppError, NotFoundError, ConflictError } from './errors';
 import { Logger } from '../../telemetry';
+import { runWithDiagnosticContext } from '@shared/diagnostics';
 
 describe('createErrorHandler Middleware', () => {
   let mockLogger: Logger;
@@ -52,8 +53,9 @@ describe('createErrorHandler Middleware', () => {
       details: zodError.issues,
     });
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Schema validation failed on POST /api/v1/documents',
-      null
+      'Schema validation failed',
+      null,
+      expect.objectContaining({ method: 'POST', route: 'unmatched', statusCode: 400 })
     );
   });
 
@@ -67,8 +69,9 @@ describe('createErrorHandler Middleware', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid JSON payload.' });
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Malformed JSON payload received on POST /api/v1/documents',
-      null
+      'Malformed JSON payload received',
+      null,
+      expect.objectContaining({ statusCode: 400 })
     );
   });
 
@@ -83,8 +86,9 @@ describe('createErrorHandler Middleware', () => {
       error: 'E-signature record missing',
     });
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Operational warning (404): E-signature record missing',
-      null
+      'Operational request rejected',
+      null,
+      expect.objectContaining({ statusCode: 404 })
     );
   });
 
@@ -114,12 +118,13 @@ describe('createErrorHandler Middleware', () => {
       error: 'Upstream storage service unavailable',
     });
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Operational error (503): Upstream storage service unavailable',
-      null
+      'Operational request error',
+      null,
+      expect.objectContaining({ statusCode: 503 })
     );
   });
 
-  it('handles unhandled Error objects with HTTP 500 and logs full stack trace', () => {
+  it('handles unhandled Error objects with HTTP 500 without logging error details', () => {
     const handler = createErrorHandler(mockLogger);
     const unhandledError = new Error('Database connection reset');
 
@@ -128,8 +133,9 @@ describe('createErrorHandler Middleware', () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
     expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('Database connection reset'),
-      null
+      'Unhandled internal server error',
+      null,
+      expect.objectContaining({ statusCode: 500, errorType: 'Error' })
     );
   });
 
@@ -141,46 +147,51 @@ describe('createErrorHandler Middleware', () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Unhandled internal server error on POST /api/v1/documents: String exception',
-      null
+      'Unhandled internal server error',
+      null,
+      expect.objectContaining({ statusCode: 500, errorType: 'NonError' })
     );
   });
 
-  describe('Correlation ID Header Extraction', () => {
-    it('extracts correlation ID from x-correlation-id header', () => {
-      req.headers = { 'x-correlation-id': 'corr-abc-123' };
+  describe('Diagnostic Context', () => {
+    it('uses the active diagnostic context rather than reading raw request headers', () => {
+      req.headers = { 'x-correlation-id': 'untrusted-header' };
       const handler = createErrorHandler(mockLogger);
 
-      handler(new NotFoundError(), req as Request, res as Response, next);
+      runWithDiagnosticContext({ correlationId: 'corr-abc-123' }, () => {
+        handler(new NotFoundError(), req as Request, res as Response, next);
+      });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Operational warning (404): Resource not found',
-        'corr-abc-123'
+        'Operational request rejected',
+        'corr-abc-123',
+        expect.objectContaining({ statusCode: 404 })
       );
     });
 
-    it('falls back to x-request-id when x-correlation-id is absent', () => {
-      req.headers = { 'x-request-id': 'req-xyz-789' };
+    it('does not use a raw request ID header when context is absent', () => {
+      req.headers = { 'x-request-id': 'untrusted-header' };
       const handler = createErrorHandler(mockLogger);
 
       handler(new NotFoundError(), req as Request, res as Response, next);
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Operational warning (404): Resource not found',
-        'req-xyz-789'
+        'Operational request rejected',
+        null,
+        expect.objectContaining({ statusCode: 404 })
       );
     });
 
-    it('passes null correlation ID when header values are non-string or missing', () => {
-      req.headers = {};
+    it('delegates errors when response headers have already been sent', () => {
+      res.headersSent = true;
       const handler = createErrorHandler(mockLogger);
 
-      handler(new NotFoundError(), req as Request, res as Response, next);
+      const error = new Error('not logged');
+      handler(error, req as Request, res as Response, next);
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Operational warning (404): Resource not found',
-        null
-      );
+      expect(next).toHaveBeenCalledWith(error);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 });
