@@ -3,7 +3,9 @@ import express from 'express';
 import { ZodError } from 'zod';
 import { createAuditGateway } from './routes';
 import { connectDatabaseWithRetry, closeDatabase } from './db';
-import { createLogger, createVerifyJwt, loadAuthPublicKeyPem } from '@shared/express';
+import {
+  createLogger, createRequestDiagnostics, createVerifyJwt, loadAuthPublicKeyPem, safeErrorMetadata,
+} from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { LedgerService, RenditionService } from './services';
 import { EventsRepository, DraftsRepository, SealedTransfersRepository, DeadLettersRepository, RenditionsRepository } from './repositories';
@@ -13,17 +15,29 @@ import { env } from './config';
 
 const app = express();
 const logger = createLogger('audit-server');
+const apiRouter = express.Router();
 
 app.disable('x-powered-by');
+app.use(createRequestDiagnostics(logger));
 app.use(express.json({ limit: '10mb' }));
 app.get('/live', (_req, res) => res.sendStatus(200));
+app.use('/api/v1', apiRouter);
 
 // ==========================================
 // CENTRALIZED EXPRESS ERROR MIDDLEWARE
 // ==========================================
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
   if (err instanceof ZodError) {
-    logger.warn(`Schema validation failed at API boundary: ${JSON.stringify(err.issues)}`);
+    logger.warn('Schema validation failed at API boundary', undefined, {
+      method: req.method,
+      route: typeof req.route?.path === 'string' ? req.route.path : 'unmatched',
+      statusCode: 400,
+      errorType: 'ZodError',
+    });
     return res.status(400).json({
       errorCode: 'VALIDATION_ERROR',
       message: 'Invalid request payload or parameters.',
@@ -35,8 +49,12 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
     });
   }
 
-  const message = err instanceof Error ? err.message : String(err);
-  logger.error(`Critical unhandled fault intercepted at root layer: ${message}`);
+  logger.error('Unhandled audit HTTP request error', undefined, {
+    method: req.method,
+    route: typeof req.route?.path === 'string' ? req.route.path : 'unmatched',
+    statusCode: 500,
+    ...safeErrorMetadata(err),
+  });
 
   return res.status(500).json({
     errorCode: 'INTERNAL_SERVER_ERROR',
@@ -123,7 +141,7 @@ async function bootstrapApplicationServer() {
     await new AuditEventConsumer(broker, ledgerService).start(startup.signal);
     renditionService.start();
 
-    app.use('/api/v1', createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), createAuditGateway({ ledgerService }));
+    apiRouter.use(createVerifyJwt({ publicKeyPem: loadAuthPublicKeyPem(), publicPaths: ['/health'] }), createAuditGateway({ ledgerService }));
 
     logger.info('Audit server is ready.');
   } catch (err) {

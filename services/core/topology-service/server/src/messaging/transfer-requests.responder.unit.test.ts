@@ -3,6 +3,8 @@ import { TOPOLOGY_REQUEST_SUBJECTS } from '@contracts/topology';
 import { TransferClaimConflict } from '../repositories/transfers';
 import { registerTransferRequestResponders } from './transfer-requests.responder';
 
+afterEach(() => vi.restoreAllMocks());
+
 describe('topology transfer request responders', () => {
   const transferEventId = '00000000-0000-4000-8000-000000000001';
   const claim = {
@@ -13,6 +15,7 @@ describe('topology transfer request responders', () => {
   };
 
   it('uses a queue group and rejects invalid, conflicting, and unavailable reservations', async () => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
     const handlers = new Map<string, (input: unknown) => Promise<unknown>>();
     const respond = vi.fn((subject, handler) => { handlers.set(subject, handler); });
     const reserveForSigning = vi.fn().mockResolvedValueOnce({ transferEventId })
@@ -29,5 +32,10 @@ describe('topology transfer request responders', () => {
     expect(await reserve(claim)).toEqual({ status: 'OK', transferEventId });
     expect(await reserve(claim)).toMatchObject({ status: 'CONFLICT' });
     expect(await reserve(claim)).toMatchObject({ status: 'UNAVAILABLE' });
+    const outcomes = logs.mock.calls.map(([line]) => JSON.parse(line))
+      .filter((record) => record.phase === 'end');
+    expect(outcomes.map((record) => [record.outcome, record.level])).toEqual([
+      ['rejected', 'WARN'], ['success', 'INFO'], ['rejected', 'WARN'], ['failure', 'ERROR'],
+    ]);
   });
 });

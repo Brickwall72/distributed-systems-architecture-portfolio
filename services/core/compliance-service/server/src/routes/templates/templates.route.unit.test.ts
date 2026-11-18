@@ -10,6 +10,7 @@ import type { z } from 'zod';
 import { createTemplatesRouter } from './templates.route';
 import { TemplateRepository } from '../../repositories';
 import { TopologyConflict, TopologyUnavailable } from '../../messaging/topology';
+import { createLogger, createRequestDiagnostics } from '@shared/express';
 
 vi.mock('../../repositories', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../repositories')>(),
@@ -34,6 +35,7 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
     vi.clearAllMocks();
 
     app = express();
+    app.use(createRequestDiagnostics(createLogger('templates-test')));
     app.use(express.json());
     app.use((req, _res, next) => {
       if (req.headers['x-test-role'] !== 'none') {
@@ -57,6 +59,8 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
     const templatesRouter = createTemplatesRouter({ broker: mockBroker as any, repository: mockRepository as any, topology: mockTopology as any });
     createExpressEndpoints(templatesContract, templatesRouter, app);
   });
+
+  afterEach(() => vi.restoreAllMocks());
 
   describe('GET /templates (getTemplates)', () => {
     it('returns 200 with template manifest list on successful lookup', async () => {
@@ -273,10 +277,43 @@ describe('Templates Router (ts-rest HTTP Contract Boundary)', () => {
       vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
       mockBroker.request.mockRejectedValue(new Error('NATS request timeout'));
 
+      const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
       const response = await supertest(app).post(`/templates/${mockTemplate.id}/drafts`).send({ data });
 
       expect(response.status).toBe(500);
       expect(response.body).toMatchObject({ error: 'NATS request timeout', code: 'INTERNAL_SERVER_ERROR' });
+      const records = log.mock.calls.map(([line]) => JSON.parse(String(line)) as Record<string, unknown>);
+      expect(records).toEqual(expect.arrayContaining([
+        expect.objectContaining({ operation: 'compliance.draft.pdf', phase: 'end', outcome: 'failure' }),
+        expect.objectContaining({ operation: 'compliance.draft.create', phase: 'end', outcome: 'failure' }),
+      ]));
+      expect(records).not.toContainEqual(expect.objectContaining({
+        operation: 'compliance.draft.create', phase: 'end', outcome: 'success',
+      }));
+      expect(JSON.stringify(records)).not.toContain('NATS request timeout');
+      log.mockRestore();
+    });
+
+    it('records draft persistence failure in the nested operation without logging response data', async () => {
+      const mockTemplate = template();
+      vi.mocked(TemplateRepository.findById).mockReturnValue(mockTemplate);
+      mockBroker.request.mockResolvedValue(
+        zocker(generatePdfResponseSchema).supply(generatePdfResponseSchema.shape.success, true)
+          .supply(generatePdfResponseSchema.shape.fileHash, SHA256_HEX).generate(),
+      );
+      mockRepository.saveDraftBinding.mockRejectedValue(new Error('private database detail'));
+
+      const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const response = await supertest(app).post(`/templates/${mockTemplate.id}/drafts`).send({ data });
+
+      expect(response.status).toBe(500);
+      const records = log.mock.calls.map(([line]) => JSON.parse(String(line)) as Record<string, unknown>);
+      expect(records).toEqual(expect.arrayContaining([
+        expect.objectContaining({ operation: 'compliance.draft.persist', phase: 'end', outcome: 'failure' }),
+        expect.objectContaining({ operation: 'compliance.draft.create', phase: 'end', outcome: 'failure' }),
+      ]));
+      expect(JSON.stringify(records)).not.toContain('private database detail');
+      log.mockRestore();
     });
 
     it('returns 500 when the PDF service replies with a payload violating the shared contract', async () => {

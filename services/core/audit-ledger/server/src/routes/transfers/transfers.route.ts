@@ -1,7 +1,7 @@
 // File: services/core/audit-ledger/server/src/routes/transfers/transfers.route.ts
 import { initServer } from '@ts-rest/express';
 import { z } from 'zod';
-import { createLogger, orgScope } from '@shared/express';
+import { createLogger, getDiagnosticContext, orgScope, safeErrorMetadata } from '@shared/express';
 import type { Request } from 'express';
 import { transfersRoutes } from 'audit-shared';
 import { LedgerService } from '../../services';
@@ -17,13 +17,12 @@ const s = initServer();
 
 const errorBody = (code: string, error: string) => ({ error, code, timestamp: new Date().toISOString() });
 const serverError = (err: unknown, context: string, correlationId: string | null) => {
-  logger.error(`${context}: ${err}`, correlationId);
+  logger.error(context, correlationId, safeErrorMetadata(err));
   return {
     status: 500 as const,
     body: errorBody('INTERNAL_SERVER_ERROR', err instanceof Error ? err.message : 'Internal server error.'),
   };
 };
-const correlationOf = (headers: Record<string, unknown>) => (headers['x-correlation-id'] as string) || null;
 const scopeFor = (req: Pick<Request, 'identity'>): AccessScope | null => {
   if (!req.identity) return null;
   const orgId = orgScope(req.identity);
@@ -40,7 +39,7 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
 
   return s.router(transfersRoutes, {
     getTransfers: async ({ query, req }) => {
-      const correlationId = correlationOf(req.headers);
+      const correlationId = getDiagnosticContext()?.correlationId ?? null;
       const scope = scopeFor(req);
       if (!scope) return denied(req);
       try {
@@ -64,7 +63,7 @@ export function createTransfersRouter(deps: TransfersRouterDeps) {
         }
         return { status: 200 as const, body: { presignedUrl: result.presignedUrl } };
       } catch (error) {
-        logger.error(`GET /transfers/:requisitionNumber/document failed: ${error instanceof Error ? error.name : 'Unknown error'}`, correlationOf(req.headers));
+        logger.error('GET /transfers/:requisitionNumber/document failed', getDiagnosticContext()?.correlationId ?? null, safeErrorMetadata(error));
         return { status: 500 as const, body: errorBody('INTERNAL_SERVER_ERROR', 'Could not retrieve transfer overview.') };
       }
     },

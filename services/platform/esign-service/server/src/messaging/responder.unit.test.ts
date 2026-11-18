@@ -76,6 +76,28 @@ describe('registerESignResponder', () => {
     await expect(handler({ ...command, signatureImageBase64: undefined })).rejects.toThrow();
   });
 
+  it('does not report signing success when final download URL creation fails', async () => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      vi.mocked(signDocumentFromStorage).mockResolvedValueOnce({
+        pdfBuffer: Buffer.from('private PDF'), signedAt: '2026-01-01T00:00:00.000Z',
+      });
+      vi.mocked(uploadSignedDocument).mockResolvedValueOnce(
+        mockFromSchema(uploadFileResultSchema, { fileHash: SHA256_HEX, uploadedAt: new Date().toISOString() }),
+      );
+      const failure = new Error('https://storage.example/file?signature=private-token');
+      vi.mocked(publicStorageClient.getSignedDownloadUrl).mockRejectedValueOnce(failure);
+      await expect(handler(command())).rejects.toBe(failure);
+      const records = logs.mock.calls.map(([line]) => JSON.parse(line));
+      expect(records).toContainEqual(expect.objectContaining({ operation: 'esign.download-url', outcome: 'failure' }));
+      expect(records).toContainEqual(expect.objectContaining({ operation: 'esign.document', outcome: 'failure' }));
+      expect(records).not.toContainEqual(expect.objectContaining({ operation: 'esign.document', outcome: 'success' }));
+      expect(JSON.stringify(records)).not.toMatch(/private-token|private PDF|signatureImageBase64/);
+    } finally {
+      logs.mockRestore();
+    }
+  });
+
   it('reuses the signed artifact for identical retries and rejects a different signing request', async () => {
     const storage = new InMemoryStorageClient();
     vi.mocked(downloadDocumentStream).mockImplementation((request) => storage.getFileStream(request));

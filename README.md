@@ -341,6 +341,24 @@ and service readiness checks. A direct Helm installation must build or publish
 that image itself and set the MinIO `setupImage` and each applicable server's
 `minioReadiness.image` to the same accessible image.
 
+The shared image source, provisioning script, policies, and regression tests live
+in [infrastructure/minio-setup](infrastructure/minio-setup), outside the Helm
+charts. Compose, integration tests, and Skaffold all build that same source;
+the MinIO chart only deploys the resulting image. To build it directly:
+
+```bash
+scripts/with-buildkit.sh docker build \
+  -f infrastructure/minio-setup/Dockerfile.setup \
+  -t dsap-minio-setup:local infrastructure/minio-setup
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+  -s infrastructure/minio-setup/files -p test_provision.py
+```
+
+The Helm setup Job name includes the image settings, resource settings, and
+release revision so each Helm upgrade reruns idempotent provisioning without
+embedding a second copy of the script or policies in the chart. Publish changed
+images under a new immutable tag rather than relying on a cached mutable tag.
+
 MinIO root credentials are available only to the MinIO server and setup job.
 Applications use their own `minio-<service>-credentials` Secrets. PostgreSQL and
 MongoDB administrators likewise have separate Secrets from their application
@@ -776,6 +794,79 @@ docker builder prune -f
 
 Use `docker buildx prune -a` only when you are comfortable rebuilding all cached layers.
 
+### Correlated diagnostic logs
+
+Servers write JSON lines to stdout. Every HTTP request receives an
+`x-correlation-id` response header, including requests rejected by authentication
+or validation. Find it in the browser's Network response headers, or supply an ID
+when reproducing a request:
+
+```bash
+curl -i -H 'x-correlation-id: demo-check-1' http://localhost:8081/compliance/api/v1/health
+```
+
+IDs must be a single value of 1-128 ASCII letters, digits, `.`, `_`, `:`, or `-`.
+Missing IDs receive a UUID. Invalid or duplicate IDs are replaced, with a warning
+that does not record their value. `x-request-id` is accepted only when
+`x-correlation-id` is absent, under the same validation rules. IDs are untrusted
+diagnostic labels, not authentication or proof that two requests are related.
+The application returns its canonical ID; an ingress-generated error that never
+reaches a server cannot receive an application-generated header.
+
+The same ID travels through immediate NATS request/reply calls. Meaningful
+workflow stages have an `operationId`, optional `parentOperationId`, a `start`
+record, and an `end` record with `outcome` and monotonic `durationMs`. For example,
+these abbreviated records locate a render failure inside PDF generation:
+
+```json
+{"correlationId":"demo-check-1","operation":"pdf.generate","operationId":"generation-1","phase":"start","level":"INFO"}
+{"correlationId":"demo-check-1","operation":"pdf.render","operationId":"render-1","parentOperationId":"generation-1","phase":"start","level":"INFO"}
+{"correlationId":"demo-check-1","operation":"pdf.render","operationId":"render-1","parentOperationId":"generation-1","phase":"end","outcome":"failure","durationMs":12,"level":"ERROR"}
+{"correlationId":"demo-check-1","operation":"pdf.generate","operationId":"generation-1","phase":"end","outcome":"failure","durationMs":14,"level":"ERROR"}
+```
+
+Actual records also include `timestamp`, `subsystem`, and `message`. INFO marks
+starts and successful conclusions. Expected rejections, deferred work, aborted
+requests, and discarded claims use WARN; unexpected failures use ERROR. HTTP
+completion and NATS `reply_received`/`reply_sent` describe transport outcomes,
+not proof that a business workflow succeeded. Contract-aware workflow records
+distinguish conflicts, pending signing, and actual completion. Successful health
+probes and empty worker polls are quiet; their failures remain visible. A process
+crash can leave a start without an end.
+
+From the root Compose deployment, search recent container output:
+
+```bash
+cid=demo-check-1
+docker compose logs --no-log-prefix --no-color --since=15m | grep -F "$cid"
+```
+
+For Kubernetes, use `kubectl get pods -A`, then substitute the namespace and
+server pod below. Repeat across participating pods; `--previous` retrieves the
+previous container's logs when available after a restart.
+
+```bash
+kubectl -n NAMESPACE logs SERVER_POD --since=15m | grep -F "$cid"
+```
+
+Independently scheduled signing retries, outbox publications, event deliveries,
+and rendition attempts receive fresh local contexts. Their existing resource
+identifiers can relate attempts, but the original HTTP context is not persisted
+across durable workflows or restarts. Stored event correlation IDs are separate
+`eventCorrelationId` metadata, not evidence of continuous tracing.
+
+Diagnostic metadata is allowlisted. New boundary/error logs omit raw request
+bodies, tokens, cookies, credentials, signatures, PDF/HTML contents, arbitrary
+third-party error messages, and presigned URLs. This is not a general redaction
+engine for every existing free-form log message. Use fictional demo data and
+restrict operator log access.
+
+This phase adds no OpenTelemetry exporter, Jaeger, centralized log store,
+dashboard, metrics endpoint, traffic monitoring, or retention configuration.
+Operation IDs are not trace/span IDs. Compose and Kubernetes container logs work
+without new services, but are not durable centralized storage; configure rotation,
+retention, and private collection separately before relying on long-term history.
+
 ### Troubleshooting
 
 **Docker daemon unavailable:** Run `docker info`. Start Docker Desktop or the Docker Engine and rerun `./setup.sh`.
@@ -797,6 +888,11 @@ does not prove application pods can connect. Topology does not expose its ready
 health route until its compliance-stream consumer initializes, so a topology
 readiness failure can be a downstream symptom of compliance failing to start.
 Do not bypass readiness or reset credentials to fix a connectivity failure.
+
+**MinIO setup reports `UnboundLocalError` in `provision_ready_markers`:** Rebuild
+the setup image with `docker compose up --build -d`. The readiness-marker fix
+binds the HTTP response before consuming it. Existing accounts, bucket contents,
+and matching readiness markers can be reused; no volume reset is required.
 
 **Skaffold cannot find `base-image:local`:** Run `pnpm docker:base`; `pnpm skaffold`
 and `pnpm skaffold:reset` perform this base build automatically.

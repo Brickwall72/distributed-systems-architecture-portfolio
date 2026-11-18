@@ -1,7 +1,8 @@
-# File: charts/minio/Dockerfile.setup
+# File: infrastructure/minio/Dockerfile.setup
 FROM cgr.dev/chainguard/minio-client:latest-dev AS minio-client
 FROM python:3.14-alpine
 COPY --from=minio-client /usr/bin/mc /usr/local/bin/mc
-COPY files /opt/dsap-minio
+COPY files/provision.py /opt/dsap-minio/provision.py
+COPY files/policies /opt/dsap-minio/policies
 USER 65532:65532
 ENTRYPOINT ["python3", "/opt/dsap-minio/provision.py"]

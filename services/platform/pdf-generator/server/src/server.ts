@@ -1,6 +1,6 @@
 // File: services/platform/pdf-generator/server/src/server.ts
 import express from 'express';
-import { createHealthCheck, createErrorHandler, createLogger } from '@shared/express';
+import { createHealthCheck, createErrorHandler, createLogger, createRequestDiagnostics } from '@shared/express';
 import { EventBroker, natsCredentialsFromEnv } from '@shared/messaging';
 import { registerPdfResponder } from './messaging';
 import { env } from './config';
@@ -9,6 +9,7 @@ const app = express();
 const logger = createLogger('pdf-server');
 
 app.disable('x-powered-by');
+app.use(createRequestDiagnostics(logger));
 app.use(express.json({ limit: '10mb' }));
 
 // Minimal health check endpoint for container orchestration / k3d probes

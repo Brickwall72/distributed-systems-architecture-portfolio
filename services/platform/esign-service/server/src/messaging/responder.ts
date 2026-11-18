@@ -1,6 +1,6 @@
 // File: services/platform/esign-service/server/src/messaging/responder.ts
 import { EventBroker } from '@shared/messaging';
-import { createLogger } from '@shared/express';
+import { createLogger, runOperation } from '@shared/express';
 import { createHash } from 'node:crypto';
 import { 
   ESIGN_COMMAND_SUBJECTS, 
@@ -65,61 +65,62 @@ async function findSignedResult(
 }
 
 export function registerESignResponder(broker: EventBroker): void {
-  broker.respond(ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT, async (rawRequest: SignDocumentCommand) => {
-    const request = signDocumentCommandSchema.parse(rawRequest);
-    const { documentId } = request;
-    if (!/^[A-Za-z0-9_-]+$/.test(documentId)
-      || request.storageBucket !== env.DOCUMENT_BUCKET
-      || request.storageKey !== `compliance/drafts/${documentId}.pdf`
-      || !['AUTHORIZATION', 'RECEIPT'].includes(request.documentType)
-      || request.customPath !== `compliance/transfers/${request.documentType}`) {
-      throw new Error('Signing request is outside the permitted compliance storage paths');
-    }
-    logger.info(`Received NATS sign-document request for document: [${documentId}]`);
-
-    const requestHash = createHash('sha256').update(JSON.stringify(request)).digest('hex');
-    const destination = getStorageMetadata(getStorageMetadataParamsSchema.parse(request));
-    let signed = await findSignedResult(destination, requestHash);
-    if (!signed) {
-      const signedData = await signDocumentFromStorage(signDocumentFromStorageParamsSchema.parse(request));
-      const uploadedAt = new Date().toISOString();
-      const metadata = {
-        ...destination.metadata,
-        'signed-at': signedData.signedAt,
-        'uploaded-at': uploadedAt,
-        'request-sha256': requestHash,
-      };
-      try {
-        const uploaded = await uploadSignedDocument(uploadSignedDocumentParamsSchema.parse({
-          ...destination, ...signedData, metadata, ifNotExists: true,
-        }));
-        signed = { fileHash: uploaded.fileHash, signedAt: signedData.signedAt, uploadedAt };
-      } catch (error: unknown) {
-        if (!(error instanceof ObjectAlreadyExistsError)) throw error;
-        signed = await findSignedResult(destination, requestHash);
-        if (!signed) throw new Error('Signed document disappeared after a conflicting upload');
+  broker.respond(ESIGN_COMMAND_SUBJECTS.SIGN_DOCUMENT, (rawRequest: SignDocumentCommand) =>
+    runOperation(logger, 'esign.document', async () => {
+      const request = signDocumentCommandSchema.parse(rawRequest);
+      const { documentId } = request;
+      if (!/^[A-Za-z0-9_-]+$/.test(documentId)
+        || request.storageBucket !== env.DOCUMENT_BUCKET
+        || request.storageKey !== `compliance/drafts/${documentId}.pdf`
+        || !['AUTHORIZATION', 'RECEIPT'].includes(request.documentType)
+        || request.customPath !== `compliance/transfers/${request.documentType}`) {
+        throw new Error('Signing request is outside the permitted compliance storage paths');
       }
-    }
+      const requestHash = createHash('sha256').update(JSON.stringify(request)).digest('hex');
+      const destination = getStorageMetadata(getStorageMetadataParamsSchema.parse(request));
+      let signed = await runOperation(logger, 'esign.lookup', () => findSignedResult(destination, requestHash));
+      if (!signed) {
+        const signedData = await runOperation(logger, 'esign.sign', () =>
+          signDocumentFromStorage(signDocumentFromStorageParamsSchema.parse(request)));
+        const uploadedAt = new Date().toISOString();
+        const metadata = {
+          ...destination.metadata,
+          'signed-at': signedData.signedAt,
+          'uploaded-at': uploadedAt,
+          'request-sha256': requestHash,
+        };
+        signed = await runOperation(logger, 'esign.upload', async () => {
+          try {
+            const uploaded = await uploadSignedDocument(uploadSignedDocumentParamsSchema.parse({
+              ...destination, ...signedData, metadata, ifNotExists: true,
+            }));
+            return { fileHash: uploaded.fileHash, signedAt: signedData.signedAt, uploadedAt };
+          } catch (error: unknown) {
+            if (!(error instanceof ObjectAlreadyExistsError)) throw error;
+            const existing = await findSignedResult(destination, requestHash);
+            if (!existing) throw new Error('Signed document disappeared after a conflicting upload');
+            return existing;
+          }
+        });
+      } else {
+        logger.info('Reusing existing signed document');
+      }
 
-    logger.info(`Successfully signed and uploaded document: [${documentId}]`);
+      const presignedUrl = await runOperation(logger, 'esign.download-url', () => publicStorageClient.getSignedDownloadUrl(
+        getSignedDownloadUrlRequestSchema.parse(destination)
+      ));
 
-    // 2. Generate browser-reachable pre-signed download URL using publicStorageClient
-    const presignedUrl = await publicStorageClient.getSignedDownloadUrl(
-      getSignedDownloadUrlRequestSchema.parse(destination)
-    );
+      const now = new Date().toISOString();
 
-    // 3. Return contract-validated synchronous response
-    const now = new Date().toISOString();
-
-    return SignDocumentResponseSchema.parse({
-      ...request,
-      ...destination,
-      ...signed,
-      presignedUrl,
-      id: request.documentId,
-      success: true,
-      createdAt: now,
-      updatedAt: now,
-    });
-  });
+      return SignDocumentResponseSchema.parse({
+        ...request,
+        ...destination,
+        ...signed,
+        presignedUrl,
+        id: request.documentId,
+        success: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }));
 }

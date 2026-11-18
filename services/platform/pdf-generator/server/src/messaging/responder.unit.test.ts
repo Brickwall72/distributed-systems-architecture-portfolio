@@ -4,6 +4,7 @@ import { EventBroker } from '@shared/messaging';
 import { registerPdfResponder } from './responder';
 import { PDF_SUBJECTS, generatePdfCommandSchema as globalCommandSchema, generatePdfResponseSchema } from '@contracts/pdf';
 import { SHA256_HEX } from '@shared/testing';
+import { generatePdfFromHtml, uploadGeneratedDocument } from '../services';
 
 // Only I/O is mocked; schemas stay real.
 vi.mock('../services', async (importOriginal) => {
@@ -50,6 +51,27 @@ describe('registerPdfResponder', () => {
   it('rejects payloads that do not satisfy the local schema', async () => {
     const command = { ...zocker(globalCommandSchema).generate(), documentId: 'document-1', customPath: 'compliance/drafts' };
     await expect(handlers[PDF_SUBJECTS.GENERATE_PDF]({ ...command, html: undefined })).rejects.toThrow();
+  });
+
+  it.each(['render', 'upload'] as const)('identifies %s failure without logging payloads or false success', async (stage) => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const failure = new Error('https://storage.example/file?secret=private-token');
+      if (stage === 'render') vi.mocked(generatePdfFromHtml).mockRejectedValueOnce(failure);
+      else vi.mocked(uploadGeneratedDocument).mockRejectedValueOnce(failure);
+      const command = {
+        ...zocker(globalCommandSchema).generate(), documentId: 'document-1',
+        customPath: 'compliance/drafts', html: '<p>private HTML</p>',
+      };
+      await expect(handlers[PDF_SUBJECTS.GENERATE_PDF](command)).rejects.toBe(failure);
+      const records = logs.mock.calls.map(([line]) => JSON.parse(line));
+      expect(records).toContainEqual(expect.objectContaining({ operation: `pdf.${stage}`, outcome: 'failure' }));
+      expect(records).toContainEqual(expect.objectContaining({ operation: 'pdf.generate', outcome: 'failure' }));
+      expect(records).not.toContainEqual(expect.objectContaining({ operation: 'pdf.generate', outcome: 'success' }));
+      expect(JSON.stringify(records)).not.toMatch(/private-token|private HTML/);
+    } finally {
+      logs.mockRestore();
+    }
   });
 
   it('only allows paths belonging to the caller-specific subject', async () => {

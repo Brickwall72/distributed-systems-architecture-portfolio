@@ -1,5 +1,5 @@
 // File: services/core/topology-service/server/src/services/transfer-outbox.service.ts
-import { createLogger } from '@shared/express';
+import { createLogger, runInNewDiagnosticContext, runOperation, safeErrorMetadata, withoutDiagnosticContext } from '@shared/express';
 import type { EventBroker } from '@shared/messaging';
 import type { TransferOutboxRepository } from '../repositories/transfers';
 
@@ -17,11 +17,15 @@ export class TransferOutboxService {
   ) {}
 
   async publishNext(): Promise<boolean> {
-    const item = await this.repository.claimNext();
-    if (!item) return false;
-    await this.broker.publish(item.subject, item.event);
-    await this.repository.markPublished(item);
-    return true;
+    return runInNewDiagnosticContext(async () => {
+      const item = await this.repository.claimNext();
+      if (!item) return false;
+      return runOperation(logger, 'topology.outbox.publish', async () => {
+        await this.broker.publish(item.subject, item.event);
+        await runOperation(logger, 'topology.outbox.mark-published', () => this.repository.markPublished(item));
+        return true;
+      }, { metadata: { subject: item.subject, documentId: item.documentId, eventId: item.event.id } });
+    });
   }
 
   start(): void {
@@ -38,14 +42,14 @@ export class TransferOutboxService {
 
   private schedule(delay: number): void {
     if (this.stopped) return;
-    this.timer = setTimeout(() => {
+    this.timer = withoutDiagnosticContext(() => setTimeout(() => {
       this.timer = undefined;
       this.current = this.publishNext()
         .then((published) => this.schedule(published ? 0 : RETRY_DELAY_MS))
         .catch((error: unknown) => {
-          logger.error(`Transfer outbox publication failed: ${error instanceof Error ? error.message : String(error)}`);
+          logger.error('Transfer outbox publication failed; retry scheduled', undefined, safeErrorMetadata(error));
           this.schedule(RETRY_DELAY_MS);
         });
-    }, delay);
+    }, delay));
   }
 }

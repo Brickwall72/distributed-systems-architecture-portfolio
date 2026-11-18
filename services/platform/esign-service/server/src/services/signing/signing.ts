@@ -5,7 +5,7 @@ import { P12Signer } from '@signpdf/signer-p12';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createLogger } from '@shared/express';
+import { createLogger, safeErrorMetadata } from '@shared/express';
 import { z } from 'zod';
 
 export const signDocumentParamsSchema = z.object({
@@ -92,8 +92,7 @@ export async function signDocument({
     const signPdf = new SignPdf();
     pdfBuffer = Buffer.from(await signPdf.sign(pdfBuffer, signer));
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`P12 certificate seal failed: ${msg}`);
+    logger.error('P12 certificate seal failed', undefined, safeErrorMetadata(err));
     throw new Error('Failed to apply the document signature', { cause: err });
   }
 

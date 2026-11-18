@@ -2,6 +2,7 @@
 import type { SigningOperation } from '../../../repositories';
 import { NatsSigningCoordinator } from './nats-signing-coordinator';
 import { TopologyConflict } from '../../../messaging/topology';
+import { getDiagnosticContext, runWithDiagnosticContext, type DiagnosticContext } from '@shared/express';
 
 describe('NatsSigningCoordinator', () => {
   const documentId = '00000000-0000-4000-8000-000000000001';
@@ -65,5 +66,30 @@ describe('NatsSigningCoordinator', () => {
     await expect(service.processNext()).rejects.toThrow('timeout');
     expect(operations.defer).toHaveBeenCalledWith(operation, 'RETRY', false);
     expect(outbox.finalize).not.toHaveBeenCalled();
+  });
+
+  it('retains immediate HTTP context but isolates independently scheduled attempts', async () => {
+    vi.useFakeTimers();
+    const { operations, broker, service } = setup();
+    const contexts: (DiagnosticContext | undefined)[] = [];
+    broker.request.mockImplementation(async () => {
+      contexts.push(getDiagnosticContext());
+      return signedResult;
+    });
+    try {
+      await runWithDiagnosticContext({ correlationId: 'http-request', operationId: 'http-operation' }, () => service.processNext());
+      operations.claimNext.mockResolvedValueOnce(operation).mockResolvedValue(null);
+      runWithDiagnosticContext({ correlationId: 'unrelated-request' }, () => service.start());
+      await vi.advanceTimersByTimeAsync(1);
+      expect(contexts).toHaveLength(2);
+      expect(contexts[0]?.correlationId).toBe('http-request');
+      expect(contexts[1]?.correlationId).toBeTruthy();
+      expect(contexts[1]?.correlationId).not.toBe('http-request');
+      expect(contexts[1]?.correlationId).not.toBe('unrelated-request');
+      expect(getDiagnosticContext()).toBeUndefined();
+    } finally {
+      await service.stop();
+      vi.useRealTimers();
+    }
   });
 });

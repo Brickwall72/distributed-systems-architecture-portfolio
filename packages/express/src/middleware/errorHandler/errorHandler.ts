@@ -1,6 +1,7 @@
 // File: packages/express/src/middleware/errorHandler/errorHandler.ts
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import { z } from 'zod';
+import { getDiagnosticContext, safeErrorMetadata } from '@shared/diagnostics';
 import { Logger } from '../../telemetry';
 import { AppError } from './errors';
 
@@ -12,13 +13,22 @@ import { AppError } from './errors';
 export const createErrorHandler = (logger: Logger): ErrorRequestHandler => {
 
   return (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
-    // Resolve correlation ID from incoming request headers or fallback to null
-    const rawCorrelationId = req.headers['x-correlation-id'] ?? req.headers['x-request-id'];
-    const correlationId = typeof rawCorrelationId === 'string' ? rawCorrelationId : null;
+    if (res.headersSent) {
+      _next(err);
+      return;
+    }
+
+    const correlationId = getDiagnosticContext()?.correlationId ?? null;
+    const metadata = {
+      method: req.method,
+      route: typeof req.route?.path === 'string' ? req.route.path : 'unmatched',
+    };
 
     // 1. Zod Schema Validation Failure (HTTP 400)
     if (err instanceof z.ZodError) {
-      logger.warn(`Schema validation failed on ${req.method} ${req.path}`, correlationId);
+      logger.warn('Schema validation failed', correlationId, {
+        ...metadata, ...safeErrorMetadata(err), statusCode: 400,
+      });
       res.status(400).json({
         error: 'Validation failed',
         details: err.issues,
@@ -28,7 +38,9 @@ export const createErrorHandler = (logger: Logger): ErrorRequestHandler => {
 
     // 2. Malformed JSON Body Payload (HTTP 400)
     if (err instanceof SyntaxError && 'status' in err && (err as { status: number }).status === 400) {
-      logger.warn(`Malformed JSON payload received on ${req.method} ${req.path}`, correlationId);
+      logger.warn('Malformed JSON payload received', correlationId, {
+        ...metadata, ...safeErrorMetadata(err), statusCode: 400,
+      });
       res.status(400).json({ error: 'Invalid JSON payload.' });
       return;
     }
@@ -36,9 +48,13 @@ export const createErrorHandler = (logger: Logger): ErrorRequestHandler => {
     // 3. Known Operational Domain Errors (HTTP 4xx / 5xx)
     if (err instanceof AppError) {
       if (err.statusCode >= 500) {
-        logger.error(`Operational error (${err.statusCode}): ${err.message}`, correlationId);
+        logger.error('Operational request error', correlationId, {
+          ...metadata, statusCode: err.statusCode, errorType: 'AppError',
+        });
       } else {
-        logger.warn(`Operational warning (${err.statusCode}): ${err.message}`, correlationId);
+        logger.warn('Operational request rejected', correlationId, {
+          ...metadata, statusCode: err.statusCode, errorType: 'AppError',
+        });
       }
 
       res.status(err.statusCode).json({
@@ -49,8 +65,11 @@ export const createErrorHandler = (logger: Logger): ErrorRequestHandler => {
     }
 
     // 4. Unhandled System Faults (HTTP 500)
-    const errorMessage = err instanceof Error ? err.stack || err.message : String(err);
-    logger.error(`Unhandled internal server error on ${req.method} ${req.path}: ${errorMessage}`, correlationId);
+    logger.error('Unhandled internal server error', correlationId, {
+      ...metadata,
+      statusCode: 500,
+      ...safeErrorMetadata(err),
+    });
 
     res.status(500).json({ error: 'Internal server error' });
   };

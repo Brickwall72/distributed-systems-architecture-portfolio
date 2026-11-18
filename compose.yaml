@@ -96,7 +96,7 @@ services:
   minio-setup:
     image: dsap-minio-setup:local
     build:
-      context: ./charts/minio
+      context: ./infrastructure/minio-setup
       dockerfile: Dockerfile.setup
     env_file:
       - .auth-keys/local/minio-setup.env
