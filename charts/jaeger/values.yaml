@@ -1,0 +1,12 @@
+# File: charts/jaeger/values.yaml
+storage:
+  size: 5Gi
+  storageClassName: null
+  retention: 168h
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

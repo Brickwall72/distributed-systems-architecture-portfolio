@@ -1,0 +1,47 @@
+# File: charts/jaeger/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+data:
+  config.yaml: |
+    service:
+      extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+      telemetry:
+        metrics:
+          level: none
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [jaeger_storage_exporter]
+    extensions:
+      healthcheckv2:
+        use_v2: true
+        http:
+          endpoint: 0.0.0.0:13133
+      jaeger_query:
+        storage:
+          traces: local
+        http:
+          endpoint: 0.0.0.0:16686
+      jaeger_storage:
+        backends:
+          local:
+            badger:
+              directories:
+                keys: /var/lib/jaeger/keys
+                values: /var/lib/jaeger/values
+              ephemeral: false
+              ttl:
+                spans: {{ .Values.storage.retention | quote }}
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+    exporters:
+      jaeger_storage_exporter:
+        trace_storage: local

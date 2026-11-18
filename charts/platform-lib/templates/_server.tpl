@@ -3,6 +3,11 @@
 {{- define "platform-lib.server" -}}
 {{- $name := include "platform-lib.name" (dict "Release" .Release "Values" (dict "component" "server" "nameOverride" .Values.nameOverride)) -}}
 {{- $labels := include "platform-lib.labels" (dict "Release" .Release "Values" (dict "component" "server" "nameOverride" .Values.nameOverride)) -}}
+{{- $tracing := (.Values.global | default dict).tracing | default dict -}}
+{{- $sampleRatio := "0.1" -}}
+{{- if hasKey $tracing "sampleRatio" -}}
+{{- $sampleRatio = $tracing.sampleRatio -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -67,9 +72,19 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          {{- if .Values.env }}
+          {{- if or .Values.env $tracing.enabled }}
           env:
-            {{- tpl (toYaml .Values.env) . | nindent 12 }}
+            {{- if $tracing.enabled }}
+            - name: DSAP_TRACING_ENABLED
+              value: "true"
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: "http://jaeger:4318/v1/traces"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: {{ $sampleRatio | quote }}
+            {{- end }}
+            {{- with .Values.env }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
           {{- end }}
           {{- if .Values.envFrom }}
           envFrom:

@@ -17,8 +17,10 @@ import {
   beginOperation,
   diagnosticId,
   getDiagnosticContext,
+  injectTraceHeaders,
   runInNewDiagnosticContext,
   runWithDiagnosticContext,
+  runWithRemoteTrace,
   safeErrorMetadata,
   validDiagnosticId,
   type DiagnosticContext,
@@ -148,10 +150,11 @@ export class EventBroker {
       ...(activeContext?.parentOperationId ? { parentOperationId: activeContext.parentOperationId } : {}),
     }, async () => {
       const operation = beginOperation(this.logger ?? noopLogger, 'nats.request', { subject });
-      return runWithDiagnosticContext(operation.context, async () => {
+      return operation.run(async () => {
         try {
           const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
           const requestHeaders = diagnosticHeaders(operation.context);
+          injectTraceHeaders((key, value) => requestHeaders.set(key, value));
           if (activeContext?.operationId) requestHeaders.set(PARENT_OPERATION_HEADER, activeContext.operationId);
 
           const responseMsg = await this.nc.request(subject, encodedPayload, { timeout, headers: requestHeaders });
@@ -186,9 +189,12 @@ export class EventBroker {
           correlationId,
           ...(callerOperationId ? { operationId: callerOperationId } : {}),
         };
-        await runWithDiagnosticContext(deliveryContext, async () => {
+        await runWithRemoteTrace((key) => {
+          const values = msg.headers?.values(key);
+          return values?.length === 1 && values[0].length <= 512 ? values[0] : undefined;
+        }, () => runWithDiagnosticContext(deliveryContext, async () => {
           const operation = beginOperation(this.logger ?? noopLogger, 'nats.responder', { subject: msg.subject });
-          await runWithDiagnosticContext(operation.context, async () => {
+          await operation.run(async () => {
             try {
               const payload = JSON.parse(new TextDecoder().decode(msg.data));
               const result = await handler(payload);
@@ -223,7 +229,7 @@ export class EventBroker {
               });
             }
           });
-        });
+        }));
       }
     })();
   }

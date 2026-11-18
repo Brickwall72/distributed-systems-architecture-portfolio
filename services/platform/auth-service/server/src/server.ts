@@ -1,7 +1,7 @@
 // File: services/platform/auth-service/server/src/server.ts
 import express from 'express';
 import { createPublicKey } from 'node:crypto';
-import { createLogger, createRequestDiagnostics, safeErrorMetadata } from '@shared/express';
+import { createLogger, createRequestDiagnostics, safeErrorMetadata, startTracing, stopTracing } from '@shared/express';
 import { env, loadPrivateKeyPem } from './config';
 import { createAuthGateway } from './routes';
 import { TokenService } from './services/token.service';
@@ -49,12 +49,16 @@ async function bootstrap() {
   });
 
   const server = app.listen(env.PORT, '0.0.0.0', () => logger.info(`Auth Server running on port ${env.PORT}`));
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => server.close(async () => {
+    await stopTracing(logger);
+    process.exit(0);
+  });
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }
 
 if (env.NODE_ENV !== 'test') {
+  startTracing('auth-server', logger);
   await bootstrap();
 }
 

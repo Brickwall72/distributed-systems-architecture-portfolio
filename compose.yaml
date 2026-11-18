@@ -107,6 +107,18 @@ services:
       - minio
     networks:
       - platform-mesh
+
+  jaeger:
+    image: jaegertracing/jaeger:2.23.0
+    command: ["--config=/etc/jaeger/config.yaml"]
+    volumes:
+      - ./infrastructure/jaeger/memory.yaml:/etc/jaeger/config.yaml:ro
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"
+    networks:
+      - platform-mesh
+    mem_limit: 512m
+
 volumes:
   dbgate-data:
   minio-data:

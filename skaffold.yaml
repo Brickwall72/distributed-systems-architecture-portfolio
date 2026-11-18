@@ -227,3 +227,20 @@ deploy:
         setValueTemplates:
           shell.image.repository: "{{.IMAGE_REPO_global_shell}}"
           shell.image.tag: "{{.IMAGE_TAG_global_shell}}"
+
+profiles:
+  - name: tracing
+    patches:
+      - op: add
+        path: /deploy/helm/releases/-
+        value:
+          name: jaeger
+          chartPath: charts/jaeger
+          namespace: platform-local
+      # Server chart releases (topology, compliance, audit, PDF, e-sign, auth).
+      - {op: add, path: /deploy/helm/releases/4/setValues, value: {global.tracing.enabled: true}}
+      - {op: add, path: /deploy/helm/releases/5/setValues, value: {global.tracing.enabled: true}}
+      - {op: add, path: /deploy/helm/releases/6/setValues, value: {global.tracing.enabled: true}}
+      - {op: add, path: /deploy/helm/releases/7/setValues, value: {global.tracing.enabled: true}}
+      - {op: add, path: /deploy/helm/releases/8/setValues, value: {global.tracing.enabled: true}}
+      - {op: add, path: /deploy/helm/releases/9/setValues, value: {global.tracing.enabled: true}}

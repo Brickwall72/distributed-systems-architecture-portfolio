@@ -1,6 +1,7 @@
 // File: packages/diagnostics/src/context.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
+import { runWithoutTrace } from './tracing';
 
 export interface DiagnosticContext {
   readonly correlationId: string;
@@ -29,9 +30,9 @@ export function runWithDiagnosticContext<T>(context: DiagnosticContext, work: ()
 }
 
 export function runInNewDiagnosticContext<T>(work: () => T, correlationId?: unknown): T {
-  return storage.run({ correlationId: diagnosticId(correlationId) }, work);
+  return runWithoutTrace(() => storage.run({ correlationId: diagnosticId(correlationId) }, work));
 }
 
 export function withoutDiagnosticContext<T>(work: () => T): T {
-  return storage.exit(work);
+  return runWithoutTrace(() => storage.exit(work));
 }
