@@ -88,17 +88,23 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
-  it('does not clear or re-emit an unchanged locked organization during refetch', () => {
+  it.each([
+    ['source organization after an asset selection', { filterOwnedId: 'asset-1' }],
+    ['receiving organization after a transfer selection', { transferEventId: 'transfer-1' }],
+  ])('keeps the locked %s out of the layout during refetch', (_scenario, filter) => {
     vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
     const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
 
     vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: true, error: null });
-    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} {...filter} />);
+    expect(screen.getByRole('status')).toHaveClass('sr-only');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
 
     vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList.map((org) => ({ ...org })), isLoading: false, error: null });
-    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    rerender(<OrganizationSelector onlyOrgId="org-001" onSelect={mockOnSelect} {...filter} />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
   });
 
@@ -117,6 +123,7 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     vi.mocked(useGetOrganizations).mockReturnValue({ items: [], isLoading: true, error: null });
     const { rerender } = render(<OrganizationSelector onlyOrgId="org-001" multiSelect onSelect={mockOnSelect} />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading organization');
+    expect(screen.getByRole('status')).toHaveClass('sr-only');
 
     vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
     rerender(<OrganizationSelector onlyOrgId="org-001" multiSelect onSelect={mockOnSelect} />);
@@ -143,6 +150,15 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
 
     // Auto-selects General Dynamics because it is the sole remaining option
     expect(mockOnSelect).toHaveBeenCalledWith(mockOrgList[1]);
+  });
+
+  it('can leave a single selectable organization empty without affecting a locked organization', () => {
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [mockOrgList[0]], isLoading: false, error: null });
+    const { rerender } = render(<OrganizationSelector autoSelectSingle={false} onSelect={mockOnSelect} />);
+    expect(screen.getByRole('combobox')).toHaveValue('');
+    expect(mockOnSelect).not.toHaveBeenCalled();
+    rerender(<OrganizationSelector autoSelectSingle={false} onlyOrgId="org-001" onSelect={mockOnSelect} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[0]);
   });
 
   it('bypasses excludeOrgId when filterOwnedId returns exactly one holding organization (Precedence Rule)', () => {
@@ -178,6 +194,34 @@ describe('OrganizationSelector Widget (UI Boundary & Interaction State Machine)'
     fireEvent.change(select, { target: { value: 'org-001' } });
 
     expect(mockOnSelect).toHaveBeenCalledWith(mockOrgList[0]);
+  });
+
+  it('updates the selected organization requisitions on refresh without reporting a user selection', () => {
+    const onUserSelect = vi.fn();
+    const first = { ...mockOrgList[0], requisitions: ['REQ-1', 'REQ-2'] };
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [first, mockOrgList[1]], isLoading: false, error: null });
+    const { rerender } = render(<OrganizationSelector onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={0} />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: first.id } });
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
+    const updated = { ...first, requisitions: ['REQ-2'] };
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [updated, mockOrgList[1]], isLoading: false, error: null });
+    rerender(<OrganizationSelector onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={1} />);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(updated);
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
+    expect(useGetOrganizations).toHaveBeenLastCalledWith(expect.anything(), 1);
+  });
+
+  it('removes a sender with no remaining transfers after refresh', () => {
+    const onUserSelect = vi.fn();
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: mockOrgList, isLoading: false, error: null });
+    const { rerender } = render(<OrganizationSelector onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={0} />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'org-001' } });
+    vi.mocked(useGetOrganizations).mockReturnValue({ items: [mockOrgList[1]], isLoading: false, error: null });
+    rerender(<OrganizationSelector onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={1} />);
+    expect(screen.queryByText('Space Systems Command')).not.toBeInTheDocument();
+    expect(mockOnSelect).toHaveBeenCalledWith(undefined);
+    expect(mockOnSelect).toHaveBeenLastCalledWith(mockOrgList[1]);
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
   });
 
   it('allows explicit user deselection and prevents re-auto-selection', () => {

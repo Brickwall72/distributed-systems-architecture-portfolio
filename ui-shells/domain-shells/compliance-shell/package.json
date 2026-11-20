@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:unit": "vitest run .unit.test"
+    "test:unit": "vitest run .unit.test",
+    "test:integration": "vitest run .integration.test"
   },
   "dependencies": {
     "@shared/vite-config": "workspace:*",

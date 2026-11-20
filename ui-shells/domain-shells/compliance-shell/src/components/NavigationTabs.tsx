@@ -17,17 +17,7 @@ export default function NavigationTabs() {
             : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
         }`}
       >
-        Custody Preview
-      </Link>
-      <Link
-        to="/documents"
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-          isDocuments
-            ? 'bg-blue-600 text-white shadow-sm'
-            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-        }`}
-      >
-        Database Twin
+        Transfer Authorization
       </Link>
       <Link
         to="/transfer-receipts"
@@ -37,7 +27,17 @@ export default function NavigationTabs() {
             : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
         }`}
       >
-        Transfer Receipts
+        Transfer Receipt
+      </Link>
+      <Link
+        to="/documents"
+        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+          isDocuments
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+        }`}
+      >
+        Documents Tables and Viewer
       </Link>
     </div>
   );

@@ -2,7 +2,7 @@
 import { PactV3, MatchersV3 } from '@pact-foundation/pact';
 import { apiClient } from './client';
 import path from 'node:path';
-import { DocumentSchema, signDocumentApiRequestSchema, documentsRoutes } from 'compliance-shared';
+import { DocumentListItemSchema, DocumentSchema, signDocumentApiRequestSchema, documentsRoutes } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
 const { like, arrayContaining } = MatchersV3;
@@ -20,7 +20,7 @@ describe('Compliance Client -> Compliance Server Contract (Documents API)', () =
   const exampleDocument = () => mockFromSchema(DocumentSchema, {}, { seed: PACT_SEED });
 
   it('returns a list of compliance documents successfully', async () => {
-    const example = exampleDocument();
+    const example = mockFromSchema(DocumentListItemSchema, { receiverOrgId: 'org-1' }, { seed: PACT_SEED });
 
     provider
       .given('compliance documents exist in the database')

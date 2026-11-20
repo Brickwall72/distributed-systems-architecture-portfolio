@@ -3,9 +3,10 @@ import { apiClient } from '../../api';
 import { useTopologyQuery } from '../useTopologyQuery';
 import { AssetDTO, GetAssetsQuery } from '@contracts/topology';
 
-export function useGetAssets(params?: GetAssetsQuery) {
+export function useGetAssets(params?: GetAssetsQuery, refreshKey?: number) {
   return useTopologyQuery<GetAssetsQuery, AssetDTO>({
     params,
+    refreshKey,
     fetcher: (queryParams, options) =>
       apiClient.getAssets({
         query: queryParams,

@@ -15,6 +15,7 @@ export const documentStatusEnum = z.enum(
 export const documentsTableInputSchema = z.object({
   statusFilter: z.array(documentStatusEnum).optional(),
   requisitionNumbers: z.array(z.string()).optional(),
+  receivingOrganizationOnly: z.boolean().optional(),
   hiddenColumns: z.array(z.enum(['type', 'transferType', 'status', 'updatedAt', 'requisitionNumber'])).optional(),
 });
 export type DocumentPreviewEvent =
@@ -24,6 +25,8 @@ export type DocumentPreviewEvent =
   | { type: 'clear' };
 
 export type DocumentsTableInput = z.infer<typeof documentsTableInputSchema> & {
+  readonly refreshKey?: number;
+  readonly onUserSelect?: () => void;
   readonly onTransferEventSelect?: (transferEventId: string | undefined) => void;
   readonly onRequisitionNumberSelect?: (requisitionNumber: string | undefined) => void;
   readonly onAuthorizingTemplateSelect?: (templateId: FormId | undefined) => void;

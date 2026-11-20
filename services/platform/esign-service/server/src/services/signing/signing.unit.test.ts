@@ -84,6 +84,7 @@ describe('signDocument', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPdfDoc.getPages.mockReturnValue([mockFirstPage]);
     process.env = { ...originalEnv };
     process.env.SIGNING_CERT_PASSWORD = 'changeit';
   });
@@ -148,6 +149,17 @@ describe('signDocument', () => {
     );
     expect(mockPdfDoc.save).not.toHaveBeenCalled();
     expect(SignPdf).not.toHaveBeenCalled();
+  });
+
+  it('places the signature and date on the last page of a multi-page document', async () => {
+    const lastPage = { getSize: vi.fn().mockReturnValue({ width: 595, height: 842 }), drawImage: vi.fn(), drawText: vi.fn() };
+    mockPdfDoc.getPages.mockReturnValue([mockFirstPage, lastPage]);
+    vi.mocked(fs.readFile).mockResolvedValueOnce(Buffer.from('certificate'));
+    await signDocument(validParams);
+    expect(mockFirstPage.drawImage).not.toHaveBeenCalled();
+    expect(mockFirstPage.drawText).not.toHaveBeenCalled();
+    expect(lastPage.drawImage).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ x: 155, y: 35 }));
+    expect(lastPage.drawText).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ x: 465, y: 45 }));
   });
 
   it('propagates a cryptographic signing failure without returning a successful document', async () => {

@@ -128,6 +128,22 @@ describe('useTopologyQuery (Base Hook Primitives)', () => {
     expect(result.current.items).toEqual([{ id: 'current' }]);
   });
 
+  it('refetches when the refresh key changes and ignores an earlier response', async () => {
+    let resolveOld!: (value: { status: number; body: { id: string }[] }) => void;
+    const fetcher = vi.fn()
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }))
+      .mockResolvedValueOnce({ status: 200, body: [{ id: 'remaining' }] });
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) => useTopologyQuery({ refreshKey, fetcher, fallbackErrorMessage: 'Failed' }),
+      { initialProps: { refreshKey: 0 } },
+    );
+    rerender({ refreshKey: 1 });
+    await waitFor(() => expect(result.current.items).toEqual([{ id: 'remaining' }]));
+    await act(async () => resolveOld({ status: 200, body: [{ id: 'received' }] }));
+    expect(result.current.items).toEqual([{ id: 'remaining' }]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it('refetches and clears results when an identity changes organization without changing its id', async () => {
     let resolveSecond!: (value: { status: number; body: { id: string }[] }) => void;
     const fetcher = vi.fn()

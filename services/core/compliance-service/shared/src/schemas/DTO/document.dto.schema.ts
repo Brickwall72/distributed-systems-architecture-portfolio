@@ -42,3 +42,8 @@ export const DocumentSchema = z.object({
 });
 
 export type Document = z.infer<typeof DocumentSchema>;
+
+export const DocumentListItemSchema = DocumentSchema.extend({
+  receiverOrgId: z.string().nullable(),
+});
+export type DocumentListItem = z.infer<typeof DocumentListItemSchema>;

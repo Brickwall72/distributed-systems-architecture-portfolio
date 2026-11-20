@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/client/src/widgets/DocumentsTable/DocumentsTable.tsx
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Document } from 'compliance-shared';
+import { DocumentListItem } from 'compliance-shared';
 import { DatabaseTwinTable, TableColumn, useIdentity } from '@shared/ui-components';
 import { DocumentsTableInput } from '@contracts/compliance';
 import { useDocuments, useGetPdf } from '../../hooks';
@@ -13,7 +13,7 @@ const synchronizationLabels: Record<string, string> = {
   ATTENTION_REQUIRED: 'Needs attention',
 };
 
-const columns: TableColumn<Document>[] = [
+const columns: TableColumn<DocumentListItem>[] = [
   { key: 'requisitionNumber', header: 'Requisition Number' },
   { key: 'transferType', header: 'Transfer Type' },
   { key: 'type', header: 'Document Type' },
@@ -31,10 +31,11 @@ const columns: TableColumn<Document>[] = [
 
 export default function DocumentsTable({
   onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect, onPdfSelect,
-  statusFilter, requisitionNumbers, hiddenColumns
+  statusFilter, requisitionNumbers, hiddenColumns, receivingOrganizationOnly, refreshKey, onUserSelect,
 }: Readonly<DocumentsTableInput>) {
-  const { documents, loading, error } = useDocuments({ statuses: statusFilter, requisitionNumbers });
-  const identityId = useIdentity()?.id;
+  const { documents, loading, error } = useDocuments({ statuses: statusFilter, requisitionNumbers, refreshKey });
+  const identity = useIdentity();
+  const identityId = identity?.id;
   const previousIdentityId = useRef(identityId);
   const queryClient = useQueryClient();
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>();
@@ -42,6 +43,9 @@ export default function DocumentsTable({
     onPdfSelect && previousIdentityId.current === identityId ? selectedDocumentId : undefined,
   );
   const selectable = onTransferEventSelect || onRequisitionNumberSelect || onAuthorizingTemplateSelect || onPdfSelect;
+  const visibleDocuments = receivingOrganizationOnly
+    ? documents.filter((document) => Boolean(identity?.orgId) && document.receiverOrgId === identity?.orgId)
+    : documents;
 
   useEffect(() => {
     if (previousIdentityId.current !== identityId) {
@@ -64,11 +68,23 @@ export default function DocumentsTable({
     }
   }, [pdf, pdfError, selectedDocumentId, identityId, onPdfSelect]);
 
+  useEffect(() => {
+    if (!receivingOrganizationOnly || loading || error || !selectedDocumentId
+      || visibleDocuments.some((document) => document.id === selectedDocumentId)) return;
+    setSelectedDocumentId(undefined);
+    onTransferEventSelect?.(undefined);
+    onRequisitionNumberSelect?.(undefined);
+    onAuthorizingTemplateSelect?.(undefined);
+    onPdfSelect?.({ type: 'clear' });
+  }, [receivingOrganizationOnly, loading, error, selectedDocumentId, visibleDocuments,
+    onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect, onPdfSelect]);
+
   const visibleColumns = hiddenColumns?.length
     ? columns.filter((column) => !(hiddenColumns as readonly string[]).includes(String(column.key)))
     : columns;
 
-  const handleRowSelect = (row: Document) => {
+  const handleRowSelect = (row: DocumentListItem) => {
+    onUserSelect?.();
     const nextId = row.id === selectedDocumentId ? undefined : row.id;
     setSelectedDocumentId(nextId);
     onTransferEventSelect?.(nextId ? row.transferEventId ?? undefined : undefined);
@@ -102,15 +118,15 @@ export default function DocumentsTable({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white tracking-wide">Compliance Database Twin</h3>
+          <h3 className="text-lg font-semibold text-white tracking-wide">Compliance Documents</h3>
           <p className="text-sm text-slate-400">Read-only synchronized view of records in the PostgreSQL compliance ledger.</p>
         </div>
         <span className="px-3 py-1 bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 rounded-full shadow-sm">
-          {documents.length} Records Loaded
+          {visibleDocuments.length} Records Loaded
         </span>
       </div>
       <DatabaseTwinTable 
-        data={documents}
+        data={visibleDocuments}
         columns={visibleColumns}
         rowKey="id"
         onRowSelect={selectable ? handleRowSelect : undefined}

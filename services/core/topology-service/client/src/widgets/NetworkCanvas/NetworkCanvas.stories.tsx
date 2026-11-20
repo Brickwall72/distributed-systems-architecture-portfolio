@@ -20,7 +20,7 @@ const meta: Meta<typeof NetworkCanvas> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<Record<string, never>>;
 
 // Mock Graph Dataset matching updated GraphDTO structure with multi-asset transfer array
 const MOCK_GRAPH_DATA: GraphDTO = {
@@ -30,16 +30,16 @@ const MOCK_GRAPH_DATA: GraphDTO = {
     { id: 'org-2', name: 'Bravo Logistics', type: 'GOV_AGENCY', addressLine1: '456 Depot Way' },
   ],
   assets: [
-    { id: 'asset-1', name: 'Tactical Radio', nomenclature: 'Tactical Radio', serialNumber: 'TR-102938', status: 'AVAILABLE', currentOwnerId: 'org-1' },
-    { id: 'asset-2', name: 'Night Vision Goggles', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', status: 'IN_TRANSIT', currentOwnerId: 'org-2' },
-    { id: 'asset-3', name: 'Secure Satellite Terminal', nomenclature: 'Secure Satellite Terminal', serialNumber: 'SST-778899', status: 'IN_TRANSIT', currentOwnerId: 'org-2' },
+    { id: 'asset-1', name: 'Tactical Radio', nomenclature: 'Tactical Radio', serialNumber: 'TR-102938', status: 'AVAILABLE', type: 'EQUIPMENT', controlType: 'LOCAL', currentOwnerId: 'org-1' },
+    { id: 'asset-2', name: 'Night Vision Goggles', nomenclature: 'Night Vision Goggles', serialNumber: 'NVG-554433', status: 'IN_TRANSIT', type: 'EQUIPMENT', controlType: 'LOCAL', currentOwnerId: 'org-2' },
+    { id: 'asset-3', name: 'Secure Satellite Terminal', nomenclature: 'Secure Satellite Terminal', serialNumber: 'SST-778899', status: 'IN_TRANSIT', type: 'EQUIPMENT', controlType: 'LOCAL', currentOwnerId: 'org-2' },
   ],
   transfers: [
     {
       requisitionNumber: 'REQ-TR-001',
       date: '20261020',
       type: 'PHYSICAL_TRANSFER',
-      status: 'IN_TRANSIT',
+      status: 'IN_PROGRESS',
       senderOrgId: 'org-1',
       senderName: 'Alpha Command',
       receiverOrgId: 'org-2',
@@ -50,12 +50,16 @@ const MOCK_GRAPH_DATA: GraphDTO = {
           nomenclature: 'Night Vision Goggles',
           serialNumber: 'NVG-554433',
           status: 'IN_TRANSIT',
+          type: 'EQUIPMENT',
+          controlType: 'LOCAL',
         },
         {
           id: 'asset-3',
           nomenclature: 'Secure Satellite Terminal',
           serialNumber: 'SST-778899',
           status: 'IN_TRANSIT',
+          type: 'EQUIPMENT',
+          controlType: 'LOCAL',
         },
       ],
     },

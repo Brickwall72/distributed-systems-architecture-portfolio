@@ -49,4 +49,10 @@ export const ComplianceWorkflowWidgetPropsSchema = z.object({
  * External props accepted by `ComplianceWorkflowWidget` from the Host Shell in JSX.
  * Uses `z.input` so `assets` is optional (`assets?: AssetDTO[]`).
  */
-export type ComplianceWorkflowWidgetProps = z.infer<typeof ComplianceWorkflowWidgetPropsSchema>;
+export type ComplianceWorkflowWidgetProps = z.infer<typeof ComplianceWorkflowWidgetPropsSchema> & {
+  readonly resetKey?: number;
+  /** Query-key prefixes to invalidate after saving and again when the update is applied. */
+  readonly invalidateQueryKeys?: readonly (readonly unknown[])[];
+  readonly onDocumentSaved?: (documentId: string) => void;
+  readonly onTopologyApplied?: (documentId: string) => void;
+};

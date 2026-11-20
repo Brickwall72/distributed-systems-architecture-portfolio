@@ -7,18 +7,23 @@
     html {
       height: 100%;
     }
-    body {
+    html, body {
       margin: 0;
+      background-color: #ffffff;
     }
     body {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-size: 12px;
       color: #333;
-      padding: 40px;
+      padding: 32px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       min-height: 100%;
+    }
+    .doc-content {
+      flex: 1;
     }
     .header-title {
       text-align: center;
@@ -76,26 +81,31 @@
       display: inline-block;
       margin-left: 10px;
     }
-    /* PDF output: pin the signature block to the page bottom (fixed signing coordinates) */
+    .signer-label {
+      display: inline-block;
+      /* Matches the authorization form's fixed signing coordinates. */
+      width: 112.59375px;
+      vertical-align: bottom;
+    }
+    .signature-page {
+      display: contents;
+    }
     @media print {
-      html, body {
-        height: 100%;
+      .pdf-signature-separate-page .signature-page {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        height: calc(297mm - 32px);
+        break-before: page;
       }
-      body {
-        display: block;
-        position: relative;
-      }
-      .signature-block {
-        position: absolute;
-        bottom: 40px;
-        left: 40px;
-        right: 40px;
+      .pdf-signature-separate-page .signature-block {
         margin-top: 0;
       }
     }
   </style>
 </head>
 <body>
+  <div class="doc-content">
   <div class="header-title">
     Requisition and Invoice / Shipping Document<br>
     (Simulated Transfer of Custody)
@@ -152,17 +162,20 @@
       {{/each}}
     </tbody>
   </table>
+  </div>
 
-  <div class="signature-block">
-    <span class="label">Receipt Certification</span>
-    <p>I certify that the assets listed above have been received and custody has been formally transferred.</p>
-    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
-      <div>
-        <strong>Authorized Receiver:</strong> 
-        <span class="sig-line"></span>
-      </div>
-      <div>
-        <strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
+  <div class="signature-page" data-pdf-signature-page>
+    <div class="signature-block">
+      <span class="label">Receipt Certification</span>
+      <p>I certify that the assets listed above have been received and custody has been formally transferred.</p>
+      <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <strong class="signer-label">Authorized Receiver:</strong>
+          <span class="sig-line"></span>
+        </div>
+        <div>
+          <strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
+        </div>
       </div>
     </div>
   </div>

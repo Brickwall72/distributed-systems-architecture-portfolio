@@ -1,5 +1,6 @@
 // File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.tsx
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button, DocumentViewer, useIdentity } from '@shared/ui-components';
 import { isAuditor, type Identity } from '@contracts/auth';
 import { hydrateTemplate } from '@shared/utils';
@@ -11,12 +12,51 @@ import '@shared/styles';
 
 export default function ComplianceWorkflowWidget(props: Readonly<ComplianceWorkflowWidgetProps>) {
   const identity = useIdentity();
+  return <ComplianceWorkflowIdentity key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} {...props} />;
+}
+
+function ComplianceWorkflowIdentity({ identity, ...props }: Readonly<ComplianceWorkflowWidgetProps> & { identity: Identity | null }) {
+  const queryClient = useQueryClient();
+  const [pendingDocuments, setPendingDocuments] = useState<string[]>([]);
   const sessionKey = JSON.stringify([
-    identity?.id, identity?.orgId, identity?.roles,
     props.sourceOrg, props.targetOrg, props.assets, props.requisitionNumber,
-    props.transferEventId, props.authorizingTemplateId, props.template?.id, props.template?.rawHTML,
+    props.transferEventId, props.authorizingTemplateId, props.template?.id, props.template?.rawHTML, props.resetKey,
   ]);
-  return <ComplianceWorkflowSession key={sessionKey} identity={identity} {...props} />;
+  const invalidateQueries = () => {
+    for (const queryKey of props.invalidateQueryKeys ?? []) {
+      void queryClient.invalidateQueries({ queryKey });
+    }
+  };
+  const saved = (documentId: string) => {
+    setPendingDocuments((pending) => pending.includes(documentId) ? pending : [...pending, documentId]);
+    invalidateQueries();
+    props.onDocumentSaved?.(documentId);
+  };
+  const applied = (documentId: string) => {
+    setPendingDocuments((pending) => pending.filter((id) => id !== documentId));
+    invalidateQueries();
+    props.onTopologyApplied?.(documentId);
+  };
+  return (
+    <>
+      <ComplianceWorkflowSession key={sessionKey} identity={identity} {...props} onDocumentSaved={saved} />
+      {pendingDocuments.map((documentId) => (
+        <DocumentSyncWatcher key={documentId} documentId={documentId} onApplied={applied} />
+      ))}
+    </>
+  );
+}
+
+function DocumentSyncWatcher({ documentId, onApplied }: { readonly documentId: string; readonly onApplied: (id: string) => void }) {
+  const synchronization = useDocumentSync(documentId);
+  const notified = useRef(false);
+  useEffect(() => {
+    if (!notified.current && synchronization.data?.topologyApplicationStatus === 'APPLIED') {
+      notified.current = true;
+      onApplied(documentId);
+    }
+  }, [documentId, onApplied, synchronization.data?.topologyApplicationStatus]);
+  return null;
 }
 
 function ComplianceWorkflowSession({ identity, ...props }: Readonly<ComplianceWorkflowWidgetProps> & { identity: Identity | null }) {
@@ -108,15 +148,14 @@ function ComplianceWorkflowSession({ identity, ...props }: Readonly<ComplianceWo
         if (generation.current === requestGeneration) {
           setShowSignatureOverlay(false);
           setSignedDocumentId(unsignedDocumentData.documentId);
+          props.onDocumentSaved?.(unsignedDocumentData.documentId);
         }
       },
     });
   };
 
   const activeError = generatePdfError || signPdfError;
-  const topologyApplicationStatus = (
-    synchronization.data as { topologyApplicationStatus?: string } | undefined
-  )?.topologyApplicationStatus;
+  const topologyApplicationStatus = synchronization.data?.topologyApplicationStatus;
   let synchronizationMessage = 'Signed document saved; topology update pending.';
   if (synchronization.error) {
     synchronizationMessage = 'Signed document saved, but synchronization status could not be checked.';

@@ -2,14 +2,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useIdentity } from '@shared/ui-components';
 import { apiClient } from '../../api';
-import { NetworkCanvasInputSchema, type NetworkCanvasInputs } from '@contracts/topology';
+import { NetworkCanvasInputSchema, TOPOLOGY_GRAPH_QUERY_KEY, type NetworkCanvasInputs } from '@contracts/topology';
 import type { GraphDTO } from 'topology-shared';
 
 export function useGraph(inputs?: NetworkCanvasInputs, options?: { enabled?: boolean }) {
   const identityId = useIdentity()?.id;
   const query = NetworkCanvasInputSchema.parse(inputs ?? {});
   const result = useQuery<GraphDTO, Error>({
-    queryKey: ['topology-service', 'graph', identityId, query],
+    queryKey: [...TOPOLOGY_GRAPH_QUERY_KEY, identityId, query],
     enabled: Boolean(identityId) && (options?.enabled ?? true),
     queryFn: async ({ signal }) => {
       const response = await apiClient.getGraph({

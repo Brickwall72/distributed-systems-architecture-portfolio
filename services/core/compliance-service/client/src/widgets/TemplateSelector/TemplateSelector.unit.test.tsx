@@ -74,8 +74,20 @@ describe('TemplateSelector Component', () => {
     await waitFor(() => {
       expect(mockOnSelect).toHaveBeenCalledWith(expect.objectContaining({ id: T1, rawHTML: '<p>x</p>' }));
     });
+
     expect(mockOnSelect.mock.calls[0][0].payloadSchema).toBeDefined();
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('can leave a single option empty until the user selects it', async () => {
+    mockQueries([{ id: T1, name: 'Template One' }]);
+    const onUserSelect = vi.fn();
+    render(<TemplateSelector autoSelectSingle={false} onSelect={mockOnSelect} onUserSelect={onUserSelect} />);
+    expect(screen.getByTestId('select-element')).toHaveValue('');
+    expect(mockOnSelect).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByTestId('select-element'), { target: { value: T1 } });
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockOnSelect).toHaveBeenCalledWith(expect.objectContaining({ id: T1 })));
   });
 
   it('does not auto-select again after the user deselects', async () => {

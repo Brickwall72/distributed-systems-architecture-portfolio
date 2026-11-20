@@ -13,12 +13,14 @@ export interface ApiResponse {
 
 export interface UseTopologyQueryOptions<TParams> {
   params?: TParams;
+  refreshKey?: number;
   fetcher: (params: TParams | undefined, options: FetcherOptions) => Promise<ApiResponse>;
   fallbackErrorMessage: string;
 }
 
 export function useTopologyQuery<TParams, TData>({
   params,
+  refreshKey,
   fetcher,
   fallbackErrorMessage,
 }: UseTopologyQueryOptions<TParams>) {
@@ -38,7 +40,7 @@ export function useTopologyQuery<TParams, TData>({
 
   // Primitive string key comparison prevents infinite render loops from un-memoized object params
   const queryKey = JSON.stringify(params ?? {});
-  const requestKey = JSON.stringify([identityKey, queryKey]);
+  const requestKey = JSON.stringify([identityKey, queryKey, refreshKey]);
   const [activeKey, setActiveKey] = useState(requestKey);
 
   useEffect(() => {

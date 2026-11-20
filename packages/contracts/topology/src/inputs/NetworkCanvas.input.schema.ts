@@ -1,6 +1,8 @@
 // File: packages/contracts/topology/src/inputs/NetworkCanvas.input.schema.ts
 import { z } from 'zod';
 
+export const TOPOLOGY_GRAPH_QUERY_KEY = ['topology-service', 'graph'] as const;
+
 const idList = z.array(z.string().trim().min(1)).default([]);
 const booleanFromQuery = z.union([
   z.boolean(),

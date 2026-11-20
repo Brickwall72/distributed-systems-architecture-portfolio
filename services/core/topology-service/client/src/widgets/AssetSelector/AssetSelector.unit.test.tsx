@@ -83,6 +83,22 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(screen.getByText('Radio Unit 2 (S/N: SN-9013)')).toBeInTheDocument();
   });
 
+  it('removes received assets and prunes selection after refresh without reporting user interaction', () => {
+    const onUserSelect = vi.fn();
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+    const { rerender } = render(<AssetSelector multiSelect onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={0} />);
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC/ }));
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
+    expect(mockOnSelect).toHaveBeenLastCalledWith([mockAssetList[0]]);
+    vi.mocked(useGetAssets).mockReturnValue({ items: [mockAssetList[1]], isLoading: false, error: null });
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} onUserSelect={onUserSelect} refreshKey={1} />);
+    expect(screen.queryByRole('option', { name: /AN\/PRC/ })).not.toBeInTheDocument();
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+    expect(onUserSelect).toHaveBeenCalledTimes(1);
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.anything(), 1);
+  });
+
   it('defaults to single-select and emits a single AssetDTO', () => {
     vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
 
@@ -95,12 +111,24 @@ describe('AssetSelector Widget (UI Boundary)', () => {
     expect(mockOnSelect).toHaveBeenLastCalledWith(undefined);
   });
 
+  it('applies client-side exclusions to options and prunes an existing selection', () => {
+    vi.mocked(useGetAssets).mockReturnValue({ items: mockAssetList, isLoading: false, error: null });
+    const { rerender } = render(<AssetSelector multiSelect onSelect={mockOnSelect} />);
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('option', { name: /AN\/PRC/ }));
+    rerender(<AssetSelector multiSelect onSelect={mockOnSelect} excludeAssetIds={['ast-001']} />);
+    expect(screen.queryByRole('option', { name: /AN\/PRC/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Radio Unit 2/ })).toBeInTheDocument();
+    expect(mockOnSelect).toHaveBeenLastCalledWith([]);
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.not.objectContaining({ excludeAssetIds: expect.anything() }), undefined);
+  });
+
   it('includes in-transit assets by default', () => {
     vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: null });
 
     render(<AssetSelector onSelect={mockOnSelect} />);
 
-    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: true }));
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: true }), undefined);
   });
 
   it('forwards an explicit includeInTransit={false} to the data layer', () => {
@@ -108,17 +136,17 @@ describe('AssetSelector Widget (UI Boundary)', () => {
 
     render(<AssetSelector includeInTransit={false} onSelect={mockOnSelect} />);
 
-    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: false }));
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeInTransit: false }), undefined);
   });
 
   it('includes available assets by default and forwards includeAvailable={false}', () => {
     vi.mocked(useGetAssets).mockReturnValue({ items: [], isLoading: false, error: null });
 
     const { rerender } = render(<AssetSelector onSelect={mockOnSelect} />);
-    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: true }));
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: true }), undefined);
 
     rerender(<AssetSelector includeAvailable={false} onSelect={mockOnSelect} />);
-    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: false }));
+    expect(useGetAssets).toHaveBeenLastCalledWith(expect.objectContaining({ includeAvailable: false }), undefined);
   });
 
   it('emits AssetDTO[] array payload to Shell on user selection', () => {

@@ -73,7 +73,7 @@ function renderLockedSelection(
   error: string | undefined,
   options: SelectOption[],
 ): React.ReactElement | null {
-  if (isLoading) return <output>Loading organization...</output>;
+  if (isLoading) return <output className="sr-only">Loading organization...</output>;
   if (error) return <p role="alert">{error}</p>;
   if (!options.some((option) => option.id === onlyOrgId)) {
     return <p role="alert">Your organization is unavailable for this selection.</p>;
@@ -95,6 +95,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     : { requireActiveAssets: false };
   const { filterOwnedId, transferEventId } = queryParams;
   const isMulti = parsedInputs.success ? parsedInputs.data.multiSelect === true : false;
+  const autoSelectSingle = parsedInputs.success ? parsedInputs.data.autoSelectSingle : true;
 
   const { onSelect } = props;
   const emitSingle = onSelect as (org: OrganizationDTO | undefined) => void;
@@ -106,6 +107,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   const userClearedRef = useRef(false);
   const previousOnlyOrgId = useRef(onlyOrgId);
   const emittedLockedOrganization = useRef<OrganizationDTO | undefined>(undefined);
+  const emittedSingleOrganization = useRef<OrganizationDTO | undefined>(undefined);
 
   // Track previous filtering props to determine filter transitions
   const prevPropsRef = useRef({ filterOwnedId, excludeOrgId, transferEventId });
@@ -114,7 +116,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   updateFilterTracking(prevPropsRef, { filterOwnedId, excludeOrgId, transferEventId }, userClearedRef);
 
   // 3. Query Data Access Layer
-  const { items: orgs, isLoading, error } = useGetOrganizations(queryParams);
+  const { items: orgs, isLoading, error } = useGetOrganizations(queryParams, props.refreshKey);
 
   // 4. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
@@ -129,6 +131,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     if (!value) {
       userClearedRef.current = true;
       setSelectedId('');
+      emittedSingleOrganization.current = undefined;
       emitSingle(undefined);
       return;
     }
@@ -137,6 +140,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
     setSelectedId(value);
 
     const selectedOrganization = orgs.find((organization) => organization.id === value);
+    emittedSingleOrganization.current = selectedOrganization;
     emitSingle(selectedOrganization ?? undefined);
   };
 
@@ -153,6 +157,7 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
       emitMulti([]);
     } else if (!isMulti && selectedId) {
       setSelectedId('');
+      emittedSingleOrganization.current = undefined;
       emitSingle(undefined);
     }
   }, [isMulti, selectedIds.length, selectedId, emitMulti, emitSingle]);
@@ -187,14 +192,21 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
   const syncSingleSelection = useCallback(() => {
     if (selectedId && !options.some((option) => option.id === selectedId)) {
       setSelectedId('');
+      emittedSingleOrganization.current = undefined;
       emitSingle(undefined);
       return;
     }
 
-    if (options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
+    if (autoSelectSingle && options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
       handleOrganizationSelect(options[0].id);
+    } else if (selectedId) {
+      const selectedOrganization = orgs.find((organization) => organization.id === selectedId);
+      if (JSON.stringify(emittedSingleOrganization.current) !== JSON.stringify(selectedOrganization)) {
+        emittedSingleOrganization.current = selectedOrganization;
+        emitSingle(selectedOrganization);
+      }
     }
-  }, [selectedId, options, emitSingle, handleOrganizationSelect]);
+  }, [selectedId, options, orgs, emitSingle, handleOrganizationSelect, autoSelectSingle]);
 
   // 6. Synchronize Selection & Auto-Select
   useEffect(() => {
@@ -245,7 +257,10 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
         options={options}
         isLoading={isLoading}
         error={error}
-        onSelection={(value) => handleMultiSelect(Array.isArray(value) ? value : [value])}
+        onSelection={(value) => {
+          props.onUserSelect?.();
+          handleMultiSelect(Array.isArray(value) ? value : [value]);
+        }}
         loadingText="Loading organizations..."
         placeholderText="-- Select Organizations --"
       />
@@ -259,7 +274,10 @@ export default function OrganizationSelector(props: Readonly<OrganizationSelecto
       options={options}
       isLoading={isLoading}
       error={error}
-      onSelection={handleOrganizationSelect}
+      onSelection={(value) => {
+        props.onUserSelect?.();
+        handleOrganizationSelect(value);
+      }}
       loadingText="Loading organizations..."
       placeholderText="-- Select Organization --"
     />

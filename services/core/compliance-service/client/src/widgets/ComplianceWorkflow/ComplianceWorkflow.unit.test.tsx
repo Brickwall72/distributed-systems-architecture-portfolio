@@ -1,5 +1,7 @@
 // File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.unit.test.tsx
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render as renderWithTestingLibrary, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement, ReactNode } from 'react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { z } from 'zod';
 import { signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
@@ -9,6 +11,7 @@ import type { Identity } from '@contracts/auth';
 
 const session = vi.hoisted(() => ({
   identity: { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' } as Identity | null,
+  synchronizationStatus: undefined as string | undefined,
 }));
 
 // Mock the custom compliance hooks
@@ -18,7 +21,10 @@ vi.mock('../../hooks', async (importOriginal) => {
     ...actual,
     useGeneratePdf: vi.fn(),
     useSignPdf: vi.fn(),
-    useDocumentSync: vi.fn(() => ({ data: undefined, error: null })),
+    useDocumentSync: vi.fn((id?: string) => ({
+      data: id && session.synchronizationStatus ? { topologyApplicationStatus: session.synchronizationStatus } : undefined,
+      error: null,
+    })),
   };
 });
 
@@ -55,6 +61,13 @@ vi.mock('@shared/utils', () => ({
 }));
 
 describe('ComplianceWorkflowWidget', () => {
+  let queryClient: QueryClient;
+  const render = (element: ReactElement) => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    return renderWithTestingLibrary(element, { wrapper });
+  };
   const mockGeneratePdf = vi.fn(async ({ onSuccess }: { onSuccess: (blobUrl: string) => void }): Promise<void> => {
     onSuccess('blob:mock-pdf-url');
   });
@@ -77,6 +90,8 @@ describe('ComplianceWorkflowWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient();
+    session.synchronizationStatus = undefined;
     session.identity = { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' };
     vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
@@ -209,6 +224,61 @@ describe('ComplianceWorkflowWidget', () => {
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-signed-pdf-url');
       expect(screen.getByRole('status')).toHaveTextContent('topology update pending');
     });
+  });
+
+  it('invalidates host-supplied query prefixes on save and application after a selection change', async () => {
+    const onDocumentSaved = vi.fn();
+    const onTopologyApplied = vi.fn();
+    const graphKey = ['topology-service', 'graph', 'another-profile', {}];
+    const otherKey = ['other-service', 'records', 'profile'];
+    const unrelatedKey = ['unrelated'];
+    const invalidateQueryKeys = [['topology-service', 'graph'], ['other-service', 'records']] as const;
+    queryClient.setQueryData(graphKey, { nodes: [] });
+    queryClient.setQueryData(otherKey, []);
+    queryClient.setQueryData(unrelatedKey, []);
+    const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} invalidateQueryKeys={invalidateQueryKeys} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
+    fireEvent.click(screen.getByText('Generate PDF'));
+    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
+    fireEvent.click(screen.getByText('Sign Document'));
+    fireEvent.click(screen.getByTestId('mock-sign-submit'));
+    await waitFor(() => expect(onDocumentSaved).toHaveBeenCalledTimes(1));
+    expect(queryClient.getQueryState(graphKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(otherKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(unrelatedKey)?.isInvalidated).toBe(false);
+    expect(onTopologyApplied).not.toHaveBeenCalled();
+
+    queryClient.setQueryData(graphKey, { nodes: ['before-application'] });
+    queryClient.setQueryData(otherKey, []);
+    session.synchronizationStatus = 'ATTENTION_REQUIRED';
+    rerender(<ComplianceWorkflowWidget {...defaultProps} assets={[]} invalidateQueryKeys={invalidateQueryKeys} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
+    expect(onTopologyApplied).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(graphKey)?.isInvalidated).toBe(false);
+
+    session.synchronizationStatus = 'APPLIED';
+    rerender(<ComplianceWorkflowWidget {...defaultProps} assets={[]} invalidateQueryKeys={invalidateQueryKeys} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
+    await waitFor(() => expect(onTopologyApplied).toHaveBeenCalledWith(onDocumentSaved.mock.calls[0][0]));
+    expect(onTopologyApplied).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryState(graphKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(otherKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(unrelatedKey)?.isInvalidated).toBe(false);
+  });
+
+  it('does not invalidate unrelated queries when no keys are supplied', async () => {
+    const key = ['topology-service', 'graph', 'profile'];
+    queryClient.setQueryData(key, []);
+    const onDocumentSaved = vi.fn();
+    const onTopologyApplied = vi.fn();
+    const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
+    fireEvent.click(screen.getByText('Generate PDF'));
+    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
+    fireEvent.click(screen.getByText('Sign Document'));
+    fireEvent.click(screen.getByTestId('mock-sign-submit'));
+    await waitFor(() => expect(onDocumentSaved).toHaveBeenCalled());
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false);
+    session.synchronizationStatus = 'APPLIED';
+    rerender(<ComplianceWorkflowWidget {...defaultProps} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
+    await waitFor(() => expect(onTopologyApplied).toHaveBeenCalledTimes(1));
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false);
   });
 
   it('disables Generate PDF when no template is selected', () => {

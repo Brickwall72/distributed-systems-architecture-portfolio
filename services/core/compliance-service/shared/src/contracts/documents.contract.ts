@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ApiErrorResponseSchema } from '@contracts/common';
 import { SignDocumentCommandSchema } from '@contracts/esign';
 import { transferInitiatedDataSchema } from '@contracts/compliance';
-import { DocumentSchema, GetDocumentsQuerySchema, formIdEnum, formTypeEnum  } from '../schemas';
+import { DocumentListItemSchema, DocumentSchema, GetDocumentsQuerySchema, formIdEnum, formTypeEnum  } from '../schemas';
 
 const c = initContract();
 
@@ -23,7 +23,7 @@ export const documentsRoutes = {
     path: '/documents',
     query: GetDocumentsQuerySchema,
     responses: {
-      200: z.array(DocumentSchema),
+      200: z.array(DocumentListItemSchema),
       401: ApiErrorResponseSchema,
       403: ApiErrorResponseSchema,
       500: ApiErrorResponseSchema,

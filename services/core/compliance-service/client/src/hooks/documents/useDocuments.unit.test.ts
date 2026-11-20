@@ -1,5 +1,6 @@
+// File: services/core/compliance-service/client/src/hooks/documents/useDocuments.unit.test.ts
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { DocumentSchema } from 'compliance-shared';
+import { DocumentListItemSchema } from 'compliance-shared';
 import { mockFromSchema, setTestSession } from '@shared/testing';
 import { useDocuments } from './useDocuments';
 import { apiClient } from '../../api';
@@ -11,7 +12,7 @@ vi.mock('../../api', () => ({
 }));
 
 describe('useDocuments Hook', () => {
-  const mockDocument = () => mockFromSchema(DocumentSchema);
+  const mockDocument = () => mockFromSchema(DocumentListItemSchema);
 
   beforeEach(() => {
     setTestSession();
@@ -109,6 +110,21 @@ describe('useDocuments Hook', () => {
       expect(result.current.error).toBeNull();
     });
 
+    expect(apiClient.getDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it('refetches filtered documents when the refresh key changes', async () => {
+    const remaining = mockDocument();
+    vi.mocked(apiClient.getDocuments)
+      .mockResolvedValueOnce({ status: 200, body: [mockDocument(), remaining] } as never)
+      .mockResolvedValueOnce({ status: 200, body: [remaining] } as never);
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) => useDocuments({ statuses: ['IN_PROGRESS'], refreshKey }),
+      { initialProps: { refreshKey: 0 } },
+    );
+    await waitFor(() => expect(result.current.documents).toHaveLength(2));
+    rerender({ refreshKey: 1 });
+    await waitFor(() => expect(result.current.documents).toEqual([remaining]));
     expect(apiClient.getDocuments).toHaveBeenCalledTimes(2);
   });
 

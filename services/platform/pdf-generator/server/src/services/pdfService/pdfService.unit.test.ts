@@ -9,6 +9,7 @@ const mockPage = {
   setContent: vi.fn().mockResolvedValue(undefined),
   pdf: vi.fn().mockResolvedValue(MOCK_PDF_BUFFER),
   close: vi.fn().mockResolvedValue(undefined),
+  $: vi.fn().mockResolvedValue(null),
 };
 
 const mockBrowser = {

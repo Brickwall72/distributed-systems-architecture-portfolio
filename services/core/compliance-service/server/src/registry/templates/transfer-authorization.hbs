@@ -81,6 +81,27 @@
       display: inline-block;
       margin-left: 10px;
     }
+    .signer-label {
+      display: inline-block;
+      /* Shared by all forms to preserve the PDF signing coordinates. */
+      width: 112.59375px;
+      vertical-align: bottom;
+    }
+    .signature-page {
+      display: contents;
+    }
+    @media print {
+      .pdf-signature-separate-page .signature-page {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        height: calc(297mm - 32px);
+        break-before: page;
+      }
+      .pdf-signature-separate-page .signature-block {
+        margin-top: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -143,16 +164,18 @@
     </table>
   </div>
 
-  <div class="signature-block">
-    <span class="label">Release Authorization</span>
-    <p>I certify that the release and transfer of the assets listed above is authorized.</p>
-    <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
-      <div>
-        <strong>Authorizing Official:</strong> 
-        <span class="sig-line"></span>
-      </div>
-      <div>
-        <strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
+  <div class="signature-page" data-pdf-signature-page>
+    <div class="signature-block">
+      <span class="label">Release Authorization</span>
+      <p>I certify that the release and transfer of the assets listed above is authorized.</p>
+      <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <strong class="signer-label">Authorizing Official:</strong>
+          <span class="sig-line"></span>
+        </div>
+        <div>
+          <strong>Date:</strong> <span class="sig-line" style="width: 150px; display: inline-block;"></span>
+        </div>
       </div>
     </div>
   </div>

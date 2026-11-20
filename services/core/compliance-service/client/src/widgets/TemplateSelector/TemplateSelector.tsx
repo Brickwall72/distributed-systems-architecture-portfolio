@@ -10,9 +10,11 @@ const templateSelectorPropsInputSchema = z.object({
   label: z.string().optional(),
   typeFilter: formTypeEnum.optional(),
   transferTypeFilter: transferTypeEnum.optional(),
+  autoSelectSingle: z.boolean().optional(),
 })
 const templateSelectorPropsDataSchema = z.object({
   label: z.string().optional(),
+  autoSelectSingle: z.boolean().optional(),
   queryParams: GetTemplatesQuerySchema.optional(),
 });
 const templateSelectorPropsSchema = templateSelectorPropsInputSchema.transform((
@@ -24,10 +26,13 @@ const templateSelectorPropsSchema = templateSelectorPropsInputSchema.transform((
     })
   }
 )).pipe(templateSelectorPropsDataSchema);
-type TemplateSelectorData = z.input<typeof templateSelectorPropsSchema> & { readonly onSelect: (template: TemplateDTOwithPayloadSchema | undefined) => void };
+type TemplateSelectorData = z.input<typeof templateSelectorPropsSchema> & {
+  readonly onSelect: (template: TemplateDTOwithPayloadSchema | undefined) => void;
+  readonly onUserSelect?: () => void;
+};
 
 export default function TemplateSelector(props: Readonly<TemplateSelectorData>) {
-  const { label = 'Template Select', queryParams } = templateSelectorPropsSchema.parse(props);
+  const { label = 'Template Select', queryParams, autoSelectSingle = true } = templateSelectorPropsSchema.parse(props);
   const { onSelect } = props;
 
   // Local selection state
@@ -121,10 +126,10 @@ export default function TemplateSelector(props: Readonly<TemplateSelectorData>) 
     }
 
     // Case B: Auto-select single option ONLY when NOT suppressed by explicit clear/deselection
-    if (options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
+    if (autoSelectSingle && options.length === 1 && selectedId !== options[0].id && !userClearedRef.current) {
       setSelectedId(options[0].id);
     }
-  }, [options, selectedId, isListLoading, listError]);
+  }, [options, selectedId, isListLoading, listError, autoSelectSingle]);
 
   return (
     <div>
@@ -134,7 +139,10 @@ export default function TemplateSelector(props: Readonly<TemplateSelectorData>) 
         options={options}
         isLoading={isListLoading}
         error={listError}
-        onSelection={handleTemplateSelect}
+        onSelection={(value) => {
+          props.onUserSelect?.();
+          handleTemplateSelect(value);
+        }}
         loadingText={`Loading ${props.typeFilter ?? ''} templates...`}
         placeholderText="-- Select Template --"
       />

@@ -22,7 +22,7 @@ const DOMAINS: DomainTab[] = [
   },
   {
     domainId: 'compliance',
-    navLabel: 'Flight Compliance',
+    navLabel: 'Transfers Compliance',
     Component: ComplianceApp,
   },
 ];

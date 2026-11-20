@@ -72,6 +72,7 @@ describe('Select Component', () => {
         label="Test Select" 
         options={mockOptions} 
         onSelection={vi.fn()} 
+        selectedId="opt1"
         disabled={true}
         required={true}
       />
@@ -80,6 +81,8 @@ describe('Select Component', () => {
     const select = screen.getByRole('combobox', { name: 'Test Select' });
     expect(select).toBeDisabled();
     expect(select).toBeRequired();
+    expect(select).not.toHaveAttribute('selectedId');
+    expect(select).not.toHaveAttribute('onSelection');
   });
 
   describe('multi-select', () => {

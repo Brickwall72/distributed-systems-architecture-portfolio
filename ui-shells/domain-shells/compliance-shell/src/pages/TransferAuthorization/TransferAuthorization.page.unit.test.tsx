@@ -1,10 +1,10 @@
-// File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.unit.test.tsx
+// File: ui-shells/domain-shells/compliance-shell/src/pages/TransferAuthorization/TransferAuthorization.page.unit.test.tsx
 import { act, render } from '@testing-library/react';
 import { mockFromSchema } from '@shared/testing';
-import { CONTROL_TYPE, AssetDTOSchema, OrganizationDTOSchema, type AssetDTO, type OrganizationDTO } from '@contracts/topology';
+import { CONTROL_TYPE, TOPOLOGY_GRAPH_QUERY_KEY, AssetDTOSchema, OrganizationDTOSchema, type AssetDTO, type OrganizationDTO } from '@contracts/topology';
 import { TRANSFER_TYPE } from '@contracts/common';
 import { ComplianceWorkflowWidgetPropsSchema, FORM_TYPE } from '@contracts/compliance';
-import UnifiedCustodyPage from './UnifiedCustodyPage';
+import UnifiedCustodyPage from './TransferAuthorization.page';
 
 type Props = Record<string, any>;
 
@@ -140,5 +140,28 @@ describe('UnifiedCustodyPage', () => {
     expect(remotes.props[SOURCE]).toMatchObject({ excludeOrgId: target.id, filterOwnedId: asset.id, requireActiveAssets: true });
     expect(remotes.props[ASSET]).toMatchObject({ excludeOwnerId: target.id, filterOwnerId: source.id });
     expect(remotes.props[TARGET]).toMatchObject({ excludeOrgId: source.id });
+  });
+
+  it('clears submitted selections, retains the source and signed workflow, and refreshes on application', () => {
+    const source = makeOrg('org-source');
+    const target = makeOrg('org-target');
+    const asset = makeAsset();
+    const template = { id: 'tpl-phys', transferType: TRANSFER_TYPE.PHYSICAL_TRANSFER };
+    select(SOURCE, source);
+    select(TARGET, target);
+    select(ASSET, [asset]);
+    select(TEMPLATE, template);
+    act(() => remotes.props[WORKFLOW].onDocumentSaved('doc'));
+
+    expect(remotes.props[WORKFLOW]).toMatchObject({ sourceOrg: source, targetOrg: target, assets: [asset], template, resetKey: 0, invalidateQueryKeys: [TOPOLOGY_GRAPH_QUERY_KEY] });
+    expect(remotes.props[ASSET]).toMatchObject({ filterOwnerId: source.id, excludeOwnerId: undefined, refreshKey: 1 });
+    expect(remotes.props[TARGET]).toMatchObject({ autoSelectSingle: false, refreshKey: 1 });
+    expect(remotes.props[TEMPLATE]).toMatchObject({ autoSelectSingle: false });
+
+    act(() => remotes.props[WORKFLOW].onTopologyApplied('doc'));
+    expect(remotes.props[ASSET].refreshKey).toBe(2);
+    expect(remotes.props[WORKFLOW].assets).toEqual([asset]);
+    act(() => remotes.props[TEMPLATE].onUserSelect());
+    expect(remotes.props[WORKFLOW]).toMatchObject({ sourceOrg: source, targetOrg: undefined, assets: [], template: undefined, resetKey: 1 });
   });
 });

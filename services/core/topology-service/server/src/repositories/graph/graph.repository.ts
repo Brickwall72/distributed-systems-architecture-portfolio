@@ -2,10 +2,16 @@
 import { BaseRepository } from '../base.repository';
 import type { NetworkCanvasInput } from '@contracts/topology';
 import type { GraphDTO } from 'topology-shared';
-import type { AccessScope } from '@shared/express';
+import { createLogger, runOperation, type AccessScope } from '@shared/express';
+
+const logger = createLogger('topology/graph');
 
 export class GraphRepository extends BaseRepository {
   async getGraph(filters: NetworkCanvasInput | undefined, scope: AccessScope): Promise<GraphDTO> {
+    return runOperation(logger, 'topology.graph.project', () => this.getGraphProjection(filters, scope));
+  }
+
+  private async getGraphProjection(filters: NetworkCanvasInput | undefined, scope: AccessScope): Promise<GraphDTO> {
     const graphFilters: NetworkCanvasInput = filters ?? {
       whitelistSenders: [],
       whitelistReceivers: [],
@@ -240,11 +246,11 @@ export class GraphRepository extends BaseRepository {
       } AS topologyGraph
     `;
 
-    const result = await this.executeReadQuery(
+    const result = await runOperation(logger, 'topology.graph.neo4j.read', () => this.executeReadQuery(
       query,
       { ...graphFilters, scopeOrgId: scope.kind === 'auditor' ? null : scope.orgId },
       (record) => record.get('topologyGraph'),
-    );
+    ));
     const rawGraph = result[0] || {
       organizations: [],
       assets: [],

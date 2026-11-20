@@ -2,20 +2,21 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useIdentity } from '@shared/ui-components';
 import { z } from 'zod';
-import { Document, DocumentSchema, DocumentStatus } from 'compliance-shared';
+import { DocumentListItem, DocumentListItemSchema, DocumentStatus } from 'compliance-shared';
 import { apiClient } from '../../api';
 
 export interface UseDocumentsFilters {
   readonly statuses?: readonly DocumentStatus[];
   readonly requisitionNumbers?: readonly string[];
+  readonly refreshKey?: number;
 }
 
-export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilters = {}) {
+export function useDocuments({ statuses, requisitionNumbers, refreshKey }: UseDocumentsFilters = {}) {
   const identityId = useIdentity()?.id;
   const statusQuery = statuses?.length ? statuses.join(',') : undefined;
   const matchesNothing = requisitionNumbers?.length === 0;
   const requisitionQuery = requisitionNumbers?.length ? requisitionNumbers.join(',') : undefined;
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentListItem[]>([]);
   const [documentsIdentityId, setDocumentsIdentityId] = useState<string>();
   const [loading, setLoading] = useState<boolean>(Boolean(identityId));
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
       }
 
       // Enforces Zod contract validation at the boundary
-      const parsedData = z.array(DocumentSchema).parse(response.body);
+      const parsedData = z.array(DocumentListItemSchema).parse(response.body);
       setDocuments(parsedData);
       setDocumentsIdentityId(identityId);
     } catch (err) {
@@ -66,7 +67,7 @@ export function useDocuments({ statuses, requisitionNumbers }: UseDocumentsFilte
   useEffect(() => {
     void fetchDocuments();
     return () => controllerRef.current?.abort();
-  }, [fetchDocuments]);
+  }, [fetchDocuments, refreshKey]);
 
   const hasUnresolved = documentsIdentityId === identityId
     && documents.some((document) => document.topologyApplicationStatus !== 'APPLIED');

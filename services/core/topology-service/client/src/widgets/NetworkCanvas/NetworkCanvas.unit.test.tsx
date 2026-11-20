@@ -16,7 +16,13 @@ const network = vi.hoisted(() => ({
     edge?: string;
     off: ReturnType<typeof vi.fn>;
     destroy: ReturnType<typeof vi.fn>;
-    options: { interaction: { selectable: boolean } };
+    positions: Record<string, { x: number; y: number }>;
+    moveNode: ReturnType<typeof vi.fn>;
+    getPositions: ReturnType<typeof vi.fn>;
+    getConnectedNodes: ReturnType<typeof vi.fn>;
+    redraw: ReturnType<typeof vi.fn>;
+    fit: ReturnType<typeof vi.fn>;
+    options: { physics: { enabled: boolean }; interaction: { selectable: boolean } };
   },
 }));
 
@@ -28,6 +34,13 @@ vi.mock('vis-network', () => {
         options,
         destroy: vi.fn(),
         off: vi.fn(),
+        positions: {},
+        moveNode: vi.fn((id: string, x: number, y: number) => { instance.positions[id] = { x, y }; }),
+        getPositions: vi.fn((ids: string[]) => Object.fromEntries(ids.filter((id) => instance.positions[id]).map((id) => [id, instance.positions[id]]))),
+        getConnectedNodes: vi.fn((id: string) => data.edges.get().flatMap((edge) =>
+          edge.from === id ? [edge.to] : edge.to === id ? [edge.from] : [])),
+        redraw: vi.fn(),
+        fit: vi.fn(),
       };
       instance.off.mockImplementation((_event, callback) => {
         if (instance.click === callback) instance.click = undefined;
@@ -36,6 +49,7 @@ vi.mock('vis-network', () => {
         on: vi.fn((_event, callback) => { instance.click = callback; }),
         getNodeAt: vi.fn(() => instance.node),
         getEdgeAt: vi.fn(() => instance.edge),
+        DOMtoCanvas: vi.fn((point) => point),
       });
       network.instance = instance;
       return instance;
@@ -256,6 +270,35 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
     expect(network.instance?.options.interaction.selectable).toBe(true);
     expect(network.instance?.click).toBeUndefined();
     expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
+  });
+
+  it('moves a connected group with Shift-drag without moving disconnected nodes or selecting history', async () => {
+    server.use(http.get('/topology/api/v1/graph', () => HttpResponse.json({
+      ...baselineGraph,
+      organizations: [...baselineGraph.organizations, { id: 'isolated', name: 'Isolated', type: 'CONTRACTOR' }],
+    })));
+    const { container } = renderNetworkCanvas({ enableAssetHistorySelection: true });
+    await waitFor(() => expect(network.instance?.data.nodes.get().some((node) => node.id === 'isolated')).toBe(true));
+    const instance = network.instance!;
+    expect(instance.options.physics.enabled).toBe(false);
+    expect(instance.fit).toHaveBeenCalledTimes(1);
+    const canvasContainer = container.querySelector<HTMLElement>('[style*="540px"]')!;
+    canvasContainer.setPointerCapture = vi.fn();
+    instance.node = 'asset-3333-gps3';
+    const before = { ...instance.positions };
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, cancelable: true, shiftKey: true, button: 0, clientX: x, clientY: y });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      fireEvent(canvasContainer, event);
+    };
+    pointer('pointerdown', 10, 20);
+    pointer('pointermove', 60, 90);
+    pointer('pointerup', 60, 90);
+    for (const id of ['asset-3333-gps3', 'org-1111-lockheed', 'org-2222-ussf', 'REQ-2026-SSC-0092', 'asset-second']) {
+      expect(instance.positions[id]).toEqual({ x: before[id].x + 50, y: before[id].y + 70 });
+    }
+    expect(instance.positions.isolated).toEqual(before.isolated);
+    expect(screen.queryByText(/1 selected/)).not.toBeInTheDocument();
   });
 
   it('keeps the widget selection option out of graph query inputs', () => {

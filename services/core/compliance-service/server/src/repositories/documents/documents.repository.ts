@@ -175,7 +175,7 @@ export class DocumentsRepository {
   async findAll(
     filters: { statuses?: string[]; requisitionNumbers?: string[] },
     scope: AccessScope,
-  ): Promise<ReturnType<typeof mapDbRowToDocument>[]> {
+  ): Promise<(ReturnType<typeof mapDbRowToDocument> & { receiverOrgId: string | null })[]> {
     const conditions: string[] = [];
     const values: (string | string[])[] = [];
     if (filters.statuses?.length) {
@@ -196,13 +196,19 @@ export class DocumentsRepository {
       )`);
     }
     const query = `
-      SELECT ${documentSelection}
+      SELECT ${documentSelection},
+        (SELECT p.receiver_org_id FROM compliance_transfer_participants p
+         WHERE p.requisition_number = compliance_documents.requisition_number
+           AND p.transfer_event_id = compliance_documents.transfer_event_id) AS receiver_org_id
       FROM compliance_documents
       ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY created_at DESC;
     `;
     const { rows } = await (values.length ? this.db.query(query, values) : this.db.query(query));
-    return rows.map((row) => mapDbRowToDocument(this.normalizeRow(row)));
+    return rows.map((row) => ({
+      ...mapDbRowToDocument(this.normalizeRow(row)),
+      receiverOrgId: z.string().nullable().parse(row.receiver_org_id),
+    }));
   }
 
   async findById(id: string, scope: AccessScope): Promise<ReturnType<typeof mapDbRowToDocument> | null> {
