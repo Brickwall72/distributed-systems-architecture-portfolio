@@ -1,4 +1,7 @@
 // File: services/core/topology-service/server/src/repositories/graph/graph.repository.unit.test.ts
+import { once } from 'node:events';
+import { createServer } from 'node:http';
+import { beginOperation, createLogger, startTracing, stopTracing } from '@shared/express';
 import { GraphRepository } from './graph.repository';
 import type { Driver, Session } from 'neo4j-driver';
 
@@ -102,5 +105,86 @@ describe('GraphRepository', () => {
       includeCompletedTransferEvents: true,
       scopeOrgId: null,
     });
+  });
+
+  it('exports nested graph and Neo4j spans for successful and failed reads without graph data', async () => {
+    type ExportedSpan = {
+      name: string;
+      traceId: string;
+      spanId: string;
+      parentSpanId?: string;
+      status?: { code?: number };
+    };
+    const spans: ExportedSpan[] = [];
+    const exports: string[] = [];
+    const collector = createServer((req, res) => {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk: string) => { body += chunk; });
+      req.on('end', () => {
+        exports.push(body);
+        const payload: { resourceSpans: { scopeSpans: { spans: ExportedSpan[] }[] }[] } = JSON.parse(body);
+        for (const resource of payload.resourceSpans) {
+          for (const scope of resource.scopeSpans) spans.push(...scope.spans);
+        }
+        res.writeHead(200, { 'content-type': 'application/json' }).end('{}');
+      });
+    });
+    collector.listen(0, '127.0.0.1');
+    await once(collector, 'listening');
+    const address = collector.address();
+    if (!address || typeof address === 'string') throw new Error('test collector did not bind');
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logger = createLogger('graph-trace-test');
+
+    try {
+      startTracing('graph-trace-test', logger, {
+        DSAP_TRACING_ENABLED: 'true',
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${address.port}/v1/traces`,
+      });
+      for (const fails of [false, true]) {
+        if (fails) vi.mocked(mockSession.executeRead!).mockRejectedValueOnce(new Error('database unavailable'));
+        const request = beginOperation(logger, 'http.request');
+        await request.run(async () => {
+          const result = repository.getGraph({
+            whitelistSenders: ['private-filter-id'],
+            whitelistReceivers: [],
+            whitelistAssets: [],
+            whitelistTransfers: [],
+            includeCompletedTransferEvents: false,
+          }, auditor);
+          if (fails) await expect(result).rejects.toThrow('database unavailable');
+          else await expect(result).resolves.toMatchObject({ assets: [{ id: 'asset-1' }] });
+        });
+        request.finish(fails ? 'failure' : 'success');
+      }
+      await stopTracing(logger);
+
+      const roots = spans.filter((span) => span.name === 'http.request');
+      expect(roots).toHaveLength(2);
+      for (const root of roots) {
+        const trace = spans.filter((span) => span.traceId === root.traceId);
+        const projection = trace.find((span) => span.name === 'topology.graph.project');
+        const read = trace.find((span) => span.name === 'topology.graph.neo4j.read');
+        expect(trace).toHaveLength(3);
+        expect(projection?.parentSpanId).toBe(root.spanId);
+        expect(read?.parentSpanId).toBe(projection?.spanId);
+        if (root.status?.code === 2) {
+          expect(projection?.status?.code).toBe(2);
+          expect(read?.status?.code).toBe(2);
+        } else {
+          expect(projection?.status?.code).not.toBe(2);
+          expect(read?.status?.code).not.toBe(2);
+        }
+      }
+      expect(roots.filter((span) => span.status?.code === 2)).toHaveLength(1);
+      expect(exports.join('')).not.toContain('private-filter-id');
+      expect(exports.join('')).not.toContain('asset-1');
+      expect(mockSession.close).toHaveBeenCalledTimes(2);
+    } finally {
+      await stopTracing(logger);
+      logs.mockRestore();
+      await new Promise<void>((resolve, reject) => collector.close((error) => error ? reject(error) : resolve()));
+    }
   });
 });

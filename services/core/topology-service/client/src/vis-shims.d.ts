@@ -17,6 +17,8 @@ declare module 'vis-data' {
 }
 
 declare module 'vis-network' {
+  export type IdType = string | number;
+  export type Position = { x: number; y: number };
   export class Network {
     constructor(container: HTMLElement, data: { nodes: any; edges: any }, options?: any);
     destroy(): void;
@@ -26,5 +28,11 @@ declare module 'vis-network' {
     off(event: string, callback: (params: any) => void): void;
     getNodeAt(position: { x: number; y: number }): string | number | undefined;
     getEdgeAt(position: { x: number; y: number }): string | number | undefined;
+    getConnectedNodes(id: IdType): IdType[];
+    getPositions(ids?: IdType[]): Record<string, Position>;
+    DOMtoCanvas(position: Position): Position;
+    moveNode(id: IdType, x: number, y: number): void;
+    redraw(): void;
+    fit(options?: { animation?: boolean }): void;
   }
 }

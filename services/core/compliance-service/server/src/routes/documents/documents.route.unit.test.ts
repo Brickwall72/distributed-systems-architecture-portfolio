@@ -2,7 +2,7 @@
 import { createDocumentsRouter } from './documents.route';
 import { DocumentsRepository, draftBindingSchema, SigningOperationsRepository, SigningRequestConflict } from '../../repositories';
 import { documentEntitySchema } from '../../domain';
-import { DocumentSchema, signDocumentApiRequestSchema } from 'compliance-shared';
+import { DocumentListItemSchema, DocumentSchema, signDocumentApiRequestSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
 
 vi.mock('../../db', () => ({ pool: {} }));
@@ -83,13 +83,21 @@ describe('Documents Router Unit Tests', () => {
     });
 
     it('returns 200 with API-contract documents when repository succeeds', async () => {
-      const docs = [mockEntity(), mockEntity()];
+      const docs = [{ ...mockEntity(), receiverOrgId: null }, { ...mockEntity(), receiverOrgId: 'org-a' }];
       mockFindAll.mockResolvedValueOnce(docs);
 
       const result = await router.getDocuments(request({ 'x-correlation-id': 'test-corr-1' }));
 
       expect(result.status).toBe(200);
-      expect(result.body).toEqual(docs.map((doc) => DocumentSchema.parse(doc)));
+      expect(result.body).toEqual(docs.map((doc) => DocumentListItemSchema.parse(doc)));
+      expect(mockFindAll).toHaveBeenCalledWith(expect.anything(), { kind: 'organization', orgId: 'org-a' });
+    });
+
+    it('includes the receiving organization without changing document access scope', async () => {
+      mockFindAll.mockResolvedValueOnce([{ ...mockEntity(), receiverOrgId: 'org-b' }]);
+      const result = await router.getDocuments(request());
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual([expect.objectContaining({ receiverOrgId: 'org-b' })]);
       expect(mockFindAll).toHaveBeenCalledWith(expect.anything(), { kind: 'organization', orgId: 'org-a' });
     });
 

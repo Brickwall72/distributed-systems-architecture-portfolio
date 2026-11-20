@@ -5,6 +5,7 @@ import { DataSet } from 'vis-data';
 import { TOPOLOGY_MUTATION_EVENT } from '../AssetRegistration/AssetRegistration';
 import { useGraph } from '../../hooks';
 import { Button, useIdentity } from '@shared/ui-components';
+import { layoutNewNodes } from './layoutNodes';
 import {
   NetworkCanvasInputSchema,
   NetworkCanvasWidgetInputSchema,
@@ -41,6 +42,7 @@ function NetworkCanvasGraph({
   const networkInstanceRef = useRef<vis.Network | null>(null);
   const nodesDataSetRef = useRef<DataSet<any> | null>(null);
   const edgesDataSetRef = useRef<DataSet<any> | null>(null);
+  const hasFittedRef = useRef(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   const { graphData, isLoading, error, refetch } = useGraph(inputs);
@@ -62,10 +64,8 @@ function NetworkCanvasGraph({
       containerRef.current,
       { nodes: nodesDataSetRef.current, edges: edgesDataSetRef.current },
       {
-        physics: { 
-          barnesHut: { gravitationalConstant: -3500, centralGravity: 0.3, springLength: 200 },
-          stabilization: { enabled: true, iterations: 500 }
-        },
+        physics: { enabled: false },
+        edges: { smooth: { type: 'continuous' } },
         interaction: {
           hover: true, dragNodes: true, zoomView: true, dragView: true,
           selectable: !enableAssetHistorySelection,
@@ -78,6 +78,68 @@ function NetworkCanvasGraph({
     return () => {
       newInstance.destroy();
       networkInstanceRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const network = networkInstanceRef.current;
+    if (!container || !network) return;
+
+    let drag: { pointerId: number; start: vis.Position; positions: Record<string, vis.Position> } | undefined;
+    const point = (event: PointerEvent) => {
+      const rect = container.querySelector('canvas')?.getBoundingClientRect() ?? container.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    };
+    const start = (event: PointerEvent) => {
+      if (!event.shiftKey || event.button !== 0 || drag) return;
+      const nodeId = network.getNodeAt(point(event));
+      if (nodeId === undefined) return;
+
+      const connected = new Set<vis.IdType>([nodeId]);
+      const queue = [nodeId];
+      for (const current of queue) {
+        for (const neighbor of network.getConnectedNodes(current)) {
+          if (!connected.has(neighbor)) {
+            connected.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+      drag = { pointerId: event.pointerId, start: network.DOMtoCanvas(point(event)), positions: network.getPositions([...connected]) };
+      event.preventDefault();
+      event.stopPropagation();
+      container.setPointerCapture(event.pointerId);
+    };
+    const move = (event: PointerEvent) => {
+      if (drag?.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const current = network.DOMtoCanvas(point(event));
+      for (const [id, position] of Object.entries(drag.positions)) {
+        if (nodesDataSetRef.current?.get(id)) {
+          network.moveNode(id, position.x + current.x - drag.start.x, position.y + current.y - drag.start.y);
+        }
+      }
+      network.redraw();
+    };
+    const end = (event: PointerEvent) => {
+      if (drag?.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      drag = undefined;
+    };
+    container.addEventListener('pointerdown', start, true);
+    container.addEventListener('pointermove', move, true);
+    container.addEventListener('pointerup', end, true);
+    container.addEventListener('pointercancel', end, true);
+    container.addEventListener('lostpointercapture', end, true);
+    return () => {
+      container.removeEventListener('pointerdown', start, true);
+      container.removeEventListener('pointermove', move, true);
+      container.removeEventListener('pointerup', end, true);
+      container.removeEventListener('pointercancel', end, true);
+      container.removeEventListener('lostpointercapture', end, true);
     };
   }, []);
 
@@ -117,8 +179,8 @@ function NetworkCanvasGraph({
   useEffect(() => {
     if (!graphData || !nodesDataSetRef.current || !edgesDataSetRef.current) return;
 
-    const rawNodes: any[] = [];
-    const rawEdges: any[] = [];
+    const rawNodes: { id: string; [key: string]: unknown }[] = [];
+    const rawEdges: { from: string; to: string; [key: string]: unknown }[] = [];
     const trackedNodeIds = new Set<string>();
     const historyTransfers = new Set(historyData?.transfers.map((transfer) => transfer.requisitionNumber) ?? []);
     const transfers = new Map(graphData.transfers.map((transfer) => [transfer.requisitionNumber, transfer]));
@@ -214,9 +276,12 @@ function NetworkCanvasGraph({
     });
 
     // Sync nodes in-place: update existing ones (preserving positions) and remove stale ones
-    const currentNodeIds = nodesDataSetRef.current.get().map((n: any) => n.id);
+    const currentNodeIds: string[] = nodesDataSetRef.current.get().map((n: any) => n.id);
     const newNodeIds = new Set(rawNodes.map((n) => n.id));
     const staleNodeIds = currentNodeIds.filter((id) => !newNodeIds.has(id));
+    const currentIds = new Set(currentNodeIds);
+    const addedNodeIds = [...newNodeIds].filter((id) => !currentIds.has(id));
+    const existingPositions = networkInstanceRef.current?.getPositions(currentNodeIds.filter((id) => newNodeIds.has(id))) ?? {};
 
     if (staleNodeIds.length > 0) {
       nodesDataSetRef.current.remove(staleNodeIds);
@@ -228,7 +293,20 @@ function NetworkCanvasGraph({
     if (currentEdgeIds.length > 0) {
       edgesDataSetRef.current.remove(currentEdgeIds);
     }
-    edgesDataSetRef.current.add(rawEdges.filter((edge) => newNodeIds.has(edge.from) && newNodeIds.has(edge.to)));
+    const visibleEdges = rawEdges.filter((edge) => newNodeIds.has(edge.from) && newNodeIds.has(edge.to));
+    edgesDataSetRef.current.add(visibleEdges);
+
+    if (networkInstanceRef.current && addedNodeIds.length) {
+      const positions = layoutNewNodes(addedNodeIds, visibleEdges, existingPositions);
+      for (const id of addedNodeIds) {
+        networkInstanceRef.current.moveNode(id, positions[id].x, positions[id].y);
+      }
+      networkInstanceRef.current.redraw();
+      if (!hasFittedRef.current) {
+        networkInstanceRef.current.fit({ animation: false });
+        hasFittedRef.current = true;
+      }
+    }
 
   }, [graphData, historyData, inputs.includeCompletedTransferEvents, selectedAssetIds]);
 
@@ -276,6 +354,8 @@ function NetworkCanvasGraph({
           </Button>
         </div>
       </div>
+
+      <p className="mb-2 text-sm text-gray-600">Drag nodes to arrange them; Shift-drag a node to move its connected group.</p>
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-sm">

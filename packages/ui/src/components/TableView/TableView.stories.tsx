@@ -54,6 +54,18 @@ export const TableDefaultView: StoryObj<DatabaseTwinProps<MockTransferRecord>> =
   ],
 };
 
+export const PaginatedTable: StoryObj<DatabaseTwinProps<MockTransferRecord>> = {
+  ...TableDefaultView,
+  args: {
+    columns: basicColumns,
+    data: Array.from({ length: 26 }, (_, index) => ({
+      ...mockTableData[index % mockTableData.length],
+      id: `tx-${index + 1}`,
+    })),
+    rowKey: 'id',
+  },
+};
+
 const customRenderColumns: TableColumn<MockTransferRecord>[] = [
   { key: 'id', header: 'Transfer ID' },
   { 

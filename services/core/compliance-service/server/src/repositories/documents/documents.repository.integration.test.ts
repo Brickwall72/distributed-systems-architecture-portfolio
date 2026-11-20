@@ -63,9 +63,16 @@ describe('DocumentsRepository participant access with PostgreSQL', () => {
     expect(await repository.findTransferParticipants(transferId, 'WRONG')).toBeNull();
     expect((await repository.findAll({}, sender)).map((doc) => doc.id)).toEqual([documentId]);
     expect((await repository.findAll({}, receiver)).map((doc) => doc.id)).toEqual([documentId]);
+    expect(await repository.findAll({}, sender)).toEqual([
+      expect.objectContaining({ id: documentId, receiverOrgId: 'receiver' }),
+    ]);
     expect(await repository.findById(documentId, outsider)).toBeNull();
     expect(await repository.findById(unrelatedId, sender)).toBeNull();
-    expect(await repository.findAll({}, { kind: 'auditor' })).toHaveLength(2);
+    const auditorDocuments = await repository.findAll({}, { kind: 'auditor' });
+    expect(auditorDocuments).toHaveLength(2);
+    expect(auditorDocuments).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: unrelatedId, receiverOrgId: null }),
+    ]));
   });
 
   it('accepts idempotent participant events and rejects ownership substitution', async () => {

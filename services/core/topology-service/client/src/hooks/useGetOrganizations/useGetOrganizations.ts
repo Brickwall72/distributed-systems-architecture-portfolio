@@ -3,9 +3,10 @@ import { apiClient } from '../../api';
 import { useTopologyQuery } from '../useTopologyQuery';
 import { OrganizationDTO, GetOrganizationsQuery } from '@contracts/topology';
 
-export function useGetOrganizations(params?: GetOrganizationsQuery) {
+export function useGetOrganizations(params?: GetOrganizationsQuery, refreshKey?: number) {
   return useTopologyQuery<GetOrganizationsQuery, OrganizationDTO>({
     params,
+    refreshKey,
     fetcher: (queryParams, options) =>
       apiClient.getOrganizations({
         query: queryParams,

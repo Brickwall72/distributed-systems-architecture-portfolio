@@ -12,11 +12,12 @@
   },
   "dependencies": {
     "@contracts/pdf": "workspace:*",
-    "@shared/messaging": "workspace:*",
     "@shared/express": "workspace:*",
     "@shared/filestore": "workspace:*",
+    "@shared/messaging": "workspace:*",
     "@shared/zod": "workspace:*",
     "express": "~5.2.1",
+    "pdf-lib": "~1.17.1",
     "puppeteer": "~25.10.0",
     "zod": "~3.24.1"
   }

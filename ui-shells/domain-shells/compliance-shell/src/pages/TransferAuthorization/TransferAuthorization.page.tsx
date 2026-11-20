@@ -1,4 +1,4 @@
-// File: ui-shells/domain-shells/compliance-shell/src/pages/UnifiedCustodyPage.tsx
+// File: ui-shells/domain-shells/compliance-shell/src/pages/TransferAuthorization.page.tsx
 import { useState, Suspense, useEffect } from 'react';
 import { useIdentity } from '@shared/ui-components';
 import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
@@ -15,7 +15,8 @@ import {
   OrganizationDTO,
   AssetSelectorProps,
   OrganizationSelectorProps,
-  ControlType
+  ControlType,
+  TOPOLOGY_GRAPH_QUERY_KEY,
 } from '@contracts/topology';
 
 // Dynamically resolve high-level bounded context widgets
@@ -23,13 +24,14 @@ const AssetSelector = lazyRemote<AssetSelectorProps>('topology_client/AssetSelec
 const OrganizationSelector = lazyRemote<OrganizationSelectorProps>('topology_client/OrganizationSelector');
 const TemplateSelector = lazyRemote<TemplateSelectorPropsInput>('compliance_client/TemplateSelector');
 const ComplianceWorkflowWidget = lazyRemote<ComplianceWorkflowWidgetProps>('compliance_client/ComplianceWorkflowWidget');
+const graphQueries = [TOPOLOGY_GRAPH_QUERY_KEY] as const;
 
-export default function UnifiedCustodyPage() {
+export default function TransferAuthorizationPage() {
   const identity = useIdentity();
-  return <UnifiedCustodySession key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} />;
+  return <TransferAuthorizationSession key={JSON.stringify([identity?.id, identity?.orgId, identity?.roles])} identity={identity} />;
 }
 
-function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typeof useIdentity> }) {
+function TransferAuthorizationSession({ identity }: { readonly identity: ReturnType<typeof useIdentity> }) {
   // 1. Topology Data Handlers
   const [sourceOrg, setSourceOrg] = useState<OrganizationDTO>();
   const [targetOrg, setTargetOrg] = useState<OrganizationDTO>();
@@ -37,6 +39,20 @@ function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typ
   const [transferType, setTransferType] = useState<TransferType>();
   const [controlType, setControlType] = useState<ControlType>();
   const [template, setTemplate] = useState<TemplateDTOwithPayload>();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
+  const [workflowResetKey, setWorkflowResetKey] = useState(0);
+  const [awaitingNewSelection, setAwaitingNewSelection] = useState(false);
+  const [signedWorkflow, setSignedWorkflow] = useState<ComplianceWorkflowWidgetProps>();
+  const [pendingAssets, setPendingAssets] = useState<Record<string, string[]>>({});
+
+  const workflowProps: ComplianceWorkflowWidgetProps = { sourceOrg, assets, targetOrg, template };
+  const beginSelection = () => {
+    setAwaitingNewSelection(false);
+    if (!signedWorkflow) return;
+    setSignedWorkflow(undefined);
+    setWorkflowResetKey((key) => key + 1);
+  };
 
   useEffect(() => {
     switch (assets[0]?.controlType) {
@@ -66,10 +82,13 @@ function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typ
         <FederatedErrorBoundary remoteName="compliance_client/TemplateSelector">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading template selector...</div>}>
             <TemplateSelector
+              key={selectionResetKey}
               label="Compliance Form"
               typeFilter={FORM_TYPE.AUTHORIZATION}
               transferTypeFilter={transferType}
               onSelect={setTemplate}
+              onUserSelect={beginSelection}
+              autoSelectSingle={!awaitingNewSelection}
             />
           </Suspense>
         </FederatedErrorBoundary>
@@ -84,28 +103,37 @@ function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typ
               filterOwnedId={assets[0]?.id}
               onSelect={setSourceOrg}
               requireActiveAssets={true}
+              refreshKey={refreshKey}
             />
           </Suspense>
         </FederatedErrorBoundary>
         <FederatedErrorBoundary remoteName="topology_client/AssetSelector">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading asset selector...</div>}>
             <AssetSelector
+              key={selectionResetKey}
               label='Asset for Transfer'
               excludeOwnerId={targetOrg?.id}
               filterOwnerId={sourceOrg?.id}
               filterControlType = {controlType}
               includeInTransit={false}
               multiSelect={true}
+              excludeAssetIds={Object.values(pendingAssets).flat()}
               onSelect={setAssets}
+              onUserSelect={beginSelection}
+              refreshKey={refreshKey}
             />
           </Suspense>
         </FederatedErrorBoundary>
         <FederatedErrorBoundary remoteName="topology_client/OrganizationSelector">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selectors...</div>}>
             <OrganizationSelector
+              key={selectionResetKey}
               label='Target Organization'
               excludeOrgId={sourceOrg?.id}
               onSelect={setTargetOrg}
+              onUserSelect={beginSelection}
+              autoSelectSingle={!awaitingNewSelection}
+              refreshKey={refreshKey}
             />
           </Suspense>
         </FederatedErrorBoundary>
@@ -116,10 +144,27 @@ function UnifiedCustodySession({ identity }: { readonly identity: ReturnType<typ
         <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading compliance workflow...</div>}>
             <ComplianceWorkflowWidget
-              sourceOrg={sourceOrg}
-              assets={assets}
-              targetOrg={targetOrg}
-              template={template}
+              {...(signedWorkflow ?? workflowProps)}
+              resetKey={workflowResetKey}
+              invalidateQueryKeys={graphQueries}
+              onDocumentSaved={(documentId) => {
+                setSignedWorkflow(workflowProps);
+                setPendingAssets((pending) => ({ ...pending, [documentId]: assets.map((asset) => asset.id) }));
+                setAssets([]);
+                setTargetOrg(undefined);
+                setTemplate(undefined);
+                setAwaitingNewSelection(true);
+                setSelectionResetKey((key) => key + 1);
+                setRefreshKey((key) => key + 1);
+              }}
+              onTopologyApplied={(documentId) => {
+                setPendingAssets((pending) => {
+                  const next = { ...pending };
+                  delete next[documentId];
+                  return next;
+                });
+                setRefreshKey((key) => key + 1);
+              }}
             />
           </Suspense>
         </FederatedErrorBoundary>

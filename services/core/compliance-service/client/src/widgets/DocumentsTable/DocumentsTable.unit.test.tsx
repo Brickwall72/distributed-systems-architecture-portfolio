@@ -1,9 +1,10 @@
+// File: services/core/compliance-service/client/src/widgets/DocumentsTable/DocumentsTable.unit.test.tsx
 import { createElement } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import DocumentsTable from './DocumentsTable';
 import * as hooks from '../../hooks';
-import { DocumentSchema } from 'compliance-shared';
+import { DocumentListItemSchema } from 'compliance-shared';
 import { mockFromSchema, setTestSession } from '@shared/testing';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -28,8 +29,8 @@ describe('DocumentsTable', () => {
   });
 
   const mockDocuments = () => [
-    mockFromSchema(DocumentSchema, { requisitionNumber: 'REQ-0001', updatedAt: '2026-09-15T14:32:00.000Z' }),
-    mockFromSchema(DocumentSchema, { requisitionNumber: 'REQ-0002', updatedAt: '2026-09-28T09:15:00.000Z' }),
+    mockFromSchema(DocumentListItemSchema, { requisitionNumber: 'REQ-0001', updatedAt: '2026-09-15T14:32:00.000Z' }),
+    mockFromSchema(DocumentListItemSchema, { requisitionNumber: 'REQ-0002', updatedAt: '2026-09-28T09:15:00.000Z' }),
   ];
 
   it('renders initial database twin query loading state', () => {
@@ -60,7 +61,7 @@ describe('DocumentsTable', () => {
       expect(screen.getByText('2 Records Loaded')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Compliance Database Twin')).toBeInTheDocument();
+    expect(screen.getByText('Compliance Documents')).toBeInTheDocument();
     for (const doc of documents) {
       expect(screen.getByText(doc.requisitionNumber)).toBeInTheDocument();
       expect(screen.getByText(new Date(doc.updatedAt).toLocaleString())).toBeInTheDocument();
@@ -72,7 +73,95 @@ describe('DocumentsTable', () => {
 
     renderTable(createElement(DocumentsTable, { statusFilter: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1'] }));
 
-    expect(hooks.useDocuments).toHaveBeenCalledWith({ statuses: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1'] });
+    expect(hooks.useDocuments).toHaveBeenCalledWith({ statuses: ['IN_PROGRESS'], requisitionNumbers: ['REQ-1'], refreshKey: undefined });
+  });
+
+  it('only shows documents addressed to the current organization when requested', () => {
+    const [incoming, outgoing] = mockDocuments();
+    incoming.receiverOrgId = 'org-test';
+    outgoing.receiverOrgId = 'org-other';
+    const unknown = mockFromSchema(DocumentListItemSchema, { requisitionNumber: 'REQ-UNKNOWN', receiverOrgId: null });
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [incoming, outgoing, unknown], loading: false, error: null, refetch: vi.fn(),
+    });
+    const { rerender } = renderTable(createElement(DocumentsTable));
+    expect(screen.getByText(outgoing.requisitionNumber)).toBeInTheDocument();
+    rerender(createElement(QueryClientProvider, { client: new QueryClient() },
+      createElement(DocumentsTable, { receivingOrganizationOnly: true })));
+    expect(screen.getByText(incoming.requisitionNumber)).toBeInTheDocument();
+    expect(screen.queryByText(outgoing.requisitionNumber)).not.toBeInTheDocument();
+    expect(screen.queryByText(unknown.requisitionNumber)).not.toBeInTheDocument();
+    expect(screen.getByText('1 Records Loaded')).toBeInTheDocument();
+    expect(hooks.useDocuments).toHaveBeenLastCalledWith({ statuses: undefined, requisitionNumbers: undefined, refreshKey: undefined });
+  });
+
+  it('clears a selected transfer when it is no longer receivable', async () => {
+    const [document] = mockDocuments();
+    document.receiverOrgId = 'org-test';
+    const onTransferEventSelect = vi.fn();
+    const onRequisitionNumberSelect = vi.fn();
+    const onAuthorizingTemplateSelect = vi.fn();
+    const queryClient = new QueryClient();
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [document], loading: false, error: null, refetch: vi.fn(),
+    });
+    const table = () => createElement(QueryClientProvider, { client: queryClient },
+      createElement(DocumentsTable, {
+        receivingOrganizationOnly: true, onTransferEventSelect, onRequisitionNumberSelect, onAuthorizingTemplateSelect,
+      }));
+    const { rerender } = render(table());
+    fireEvent.click(screen.getAllByRole('row')[1]);
+    expect(onRequisitionNumberSelect).toHaveBeenLastCalledWith(document.requisitionNumber);
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [{ ...document, receiverOrgId: 'other-org' }], loading: false, error: null, refetch: vi.fn(),
+    });
+    rerender(table());
+    await waitFor(() => expect(onRequisitionNumberSelect).toHaveBeenLastCalledWith(undefined));
+    expect(onTransferEventSelect).toHaveBeenLastCalledWith(undefined);
+    expect(onAuthorizingTemplateSelect).toHaveBeenLastCalledWith(undefined);
+    expect(screen.queryByText(document.requisitionNumber)).not.toBeInTheDocument();
+  });
+
+  it('updates receivable documents when the profile organization changes or signs out', () => {
+    const [incoming, outgoing] = mockDocuments();
+    incoming.receiverOrgId = 'org-test';
+    outgoing.receiverOrgId = 'org-other';
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [incoming, outgoing], loading: false, error: null, refetch: vi.fn(),
+    });
+
+    renderTable(createElement(DocumentsTable, { receivingOrganizationOnly: true }));
+    expect(screen.getByText(incoming.requisitionNumber)).toBeInTheDocument();
+    act(() => setTestSession('org-other'));
+    expect(screen.queryByText(incoming.requisitionNumber)).not.toBeInTheDocument();
+    expect(screen.getByText(outgoing.requisitionNumber)).toBeInTheDocument();
+    act(() => setTestSession(null));
+    expect(screen.queryByText(outgoing.requisitionNumber)).not.toBeInTheDocument();
+  });
+
+  it('keeps a partially received transfer selected and clears it when fully received', async () => {
+    const [document] = mockDocuments();
+    document.receiverOrgId = 'org-test';
+    const onTransferEventSelect = vi.fn();
+    const queryClient = new QueryClient();
+    const table = () => createElement(QueryClientProvider, { client: queryClient },
+      createElement(DocumentsTable, { receivingOrganizationOnly: true, onTransferEventSelect }));
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [document], loading: false, error: null, refetch: vi.fn(),
+    });
+    const { rerender } = render(table());
+    fireEvent.click(screen.getAllByRole('row')[1]);
+    onTransferEventSelect.mockClear();
+    vi.mocked(hooks.useDocuments).mockReturnValue({
+      documents: [{ ...document, status: 'PARTIALLY_COMPLETED' }], loading: false, error: null, refetch: vi.fn(),
+    });
+    rerender(table());
+    expect(screen.getByText(document.requisitionNumber)).toBeInTheDocument();
+    expect(onTransferEventSelect).not.toHaveBeenCalled();
+    vi.mocked(hooks.useDocuments).mockReturnValue({ documents: [], loading: false, error: null, refetch: vi.fn() });
+    rerender(table());
+    await waitFor(() => expect(onTransferEventSelect).toHaveBeenCalledWith(undefined));
+    expect(screen.queryByText(document.requisitionNumber)).not.toBeInTheDocument();
   });
 
   it('omits columns listed in hiddenColumns', () => {

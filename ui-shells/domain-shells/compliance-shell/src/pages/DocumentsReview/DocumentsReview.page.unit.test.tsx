@@ -1,9 +1,9 @@
-// File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.unit.test.tsx
+// File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsReview/DocumentsReview.page.unit.test.tsx
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { Suspense } from 'react';
 import { setTestSession } from '@shared/testing';
 import type { DocumentPreviewEvent, DocumentsTableInput } from '@contracts/compliance';
-import DocumentsPage from './DocumentsPage';
+import DocumentsPage from './DocumentsReview.page';
 
 const { remote } = vi.hoisted(() => ({
   remote: { onPdfSelect: undefined as DocumentsTableInput['onPdfSelect'], transferSelect: undefined as DocumentsTableInput['onPdfSelect'] },

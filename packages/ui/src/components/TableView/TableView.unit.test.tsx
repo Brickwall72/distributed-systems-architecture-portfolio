@@ -75,6 +75,59 @@ describe('DatabaseTwinTable', () => {
     // No rows should exist in tbody
     const rows = container.querySelectorAll('tbody tr');
     expect(rows.length).toBe(0);
+    expect(screen.getByText('0–0 of 0 rows')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+  });
+
+  it('paginates rows and preserves selection and keyboard interaction on later pages', () => {
+    const data: TestUser[] = Array.from({ length: 16 }, (_, index) => ({
+      id: `usr-${index + 1}`, name: `User ${index + 1}`, status: 'Active',
+    }));
+    const onRowSelect = vi.fn();
+    render(<DatabaseTwinTable columns={mockColumns} data={data} rowKey="id" onRowSelect={onRowSelect} selectedRowKey="usr-6" />);
+
+    expect(screen.getByRole('combobox', { name: 'Rows per page' })).toHaveValue('5');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['5', '10', '15']);
+    expect(screen.getByText('1–5 of 16 rows')).toBeInTheDocument();
+    expect(screen.queryByText('User 6')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('6–10 of 16 rows')).toBeInTheDocument();
+    expect(screen.getByText('User 6').closest('tr')).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(screen.getByText('User 6').closest('tr')!, { key: 'Enter' });
+    expect(onRowSelect).toHaveBeenCalledWith(data[5]);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('16–16 of 16 rows')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    expect(screen.getByText('User 11')).toBeInTheDocument();
+  });
+
+  it('resets to the first page when page size changes and clamps after data shrinks', () => {
+    const data: TestUser[] = Array.from({ length: 26 }, (_, index) => ({
+      id: `usr-${index + 1}`, name: `User ${index + 1}`, status: 'Active',
+    }));
+    const { rerender } = render(<DatabaseTwinTable columns={mockColumns} data={data} rowKey="id" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), { target: { value: '10' } });
+    expect(screen.getByText('1–10 of 26 rows')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), { target: { value: '5' } });
+    expect(screen.getByText('1–5 of 26 rows')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('11–15 of 26 rows')).toBeInTheDocument();
+    rerender(<DatabaseTwinTable columns={mockColumns} data={data.slice(0, 7)} rowKey="id" />);
+    expect(screen.getByText('6–7 of 7 rows')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    rerender(<DatabaseTwinTable columns={mockColumns} data={data} rowKey="id" />);
+    expect(screen.getByText('6–10 of 26 rows')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), { target: { value: '15' } });
+    expect(screen.getByText('1–15 of 26 rows')).toBeInTheDocument();
+    expect(screen.queryByText('User 16')).not.toBeInTheDocument();
   });
 
   it('invokes onRowSelect and marks the selected row', () => {

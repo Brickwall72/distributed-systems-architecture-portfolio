@@ -32,7 +32,12 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
   const previousIdentityKey = useRef(identityKey);
 
   // 3. Query Data Access Layer
-  const { items, isLoading, error } = useGetAssets(queryParams);
+  const { items, isLoading, error } = useGetAssets(queryParams, props.refreshKey);
+  const excludedIds = parsedInputs.success ? parsedInputs.data.excludeAssetIds : undefined;
+  const availableItems = useMemo(
+    () => excludedIds?.length ? items.filter((item) => !excludedIds.includes(item.id)) : items,
+    [items, excludedIds],
+  );
 
   // 4. Synchronize Selection: Clear selection if active assets are filtered out
   useEffect(() => {
@@ -49,34 +54,35 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
     }
     if (isLoading || error) return;
     if (isMulti) {
-      const validIds = selectedIds.filter((id) => items.some((item) => item.id === id));
+      const validIds = selectedIds.filter((id) => availableItems.some((item) => item.id === id));
       if (validIds.length !== selectedIds.length) {
         setSelectedIds(validIds);
-        const validAssets = items.filter((item) => validIds.includes(item.id));
+        const validAssets = availableItems.filter((item) => validIds.includes(item.id));
         (onSelect as (assets: typeof validAssets) => void)(validAssets);
       }
-    } else if (selectedId && !items.some((item) => item.id === selectedId)) {
+    } else if (selectedId && !availableItems.some((item) => item.id === selectedId)) {
       setSelectedId('');
       (onSelect as (asset: undefined) => void)(undefined);
     }
-  }, [items, selectedId, selectedIds, isMulti, onSelect, isLoading, error, identityKey]);
+  }, [availableItems, selectedId, selectedIds, isMulti, onSelect, isLoading, error, identityKey]);
 
   // 5. Map Domain DTOs to UI Select Options
   const options: SelectOption[] = useMemo(() => {
-    return items.map((asset) => {
+    return availableItems.map((asset) => {
       const displaySerial = asset.serialNumber || 'N/A';
       return {
         id: asset.id,
         name: `${asset.name} (S/N: ${displaySerial})`,
       };
     });
-  }, [items]);
+  }, [availableItems]);
 
   // 6. Handle Selection & Emit Appropriate Payload
   const handleSelection = (value: string | string[]) => {
+    props.onUserSelect?.();
     if (isMulti && Array.isArray(value)) {
       setSelectedIds(value);
-      const selectedAssets = items.filter((asset) => value.includes(asset.id));
+      const selectedAssets = availableItems.filter((asset) => value.includes(asset.id));
       (onSelect as (assets: typeof selectedAssets) => void)(selectedAssets);
     } else if (!isMulti && typeof value === 'string') {
       setSelectedId(value);
@@ -86,7 +92,7 @@ export default function AssetSelector(props: Readonly<AssetSelectorProps>) {
         return;
       }
 
-      const selectedAsset = items.find((asset) => asset.id === value);
+      const selectedAsset = availableItems.find((asset) => asset.id === value);
       if (!selectedAsset) {
         (onSelect as (asset: undefined) => void)(undefined);
         return;

@@ -35,14 +35,15 @@ export async function signDocument({
   // 1. Load PDF into pdf-lib
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const pages = pdfDoc.getPages();
-  const firstPage = pages[0];
-  const { width } = firstPage.getSize();
+  const lastPage = pages.at(-1);
+  if (!lastPage) throw new Error('Cannot sign a PDF with no pages');
+  const { width } = lastPage.getSize();
 
   // 2. Embed signature PNG
   const signatureImageBytes = Buffer.from(signatureImageBase64, 'base64');
   const signatureImagePng = await pdfDoc.embedPng(signatureImageBytes);
 
-  firstPage.drawImage(signatureImagePng, {
+  lastPage.drawImage(signatureImagePng, {
     x: width - 440,
     y: 35,
     width: 140,
@@ -57,7 +58,7 @@ export async function signDocument({
     timeZone: 'UTC',
   });
 
-  firstPage.drawText(signingDateStr, {
+  lastPage.drawText(signingDateStr, {
     x: width - 130,
     y: 45,
     size: 10,

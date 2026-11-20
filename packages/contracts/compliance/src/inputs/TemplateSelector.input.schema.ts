@@ -44,5 +44,10 @@ export const templateSelectorPropsInputSchema = z.object({
   label: z.string().optional(),
   typeFilter: formTypeEnum.optional(),
   transferTypeFilter: transferTypeEnum.optional(),
+  /** Set to false to leave a single option unselected. Defaults to true. */
+  autoSelectSingle: z.boolean().optional(),
 })
-export type TemplateSelectorPropsInput = z.input<typeof templateSelectorPropsInputSchema> & { readonly onSelect: (template: TemplateDTOwithPayload | undefined) => void };
+export type TemplateSelectorPropsInput = z.input<typeof templateSelectorPropsInputSchema> & {
+  readonly onSelect: (template: TemplateDTOwithPayload | undefined) => void;
+  readonly onUserSelect?: () => void;
+};

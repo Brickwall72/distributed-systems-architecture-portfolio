@@ -34,7 +34,7 @@ vi.mock('../repositories', async (importOriginal) => {
   return {
     ...actual,
     DocumentsRepository: class {
-      findAll = () => entity().then((doc) => [doc]);
+      findAll = () => entity().then((doc) => [{ ...doc, receiverOrgId: 'org-1' }]);
       findById = (id: string) => entity({ id });
       insert = () => entity({ type: 'AUTHORIZATION', name: 'asset-transfer-authorization' });
       saveDraftBinding = async () => {};

@@ -16,6 +16,7 @@ const toDbRow = (entity: DocumentEntity, overrides: Record<string, unknown> = {}
   topology_application_status: entity.topologyApplicationStatus,
   signer_id: entity.signerId,
   transfer_event_id: entity.transferEventId,
+  receiver_org_id: null,
   file_hash: entity.fileHash,
   created_at: entity.createdAt,
   updated_at: entity.updatedAt,
@@ -90,7 +91,10 @@ describe('DocumentsRepository', () => {
       const results = await repository.findAll({}, { kind: 'auditor' });
 
       expect(mockPool.query.mock.calls[0][0]).toContain('ORDER BY created_at DESC');
-      expect(results).toEqual([first, second]);
+      expect(results).toEqual([
+        { ...first, receiverOrgId: null },
+        { ...second, receiverOrgId: null },
+      ]);
     });
 
     it('combines status and requisition number filters as parameterized conditions', async () => {

@@ -49,6 +49,8 @@ export interface SingleSelectProps
   readonly isMulti?: false;
   readonly selectedId?: string;
   readonly onSelection: (value: string) => void;
+  /** Whether the dropdown includes an empty option. Defaults to true. */
+  readonly showPlaceholder?: boolean;
 }
 
 export interface MultiSelectProps
@@ -72,7 +74,6 @@ export function Select(props: Readonly<SelectProps>) {
     error = null,
     loadingText = 'Loading selections...',
     placeholderText = '-- Select --',
-    ...rest
   } = props;
 
   const id = useId();
@@ -192,20 +193,30 @@ export function Select(props: Readonly<SelectProps>) {
     );
   } else {
     // Single-select native implementation (backward compatible)
-    const singleProps = props as SingleSelectProps;
+    const {
+      label: _label,
+      options: _options,
+      isLoading: _isLoading,
+      error: _error,
+      loadingText: _loadingText,
+      placeholderText: _placeholderText,
+      showPlaceholder = true,
+      isMulti: _isMulti,
+      selectedId,
+      onSelection,
+      ...selectAttributes
+    } = props;
     content = (
       <select
         id={id}
-        value={singleProps.selectedId ?? ''}
+        value={selectedId ?? ''}
         onChange={(e) => {
-          if (typeof singleProps.onSelection === 'function') {
-            singleProps.onSelection(e.target.value);
-          }
+          onSelection(e.target.value);
         }}
         className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hover:bg-gray-100 cursor-pointer text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed [appearance:base-select] [&::picker(select)]:[appearance:base-select] [&::picker(select)]:bg-white [&::picker(select)]:border [&::picker(select)]:border-gray-300 [&::picker(select)]:rounded-md [&::picker(select)]:shadow-lg [&::picker(select)]:p-1"
-        {...rest}
+        {...selectAttributes}
       >
-        <option value="" className="cursor-pointer p-2 rounded hover:bg-gray-100">{placeholderText}</option>
+        {showPlaceholder && <option value="" className="cursor-pointer p-2 rounded hover:bg-gray-100">{placeholderText}</option>}
         {options.map((opt) => (
           <option key={opt.id} value={opt.id} className="cursor-pointer p-2 rounded hover:bg-gray-100">
             {opt.name}

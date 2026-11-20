@@ -27,8 +27,8 @@ export default function App() {
         {/* Shell Header & Navigation Bar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-4 gap-4">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-wide">Topology Domain</h2>
-            <p className="text-sm text-slate-400">Manage assets, commands, and rulesets.</p>
+            <h2 className="text-center text-xl font-bold text-white tracking-wide">Fleet Topology</h2>
+            <p className="text-sm text-slate-400">Manage asset registration and transfer history.</p>
           </div>
           <NavigationTabs />
         </div>

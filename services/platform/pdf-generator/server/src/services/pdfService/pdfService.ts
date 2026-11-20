@@ -1,5 +1,6 @@
 // File: services/platform/pdf-generator/server/src/services/pdfService/pdfService.ts
 import puppeteer, { Browser } from 'puppeteer';
+import { PDFDocument } from 'pdf-lib';
 import { createLogger } from '@shared/express';
 
 const logger = createLogger('pdf-server-engine');
@@ -31,10 +32,18 @@ export async function generatePdfFromHtml(html: string): Promise<Buffer> {
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
     
     // Render the page to a PDF buffer
-    const pdfBuffer = await page.pdf({ 
+    let pdfBuffer = await page.pdf({
       format: 'A4', 
       printBackground: true 
     });
+
+    if (await page.$('[data-pdf-signature-page]')) {
+      const generatedPdf = await PDFDocument.load(pdfBuffer);
+      if (generatedPdf.getPageCount() > 1) {
+        await page.evaluate(() => document.body.classList.add('pdf-signature-separate-page'));
+        pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+      }
+    }
     
     // Return Node Buffer (compatible with Express res.end)
     return Buffer.from(pdfBuffer);

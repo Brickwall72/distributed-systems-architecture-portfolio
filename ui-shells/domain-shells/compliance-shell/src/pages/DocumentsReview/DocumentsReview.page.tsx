@@ -1,4 +1,4 @@
-// File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsPage.tsx
+// File: ui-shells/domain-shells/compliance-shell/src/pages/DocumentsReview/DocumentsReview.page.tsx
 import { useCallback, useEffect, useState } from 'react';
 import { DocumentViewer, useIdentity } from '@shared/ui-components';
 import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
@@ -13,7 +13,7 @@ type Preview =
   | { source: Source; documentId: string; identityId: string; status: 'ready'; blob: Blob }
   | { source: Source; documentId: string; identityId: string; status: 'error'; message: string };
 
-export default function DocumentsPage() {
+export default function DocumentsReviewPage() {
   const identityId = useIdentity()?.id;
   const [preview, setPreview] = useState<Preview | null>(null);
   const activePreview = preview?.identityId === identityId ? preview : null;

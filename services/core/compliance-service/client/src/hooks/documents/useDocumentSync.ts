@@ -6,10 +6,10 @@ import { apiClient } from '../../api';
 
 export function useDocumentSync(documentId?: string) {
   const identityId = useIdentity()?.id;
-  return useQuery({
+  return useQuery<Document, Error>({
     queryKey: ['compliance-service', 'document-sync', identityId, documentId],
     enabled: Boolean(identityId && documentId),
-    refetchInterval: (query) => (query.state.data as Document | undefined)?.topologyApplicationStatus === 'APPLIED' ? false : 5000,
+    refetchInterval: (query) => query.state.data?.topologyApplicationStatus === 'APPLIED' ? false : 5000,
     queryFn: async ({ signal }) => {
       if (!identityId || !documentId) throw new Error('A profile and document must be selected.');
       const response = await apiClient.getDocumentById({

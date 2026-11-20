@@ -25,6 +25,8 @@ export type GetAssetsQuery = z.infer<typeof GetAssetsQuerySchema>;
  */
 const SingleAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
   label: z.string().trim().min(1).optional(),
+  /** Client-side exclusions, not sent to the asset endpoint. */
+  excludeAssetIds: z.array(z.string().trim().min(1)).optional(),
   includeInTransit: booleanFromString.optional().default(true),
   includeAvailable: booleanFromString.optional().default(true),
   multiSelect: z.literal(false).optional().default(false),
@@ -35,6 +37,7 @@ const SingleAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
  */
 const MultiAssetSelectorInputSchema = GetAssetsQuerySchema.extend({
   label: z.string().trim().min(1).optional(),
+  excludeAssetIds: z.array(z.string().trim().min(1)).optional(),
   includeInTransit: booleanFromString.optional().default(true),
   includeAvailable: booleanFromString.optional().default(true),
   multiSelect: z.literal(true),
@@ -58,6 +61,8 @@ type SingleInput = z.input<typeof SingleAssetSelectorInputSchema>;
 type MultiInput = z.input<typeof MultiAssetSelectorInputSchema>;
 
 export type SingleAssetSelectorProps = Omit<SingleInput, 'multiSelect' | 'includeInTransit' | 'includeAvailable'> & {
+  readonly refreshKey?: number;
+  readonly onUserSelect?: () => void;
   readonly includeInTransit?: boolean;   // props shouldn't accept the string forms
   readonly includeAvailable?: boolean;
   readonly multiSelect?: false;
@@ -65,6 +70,8 @@ export type SingleAssetSelectorProps = Omit<SingleInput, 'multiSelect' | 'includ
 };
 
 export type MultiAssetSelectorProps = Omit<MultiInput, 'multiSelect' | 'includeInTransit' | 'includeAvailable'> & {
+  readonly refreshKey?: number;
+  readonly onUserSelect?: () => void;
   readonly includeInTransit?: boolean;
   readonly includeAvailable?: boolean;
   readonly multiSelect: true;

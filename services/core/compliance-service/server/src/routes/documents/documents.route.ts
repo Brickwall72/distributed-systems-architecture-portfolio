@@ -1,7 +1,7 @@
 // File: services/core/compliance-service/server/src/routes/documents/documents.route.ts
 import { initServer } from '@ts-rest/express';
 import { accessScope, createLogger, getDiagnosticContext, orgScope, safeErrorMetadata } from '@shared/express';
-import { documentsRoutes, DocumentSchema, FORM_TYPE } from 'compliance-shared';
+import { documentsRoutes, DocumentListItemSchema, DocumentSchema, FORM_TYPE } from 'compliance-shared';
 import {
   draftBindingMatches, draftBindingSchema, SigningRequestConflict,
   type DocumentsRepository, type SigningOperationsRepository,
@@ -38,7 +38,7 @@ export function createDocumentsRouter(deps: DocumentsRouterDeps) {
 
       try {
         const documents = await repository.findAll({ statuses: query?.status, requisitionNumbers: query?.requisitionNumbers }, scope);
-        return { status: 200 as const, body: documents.map(doc => DocumentSchema.parse(doc)) };
+        return { status: 200 as const, body: documents.map(doc => DocumentListItemSchema.parse(doc)) };
       } catch (error) {
         logger.error('Database query failed in GET /documents', correlationId, safeErrorMetadata(error));
         return {

@@ -51,15 +51,24 @@ shows the federated widgets and communication types.
   and participant access in PostgreSQL, and durably publishes signed events.
   Signing returns without waiting for topology's eventual application; the UI
   shows pending, applied, or attention-required synchronization.
+  While the signing workflow remains open, it checks for application and
+  refreshes receipt-page options when the update is applied. The signed receipt
+  remains visible until another selection is made. Graph caches in the current
+  browser session are invalidated on save and application; this is not a
+  cross-tab or cross-user live update.
 - **Audit ledger** consumes document facts and topology snapshots, seals
   completed transfer records only when required receipts are present, and
   requests PDF overviews. Its MongoDB-backed records are participant-scoped.
 - **PDF generator and e-sign** render and cryptographically sign documents;
-  MinIO stores artifacts and serves time-limited signed downloads.
+  MinIO stores artifacts and serves time-limited signed downloads. Multi-page
+  transfer forms place their signing block on a final page, where e-sign applies
+  the visual signature and date.
 
 Current custodians and intended receivers of in-transit assets may view the
 asset's full visual transfer history. Transfer participants can access their
 own documents, while platform auditors have global read-only access.
+On the network canvas, drag individual nodes or Shift-drag a node to move its
+entire connected group. Arrangements last only while that canvas is open.
 Reservations cover authorizations and receipts to prevent overlapping
 signatures. See the [ADRs](./docs/adr/) for design decisions.
 
@@ -724,6 +733,10 @@ certificate and OpenSSL, and exercise the signing responder using separate
 scoped MinIO accounts. Run individual tests with explicitly configured, isolated
 test services only; never point them at development or production data.
 
+To check the form signature lines in actual A4 PDFs, run
+`pnpm --filter pdf-server exec vitest run src/services/pdfService/templateLayout.integration.test.ts`
+with a Puppeteer-compatible Chromium installed.
+
 Do not run the Compose and Skaffold workflows on the same service ports at the same time.
 
 ### Cleanup and Storage
@@ -871,6 +884,12 @@ immediate NATS request/reply calls, and existing workflow stages. Probe requests
 are excluded. Jaeger is one private infrastructure workload, not an app service
 or a startup dependency. It does not collect logs or traffic metrics, and it
 does not trace browser activity or stitch durable retries to the original request.
+
+For topology graph requests, `topology.graph.project` contains a nested
+`topology.graph.neo4j.read` span. The read includes driver connection and
+transaction overhead, Neo4j execution, result retrieval, and session cleanup;
+use Neo4j `PROFILE` separately to investigate individual Cypher operators.
+Neither span records graph contents or filter IDs.
 
 **Compose:** Jaeger and backend tracing are on by default. From the repository
 root, start the stack as usual:

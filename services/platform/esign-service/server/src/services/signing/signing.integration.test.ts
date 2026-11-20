@@ -29,9 +29,13 @@ it('applies a verifiable cryptographic seal to a PDF using a real certificate', 
     process.env.SIGNING_CERT_PASSWORD = 'integration-test';
     const pdf = await PDFDocument.create();
     pdf.addPage();
+    pdf.addPage();
     const image = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lZkAAAAASUVORK5CYII=';
     const result = await signDocument({ pdfBuffer: Buffer.from(await pdf.save()), signatureImageBase64: image });
     const bytes = result.pdfBuffer;
+    const signedPdf = await PDFDocument.load(bytes);
+    expect(signedPdf.getPage(0).node.Contents()).toBeUndefined();
+    expect(signedPdf.getPage(1).node.Contents()).toBeDefined();
     const range = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/.exec(bytes.toString('latin1'));
     if (!range) throw new Error('Signed PDF has no byte range');
     const [, firstStart, firstLength, secondStart, secondLength] = range.map(Number);

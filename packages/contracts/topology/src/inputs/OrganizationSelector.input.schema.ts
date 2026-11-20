@@ -39,6 +39,8 @@ const baseSelectorFields = {
   label: z.string().trim().min(1).optional(),
   /** Restricts the selectable organizations to this one (e.g. the signed-in identity's organization). Client-side only. */
   onlyOrgId: z.string().trim().min(1).optional(),
+  /** Set to false to leave a single unlocked option unselected. Defaults to true. */
+  autoSelectSingle: z.boolean().optional().default(true),
 };
 
 const SingleOrganizationSelectorInputSchema = GetOrganizationsQuerySchema.extend({
@@ -68,12 +70,16 @@ type SingleInput = z.input<typeof SingleOrganizationSelectorInputSchema>;
 type MultiInput = z.input<typeof MultiOrganizationSelectorInputSchema>;
 
 export type SingleOrganizationSelectorProps = Omit<SingleInput, 'multiSelect'> & {
+  readonly refreshKey?: number;
+  readonly onUserSelect?: () => void;
   readonly multiSelect?: false;
   /** Emits the selected organization, or `undefined` when cleared. */
   readonly onSelect: (selectedOrganization: OrganizationDTO | undefined) => void;
 };
 
 export type MultiOrganizationSelectorProps = Omit<MultiInput, 'multiSelect'> & {
+  readonly refreshKey?: number;
+  readonly onUserSelect?: () => void;
   readonly multiSelect: true;
   /** Emits all selected organizations (empty array when cleared). */
   readonly onSelect: (selectedOrganizations: OrganizationDTOList) => void;
