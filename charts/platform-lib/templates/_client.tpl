@@ -29,7 +29,7 @@ spec:
         {{- include "platform-lib.podSecurityContext" . | nindent 8 }}
       containers:
         - name: client
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}{{ if .Values.image.digest }}@{{ .Values.image.digest }}{{ else }}:{{ .Values.image.tag }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- include "platform-lib.containerSecurityContext" . | nindent 12 }}

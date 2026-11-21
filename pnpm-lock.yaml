@@ -85,6 +85,9 @@ importers:
       msw-storybook-addon:
         specifier: ~3.0.0
         version: 3.0.0(msw@2.15.0(@types/node@26.2.0)(typescript@7.0.2))(storybook@10.6.0(@types/react@19.2.18)(react@19.2.8))
+      puppeteer:
+        specifier: ~25.10.0
+        version: 25.10.0
       storybook:
         specifier: ~10.6.0
         version: 10.6.0(@types/react@19.2.18)(react@19.2.8)

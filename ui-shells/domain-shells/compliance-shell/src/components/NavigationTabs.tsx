@@ -8,36 +8,24 @@ export default function NavigationTabs() {
   const isTransferReceipt = location.pathname === '/transfer-receipts';
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <Link
         to="/transfer-authorizations"
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-          isCustody
-            ? 'bg-blue-600 text-white shadow-sm'
-            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-        }`}
+        className={`ui-nav-tab ${isCustody ? 'ui-nav-tab-active' : 'ui-nav-tab-inactive'}`}
       >
-        Transfer Authorization
+        Authorize Transfers
       </Link>
       <Link
         to="/transfer-receipts"
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-          isTransferReceipt
-            ? 'bg-blue-600 text-white shadow-sm'
-            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-        }`}
+        className={`ui-nav-tab ${isTransferReceipt ? 'ui-nav-tab-active' : 'ui-nav-tab-inactive'}`}
       >
-        Transfer Receipt
+        Receive Transfers
       </Link>
       <Link
         to="/documents"
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-          isDocuments
-            ? 'bg-blue-600 text-white shadow-sm'
-            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-        }`}
+        className={`ui-nav-tab ${isDocuments ? 'ui-nav-tab-active' : 'ui-nav-tab-inactive'}`}
       >
-        Documents Tables and Viewer
+        View Documents
       </Link>
     </div>
   );

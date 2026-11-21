@@ -4,10 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement, ReactNode } from 'react';
 import ComplianceWorkflowWidget from './ComplianceWorkflow';
 import { z } from 'zod';
-import { signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
+import { FORM_ID, FORM_TYPE, signDocumentApiRequestSchema, templateDTOSchema, type TemplateDTOwithPayloadSchema } from 'compliance-shared';
 import { mockFromSchema, SHA256_HEX } from '@shared/testing';
-import { useGeneratePdf, useSignPdf } from '../../hooks';
+import { useGeneratePdf, useSignPdf, useTemplateQuery } from '../../hooks';
 import type { Identity } from '@contracts/auth';
+import type { ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 
 const session = vi.hoisted(() => ({
   identity: { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' } as Identity | null,
@@ -21,6 +22,7 @@ vi.mock('../../hooks', async (importOriginal) => {
     ...actual,
     useGeneratePdf: vi.fn(),
     useSignPdf: vi.fn(),
+    useTemplateQuery: vi.fn(),
     useDocumentSync: vi.fn((id?: string) => ({
       data: id && session.synchronizationStatus ? { topologyApplicationStatus: session.synchronizationStatus } : undefined,
       error: null,
@@ -93,6 +95,7 @@ describe('ComplianceWorkflowWidget', () => {
     queryClient = new QueryClient();
     session.synchronizationStatus = undefined;
     session.identity = { id: 'usr_ksc_gov', displayName: 'KSC', orgId: 'org-ksc-gov', roles: ['org-member'], signerId: 'usr_ksc_gov' };
+    vi.mocked(useTemplateQuery).mockReturnValue({ data: null, isLoading: false, error: null });
     vi.mocked(useGeneratePdf).mockReturnValue({
       generatePdf: mockGeneratePdf,
       isLoading: false,
@@ -123,7 +126,7 @@ describe('ComplianceWorkflowWidget', () => {
   it('generates a PDF from the supplied template and entities', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    const generateBtn = screen.getByText('Generate PDF');
+    const generateBtn = screen.getByText('Authorize Transfer');
     expect(generateBtn.closest('button')).not.toBeDisabled();
 
     fireEvent.click(generateBtn);
@@ -149,14 +152,14 @@ describe('ComplianceWorkflowWidget', () => {
     mockGeneratePdf.mockImplementationOnce(async ({ onSuccess }) => { finish = onSuccess; });
     const revoke = vi.spyOn(URL, 'revokeObjectURL');
     const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
-    fireEvent.click(screen.getByText('Generate PDF'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
 
     session.identity = { id: 'auditor', displayName: 'Auditor', orgId: null, roles: ['auditor'], signerId: 'auditor' };
     rerender(<ComplianceWorkflowWidget {...defaultProps} />);
     await act(async () => finish('blob:stale-preview'));
 
     expect(revoke).toHaveBeenCalledWith('blob:stale-preview');
-    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
+    expect(screen.getByText('Authorize Transfer').closest('button')).toBeDisabled();
     expect(screen.getByTestId('document-viewer').getAttribute('data-content')).not.toBe('blob:stale-preview');
     revoke.mockRestore();
   });
@@ -166,55 +169,84 @@ describe('ComplianceWorkflowWidget', () => {
     mockGeneratePdf.mockImplementationOnce(async ({ onSuccess }) => { finish = onSuccess; });
     const revoke = vi.spyOn(URL, 'revokeObjectURL');
     const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
-    fireEvent.click(screen.getByText('Generate PDF'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
 
     rerender(<ComplianceWorkflowWidget {...defaultProps} assets={[{ id: 'asset-2', nomenclature: 'Other', serialNumber: 'SN-2' }]} />);
     await act(async () => finish('blob:old-asset-draft'));
 
     expect(revoke).toHaveBeenCalledWith('blob:old-asset-draft');
-    expect(screen.getByText('Generate PDF')).toBeDefined();
-    expect(screen.queryByText('Sign Document')).toBeNull();
+    expect(screen.getByText('Authorize Transfer')).toBeDefined();
+    expect(screen.queryByText('Sign Authorization')).toBeNull();
     revoke.mockRestore();
   });
 
   it('closes an existing draft when a counterparty changes', async () => {
     const revoke = vi.spyOn(URL, 'revokeObjectURL');
     const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} />);
-    fireEvent.click(screen.getByText('Generate PDF'));
-    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
+    fireEvent.click(screen.getByText('Authorize Transfer'));
+    await waitFor(() => expect(screen.getByText('Sign Authorization')).toBeDefined());
 
     rerender(<ComplianceWorkflowWidget {...defaultProps} targetOrg={{ id: 'org-other', name: 'Other' }} />);
 
-    expect(screen.queryByText('Sign Document')).toBeNull();
+    expect(screen.queryByText('Sign Authorization')).toBeNull();
     expect(revoke).toHaveBeenCalledWith('blob:mock-pdf-url');
     revoke.mockRestore();
   });
 
-  it('swaps Generate PDF for Back to Interactive View and Sign Document once a PDF exists', async () => {
+  it('swaps Authorize Transfer for Back to Interactive View and Sign Authorization once a PDF exists', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    fireEvent.click(screen.getByText('Generate PDF'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
 
-    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
-    expect(screen.queryByText('Generate PDF')).toBeNull();
+    await waitFor(() => expect(screen.getByText('Sign Authorization')).toBeDefined());
+    expect(screen.queryByText('Authorize Transfer')).toBeNull();
 
     fireEvent.click(screen.getByText('Back to Interactive View'));
 
-    expect(screen.getByText('Generate PDF')).toBeDefined();
-    expect(screen.queryByText('Sign Document')).toBeNull();
+    expect(screen.getByText('Authorize Transfer')).toBeDefined();
+    expect(screen.queryByText('Sign Authorization')).toBeNull();
     expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toContain('hydrated:');
+  });
+
+  it('uses receipt-specific labels and shows Signed after signing', async () => {
+    vi.mocked(useTemplateQuery).mockReturnValue({
+      data: { ...template, id: FORM_ID.ASSET_TRANSFER_RECEIPT, type: FORM_TYPE.RECEIPT },
+      isLoading: false,
+      error: null,
+    });
+    const props: ComplianceWorkflowWidgetProps = {
+      ...defaultProps,
+      requisitionNumber: 'REQ-1',
+      authorizingTemplateId: FORM_ID.ASSET_TRANSFER_AUTHORIZATION,
+      transferEventId: '123e4567-e89b-42d3-a456-426614174000',
+    };
+    const { rerender } = render(<ComplianceWorkflowWidget {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verify Receipt' }));
+    expect(await screen.findByRole('button', { name: 'Sign Receipt' })).toBeEnabled();
+    expect(useTemplateQuery).toHaveBeenCalledWith(FORM_ID.ASSET_TRANSFER_RECEIPT);
+
+    vi.mocked(useSignPdf).mockReturnValue({
+      signPdf: mockSignPdf,
+      isSigning: false,
+      isSigned: true,
+      error: null,
+      resetSigningState: mockResetSigningState,
+    });
+    rerender(<ComplianceWorkflowWidget {...props} />);
+    expect(screen.getByRole('button', { name: 'Signed' })).toBeDisabled();
   });
 
   it('opens signature overlay and executes signing flow successfully', async () => {
     render(<ComplianceWorkflowWidget {...defaultProps} />);
 
-    fireEvent.click(screen.getByText('Generate PDF'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
 
     await waitFor(() => {
       expect(screen.getByTestId('document-viewer').getAttribute('data-content')).toBe('blob:mock-pdf-url');
     });
 
-    fireEvent.click(screen.getByText('Sign Document'));
+    fireEvent.click(screen.getByText('Sign Authorization'));
     expect(screen.getByTestId('mock-signature-overlay')).toBeDefined();
 
     fireEvent.click(screen.getByTestId('mock-sign-submit'));
@@ -237,9 +269,9 @@ describe('ComplianceWorkflowWidget', () => {
     queryClient.setQueryData(otherKey, []);
     queryClient.setQueryData(unrelatedKey, []);
     const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} invalidateQueryKeys={invalidateQueryKeys} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
-    fireEvent.click(screen.getByText('Generate PDF'));
-    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
-    fireEvent.click(screen.getByText('Sign Document'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
+    await waitFor(() => expect(screen.getByText('Sign Authorization')).toBeDefined());
+    fireEvent.click(screen.getByText('Sign Authorization'));
     fireEvent.click(screen.getByTestId('mock-sign-submit'));
     await waitFor(() => expect(onDocumentSaved).toHaveBeenCalledTimes(1));
     expect(queryClient.getQueryState(graphKey)?.isInvalidated).toBe(true);
@@ -269,9 +301,9 @@ describe('ComplianceWorkflowWidget', () => {
     const onDocumentSaved = vi.fn();
     const onTopologyApplied = vi.fn();
     const { rerender } = render(<ComplianceWorkflowWidget {...defaultProps} onDocumentSaved={onDocumentSaved} onTopologyApplied={onTopologyApplied} />);
-    fireEvent.click(screen.getByText('Generate PDF'));
-    await waitFor(() => expect(screen.getByText('Sign Document')).toBeDefined());
-    fireEvent.click(screen.getByText('Sign Document'));
+    fireEvent.click(screen.getByText('Authorize Transfer'));
+    await waitFor(() => expect(screen.getByText('Sign Authorization')).toBeDefined());
+    fireEvent.click(screen.getByText('Sign Authorization'));
     fireEvent.click(screen.getByTestId('mock-sign-submit'));
     await waitFor(() => expect(onDocumentSaved).toHaveBeenCalled());
     expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false);
@@ -281,15 +313,15 @@ describe('ComplianceWorkflowWidget', () => {
     expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false);
   });
 
-  it('disables Generate PDF when no template is selected', () => {
+  it('disables Authorize Transfer when no template is selected', () => {
     render(<ComplianceWorkflowWidget {...defaultProps} template={undefined} />);
 
-    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
+    expect(screen.getByText('Authorize Transfer').closest('button')).toBeDisabled();
   });
 
-  it('disables Generate PDF until both organizations and an asset are provided', () => {
+  it('disables Authorize Transfer until both organizations and an asset are provided', () => {
     render(<ComplianceWorkflowWidget {...defaultProps} targetOrg={undefined} />);
 
-    expect(screen.getByText('Generate PDF').closest('button')).toBeDisabled();
+    expect(screen.getByText('Authorize Transfer').closest('button')).toBeDisabled();
   });
 });

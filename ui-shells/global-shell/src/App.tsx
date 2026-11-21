@@ -1,5 +1,5 @@
 // File: ui-shells/global-shell/src/App.tsx
-import { useState, Suspense, ComponentType } from 'react';
+import { useEffect, useState, Suspense, ComponentType } from 'react';
 import { FederatedErrorBoundary, lazyRemote } from '@shared/mf-runtime';
 import '@shared/styles';
 
@@ -12,42 +12,59 @@ interface DomainTab {
   domainId: string;
   navLabel: string;
   Component: ComponentType<any>;
+  defaultPath: string;
+  paths: readonly string[];
 }
 
 const DOMAINS: DomainTab[] = [
   {
     domainId: 'topology',
-    navLabel: 'Fleet Topology',
+    navLabel: 'Fleet',
     Component: TopologyApp,
+    defaultPath: '/asset-registration',
+    paths: ['/asset-registration', '/transfer-history'],
   },
   {
     domainId: 'compliance',
-    navLabel: 'Transfers Compliance',
+    navLabel: 'Transfers',
     Component: ComplianceApp,
+    defaultPath: '/transfer-authorizations',
+    paths: ['/transfer-authorizations', '/transfer-receipts', '/documents'],
   },
 ];
 
+function domainForPath(pathname: string): DomainTab {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  return DOMAINS.find((domain) => domain.paths.includes(path)) ?? DOMAINS[0];
+}
+
 export default function App() {
-  const [activeDomainId, setActiveDomainId] = useState<string>('topology');
+  const [activeDomainId, setActiveDomainId] = useState(() => domainForPath(window.location.pathname).domainId);
+
+  useEffect(() => {
+    const handlePopState = () => setActiveDomainId(domainForPath(window.location.pathname).domainId);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const activeDomain = DOMAINS.find((d) => d.domainId === activeDomainId) || DOMAINS[0];
   const ActiveComponent = activeDomain.Component;
-  const handleDomainChange = (domainId: string) => {
-    if (domainId === activeDomainId) {
+  const handleDomainChange = (domain: DomainTab) => {
+    if (domain.domainId === activeDomainId) {
       return;
     }
 
-    window.history.replaceState(null, '', '/');
-    setActiveDomainId(domainId);
+    window.history.pushState(null, '', domain.defaultPath);
+    setActiveDomainId(domain.domainId);
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-sans">
       {/* Shell Header Nav Bar */}
-      <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between shadow-md">
+      <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700 px-6 py-3 flex flex-wrap items-center gap-4 shadow-md">
         <div className="flex items-center gap-3">
           <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-          <h1 className="font-bold text-lg text-white">Mission Operations Shell</h1>
+          <h1 className="font-bold text-lg text-white">Mission Operations</h1>
         </div>
 
         <nav className="flex gap-2">
@@ -57,8 +74,8 @@ export default function App() {
               <button
                 type="button"
                 key={domain.domainId}
-                onClick={() => handleDomainChange(domain.domainId)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                onClick={() => handleDomainChange(domain)}
+                className={`w-28 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
@@ -70,7 +87,7 @@ export default function App() {
           })}
         </nav>
 
-        <div className="min-w-56">
+        <div className="ml-auto min-w-56">
           <FederatedErrorBoundary remoteName="auth_client/ProfileSelector">
             <Suspense fallback={<span className="text-sm text-gray-400">Loading profiles...</span>}>
               <ProfileSelector />

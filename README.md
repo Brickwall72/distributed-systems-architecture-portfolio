@@ -67,8 +67,10 @@ shows the federated widgets and communication types.
 Current custodians and intended receivers of in-transit assets may view the
 asset's full visual transfer history. Transfer participants can access their
 own documents, while platform auditors have global read-only access.
-On the network canvas, drag individual nodes or Shift-drag a node to move its
-entire connected group. Arrangements last only while that canvas is open.
+The selected page is reflected in the URL, so reloading or sharing a page link
+returns to the same page. Switching domains opens that domain's default page.
+On the network canvas, drag individual nodes or Shift-drag a node to move it
+and its directly connected neighbors. Arrangements last only while that canvas is open.
 Reservations cover authorizations and receipts to prevent overlapping
 signatures. See the [ADRs](./docs/adr/) for design decisions.
 
@@ -97,6 +99,11 @@ The command also requires Docker with Buildx, Skaffold, Trivy, and Python 3; `SU
 ## 2. Local Development
 
 The integrated development workflow uses Docker, k3d, Kubernetes, Helm (Traefik, `traefik-shared`, and every service/shell chart under `charts/`), and Skaffold. Traefik is exposed through the k3d load balancer at `http://localhost:8081`; no manual `kubectl port-forward` is required.
+
+Shared visual patterns such as surfaces, navigation tabs, and text are defined
+in [global.css](./packages/styles/src/global.css). They use Tailwind's component
+layer so individual components can still add utility classes for layout and
+local adjustments. Component-specific styling stays with the component.
 
 ### Fresh Environment
 
@@ -636,6 +643,21 @@ Mutable image tags such as `prod` can change image contents without changing a
 template and are not detected by this check. Use immutable image references and
 revalidate or recapture the baseline for application updates.
 
+`scripts/select-demo-ui-images.py BASE TARGET` reports which UI images are
+affected between two committed revisions. It treats shared base inputs as
+affecting all UI images and ignores documentation-only changes. The companion
+`scripts/publish-demo-ui-images.py` builds selected images and produces a
+digest-pinned manifest; its first run builds all UI images. After a successful
+CI run on `master`, the demo UI publication job can push images to GHCR and
+update `demo-ui-images.json` on the `demo-ui-published` branch. Documentation-
+only changes preserve the existing image digests. Publishing is gated by the
+`DEMO_UI_PUBLISH_ENABLED` repository variable. A disposable loopback-only k3d
+browser smoke test is a publication prerequisite and can also be run through
+`workflow_dispatch`; its GitHub-hosted run still needs verification before
+publishing is enabled. The VM does not yet consume this manifest; automated
+deployment is not configured. GHCR packages may need their visibility set to
+public after initial publication.
+
 Do not enable a timer or Funnel until a full restore and recovery have been
 tested and failure notification and missed-run behavior have been decided.
 
@@ -847,6 +869,8 @@ presigned reads. These tests do not configure application deployments to use
 those accounts.
 It uses a separate empty Neo4j instance for the seed test. Existing development
 databases and containers are not used.
+CI also runs this isolated suite and the compliance shell integration tests
+before publishing demo UI images. These tests do not verify the deployed VM.
 
 The cross-service boundary test uses real PostgreSQL, Neo4j, NATS and the audit
 consumer but simulates PDF generation and e-sign responses. The e-sign

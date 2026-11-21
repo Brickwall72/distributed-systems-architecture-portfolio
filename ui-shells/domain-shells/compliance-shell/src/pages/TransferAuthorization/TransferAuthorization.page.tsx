@@ -77,7 +77,7 @@ function TransferAuthorizationSession({ identity }: { readonly identity: ReturnT
     <div className="flex flex-col h-screen overflow-hidden p-6 gap-6 bg-slate-950 text-slate-100">
       
       {/* Step 1: Context Collection (Topology) */}
-      <div className="flex flex-col gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
+      <div className="ui-surface-dark flex flex-col gap-4 p-4">
         <div className="w-full md:max-w-sm">
         <FederatedErrorBoundary remoteName="compliance_client/TemplateSelector">
           <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading template selector...</div>}>

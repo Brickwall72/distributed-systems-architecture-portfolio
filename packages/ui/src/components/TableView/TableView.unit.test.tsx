@@ -142,6 +142,8 @@ describe('DatabaseTwinTable', () => {
     const rows = screen.getAllByRole('row');
     expect(rows[2]).toHaveAttribute('aria-selected', 'true');
     expect(rows[1]).toHaveAttribute('aria-selected', 'false');
+    expect(rows[2]).toHaveClass('bg-blue-900');
+    expect(rows[1]).not.toHaveClass('bg-blue-900');
   });
 
   describe('isRowSelectable', () => {
