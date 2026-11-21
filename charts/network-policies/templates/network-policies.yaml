@@ -51,7 +51,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: traefik
+              kubernetes.io/metadata.name: {{ .Values.traefik.namespace | quote }}
+          {{- with .Values.traefik.podLabels }}
+          podSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
       ports:
         - protocol: TCP
           port: 8080
@@ -296,7 +301,12 @@ spec:
               app.kubernetes.io/name: minio-setup
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: traefik
+              kubernetes.io/metadata.name: {{ .Values.traefik.namespace | quote }}
+          {{- with .Values.traefik.podLabels }}
+          podSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
       ports:
         - protocol: TCP
           port: 9000

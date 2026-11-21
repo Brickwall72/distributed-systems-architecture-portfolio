@@ -562,6 +562,30 @@ class LocalSecretTests(unittest.TestCase):
 
 
 class DemoSecretTests(unittest.TestCase):
+    def test_signing_certificate_fingerprint_without_local_certificate(self):
+        import hashlib
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            decoded = demo._decode_bundle(demo.generate(root))
+            cert = root / "services/platform/esign-service/server/certs/certificate.p12"
+            cert.parent.mkdir(parents=True)
+            fingerprint = cert.with_suffix(".p12.sha256")
+            with patch.object(demo, "ROOT", root):
+                with self.assertRaisesRegex(ValueError, "fingerprint is required"):
+                    demo._validate_demo_material(decoded)
+                fingerprint.write_text("invalid\n")
+                with self.assertRaisesRegex(ValueError, "Invalid.*fingerprint"):
+                    demo._validate_demo_material(decoded)
+                fingerprint.write_text(hashlib.sha256(decoded["esign-secrets"]["certificate.p12"]).hexdigest())
+                with self.assertRaisesRegex(ValueError, "tracked local PDF certificate"):
+                    demo._validate_demo_material(decoded)
+                fingerprint.write_text(hashlib.sha256(b"different certificate").hexdigest() + "\n")
+                demo._validate_demo_material(decoded)
+                cert.write_bytes(decoded["esign-secrets"]["certificate.p12"])
+                with self.assertRaisesRegex(ValueError, "tracked local PDF certificate"):
+                    demo._validate_demo_material(decoded)
+
     def test_access_model_upgrade_preserves_existing_material(self):
         import base64
         import copy

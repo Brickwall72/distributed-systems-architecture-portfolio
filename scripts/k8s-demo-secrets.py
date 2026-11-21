@@ -141,7 +141,17 @@ def _validate_minio_credentials(decoded):
 
 
 def _validate_demo_material(decoded):
-    if decoded["esign-secrets"][CERTIFICATE_FILENAME] == (ROOT / "services/platform/esign-service/server/certs/certificate.p12").read_bytes():
+    local_cert = ROOT / "services/platform/esign-service/server/certs/certificate.p12"
+    if local_cert.is_file():
+        local_cert_hash = hashlib.sha256(local_cert.read_bytes()).hexdigest()
+    else:
+        fingerprint = local_cert.with_suffix(".p12.sha256")
+        if not fingerprint.is_file():
+            raise ValueError(f"Local signing certificate or its SHA-256 fingerprint is required: {fingerprint}")
+        local_cert_hash = fingerprint.read_text().strip().lower()
+        if len(local_cert_hash) != 64 or any(char not in "0123456789abcdef" for char in local_cert_hash):
+            raise ValueError(f"Invalid local signing certificate SHA-256 fingerprint: {fingerprint}")
+    if hashlib.sha256(decoded["esign-secrets"][CERTIFICATE_FILENAME]).hexdigest() == local_cert_hash:
         raise ValueError("The tracked local PDF certificate cannot be used for the demo.")
     local_public_key = ROOT / ".auth-keys" / PUBLIC_KEY_FILENAME
     if local_public_key.exists() and decoded["auth-public-key"][PUBLIC_KEY_FILENAME] == local_public_key.read_bytes():

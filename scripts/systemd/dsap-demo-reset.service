@@ -1,0 +1,16 @@
+[Unit]
+Description=Restore the dedicated demo baseline
+Wants=network-online.target
+After=network-online.target k3s.service
+OnFailure=dsap-demo-isolate-tailscale.service dsap-demo-reset-alert.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/dsap-demo/reset.env
+ExecStartPre=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-funnel-gate.py --before-reset
+ExecStartPre=/usr/bin/test ! -e /var/lib/dsap-demo/reset-in-progress
+ExecStartPre=/usr/bin/timeout 600 /bin/sh -c 'until /usr/bin/timedatectl show --property=NTPSynchronized --value | /usr/bin/grep -qx yes; do sleep 5; done'
+ExecStartPre=/usr/bin/timeout 600 /bin/sh -c 'until /usr/local/bin/kubectl --context default get --raw=/readyz > /dev/null 2>&1; do sleep 5; done'
+ExecStart=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-reset.py --storage-uuid ${DEMO_STORAGE_UUID} --execute
+ExecStartPost=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-funnel-gate.py --after-reset
+TimeoutStartSec=45min
