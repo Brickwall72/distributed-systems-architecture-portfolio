@@ -1,0 +1,7 @@
+[Unit]
+Description=Stop Tailscale after a demo reset failure
+OnFailure=dsap-demo-reset-alert.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl stop tailscaled.service

@@ -1,0 +1,12 @@
+[Unit]
+Description=Notify Discord of a demo reset failure
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=10min
+StartLimitBurst=5
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-reset-alert.py --failure
+Restart=on-failure
+RestartSec=30s

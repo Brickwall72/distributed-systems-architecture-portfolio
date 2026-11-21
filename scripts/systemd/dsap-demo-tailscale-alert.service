@@ -1,0 +1,7 @@
+[Unit]
+Description=Notify Discord of unexpected Tailscale failure
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/test ! -e /var/lib/dsap-demo/public-reset-pending
+ExecStart=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-reset-alert.py --failure

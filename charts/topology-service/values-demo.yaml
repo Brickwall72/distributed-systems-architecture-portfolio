@@ -1,0 +1,30 @@
+database:
+  env:
+    - name: NEO4J_AUTH
+      valueFrom:
+        secretKeyRef:
+          name: topology-db-credentials
+          key: NEO4J_AUTH
+    - name: DB_USER
+      valueFrom:
+        secretKeyRef:
+          name: topology-db-credentials
+          key: DB_USER
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: topology-db-credentials
+          key: DB_PASSWORD
+    - name: NEO4J_server_memory_heap_initial__size
+      value: "256M"
+    - name: NEO4J_server_memory_heap_max__size
+      value: "512M"
+    - name: NEO4J_server_memory_pagecache_size
+      value: "256M"
+  resources:
+    limits:
+      memory: 2Gi
+  probes:
+    readiness:
+      timeoutSeconds: 40
+      periodSeconds: 60

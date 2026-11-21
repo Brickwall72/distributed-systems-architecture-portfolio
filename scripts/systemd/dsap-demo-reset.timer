@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore the demo baseline at 3 AM Mountain time
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/Denver
+Persistent=true
+AccuracySec=1min
+Unit=dsap-demo-reset.service
+
+[Install]
+WantedBy=timers.target
