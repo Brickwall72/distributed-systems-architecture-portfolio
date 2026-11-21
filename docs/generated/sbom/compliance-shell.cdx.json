@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:ade391c7-45ee-466c-bbc9-522419a1a3bf",
+  "serialNumber": "urn:uuid:2c748ff2-e78b-45ec-97d0-322817fa1315",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-20T03:57:38+00:00",
+    "timestamp": "2026-11-21T10:53:30+00:00",
     "tools": {
       "components": [
         {
@@ -20,18 +20,26 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/compliance-shell@sha256:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
+      "bom-ref": "pkg:oci/compliance-shell@sha256:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
       "type": "container",
-      "name": "compliance-shell:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f",
-      "purl": "pkg:oci/compliance-shell@sha256:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
+      "name": "compliance-shell:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a",
+      "purl": "pkg:oci/compliance-shell@sha256:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:024e2f37fa0e4661a806357c22fcf0922380bc03b581e7a00eac26d90baedccb"
+          "value": "sha256:0167afb841cd6765507d510898c65983a968cdeba2d92fcf958ca1510af5592d"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:10337c50eb8ff21833fe22d27a44cd1fd9d5e4a11b785ab79cf62ea5f015a4cd"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:2c9bd2b739ac52f7a754d2cff52581eadfe878e686bdaada446b9346d0b690db"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:35a3633e9ad3bdf587c990608dc2a622c5c53810a1d5e1c7a936be92dcb485e5"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -47,7 +55,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:716925a287f4b638fc10e1e7cf33b65b455c4b009cb2cc98b87dbae95555ac44"
+          "value": "sha256:726d8f4274a86d8f985a63810e7ed9f9e43441d8e2ee39707c1f4f780f59cc9b"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -59,15 +67,11 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:9f1f5ab7d1dbd0eced1271dc9c01e0985a28596ca4adc66ae8b71dc43fc37842"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:a1f23c2fa81f5d542a9ab41b9758dd8fb4c91010041643639b8326c423ad258d"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:a5f84ba56b4f5a6df710c5e58b4dba9ae88a068f47d8749e649ae82293a607ae"
+          "value": "sha256:aa2f841be76dac70e6cf3c3732820958e7f7fe8443291c236c73a678fb4a56eb"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -75,15 +79,11 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:e533f43b25e5a7c506d6c197600736b35a7e1a8d2cfab526658728e0daac649c"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f"
+          "value": "sha256:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -123,19 +123,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "compliance-shell:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f"
+          "value": "compliance-shell:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "compliance-shell@sha256:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f"
+          "value": "compliance-shell@sha256:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "compliance-shell:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f"
+          "value": "compliance-shell:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "compliance-shell:c4e6ff8"
+          "value": "compliance-shell:c4a9988"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -150,7 +150,7 @@
   },
   "components": [
     {
-      "bom-ref": "cbfa1245-7a7d-44cc-9701-38b797f3685c",
+      "bom-ref": "0073044b-998a-4c05-92bd-8a63a50ca926",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3812,7 +3812,7 @@
   ],
   "dependencies": [
     {
-      "ref": "cbfa1245-7a7d-44cc-9701-38b797f3685c",
+      "ref": "0073044b-998a-4c05-92bd-8a63a50ca926",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4345,9 +4345,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/compliance-shell@sha256:456be417478d351e9fa0cde82db7e5b8d98dd64805eaad989b81250d9eae518f?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
+      "ref": "pkg:oci/compliance-shell@sha256:73b97d8fd8088552e085817688f1f7b4d8d124f7dade4f3ca0469f2bef767b7a?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fcompliance-shell",
       "dependsOn": [
-        "cbfa1245-7a7d-44cc-9701-38b797f3685c"
+        "0073044b-998a-4c05-92bd-8a63a50ca926"
       ]
     }
   ],
