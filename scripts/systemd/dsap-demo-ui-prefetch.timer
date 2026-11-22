@@ -1,0 +1,11 @@
+[Unit]
+Description=Prefetch demo UI images before the nightly reset
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 America/Denver
+Persistent=true
+AccuracySec=1min
+Unit=dsap-demo-ui-prefetch.service
+
+[Install]
+WantedBy=timers.target

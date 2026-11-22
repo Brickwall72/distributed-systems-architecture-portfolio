@@ -6,6 +6,7 @@ import base64
 import copy
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -232,7 +233,28 @@ def read_deployment_counts():
     return counts
 
 
-def verify_deployment(name, saved, current, counts):
+def approved_ui_images():
+    path = ROOT / "approved-ui-images.json"
+    if not path.exists() and not path.is_symlink():
+        return {}
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != 0 or metadata.st_mode & 0o077:
+        raise ValueError("Approved UI manifest must be root-owned and private.")
+    spec = importlib.util.spec_from_file_location("ui_publisher", Path(__file__).with_name("publish-demo-ui-images.py"))
+    publisher = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(publisher)
+    manifest = read_json(path)
+    publisher.validate_manifest(manifest, "ghcr.io/brickwall72")
+    return manifest["images"]
+
+
+def verify_deployment(name, saved, current, counts, images=None):
+    if images and name in CLIENTS:
+        saved = copy.deepcopy(saved)
+        containers = saved["spec"]["template"]["spec"]["containers"]
+        if len(containers) != 1 or containers[0]["name"] not in ("client", "shell"):
+            raise ValueError(f"Unsupported UI container inventory: {name}")
+        containers[0]["image"] = images[name]
     changed = (current["metadata"]["uid"] != saved["metadata"]["uid"]
                or deployment_identity(current) != deployment_identity(saved)
                or current["spec"].get("replicas", 1) != counts[name])
@@ -265,8 +287,9 @@ def verify_workloads():
         raise ValueError("Demo deployment inventory differs from the baseline.")
     if any(value != 1 for value in counts.values()):
         raise ValueError("This reset supports the recorded single-replica demo only.")
+    images = approved_ui_images()
     for name in DEPLOYMENTS:
-        verify_deployment(name, saved[name], current[name], counts)
+        verify_deployment(name, saved[name], current[name], counts, images)
     verify_no_extra_workloads()
     verify_demo_services()
 
@@ -534,6 +557,8 @@ def run_with_lock(args):
             return
         if MARKER.exists():
             raise ValueError("An earlier reset is incomplete; recover it before retrying.")
+        if (ROOT / "ui-update-in-progress").exists() or (ROOT / "ui-update-in-progress").is_symlink():
+            raise ValueError("An earlier UI update is incomplete; roll it back before resetting.")
         verify_gateway()
         if args.check:
             check_reset(args)

@@ -270,6 +270,21 @@ class DemoResetTests(unittest.TestCase):
             gateway.assert_not_called()
             self.assertTrue(marker.exists())
 
+    def test_interrupted_ui_update_blocks_reset_before_cluster_access(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / "ui-update-in-progress"
+            marker.touch()
+            arguments = ["reset", "--storage-uuid", "b062b31f-e866-4c96-a782-6a7579850fdd", "--check"]
+            with patch.object(reset, "ROOT", root), patch.object(reset, "MARKER", root / "reset"), \
+                    patch.object(reset, "verify_guard"), patch.object(reset, "verify_directories"), \
+                    patch.object(reset, "verify_gateway") as gateway, \
+                    patch.object(reset.os, "geteuid", return_value=0), patch("sys.argv", arguments):
+                with self.assertRaisesRegex(ValueError, "UI update is incomplete"):
+                    reset.main()
+            gateway.assert_not_called()
+            self.assertTrue(marker.exists())
+
     def test_gateway_reopens_only_after_workloads_are_ready(self):
         events = []
         with tempfile.TemporaryDirectory() as directory:
