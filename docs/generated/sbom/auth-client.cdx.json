@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:223080cb-73df-4832-b8cb-6d58343497cf",
+  "serialNumber": "urn:uuid:f2621c6f-85b9-456f-946f-edf25c42dd58",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-22T02:50:37+00:00",
+    "timestamp": "2026-11-22T03:40:04+00:00",
     "tools": {
       "components": [
         {
@@ -20,22 +20,14 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/auth-client@sha256:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
+      "bom-ref": "pkg:oci/auth-client@sha256:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
       "type": "container",
-      "name": "auth-client:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c",
-      "purl": "pkg:oci/auth-client@sha256:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
+      "name": "auth-client:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7",
+      "purl": "pkg:oci/auth-client@sha256:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:01206efa5eb145df01eaceb72d1fdc7537894892e75f63b56a622e0166025cd0"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:10337c50eb8ff21833fe22d27a44cd1fd9d5e4a11b785ab79cf62ea5f015a4cd"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:2df326915262d8afc8b15aff093fc33840f9c31f95f3b9ec752ded56dc5d342e"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -63,11 +55,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:aee94d013b34273bf03c11169586a1210f8cb60d44f450e1181454f3f618eddf"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:bf1ed88affdd24d954b1dc9979312acd7417121ef80a0b19d3f93558efe1582e"
+          "value": "sha256:bb8c1a48bbf84deb578bffa63c37e7b78724cf885a70668cf1eb65639087acaf"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -75,11 +63,23 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:d28d48034d05e6ca7774716248d227cfe6c719d65235bce0f6724305355be8f1"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:dc1cc9e74af449cbe4a40220848bc223b008a188af260ff53be9ec221d2f711c"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:f2fbedd643945e43d04be18f920d0455d7c74bfafcc088c961e93937854e948c"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:fe31a85e76dcdb311765105d9620d131b26f835370ca0d8c4fd9190cd00b2f91"
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c"
+          "value": "sha256:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -119,19 +119,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "auth-client:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c"
+          "value": "auth-client:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "auth-client@sha256:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c"
+          "value": "auth-client@sha256:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "auth-client:02ac837"
+          "value": "auth-client:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "auth-client:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c"
+          "value": "auth-client:c78742f"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -146,7 +146,7 @@
   },
   "components": [
     {
-      "bom-ref": "c14f4999-0d02-4f88-9bd5-1769dc4c1a27",
+      "bom-ref": "2fb80671-6053-4aa0-ab61-ef7d4a8f5e54",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3808,7 +3808,7 @@
   ],
   "dependencies": [
     {
-      "ref": "c14f4999-0d02-4f88-9bd5-1769dc4c1a27",
+      "ref": "2fb80671-6053-4aa0-ab61-ef7d4a8f5e54",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4341,9 +4341,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/auth-client@sha256:914d17463bf28b5fe573f5863c5ff7a2017661a34aca8b2e06f3da40f01bf25c?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
+      "ref": "pkg:oci/auth-client@sha256:7852de4ea3d3613a9d1030a7369392a291e5003e90b6b96f58c6639b2d379be7?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fauth-client",
       "dependsOn": [
-        "c14f4999-0d02-4f88-9bd5-1769dc4c1a27"
+        "2fb80671-6053-4aa0-ab61-ef7d4a8f5e54"
       ]
     }
   ],
