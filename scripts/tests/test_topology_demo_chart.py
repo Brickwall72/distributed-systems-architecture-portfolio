@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import tempfile
@@ -7,6 +8,28 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHART = ROOT / "charts" / "topology-service"
+
+
+class SmokeDemoValuesTests(unittest.TestCase):
+    def test_smoke_deployment_applies_demo_database_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "helm-calls"
+            for name in ("helm", "kubectl", "k3d"):
+                tool = root / name
+                tool.write_text(
+                    '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HELM_TEST_LOG"\n'
+                    if name == "helm" else "#!/bin/sh\nexit 0\n"
+                )
+                tool.chmod(0o755)
+            subprocess.run(
+                ["bash", str(ROOT / "scripts/k3d-funnel-smoke.sh"), "deploy-loopback"],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                env={**os.environ, "PATH": f"{root}:{os.environ['PATH']}", "HELM_TEST_LOG": str(log)},
+            )
+            deployment = next(line for line in log.read_text().splitlines()
+                              if "upgrade --install topology-service " in line)
+            self.assertIn("-f charts/topology-service/values-demo.yaml", deployment)
 
 
 @unittest.skipUnless(shutil.which("helm"), "Helm is required")

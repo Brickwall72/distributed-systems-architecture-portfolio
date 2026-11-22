@@ -191,7 +191,8 @@ deploy_charts() {
     --set-string "ingress.rule=Host(\`$funnel_host\`)" \
     --set-string "corsAllowOrigin=$cors_origin"
   install_chart nats charts/nats
-  install_chart_without_wait topology-service charts/topology-service
+  install_chart_without_wait topology-service charts/topology-service \
+    -f charts/topology-service/values-demo.yaml
   install_chart_without_wait compliance-service charts/compliance-service \
     --set-string server.minioReadiness.image.tag="$image_tag" \
     --set-string "server.s3PublicEndpoint=$s3_endpoint"
