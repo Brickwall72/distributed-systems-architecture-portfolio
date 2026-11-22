@@ -662,6 +662,8 @@ On smoke-test failure, CI prints pod and node status fields before deleting
 the disposable cluster. It does not dump Secrets, pod environments, or
 application logs; use those status fields to distinguish scheduling,
 initialization, and container failures before retrying.
+The smoke deployment applies the topology chart's demo values, including
+explicit Neo4j heap/page-cache sizes and the demo memory limit.
 
 Do not enable a timer or Funnel until a full restore and recovery have been
 tested and failure notification and missed-run behavior have been decided.
