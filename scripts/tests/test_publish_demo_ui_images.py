@@ -65,6 +65,15 @@ class PublishDemoUiImagesTests(unittest.TestCase):
         self.assertEqual(set(result["images"]), set(publisher.BUILDS))
         self.assertEqual(len([call for call in calls if call[:2] == ("docker", "push")]), len(publisher.BUILDS))
 
+    def test_published_images_override_base_image_source_and_revision(self):
+        _, calls = self.run_publish([], None)
+        builds = [call for call in calls if call[:4] == ("docker", "build", "--target", "prod")]
+        self.assertEqual(len(builds), len(publisher.BUILDS))
+        for build in builds:
+            labels = [build[index + 1] for index, value in enumerate(build) if value == "--label"]
+            self.assertIn(f"org.opencontainers.image.source={publisher.SOURCE_REPOSITORY}", labels)
+            self.assertIn(f"org.opencontainers.image.revision={SOURCE}", labels)
+
     def test_rejects_unexpected_or_wrong_registry_images(self):
         old = previous()
         old["images"]["auth-client"] = "ghcr.io/attacker/auth-client@" + DIGEST

@@ -78,6 +78,9 @@ jobs:
       - name: Execute Isolated Service Integration Tests
         run: pnpm test:integration
 
+      - name: Test Repository Automation Scripts
+        run: python3 -m unittest discover -s scripts/tests -v
+
       - name: Generate Consumer Contract Specs
         run: pnpm turbo run test:contract --cache=""
 
@@ -86,6 +89,7 @@ jobs:
 
   generate-documentation:
     name: Generate SBOM and Architecture Reports
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -155,7 +159,7 @@ jobs:
 
   demo-ui-browser-smoke:
     name: Test demo UI in disposable k3d
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -201,7 +205,7 @@ jobs:
   publish-demo-ui:
     name: Publish demo UI images
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true'
-    needs: [verify-and-test, generate-documentation, demo-ui-browser-smoke]
+    needs: [verify-and-test, demo-ui-browser-smoke]
     runs-on: ubuntu-latest
     concurrency:
       group: demo-ui-publication
@@ -225,7 +229,7 @@ jobs:
 
   publish-generated-documentation:
     name: Open Generated Reports Pull Request
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: ${{ false }}
     needs: [verify-and-test, generate-documentation]
     runs-on: ubuntu-latest
     permissions:

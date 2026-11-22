@@ -11,6 +11,7 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE_REPOSITORY = "https://github.com/Brickwall72/distributed-systems-architecture-portfolio"
 CLIENT_DOCKERFILE = "Dockerfile.client"
 BUILDS = {
     "topology-client": ("services/core/topology-service", CLIENT_DOCKERFILE),
@@ -74,7 +75,12 @@ def publish(source, registry, previous):
         for name in selected:
             context, dockerfile = BUILDS[name]
             tag = f"{registry}/{name}:{source}"
-            command("docker", "build", "--target", "prod", "-f", f"{context}/{dockerfile}", "-t", tag, context)
+            command(
+                "docker", "build", "--target", "prod",
+                "--label", f"org.opencontainers.image.source={SOURCE_REPOSITORY}",
+                "--label", f"org.opencontainers.image.revision={source}",
+                "-f", f"{context}/{dockerfile}", "-t", tag, context,
+            )
             command("docker", "push", tag)
             digest = command("docker", "buildx", "imagetools", "inspect", tag,
                              "--format", "{{.Manifest.Digest}}", capture=True).strip()

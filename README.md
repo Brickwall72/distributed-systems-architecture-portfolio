@@ -76,9 +76,23 @@ signatures. See the [ADRs](./docs/adr/) for design decisions.
 
 ### Generated Architecture and Software Inventory
 
-CI builds every application image declared in `skaffold.yaml`, then generates a CycloneDX JSON SBOM and a visual HTML report for each image. The [generated SBOM index](./docs/generated/sbom/index.md) links to each report. The structured [architecture model](./docs/architecture/model.json) separately records page/widget composition, storage, and communication patterns; it is rendered as both Markdown (Mermaid) and HTML.
+Automated report generation and generated-documentation pull requests are
+disabled for now. CI does not build images for reports, scan SBOMs, or wait
+for report generation before publishing demo UI images. Existing generated
+files are retained but are not automatically refreshed. Repository automation
+tests still run in the verification job.
 
-On pull requests and pushes, the reports are attached to the GitHub Actions run as the `sbom-and-architecture-reports` artifact. On pushes to `master`, after the verification and report-generation jobs pass, CI opens or updates a pull request with changed outputs under `docs/generated/`, then explicitly runs verification against that report branch. It avoids replacing a committed image report when the image digest and report-tool versions are unchanged. This requires GitHub Actions to have Actions, repository contents, and pull-request write permissions; the report updates still go through the normal `master` review and branch-protection process.
+The intended reference is a first-party dependency/impact map showing which
+services, shells, shared packages, and contracts could be affected by a change,
+not an exhaustive third-party library inventory. The existing structured
+[architecture model](./docs/architecture/model.json) records page/widget
+composition, storage, and communication patterns; it is not an automatically
+derived code-level downstream impact map.
+
+The [existing SBOM index](./docs/generated/sbom/index.md) links to previously
+generated third-party inventories. The optional local command below still
+builds every application image declared in `skaffold.yaml` and generates
+SBOMs and architecture reports; it is not run by CI.
 
 Trivy runs with its license scanner for inventory metadata, not its vulnerability scanner. Sunshine displays a vulnerability summary, but a zero count here means vulnerability data was not included; it does not mean a vulnerability scan passed.
 
@@ -652,11 +666,22 @@ CI run on `master`, the demo UI publication job can push images to GHCR and
 update `demo-ui-images.json` on the `demo-ui-published` branch. Documentation-
 only changes preserve the existing image digests. Publishing is gated by the
 `DEMO_UI_PUBLISH_ENABLED` repository variable. A disposable loopback-only k3d
-browser smoke test is a publication prerequisite and can also be run through
-`workflow_dispatch`; its GitHub-hosted run still needs verification before
-publishing is enabled. The VM does not yet consume this manifest; automated
+browser smoke test is a publication prerequisite and also runs on pull requests
+and through `workflow_dispatch`, so fixes can be tested before merging.
+The VM does not yet consume this manifest; automated
 deployment is not configured. GHCR packages may need their visibility set to
 public after initial publication.
+Published UI images override the base image's OCI source/revision labels with
+this repository and the tested commit. If GHCR denies a push to an existing
+package, check that package's **Manage Actions access** grants this repository
+Write access; public visibility alone does not grant publishing permission.
+
+On smoke-test failure, CI prints pod and node status fields before deleting
+the disposable cluster. It does not dump Secrets, pod environments, or
+application logs; use those status fields to distinguish scheduling,
+initialization, and container failures before retrying.
+The smoke deployment applies the topology chart's demo values, including
+explicit Neo4j heap/page-cache sizes and the demo memory limit.
 
 On smoke-test failure, CI prints pod and node status fields before deleting
 the disposable cluster. It does not dump Secrets, pod environments, or
