@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:39a4491a-d278-455d-ba0d-27695421d36e",
+  "serialNumber": "urn:uuid:6d8cddcb-c7e7-4788-bf7c-4e8ae7afa8bc",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-22T00:14:15+00:00",
+    "timestamp": "2026-11-22T02:51:02+00:00",
     "tools": {
       "components": [
         {
@@ -20,18 +20,22 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/global-shell@sha256:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "bom-ref": "pkg:oci/global-shell@sha256:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "type": "container",
-      "name": "global-shell:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4",
-      "purl": "pkg:oci/global-shell@sha256:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "name": "global-shell:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e",
+      "purl": "pkg:oci/global-shell@sha256:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "properties": [
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:0aa999a520089e9e1544697bd1b02e400de5575bb7f79802ab4608cf909fef35"
+        },
         {
           "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:10337c50eb8ff21833fe22d27a44cd1fd9d5e4a11b785ab79cf62ea5f015a4cd"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:10ed0926eb8f85cdfd7f1db1f53a9ce02aa8fd531cfadee98ac5e0d3790929a8"
+          "value": "sha256:19b6b55072be8432668f2dfb33f47efac0fc7f95998a0c96c095aa72fe1caa19"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -39,19 +43,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:491b788574db5a8830f6192c5b2256234b4c60b4e3cfa592b5536521b7bf2858"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:4c12635f53c06326b850c088e9bf66f2558e8062be7c4acde8d7497b3fe964b8"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:4c63abbab09c3d35dd28981c42cf3800686cabb333bd1c0213e9eecff0da3bac"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:5630dda1aa241dec1c7323bc325896522bc9c6f0ecbdf3f18c4f8c62c5b4f66d"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -63,7 +55,15 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:798539166da96ba69eabd9acb933c9e1f5f1c663e07fe753fc1f17323e64932e"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:816134f3f39f5368e2bfc2720b20b38699d79b5d22326e22959879cf67a06ff1"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:89c5bc683cc1f7506e1c1888aaf277f53d3fa26f73ad64be722cd4230ce456a4"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -75,7 +75,7 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:ea71cc50fd6f0b5f0fe8b02fac3ef7c333ea0d4bc187e7560d2963454f811084"
+          "value": "sha256:f46fa86649b8b471404bd25368704af431e884f050c052e1506cbc957e9952ef"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -83,7 +83,7 @@
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4"
+          "value": "sha256:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -123,19 +123,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "global-shell:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4"
+          "value": "global-shell:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "global-shell@sha256:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4"
+          "value": "global-shell@sha256:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "global-shell:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4"
+          "value": "global-shell:02ac837"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "global-shell:5307fc2"
+          "value": "global-shell:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -150,7 +150,7 @@
   },
   "components": [
     {
-      "bom-ref": "e1e5e0d0-a942-460e-9075-af8fd2827345",
+      "bom-ref": "3d5357a1-33fa-442e-90d1-ac1cf27f0c77",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3812,7 +3812,7 @@
   ],
   "dependencies": [
     {
-      "ref": "e1e5e0d0-a942-460e-9075-af8fd2827345",
+      "ref": "3d5357a1-33fa-442e-90d1-ac1cf27f0c77",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4345,9 +4345,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/global-shell@sha256:193237d930a3a766b9fa75198859db1a64c5130cda85bfb44e404ee600d090d4?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
+      "ref": "pkg:oci/global-shell@sha256:1af113efab0b5c41e141b0cac339eebdcebf7d579ef61ffd128b111f4fa1e37e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fglobal-shell",
       "dependsOn": [
-        "e1e5e0d0-a942-460e-9075-af8fd2827345"
+        "3d5357a1-33fa-442e-90d1-ac1cf27f0c77"
       ]
     }
   ],
