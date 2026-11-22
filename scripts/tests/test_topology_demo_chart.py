@@ -11,6 +11,39 @@ CHART = ROOT / "charts" / "topology-service"
 
 @unittest.skipUnless(shutil.which("helm"), "Helm is required")
 class TopologyDemoChartTests(unittest.TestCase):
+    def test_ui_images_support_digests_and_keep_tag_defaults(self):
+        digest = "sha256:" + "a" * 64
+        with tempfile.TemporaryDirectory() as directory:
+            charts = Path(directory) / "charts"
+            shutil.copytree(ROOT / "charts" / "platform-lib", charts / "platform-lib")
+            for name, dependency, image in (
+                ("topology-service", "client", "topology-client"),
+                ("topology-shell", "shell", "topology-shell"),
+            ):
+                with self.subTest(chart=name):
+                    chart = charts / name
+                    shutil.copytree(ROOT / "charts" / name, chart, ignore=shutil.ignore_patterns("*.tgz"))
+                    for child in (chart / "charts").iterdir():
+                        if child.is_dir() and (child / "Chart.yaml").is_file():
+                            subprocess.run(
+                                ["helm", "dependency", "build", str(child)],
+                                check=True, stdout=subprocess.PIPE, text=True,
+                            )
+                    subprocess.run(
+                        ["helm", "dependency", "build", str(chart)],
+                        check=True, stdout=subprocess.PIPE, text=True,
+                    )
+                    def render(*args):
+                        return subprocess.run(
+                            ["helm", "template", name, str(chart), *args],
+                            check=True, stdout=subprocess.PIPE, text=True,
+                        ).stdout
+                    self.assertIn(f'image: "{image}:prod"', render())
+                    self.assertIn(
+                        f'image: "{image}@{digest}"',
+                        render("--set-string", f"{dependency}.image.digest={digest}"),
+                    )
+
     def test_demo_database_memory_and_credentials(self):
         with tempfile.TemporaryDirectory() as directory:
             charts = Path(directory) / "charts"

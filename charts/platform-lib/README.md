@@ -73,3 +73,8 @@ persistence:
   mountPath: /var/lib/postgresql/data
 ```
 
+For `client` and `shell`, `image.digest` can be set to an immutable digest
+such as `sha256:...`. When present, it takes precedence over `image.tag` and
+renders the image as `repository@digest`. Without it, existing tag behavior is
+unchanged. Rebuild chart dependencies after changing this library chart.
+

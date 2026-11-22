@@ -21,8 +21,8 @@ function AssetRegistrationSession({ identity }: { readonly identity: ReturnType<
   return (
     <div className="p-6 font-sans max-w-7xl mx-auto">
       <header className="mb-6 border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Asset Registration</h1>
-        <p className="text-sm text-slate-400 mt-1">Register new assets to your organization's command.</p>
+        <h1 className="ui-page-title">Asset Registration</h1>
+        <p className="ui-text-muted-dark mt-1">Register new assets to your organization's command.</p>
       </header>
 
       {/* Layout engine assembling federated client widgets */}

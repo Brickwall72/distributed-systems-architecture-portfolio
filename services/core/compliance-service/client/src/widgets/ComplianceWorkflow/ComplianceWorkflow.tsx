@@ -5,7 +5,7 @@ import { Button, DocumentViewer, useIdentity } from '@shared/ui-components';
 import { isAuditor, type Identity } from '@contracts/auth';
 import { hydrateTemplate } from '@shared/utils';
 import { SignatureOverlay } from 'esign-client';
-import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance'; 
+import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { masterPayloadInputSchema, templateId2dataSchema, getReceiptTemplateId } from 'compliance-shared';
 import { useDocumentSync, useGeneratePdf, useSignPdf, signPdfParamsSchema, useTemplateQuery } from '../../hooks';
 import '@shared/styles';
@@ -155,6 +155,8 @@ function ComplianceWorkflowSession({ identity, ...props }: Readonly<ComplianceWo
   };
 
   const activeError = generatePdfError || signPdfError;
+  const documentKind = receiptTemplateId ? 'Receipt' : 'Authorization';
+  const signDocumentLabel = isSigned ? 'Signed' : `Sign ${documentKind}`;
   const topologyApplicationStatus = synchronization.data?.topologyApplicationStatus;
   let synchronizationMessage = 'Signed document saved; topology update pending.';
   if (synchronization.error) {
@@ -201,7 +203,7 @@ function ComplianceWorkflowSession({ identity, ...props }: Readonly<ComplianceWo
                   onClick={() => setShowSignatureOverlay(true)}
                   className="w-40 shadow"
                 >
-                  {isSigned ? 'Signed' : 'Sign Document'}
+                  {signDocumentLabel}
                 </Button>
               </>
             ) : (
@@ -219,7 +221,7 @@ function ComplianceWorkflowSession({ identity, ...props }: Readonly<ComplianceWo
                 }}
                 className="w-40 shadow"
               >
-                Generate PDF
+                {receiptTemplateId? 'Verify Receipt' : 'Authorize Transfer'}
               </Button>
             )}
           </div>

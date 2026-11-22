@@ -64,12 +64,12 @@ function TransferReceiptSession({ identity }: { readonly identity: ReturnType<ty
     <div className="flex flex-col h-full gap-6">
       <div>
         <h3 className="text-lg font-semibold text-white">Transfer Receipt Handling</h3>
-        <p className="text-sm text-slate-400">Select associated authorization document, source organization, and received assets to populate receipt and then sign.</p>
+        <p className="ui-text-muted-dark">Select associated authorization document, source organization, and received assets to populate receipt and then sign.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column: Documents Table */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[600px] overflow-hidden">
+        <div className="ui-surface-dark p-4 shadow-sm flex flex-col h-[600px] overflow-hidden">
           <h4 className="text-sm font-medium text-slate-300 mb-3">Receivable In-Progress Transfers</h4>
           <div className="flex-1 overflow-auto">
             <FederatedErrorBoundary remoteName="DocumentsTable">
@@ -92,7 +92,7 @@ function TransferReceiptSession({ identity }: { readonly identity: ReturnType<ty
         </div>
 
         {/* Middle Column: Multi-Select Asset Selector */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col gap-4">
+        <div className="ui-surface-dark p-4 shadow-sm flex flex-col gap-4">
           <h4 className="text-sm font-medium text-slate-300">Asset Selection</h4>
           <FederatedErrorBoundary remoteName="topology_client/OrganizationSelector">
             <Suspense fallback={<div className="text-slate-500 font-mono animate-pulse">Loading organization selector...</div>}>
@@ -146,7 +146,7 @@ function TransferReceiptSession({ identity }: { readonly identity: ReturnType<ty
         </div>
 
         {/* Right Column: Compliance Workflow Widget */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[650px]">
+        <div className="ui-surface-dark p-4 shadow-sm flex flex-col h-[650px]">
           <h4 className="text-sm font-medium text-slate-300 mb-3">Compliance Sign-off</h4>
           <div className="flex-1 flex flex-col min-h-0">
             <FederatedErrorBoundary remoteName="compliance_client/ComplianceWorkflowWidget">

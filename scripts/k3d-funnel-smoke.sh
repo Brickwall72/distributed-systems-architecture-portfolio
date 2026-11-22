@@ -14,12 +14,14 @@ Usage:
   bash scripts/k3d-funnel-smoke.sh up
   bash scripts/k3d-funnel-smoke.sh images
   bash scripts/k3d-funnel-smoke.sh deploy <funnel-hostname>
+  bash scripts/k3d-funnel-smoke.sh deploy-loopback
   bash scripts/k3d-funnel-smoke.sh down
 
 Commands:
   up       Create the disposable loopback-only k3d cluster.
   images   Build with Skaffold only, then import those images into the cluster.
   deploy   Install the public-demo charts directly with Helm; Funnel stays off.
+  deploy-loopback  Install with HTTP endpoints for the disposable browser test only.
   down     Delete only the dsap-funnel-smoke k3d cluster.
 EOF
 }
@@ -134,8 +136,12 @@ wait_for_workloads() {
 
 deploy_charts() {
   local funnel_host="${1:-}"
+  local endpoint_mode="${2:-funnel}"
   local secret
   local s3_endpoint
+  local s3_entrypoint
+  local cors_origin
+  local -a traefik_version=()
 
   require_command helm
   require_command kubectl
@@ -156,12 +162,22 @@ deploy_charts() {
   done
 
   cd "$root_dir"
-  s3_endpoint="https://${funnel_host}:8443"
+  if [[ "$endpoint_mode" == "loopback" ]]; then
+    s3_endpoint="http://minio.localhost:8081"
+    s3_entrypoint="web"
+    cors_origin="http://127.0.0.1:8081"
+    traefik_version=(--version 42.4.1)
+  else
+    s3_endpoint="https://${funnel_host}:8443"
+    s3_entrypoint="s3"
+    cors_origin="https://$funnel_host"
+  fi
   helm repo add traefik https://traefik.github.io/charts --force-update
   helm repo update traefik
   helm upgrade --install traefik traefik/traefik \
     --kube-context "$context" \
     --create-namespace --namespace traefik \
+    "${traefik_version[@]}" \
     -f charts/traefik-values.yaml \
     -f charts/traefik-values-funnel-smoke.yaml \
     --wait --timeout 10m
@@ -171,9 +187,9 @@ deploy_charts() {
   install_chart minio charts/minio \
     --set-string setupImage.tag="$image_tag" \
     --set ingress.enabled=true \
-    --set 'ingress.entryPoints[0]=s3' \
+    --set "ingress.entryPoints[0]=$s3_entrypoint" \
     --set-string "ingress.rule=Host(\`$funnel_host\`)" \
-    --set-string "corsAllowOrigin=https://$funnel_host"
+    --set-string "corsAllowOrigin=$cors_origin"
   install_chart nats charts/nats
   install_chart_without_wait topology-service charts/topology-service
   install_chart_without_wait compliance-service charts/compliance-service \
@@ -217,6 +233,9 @@ main() {
       ;;
     deploy)
       deploy_charts "${2:-}"
+      ;;
+    deploy-loopback)
+      deploy_charts "minio.localhost" "loopback"
       ;;
     down)
       delete_cluster

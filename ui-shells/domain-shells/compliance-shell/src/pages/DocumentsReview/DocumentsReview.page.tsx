@@ -70,7 +70,7 @@ export default function DocumentsReviewPage() {
       >
         <div className="border-b border-slate-800 px-5 py-4">
           <h2 className="font-semibold text-slate-100">Document preview</h2>
-          <p className="mt-1 text-sm text-slate-400">Select a document to review its PDF.</p>
+          <p className="ui-text-muted-dark mt-1">Select a document to review its PDF.</p>
         </div>
         <div className="relative min-h-0 flex-1">
           {previewContent}

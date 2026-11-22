@@ -272,7 +272,7 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
     expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
   });
 
-  it('moves a connected group with Shift-drag without moving disconnected nodes or selecting history', async () => {
+  it('moves only direct neighbors with Shift-drag without selecting history', async () => {
     server.use(http.get('/topology/api/v1/graph', () => HttpResponse.json({
       ...baselineGraph,
       organizations: [...baselineGraph.organizations, { id: 'isolated', name: 'Isolated', type: 'CONTRACTOR' }],
@@ -284,7 +284,7 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
     expect(instance.fit).toHaveBeenCalledTimes(1);
     const canvasContainer = container.querySelector<HTMLElement>('[style*="540px"]')!;
     canvasContainer.setPointerCapture = vi.fn();
-    instance.node = 'asset-3333-gps3';
+    instance.node = 'REQ-2026-SSC-0092';
     const before = { ...instance.positions };
     const pointer = (type: string, x: number, y: number) => {
       const event = new MouseEvent(type, { bubbles: true, cancelable: true, shiftKey: true, button: 0, clientX: x, clientY: y });
@@ -294,9 +294,10 @@ describe('NetworkCanvasWidget Component Lifecycle', () => {
     pointer('pointerdown', 10, 20);
     pointer('pointermove', 60, 90);
     pointer('pointerup', 60, 90);
-    for (const id of ['asset-3333-gps3', 'org-1111-lockheed', 'org-2222-ussf', 'REQ-2026-SSC-0092', 'asset-second']) {
+    for (const id of ['asset-3333-gps3', 'org-1111-lockheed', 'org-2222-ussf', 'REQ-2026-SSC-0092']) {
       expect(instance.positions[id]).toEqual({ x: before[id].x + 50, y: before[id].y + 70 });
     }
+    expect(instance.positions['asset-second']).toEqual(before['asset-second']);
     expect(instance.positions.isolated).toEqual(before.isolated);
     expect(screen.queryByText(/1 selected/)).not.toBeInTheDocument();
   });

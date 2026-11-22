@@ -15,8 +15,8 @@ export default function TransferHistory() {
   return (
     <div className="p-6 font-sans max-w-7xl mx-auto">
       <header className="mb-6 border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Transfer History for Selected Assets</h1>
-        <p className="text-sm text-slate-400 mt-1">Select assets on the graph to view their transfer history.</p>
+        <h1 className="ui-page-title">Transfer History for Selected Assets</h1>
+        <p className="ui-text-muted-dark mt-1">Select assets on the graph to view their transfer history.</p>
       </header>
       <div className="mt-6">
         <FederatedErrorBoundary remoteName="topology_client/NetworkCanvas">

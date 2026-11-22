@@ -1,2 +1,37 @@
 /* packages/styles/src/global.css */
 @import "tailwindcss";
+@source "../../ui/src";
+
+@layer components {
+  .ui-surface-light {
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+  }
+
+  .ui-surface-dark {
+    @apply rounded-xl border border-slate-800 bg-slate-900;
+  }
+
+  .ui-alert-error-light {
+    @apply rounded border-l-4 border-red-500 bg-red-50 text-red-700;
+  }
+
+  .ui-nav-tab {
+    @apply rounded-md px-4 py-2 text-sm font-medium transition-all;
+  }
+
+  .ui-nav-tab-active {
+    @apply bg-blue-600 text-white shadow-sm;
+  }
+
+  .ui-nav-tab-inactive {
+    @apply text-slate-400 hover:bg-slate-700/50 hover:text-white;
+  }
+
+  .ui-page-title {
+    @apply text-3xl font-extrabold tracking-tight text-white;
+  }
+
+  .ui-text-muted-dark {
+    @apply text-sm text-slate-400;
+  }
+}

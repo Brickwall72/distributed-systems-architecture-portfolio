@@ -62,11 +62,11 @@ export default function AssetRegistrationWidget(props: Readonly<AssetRegistratio
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm h-fit">
+    <div className="ui-surface-light p-5 h-fit">
       <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Register New Asset</h2>
       
       {(formError || apiError) && (
-        <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-xs">
+        <div className="ui-alert-error-light mb-4 p-3 text-xs">
           {formError || apiError}
         </div>
       )}

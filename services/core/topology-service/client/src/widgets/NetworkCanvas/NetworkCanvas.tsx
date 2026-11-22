@@ -96,16 +96,7 @@ function NetworkCanvasGraph({
       const nodeId = network.getNodeAt(point(event));
       if (nodeId === undefined) return;
 
-      const connected = new Set<vis.IdType>([nodeId]);
-      const queue = [nodeId];
-      for (const current of queue) {
-        for (const neighbor of network.getConnectedNodes(current)) {
-          if (!connected.has(neighbor)) {
-            connected.add(neighbor);
-            queue.push(neighbor);
-          }
-        }
-      }
+      const connected = new Set<vis.IdType>([nodeId, ...network.getConnectedNodes(nodeId)]);
       drag = { pointerId: event.pointerId, start: network.DOMtoCanvas(point(event)), positions: network.getPositions([...connected]) };
       event.preventDefault();
       event.stopPropagation();
@@ -313,8 +304,8 @@ function NetworkCanvasGraph({
   // Listen for registration mutations
   useEffect(() => {
     const handleMutation = () => {
-      refetch();
-      if (historyEnabled) history.refetch();
+      void refetch();
+      if (historyEnabled) void history.refetch();
     };
     window.addEventListener(TOPOLOGY_MUTATION_EVENT, handleMutation);
     return () => {
@@ -323,7 +314,7 @@ function NetworkCanvasGraph({
   }, [refetch, history.refetch, historyEnabled]);
 
   return (
-    <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
+    <div className="ui-surface-light lg:col-span-2 p-4 relative">
       <div className={enableAssetHistorySelection
         ? 'flex flex-wrap justify-between items-center gap-2 mb-3'
         : 'absolute top-6 right-6 z-10 flex gap-2'}>
@@ -344,8 +335,8 @@ function NetworkCanvasGraph({
             variant="outline"
             size="sm"
             onClick={() => {
-              refetch();
-              if (historyEnabled) history.refetch();
+              void refetch();
+              if (historyEnabled) void history.refetch();
             }}
             isLoading={isLoading || (historyEnabled && history.isLoading)}
             className="bg-white text-gray-700 shadow-sm font-semibold"
@@ -355,16 +346,16 @@ function NetworkCanvasGraph({
         </div>
       </div>
 
-      <p className="mb-2 text-sm text-gray-600">Drag nodes to arrange them; Shift-drag a node to move its connected group.</p>
+      <p className="mb-2 text-sm text-gray-600">Drag nodes to arrange them; Shift-drag a node to move it and its directly connected neighbors.</p>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-sm">
+        <div className="ui-alert-error-light mb-4 p-4 shadow-sm text-sm">
           {error}
         </div>
       )}
 
       {historyEnabled && history.error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-sm" role="alert">
+        <div className="ui-alert-error-light mb-4 p-4 shadow-sm text-sm" role="alert">
           Could not load selected assets' transfer history: {history.error}
         </div>
       )}
