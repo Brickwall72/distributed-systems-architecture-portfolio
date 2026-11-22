@@ -658,6 +658,11 @@ publishing is enabled. The VM does not yet consume this manifest; automated
 deployment is not configured. GHCR packages may need their visibility set to
 public after initial publication.
 
+On smoke-test failure, CI prints pod and node status fields before deleting
+the disposable cluster. It does not dump Secrets, pod environments, or
+application logs; use those status fields to distinguish scheduling,
+initialization, and container failures before retrying.
+
 Do not enable a timer or Funnel until a full restore and recovery have been
 tested and failure notification and missed-run behavior have been decided.
 

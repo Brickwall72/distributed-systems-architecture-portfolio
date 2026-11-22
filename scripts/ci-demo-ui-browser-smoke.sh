@@ -20,6 +20,16 @@ created=false
 cleanup() {
   local status=$?
   trap - EXIT
+  if [[ "$created" == true && "$status" -ne 0 ]]; then
+    echo "Smoke test failed; collecting pod states before cluster cleanup." >&2
+    # Only status fields: pod descriptions and application logs can contain credentials.
+    kubectl --context k3d-dsap-funnel-smoke --namespace platform-funnel-smoke \
+      get pods -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,REASON:.status.reason,SCHEDULED:.status.conditions[?(@.type=="PodScheduled")].reason,INIT_WAIT:.status.initContainerStatuses[*].state.waiting.reason,INIT_EXIT:.status.initContainerStatuses[*].state.terminated.reason,WAIT:.status.containerStatuses[*].state.waiting.reason,LAST_EXIT:.status.containerStatuses[*].lastState.terminated.reason,EXIT_CODE:.status.containerStatuses[*].lastState.terminated.exitCode,RESTARTS:.status.containerStatuses[*].restartCount,READY:.status.containerStatuses[*].ready' \
+      || echo "Failed to collect pod states." >&2
+    kubectl --context k3d-dsap-funnel-smoke get nodes \
+      -o 'custom-columns=NAME:.metadata.name,CPU:.status.allocatable.cpu,MEMORY:.status.allocatable.memory,CONDITIONS:.status.conditions[*].type,STATUS:.status.conditions[*].status' \
+      || echo "Failed to collect node states." >&2
+  fi
   if [[ "$created" == true ]] && ! bash scripts/k3d-funnel-smoke.sh down; then
     echo "Cluster cleanup failed; retaining isolated state at $work." >&2
     exit 1

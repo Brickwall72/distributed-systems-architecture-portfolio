@@ -19,6 +19,9 @@ class BrowserSmokeCleanupTests(unittest.TestCase):
             k3d = root / "bin/k3d"
             k3d.write_text("#!/bin/sh\nexit \"$K3D_STATUS\"\n")
             k3d.chmod(0o755)
+            kubectl = root / "bin/kubectl"
+            kubectl.write_text('#!/bin/sh\necho diagnostics >> "$TEST_LOG"\nexit 1\n')
+            kubectl.chmod(0o755)
             helper = root / "scripts/k3d-funnel-smoke.sh"
             helper.write_text(
                 '#!/bin/sh\nprintf "%s\\n" "$1" >> "$TEST_LOG"\n'
@@ -62,13 +65,13 @@ class BrowserSmokeCleanupTests(unittest.TestCase):
     def test_failure_after_creation_deletes_cluster_and_private_state(self):
         status, _, calls, remaining = self.run_smoke()
         self.assertNotEqual(status, 0)
-        self.assertEqual(calls, ["up", "down"])
+        self.assertEqual(calls, ["up", "diagnostics", "diagnostics", "down"])
         self.assertEqual(remaining, 0)
 
     def test_cleanup_failure_retains_state_and_reports_error(self):
         status, error, calls, remaining = self.run_smoke(fail_down=True)
         self.assertNotEqual(status, 0)
-        self.assertEqual(calls, ["up", "down"])
+        self.assertEqual(calls, ["up", "diagnostics", "diagnostics", "down"])
         self.assertEqual(remaining, 1)
         self.assertIn("Cluster cleanup failed", error)
 
