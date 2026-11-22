@@ -1,11 +1,12 @@
 # File: scripts/tests/test_documentation_reports.py
 import json
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import generate_architecture, generate_sbom_reports, sync_generated_reports
+from scripts import generate_architecture, generate_dependency_reports, sync_generated_reports
 
 
 SKAFFOLD_PATH = Path(__file__).resolve().parents[2] / "skaffold.yaml"
@@ -137,151 +138,186 @@ class ArchitectureReportTests(unittest.TestCase):
             self.assertIn("mermaid.run", (output_dir / "architecture.html").read_text(encoding="utf-8"))
 
 
-class SbomReportTests(unittest.TestCase):
-    def test_skaffold_build_output_becomes_image_ids_and_tags(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            artifact_file = Path(temp_dir) / "artifacts.json"
-            artifact_file.write_text(
-                json.dumps({
-                    "builds": [
-                        {"imageName": "registry.example/platform/service", "tag": "registry.example/platform/service:abc123"},
-                    ]
-                }),
-                encoding="utf-8",
-            )
+class InternalReportTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        self.packages = {
+            "topology-server": ("services/topology/server", {}),
+            "topology-client": ("services/topology/client", {}),
+            "topology-shell": ("ui-shells/topology-shell", {}),
+            "compliance-server": ("services/compliance/server", {}),
+            "audit-server": ("services/audit/server", {}),
+        }
+        for name, (path, dependencies) in self.packages.items():
+            directory = self.root / path
+            directory.mkdir(parents=True)
+            (directory / "package.json").write_text(json.dumps({
+                "name": name, "dependencies": {"third-party-library": "1.0.0", **dependencies},
+            }))
+            (directory / "src").mkdir()
+            for filename in ("client.ts", "Canvas.tsx", "Dashboard.tsx"):
+                (directory / "src" / filename).write_text("\n" * 12)
+            (directory / "vite.config.ts").write_text("\n" * 8)
+        (self.root / "skaffold.yaml").write_text(
+            "build:\n  artifacts:\n" + "".join(f"    - image: {name}\n" for name in self.packages)
+            + "deploy:\n")
+        subprocess.run(["git", "add", "."], cwd=self.root, check=True)
+        self.model = {
+            "externalNodes": [{"id": "topology-db", "label": "Neo4j", "kind": "storage"},
+                              {"id": "nats", "label": "NATS", "kind": "broker"}],
+            "compositions": [],
+            "interactions": [
+                {"from": "topology-server", "to": "topology-db", "type": "storage", "label": "Query"},
+                {"from": "topology-client", "to": "topology-server", "type": "http", "label": "API"},
+            ],
+        }
+        self.analysis = {"version": 1, "calls": [], "gaps": [],
+                         "federation": {"exposes": [], "uses": []}}
 
-            self.assertEqual(
-                [("service", "registry.example/platform/service:abc123")],
-                generate_sbom_reports.load_builds(artifact_file),
-            )
+    def call(self, component, kind, value):
+        return {
+            "id": component + kind, "component": component, "kind": kind,
+            "source": {"path": self.packages[component][0] + "/src/client.ts", "line": 12},
+            "function": "send", "callee": "broker." + kind.removeprefix("nats-"),
+            "target": "nats", "channel": {"expression": "SUBJECT", "value": value},
+            "contracts": [], "status": "verified", "callers": [],
+        }
 
-    def test_option_like_image_tags_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            artifact_file = Path(temp_dir) / "artifacts.json"
-            artifact_file.write_text(
-                json.dumps({"builds": [{"imageName": "service", "tag": "--output=/tmp/x"}]}),
-                encoding="utf-8",
-            )
+    def test_vertical_slice_reaches_widget_and_shell_page(self):
+        self.analysis["federation"] = {
+            "exposes": [{"component": "topology-client", "remote": "topology_client",
+                         "module": "NetworkCanvas", "implementation": "services/topology/client/src/Canvas.tsx",
+                         "source": {"path": "services/topology/client/vite.config.ts", "line": 8}}],
+            "uses": [{"component": "topology-shell", "remote": "topology_client",
+                      "module": "NetworkCanvas", "function": "Dashboard",
+                      "source": {"path": "ui-shells/topology-shell/src/Dashboard.tsx", "line": 4}}],
+        }
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        database = next(item for item in report["slices"] if item["root"] == "infrastructure:topology-db")
+        shell = next(item for item in database["dependents"]
+                     if item["component"] == "workspace:topology-shell")
+        self.assertEqual(shell["path"][:3], [
+            "infrastructure:topology-db", "workspace:topology-server", "workspace:topology-client",
+        ])
+        self.assertTrue(any(node.startswith("widget:") for node in shell["path"]))
+        self.assertTrue(any(node.startswith("page:") for node in shell["path"]))
+        self.assertNotIn("third-party-library", json.dumps(report))
 
-            with self.assertRaisesRegex(ValueError, "unsupported characters"):
-                generate_sbom_reports.load_builds(artifact_file)
+    def test_shared_broker_does_not_create_all_to_all_payload_dependencies(self):
+        self.analysis["calls"] = [
+            self.call("topology-server", "nats-publish", "transfer.committed"),
+            self.call("audit-server", "nats-subscribe", "transfer.committed"),
+            self.call("compliance-server", "nats-subscribe", "different.subject"),
+        ]
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        events = [edge for edge in report["dependencies"] if edge["type"] == "event-payload"]
+        self.assertEqual([(edge["from"], edge["to"]) for edge in events],
+                         [("workspace:audit-server", "workspace:topology-server")])
 
-    def test_duplicate_image_ids_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            artifact_file = Path(temp_dir) / "artifacts.json"
-            artifact_file.write_text(
-                json.dumps({
-                    "builds": [
-                        {"imageName": "registry-a/service", "tag": "registry-a/service:one"},
-                        {"imageName": "registry-b/service", "tag": "registry-b/service:two"},
-                    ]
-                }),
-                encoding="utf-8",
-            )
+    def test_unresolved_subjects_are_not_joined_and_gaps_are_rendered(self):
+        self.analysis["calls"] = [
+            self.call("topology-server", "nats-publish", None),
+            self.call("audit-server", "nats-subscribe", None),
+        ]
+        self.analysis["gaps"] = [{
+            "source": {"path": "services/topology/server/src/client.ts", "line": 12},
+            "reason": "Dynamic subject cannot be resolved <safely>",
+        }]
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        self.assertFalse(any(edge["type"] == "event-payload" for edge in report["dependencies"]))
+        self.assertIn("Dynamic subject", generate_dependency_reports.render_markdown(report))
+        self.assertIn("&lt;safely&gt;", generate_dependency_reports.render_html(report))
 
-            with self.assertRaisesRegex(ValueError, "unique SBOM filenames"):
-                generate_sbom_reports.load_builds(artifact_file)
+    def test_nats_subject_wildcards_link_only_matching_consumers(self):
+        self.analysis["calls"] = [
+            self.call("topology-server", "nats-publish", "transfer.committed.final"),
+            self.call("audit-server", "nats-subscribe", "transfer.>"),
+            self.call("compliance-server", "nats-subscribe", "transfer.*"),
+        ]
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        events = [edge for edge in report["dependencies"] if edge["type"] == "event-payload"]
+        self.assertEqual([(edge["from"], edge["to"]) for edge in events],
+                         [("workspace:audit-server", "workspace:topology-server")])
+        self.assertEqual(len(events[0]["evidence"]), 2)
 
-    def test_sbom_and_html_outputs_are_indexed_and_stale_reports_removed(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            fake_trivy = temp_path / "trivy"
-            fake_trivy.write_text(
-                "#!/usr/bin/env python3\n"
-                "import json, sys\n"
-                "from pathlib import Path\n"
-                "if '--version' in sys.argv:\n"
-                "    print('Version: 0.76.1')\n"
-                "    raise SystemExit(0)\n"
-                "output = Path(sys.argv[sys.argv.index('--output') + 1])\n"
-                "output.write_text(json.dumps({'bomFormat': 'CycloneDX', 'components': []}))\n",
-                encoding="utf-8",
-            )
-            fake_trivy.chmod(0o755)
-            fake_sunshine = temp_path / "sunshine.py"
-            fake_sunshine.write_text(
-                "import sys\n"
-                "from pathlib import Path\n"
-                "output = Path(sys.argv[sys.argv.index('--output') + 1])\n"
-                "output.write_text('<html>SBOM report</html>')\n",
-                encoding="utf-8",
-            )
-            output_dir = temp_path / "reports"
-            output_dir.mkdir()
-            (output_dir / "removed-image.cdx.json").write_text("{}", encoding="utf-8")
-            (output_dir / "removed-image.html").write_text("stale", encoding="utf-8")
+    def test_duplicate_or_unknown_call_components_fail(self):
+        call = self.call("topology-server", "nats-publish", "subject")
+        self.analysis["calls"] = [call, call]
+        with self.assertRaisesRegex(ValueError, "unique identifiers"):
+            generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        self.analysis["calls"] = [{**call, "component": "missing"}]
+        with self.assertRaisesRegex(ValueError, "unknown workspace"):
+            generate_dependency_reports.build_report(self.root, self.model, self.analysis)
 
-            generate_sbom_reports.generate_reports(
-                [("service", "service:abc123")],
-                str(fake_trivy),
-                fake_sunshine,
-                output_dir,
-                "pinned",
-            )
+    def test_shared_contract_lists_real_consumers_not_unrelated_services(self):
+        path = self.root / "packages/contracts/topology"
+        path.mkdir(parents=True)
+        (path / "package.json").write_text(json.dumps({"name": "@contracts/topology"}))
+        for name in ("topology-server", "topology-client", "compliance-server"):
+            package = self.root / self.packages[name][0] / "package.json"
+            manifest = json.loads(package.read_text())
+            manifest["dependencies"]["@contracts/topology"] = "workspace:*"
+            package.write_text(json.dumps(manifest))
+        subprocess.run(["git", "add", "."], cwd=self.root, check=True)
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        contract = next(item for item in report["slices"] if item["root"] == "workspace:@contracts/topology")
+        self.assertEqual({item["component"] for item in contract["dependents"]},
+                         {"workspace:topology-server", "workspace:topology-client",
+                          "workspace:compliance-server"})
 
-            self.assertTrue((output_dir / "service.cdx.json").is_file())
-            self.assertTrue((output_dir / "service.html").is_file())
-            self.assertIn("service:abc123", (output_dir / "index.md").read_text(encoding="utf-8"))
-            self.assertEqual(
-                {"trivy": "0.76.1", "cyclonedxSunshineRevision": "pinned"},
-                json.loads((output_dir / "tool-versions.json").read_text(encoding="utf-8")),
-            )
-            self.assertFalse((output_dir / "removed-image.cdx.json").exists())
-            self.assertFalse((output_dir / "removed-image.html").exists())
+    def test_contradictory_federation_exposures_fail(self):
+        expose = {"component": "topology-client", "remote": "topology_client",
+                  "module": "NetworkCanvas", "implementation": "services/topology/client/src/Canvas.tsx",
+                  "source": {"path": "services/topology/client/vite.config.ts", "line": 8}}
+        self.analysis["federation"]["exposes"] = [
+            expose, {**expose, "implementation": "services/topology/client/src/client.ts"},
+        ]
+        with self.assertRaisesRegex(ValueError, "Contradictory federation"):
+            generate_dependency_reports.build_report(self.root, self.model, self.analysis)
 
+    def test_repeated_generation_and_synchronization_do_not_rewrite_reports(self):
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        output = self.root / "generated"
+        generate_dependency_reports.write_reports(report, output / "dependencies")
+        (output / "architecture").mkdir()
+        for name in ("architecture.md", "architecture.html"):
+            (output / "architecture" / name).write_text("overview")
+        destination = self.root / "published"
+        sync_generated_reports.sync_reports(output, destination)
+        original = {name: (destination / name).stat().st_mtime_ns
+                    for name in sync_generated_reports.REPORT_FILES}
+        generate_dependency_reports.write_reports(report, output / "dependencies")
+        sync_generated_reports.sync_reports(output, destination)
+        self.assertEqual(original, {name: (destination / name).stat().st_mtime_ns
+                                    for name in sync_generated_reports.REPORT_FILES})
 
-class ReportSynchronizationTests(unittest.TestCase):
-    def write_reports(self, root: Path, image_id: str, serial: str, html_body: str) -> None:
-        sbom_dir = root / "sbom"
-        architecture_dir = root / "architecture"
-        sbom_dir.mkdir(parents=True, exist_ok=True)
-        architecture_dir.mkdir(parents=True, exist_ok=True)
-        (sbom_dir / "service.cdx.json").write_text(
-            json.dumps({
-                "serialNumber": serial,
-                "metadata": {
-                    "component": {
-                        "properties": [
-                            {"name": "aquasecurity:trivy:ImageID", "value": image_id}
-                        ]
-                    }
-                },
-            }),
-            encoding="utf-8",
-        )
-        (sbom_dir / "service.html").write_text(html_body, encoding="utf-8")
-        (sbom_dir / "index.md").write_text(f"Image digest: {image_id}\n", encoding="utf-8")
-        (sbom_dir / "tool-versions.json").write_text(
-            json.dumps({"trivy": "0.76.1", "cyclonedxSunshineRevision": "pinned"}),
-            encoding="utf-8",
-        )
-        (architecture_dir / "architecture.md").write_text("Architecture\n", encoding="utf-8")
-        (architecture_dir / "architecture.html").write_text("<html>Architecture</html>", encoding="utf-8")
-
-    def test_unchanged_image_does_not_commit_volatile_report_metadata(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            source = temp_path / "source"
-            destination = temp_path / "destination"
-            self.write_reports(source, "sha256:image-one", "serial-one", "first report")
+    def test_incomplete_report_bundle_fails_before_touching_destination(self):
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        source = self.root / "source"
+        generate_dependency_reports.write_reports(report, source / "dependencies")
+        destination = self.root / "destination"
+        destination.mkdir()
+        untouched = destination / "notes.txt"
+        untouched.write_text("keep")
+        with self.assertRaisesRegex(ValueError, "missing"):
             sync_generated_reports.sync_reports(source, destination)
-            committed_sbom = (destination / "sbom/service.cdx.json").read_text(encoding="utf-8")
-            committed_html = (destination / "sbom/service.html").read_text(encoding="utf-8")
+        self.assertEqual(list(destination.iterdir()), [untouched])
 
-            self.write_reports(source, "sha256:image-one", "serial-two", "regenerated report")
-            sync_generated_reports.sync_reports(source, destination)
-
-            self.assertEqual(committed_sbom, (destination / "sbom/service.cdx.json").read_text(encoding="utf-8"))
-            self.assertEqual(committed_html, (destination / "sbom/service.html").read_text(encoding="utf-8"))
-            self.assertEqual(
-                "Image digest: sha256:image-one\n",
-                (destination / "sbom/index.md").read_text(encoding="utf-8"),
-            )
-
-            self.write_reports(source, "sha256:image-two", "serial-three", "updated report")
-            sync_generated_reports.sync_reports(source, destination)
-            self.assertIn("serial-three", (destination / "sbom/service.cdx.json").read_text(encoding="utf-8"))
-            self.assertEqual("updated report", (destination / "sbom/service.html").read_text(encoding="utf-8"))
+    def test_sync_rejects_dangling_calls_and_contradictory_impact_paths(self):
+        report = generate_dependency_reports.build_report(self.root, self.model, self.analysis)
+        report["boundaryCalls"] = [{**self.call("topology-server", "nats-publish", "subject"),
+                                    "component": "missing"}]
+        with self.assertRaisesRegex(ValueError, "boundary calls"):
+            sync_generated_reports.validate_dependency_graph(report)
+        report["boundaryCalls"] = []
+        report["slices"] = [{"root": "workspace:topology-server", "dependents": [{
+            "component": "workspace:topology-client", "path": ["workspace:topology-client"],
+        }]}]
+        with self.assertRaisesRegex(ValueError, "contradictory"):
+            sync_generated_reports.validate_dependency_graph(report)
 
 
 if __name__ == "__main__":

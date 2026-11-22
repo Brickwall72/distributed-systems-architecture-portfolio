@@ -74,39 +74,59 @@ and its directly connected neighbors. Arrangements last only while that canvas i
 Reservations cover authorizations and receipts to prevent overlapping
 signatures. See the [ADRs](./docs/adr/) for design decisions.
 
-### Generated Architecture and Software Inventory
+### Internal Dependency and Connection Reference
 
 Automated report generation and generated-documentation pull requests are
-disabled for now. CI does not build images for reports, scan SBOMs, or wait
-for report generation before publishing demo UI images. Existing generated
-files are retained but are not automatically refreshed. Repository automation
+disabled for now. CI does not build images for reports or wait
+for report generation before publishing demo UI images. Generated
+files are committed but are not automatically refreshed. Repository automation
 tests still run in the verification job.
 
-The intended reference is a first-party dependency/impact map showing which
-services, shells, shared packages, and contracts could be affected by a change,
-not an exhaustive third-party library inventory. The existing structured
-[architecture model](./docs/architecture/model.json) records page/widget
-composition, storage, and communication patterns; it is not an automatically
-derived code-level downstream impact map.
+The [internal reference](./docs/generated/dependencies/index.md) replaces the
+external-library SBOM. It lists first-party workspaces, contracts, managed
+storage, widgets, and shell pages; the [HTML view](./docs/generated/dependencies/dependencies.html)
+provides per-segment boundary-call tables, while the
+[JSON graph](./docs/generated/dependencies/dependencies.json) is machine-readable.
+The [architecture overview](./docs/generated/architecture/architecture.md)
+shows the larger service connections.
 
-The [existing SBOM index](./docs/generated/sbom/index.md) links to previously
-generated third-party inventories. The optional local command below still
-builds every application image declared in `skaffold.yaml` and generates
-SBOMs and architecture reports; it is not run by CI.
+Workspace links come from package manifests, and federation composition and
+connection-boundary functions are extracted from tracked runtime source using a
+TypeScript/TSX-capable parser. Each supported boundary identifies its enclosing
+function/method, call, source location, and immediate caller/wrapper
+where resolvable. Runtime storage and service relationships use the existing
+[architecture model](./docs/architecture/model.json); keep that model current
+when those relationships change.
 
-Trivy runs with its license scanner for inventory metadata, not its vulnerability scanner. Sunshine displays a vulnerability summary, but a zero count here means vulnerability data was not included; it does not mean a vulnerability scan passed.
+Dependencies point **consumer -> provider**; possible change impact follows the
+reverse direction. A database/server implementation change does not necessarily
+break every client. A shared API/event schema change may affect other services;
+matching resolved subjects (including supported NATS wildcards), not merely using the same NATS broker, establish
+automatic event-payload links. Declared model edges are distinguished from
+source-verified evidence. Call tables distinguish direct boundaries from local
+wrappers used to resolve connection subjects.
 
-Adding a deployable image to `skaffold.yaml` is enough for it to be included in SBOM generation. Update `docs/architecture/model.json` when UI composition, storage nodes, or interactions should change in the architecture view. For local generation, prepare the pinned [CycloneDX Sunshine revision](https://github.com/CycloneDX/Sunshine/tree/beaab3faf2bab234069a8677fc627de2f0f01a3d):
+This is static reference documentation, not a complete runtime call graph,
+compatibility verdict, vulnerability scan, or CI test-selection engine.
+Unresolved dynamic destinations and unsupported connection patterns are shown
+as explicit coverage gaps. Actual credentials, environment values, and signed
+document URLs are not included.
+
+To regenerate after installing workspace dependencies:
 
 ```bash
-mkdir -p .tools
-git clone https://github.com/CycloneDX/Sunshine.git .tools/cyclonedx-sunshine
-git -C .tools/cyclonedx-sunshine checkout beaab3faf2bab234069a8677fc627de2f0f01a3d
-python3 -m pip install requests==2.32.5
+pnpm install --frozen-lockfile --ignore-scripts
 pnpm docs:generate
 ```
 
-The command also requires Docker with Buildx, Skaffold, Trivy, and Python 3; `SUNSHINE_CLI` can point to a different `sunshine.py` path.
+Generation requires Git, Python 3, and Node with the declared parser dependencies;
+it does not build images, start services, scan containers, or download tooling.
+To test the report generators directly:
+
+```bash
+python3 -m unittest scripts.tests.test_documentation_reports -v
+node --test scripts/tests/boundary-calls.test.mjs
+```
 
 ---
 

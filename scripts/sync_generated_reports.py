@@ -1,148 +1,136 @@
 #!/usr/bin/env python3
+"""Synchronize the validated source-based report bundle without content churn."""
 
 import argparse
 import json
+from pathlib import Path
 import shutil
 import sys
-from pathlib import Path
-from typing import Any
 
 
-TOOL_VERSIONS_FILENAME = "tool-versions.json"
-HTML_EXTENSION = ".html"
+REPORT_FILES = (
+    "dependencies/dependencies.json", "dependencies/index.md",
+    "dependencies/dependencies.html",
+    "architecture/architecture.md", "architecture/architecture.html",
+)
 
 
-def read_json(path: Path) -> dict[str, Any]:
-    try:
-        content = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"Could not read generated report metadata at {path}: {error}") from error
-    if not isinstance(content, dict):
-        raise ValueError(f"Generated report metadata must be a JSON object: {path}")
-    return content
-
-
-def image_identity(sbom_path: Path) -> str:
-    sbom = read_json(sbom_path)
-    metadata = sbom.get("metadata")
-    component = metadata.get("component") if isinstance(metadata, dict) else None
-    properties = component.get("properties") if isinstance(component, dict) else None
-    if isinstance(properties, list):
-        for prop in properties:
-            if (
-                isinstance(prop, dict)
-                and prop.get("name") == "aquasecurity:trivy:ImageID"
-                and isinstance(prop.get("value"), str)
-                and prop["value"]
-            ):
-                return prop["value"]
-    raise ValueError(f"Trivy SBOM is missing the image identity property: {sbom_path}")
-
-
-def copy_if_changed(source: Path, destination: Path) -> None:
+def copy_if_changed(source, destination):
     if not destination.is_file() or source.read_bytes() != destination.read_bytes():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
 
 
-def _tooling_changed(source_sboms: Path, destination_sboms: Path) -> bool:
-    source = source_sboms / TOOL_VERSIONS_FILENAME
-    destination = destination_sboms / TOOL_VERSIONS_FILENAME
-    return not destination.is_file() or read_json(source) != read_json(destination)
+def validate_report_paths(source_root, destination_root):
+    for name in REPORT_FILES:
+        path = source_root / name
+        if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+            raise ValueError(f"Generated report is missing, empty, or a symlink: {name}")
+        if not path.resolve().is_relative_to(source_root.resolve()):
+            raise ValueError(f"Generated report escapes the source directory: {name}")
+        destination = destination_root / name
+        if destination.is_symlink() or not destination.resolve().is_relative_to(destination_root.resolve()):
+            raise ValueError(f"Generated report destination is a symlink: {name}")
 
 
-def _sync_sbom_image(
-    source_sbom: Path, destination_sboms: Path, tooling_changed: bool
-) -> set[str]:
-    image_name = source_sbom.name.removesuffix(".cdx.json")
-    source_html = source_sbom.parent / f"{image_name}{HTML_EXTENSION}"
-    destination_sbom = destination_sboms / source_sbom.name
-    destination_html = destination_sboms / source_html.name
-    if not source_html.is_file():
-        raise ValueError(f"Generated HTML report is missing for image {image_name}")
+def _validate_graph_schema(graph):
+    graph_lists = ("components", "dependencies", "boundaryCalls", "compositions", "slices", "gaps")
+    if not isinstance(graph, dict) or graph.get("schemaVersion") != 1 or any(
+            not isinstance(graph.get(name), list) for name in graph_lists):
+        raise ValueError("Generated internal dependency graph has an invalid schema.")
 
-    unchanged_image = (
-        destination_sbom.is_file()
-        and destination_html.is_file()
-        and not tooling_changed
-        and image_identity(source_sbom) == image_identity(destination_sbom)
+
+def _validate_graph_elements(graph):
+    malformed_component = any(
+        not isinstance(component, dict) or not isinstance(component.get("id"), str)
+        for component in graph["components"]
     )
-    if not unchanged_image:
-        copy_if_changed(source_sbom, destination_sbom)
-        copy_if_changed(source_html, destination_html)
-    return {source_sbom.name, source_html.name}
-
-
-def _remove_unexpected_sbom_reports(destination_sboms: Path, expected_names: set[str]) -> None:
-    for old_report in destination_sboms.iterdir():
-        is_report = old_report.name.endswith(".cdx.json") or old_report.suffix == HTML_EXTENSION
-        if (
-            old_report.is_file()
-            and not old_report.is_symlink()
-            and is_report
-            and old_report.name not in expected_names
-        ):
-            old_report.unlink()
-
-
-def _sync_sbom_reports(source_sboms: Path, destination_sboms: Path) -> None:
-    tooling_changed = _tooling_changed(source_sboms, destination_sboms)
-    expected_names = {"index.md", TOOL_VERSIONS_FILENAME}
-    for source_sbom in sorted(source_sboms.glob("*.cdx.json")):
-        expected_names.update(_sync_sbom_image(source_sbom, destination_sboms, tooling_changed))
-
-    for name in ("index.md", TOOL_VERSIONS_FILENAME):
-        source = source_sboms / name
-        if not source.is_file():
-            raise ValueError(f"Generated SBOM inventory file is missing: {source}")
-        copy_if_changed(source, destination_sboms / name)
-
-    _remove_unexpected_sbom_reports(destination_sboms, expected_names)
-
-
-def _sync_architecture_reports(source: Path, destination: Path) -> None:
-    if not source.is_dir():
-        raise ValueError(f"Generated architecture reports are missing: {source}")
-    destination.mkdir(parents=True, exist_ok=True)
-    expected_names = set()
-    for report in source.iterdir():
-        if report.is_file() and report.suffix in {".md", HTML_EXTENSION}:
-            expected_names.add(report.name)
-            copy_if_changed(report, destination / report.name)
-    if not expected_names:
-        raise ValueError("No generated architecture reports were found")
-
-    for old_report in destination.iterdir():
-        is_report = old_report.suffix in {".md", HTML_EXTENSION}
-        if (
-            old_report.is_file()
-            and not old_report.is_symlink()
-            and is_report
-            and old_report.name not in expected_names
-        ):
-            old_report.unlink()
-
-
-def sync_reports(source_root: Path, destination_root: Path) -> None:
-    _sync_sbom_reports(source_root / "sbom", destination_root / "sbom")
-    _sync_architecture_reports(
-        source_root / "architecture", destination_root / "architecture"
+    malformed_connection = any(
+        not isinstance(edge, dict) or not isinstance(edge.get("from"), str)
+        or not isinstance(edge.get("to"), str)
+        for edge in graph["dependencies"]
     )
+    if malformed_component or malformed_connection:
+        raise ValueError("Generated internal dependency graph has malformed components or connections.")
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Publish only changed generated documentation reports.")
-    parser.add_argument("--source", type=Path, required=True, help="Downloaded CI report artifact directory")
-    parser.add_argument("--destination", type=Path, required=True, help="Checked-out report directory")
+def _validate_graph_references(graph):
+    identifiers = [component["id"] for component in graph["components"]]
+    dangling_connection = any(
+        edge["from"] not in identifiers or edge["to"] not in identifiers
+        for edge in graph["dependencies"]
+    )
+    if len(identifiers) != len(set(identifiers)) or dangling_connection:
+        raise ValueError("Generated internal dependency graph has duplicate or dangling references.")
+    for composition in graph["compositions"]:
+        if (not isinstance(composition, dict)
+                or f"workspace:{composition.get('shell')}" not in identifiers
+                or not isinstance(composition.get("widgets"), list)):
+            raise ValueError("Generated composition has a dangling shell or malformed widgets.")
+        for widget in composition["widgets"]:
+            if (not isinstance(widget, dict)
+                    or f"widget:{widget.get('image')}:{widget.get('module')}" not in identifiers):
+                raise ValueError("Generated composition has a dangling widget reference.")
+    return identifiers
+
+
+def _validate_boundary_calls(graph, identifiers):
+    call_ids = set()
+    for call in graph["boundaryCalls"]:
+        if (not isinstance(call, dict) or not isinstance(call.get("id"), str)
+                or call["id"] in call_ids
+                or f"workspace:{call.get('component')}" not in identifiers):
+            raise ValueError("Generated boundary calls have duplicate or dangling references.")
+        call_ids.add(call["id"])
+
+
+def _valid_dependent_path(dependent, root, identifiers):
+    if not isinstance(dependent, dict) or dependent.get("component") not in identifiers:
+        return False
+    path = dependent.get("path")
+    return (isinstance(path, list) and bool(path)
+            and path[0] == root
+            and path[-1] == dependent["component"]
+            and all(node in identifiers for node in path))
+
+
+def _validate_impact_slices(graph, identifiers):
+    for item in graph["slices"]:
+        if (not isinstance(item, dict) or item.get("root") not in identifiers
+                or not isinstance(item.get("dependents"), list)):
+            raise ValueError("Generated impact slice has a dangling root or malformed dependents.")
+        if any(not _valid_dependent_path(dependent, item["root"], identifiers)
+               for dependent in item["dependents"]):
+            raise ValueError("Generated impact slice has dangling or contradictory paths.")
+
+
+def validate_dependency_graph(graph):
+    _validate_graph_schema(graph)
+    _validate_graph_elements(graph)
+    identifiers = _validate_graph_references(graph)
+    _validate_boundary_calls(graph, identifiers)
+    _validate_impact_slices(graph, identifiers)
+
+
+def sync_reports(source_root, destination_root):
+    validate_report_paths(source_root, destination_root)
+    graph = json.loads((source_root / REPORT_FILES[0]).read_text())
+    validate_dependency_graph(graph)
+    for name in REPORT_FILES:
+        copy_if_changed(source_root / name, destination_root / name)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args()
-
     try:
         sync_reports(args.source.resolve(), args.destination.resolve())
     except (OSError, ValueError) as error:
         print(f"Generated report synchronization failed: {error}", file=sys.stderr)
         return 1
-
-    print(f"Synchronized generated reports from {args.source} to {args.destination}")
+    print(f"Synchronized source-based reports to {args.destination}")
     return 0
 
 
