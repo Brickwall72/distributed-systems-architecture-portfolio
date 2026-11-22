@@ -31,24 +31,16 @@ def image_id(image_name: str) -> str:
     return name
 
 
-def load_images(artifact_file: Path) -> list[str]:
+def load_images(skaffold_file: Path) -> list[str]:
     try:
-        content = json.loads(artifact_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"Could not read Skaffold build output at {artifact_file}: {error}") from error
-
-    if not isinstance(content, dict):
-        raise ValueError("Skaffold build output must be a JSON object")
-    builds = content.get("builds")
-    if not isinstance(builds, list) or not builds:
-        raise ValueError("Skaffold build output must contain a non-empty 'builds' list")
-
-    images: list[str] = []
-    for build in builds:
-        name = build.get("imageName") if isinstance(build, dict) else None
-        if not isinstance(name, str) or not name:
-            raise ValueError("Every Skaffold build entry must include an imageName")
-        images.append(image_id(name))
+        content = skaffold_file.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ValueError(f"Could not read Skaffold configuration at {skaffold_file}: {error}") from error
+    build = content.split("\ndeploy:", 1)[0]
+    images = [image_id(name) for name in re.findall(
+        r"^\s*-\s*image:\s*([A-Za-z0-9][A-Za-z0-9._/:@-]*)\s*$", build, re.MULTILINE)]
+    if not images:
+        raise ValueError("No explicit application image declarations found in Skaffold configuration.")
 
     if len(set(images)) != len(images):
         raise ValueError("Skaffold image names must map to unique architecture IDs")
@@ -222,9 +214,11 @@ def render_markdown(mermaid: str) -> str:
     return (
         "<!-- File: docs/generated/architecture/architecture.md -->\n"
         "# Generated service architecture\n\n"
-        "This view is generated from `docs/architecture/model.json`; application image "
-        "nodes are discovered from `skaffold.yaml` during CI. Update the model when "
-        "page composition, storage, or service interactions change.\n\n"
+        "Runtime relationships come from `docs/architecture/model.json`; application "
+        "images are discovered from `skaffold.yaml` without building images. The "
+        "combined internal-report command derives page/widget composition from "
+        "source; standalone overview generation uses the model's declared composition.\n\n"
+        "[Function/call reference](../dependencies/index.md)\n\n"
         "```mermaid\n"
         f"{mermaid}\n"
         "```\n\n"
@@ -267,7 +261,9 @@ def render_html(mermaid: str) -> str:
 <body>
   <main>
     <h1>Generated service architecture</h1>
-    <p>Generated from <code>docs/architecture/model.json</code>; application image nodes are discovered from Skaffold.</p>
+    <p>Runtime links come from <code>docs/architecture/model.json</code>; image declarations come from Skaffold without builds.
+    The combined report command derives page/widget composition from source.</p>
+    <p><a href="../dependencies/dependencies.html">Function/call reference</a></p>
     <ul>{legend_items}<li><span class="swatch" style="border-color:#a78bfa;border-width:3px"></span>UI composition - thick, solid purple (#a78bfa)</li></ul>
     <p>Arrowheads show direction; request/reply uses a two-headed arrow. NATS pub/sub uses separate publisher-to-broker and broker-to-subscriber edges. Storage nodes use a cylinder shape; edges identify the protocol or operation.</p>
     <section class="diagram"><pre class="mermaid">{escaped_diagram}</pre></section>
@@ -284,14 +280,15 @@ def render_html(mermaid: str) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate a service architecture view from Skaffold images.")
-    parser.add_argument("--artifacts", type=Path, required=True, help="Skaffold build output JSON file")
+    parser = argparse.ArgumentParser(description="Generate a source-based service architecture view.")
+    parser.add_argument("--skaffold", type=Path, default=ROOT / "skaffold.yaml",
+                        help="Skaffold configuration with application image declarations")
     parser.add_argument("--model", type=Path, default=MODEL_PATH, help="Structured architecture model JSON file")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="Generated report directory")
     args = parser.parse_args()
 
     try:
-        images = load_images(args.artifacts)
+        images = load_images(args.skaffold)
         model = json.loads(args.model.read_text(encoding="utf-8"))
         diagram = render_mermaid(images, model)
         args.output_dir.mkdir(parents=True, exist_ok=True)

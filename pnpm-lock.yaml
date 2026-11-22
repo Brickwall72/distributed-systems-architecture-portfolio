@@ -13,6 +13,12 @@ importers:
 
   .:
     devDependencies:
+      '@babel/parser':
+        specifier: ^7.28.6
+        version: 7.29.8
+      '@babel/traverse':
+        specifier: ^7.28.6
+        version: 7.29.8(supports-color@7.2.0)
       '@module-federation/vite':
         specifier: ~1.21.2
         version: 1.21.2(typescript@7.0.2)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))

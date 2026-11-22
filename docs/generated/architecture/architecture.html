@@ -20,7 +20,9 @@
 <body>
   <main>
     <h1>Generated service architecture</h1>
-    <p>Generated from <code>docs/architecture/model.json</code>; application image nodes are discovered from Skaffold.</p>
+    <p>Runtime links come from <code>docs/architecture/model.json</code>; image declarations come from Skaffold without builds.
+    The combined report command derives page/widget composition from source.</p>
+    <p><a href="../dependencies/dependencies.html">Function/call reference</a></p>
     <ul><li><span class="swatch" style="border-color:#2563eb;border-style:solid"></span>HTTP / REST - blue, solid line (#2563eb)</li>
 <li><span class="swatch" style="border-color:#c2410c;border-style:solid"></span>NATS request / reply - orange, solid line (#c2410c)</li>
 <li><span class="swatch" style="border-color:#0f766e;border-style:dashed"></span>NATS pub / sub - teal, dashed line (#0f766e)</li>
@@ -53,23 +55,23 @@
   compliance_db[(&quot;PostgreSQL (compliance)&quot;)]:::storage
   audit_db[(&quot;MongoDB (audit)&quot;)]:::storage
   minio[(&quot;MinIO object storage&quot;)]:::storage
-  global_shell ==&gt;|Mission Operations: Fleet Topology tab| topology_shell
-  global_shell ==&gt;|Mission Operations: Flight Compliance tab| compliance_shell
-  global_shell ==&gt;|Mission Operations: ProfileSelector| auth_client
-  topology_shell ==&gt;|Asset Registration Dashboard: AssetRegistration| topology_client
-  topology_shell ==&gt;|Asset Registration Dashboard: OrganizationSelector| topology_client
-  topology_shell ==&gt;|Asset Registration Dashboard: NetworkCanvas| topology_client
-  topology_shell ==&gt;|Transfer History: NetworkCanvas| topology_client
-  compliance_shell ==&gt;|Unified Custody: TemplateSelector| compliance_client
-  compliance_shell ==&gt;|Unified Custody: OrganizationSelector| topology_client
-  compliance_shell ==&gt;|Unified Custody: AssetSelector| topology_client
-  compliance_shell ==&gt;|Unified Custody: ComplianceWorkflowWidget| compliance_client
-  compliance_shell ==&gt;|Documents: DocumentsTable| compliance_client
-  compliance_shell ==&gt;|Documents: TransfersTable| audit_client
-  compliance_shell ==&gt;|Transfer Receipt: DocumentsTable| compliance_client
-  compliance_shell ==&gt;|Transfer Receipt: OrganizationSelector| topology_client
-  compliance_shell ==&gt;|Transfer Receipt: AssetSelector| topology_client
-  compliance_shell ==&gt;|Transfer Receipt: ComplianceWorkflowWidget| compliance_client
+  compliance_shell ==&gt;|DocumentsReview.page: TransfersTable| audit_client
+  compliance_shell ==&gt;|DocumentsReview.page: DocumentsTable| compliance_client
+  compliance_shell ==&gt;|TransferAuthorization.page: ComplianceWorkflowWidget| compliance_client
+  compliance_shell ==&gt;|TransferAuthorization.page: TemplateSelector| compliance_client
+  compliance_shell ==&gt;|TransferAuthorization.page: AssetSelector| topology_client
+  compliance_shell ==&gt;|TransferAuthorization.page: OrganizationSelector| topology_client
+  compliance_shell ==&gt;|TransferReceipt.page: ComplianceWorkflowWidget| compliance_client
+  compliance_shell ==&gt;|TransferReceipt.page: DocumentsTable| compliance_client
+  compliance_shell ==&gt;|TransferReceipt.page: AssetSelector| topology_client
+  compliance_shell ==&gt;|TransferReceipt.page: OrganizationSelector| topology_client
+  global_shell ==&gt;|App: ProfileSelector| auth_client
+  global_shell ==&gt;|App: App| compliance_shell
+  global_shell ==&gt;|App: App| topology_shell
+  topology_shell ==&gt;|AssetRegistrationDashboard: AssetRegistration| topology_client
+  topology_shell ==&gt;|AssetRegistrationDashboard: NetworkCanvas| topology_client
+  topology_shell ==&gt;|AssetRegistrationDashboard: OrganizationSelector| topology_client
+  topology_shell ==&gt;|TransferHistory: NetworkCanvas| topology_client
   compliance_client --&gt;|Compliance REST API| compliance_server
   topology_client --&gt;|Topology REST API| topology_server
   audit_client --&gt;|Audit REST API| audit_server

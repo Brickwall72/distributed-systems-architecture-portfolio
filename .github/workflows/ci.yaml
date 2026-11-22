@@ -17,8 +17,6 @@ env:
   NODE_TARGET_VERSION: 'node@26.7.0'
   PNPM_TARGET_VERSION: '11.24.0'
   SKAFFOLD_VERSION: 'v2.25.0'
-  TRIVY_VERSION: '0.76.1'
-  SUNSHINE_REVISION: 'beaab3faf2bab234069a8677fc627de2f0f01a3d'
 
 permissions:
   contents: read
@@ -177,7 +175,7 @@ jobs:
         run: printf '%s\n' "$CHECKS"
 
   generate-documentation:
-    name: Generate SBOM and Architecture Reports
+    name: Generate Internal Dependency and Architecture Reports
     if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
@@ -187,62 +185,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
 
-      - name: Install Skaffold
-        env:
-          SKAFFOLD_VERSION: ${{ env.SKAFFOLD_VERSION }}
-        run: |
-          skaffold_binary=skaffold-linux-amd64
-          skaffold_url="https://storage.googleapis.com/skaffold/releases/${SKAFFOLD_VERSION}"
-          curl -fsSLo "$RUNNER_TEMP/$skaffold_binary" "$skaffold_url/$skaffold_binary"
-          curl -fsSLo "$RUNNER_TEMP/$skaffold_binary.sha256" "$skaffold_url/$skaffold_binary.sha256"
-          (cd "$RUNNER_TEMP" && sha256sum --check "$skaffold_binary.sha256")
-          sudo install "$RUNNER_TEMP/$skaffold_binary" /usr/local/bin/skaffold
-          skaffold version
-
-      - name: Install Trivy
-        env:
-          TRIVY_VERSION: ${{ env.TRIVY_VERSION }}
-        run: |
-          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
-          base_url="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
-          curl -fsSLo "$RUNNER_TEMP/$archive" "$base_url/$archive"
-          curl -fsSLo "$RUNNER_TEMP/trivy_checksums.txt" \
-            "$base_url/trivy_${TRIVY_VERSION}_checksums.txt"
-          (cd "$RUNNER_TEMP" && grep "  ${archive}$" trivy_checksums.txt | sha256sum --check -)
-          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" trivy
-          sudo install "$RUNNER_TEMP/trivy" /usr/local/bin/trivy
-          trivy --version
-
-      - name: Checkout CycloneDX Sunshine
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
-        with:
-          repository: CycloneDX/Sunshine
-          ref: ${{ env.SUNSHINE_REVISION }}
-          path: .tools/cyclonedx-sunshine
-
-      - name: Set Up Python and Sunshine Dependency
+      - name: Set Up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      - name: Set Up Source Parser Runtime
+        uses: pnpm/setup@bf5bfae7d43e2b2b1191383f5005cd3fb69b848d # v4.0.0
+        with:
+          version: ${{ env.PNPM_TARGET_VERSION }}
+          runtime: ${{ env.NODE_TARGET_VERSION }}
+          install: false
+
+      - name: Install Source Parser Dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
       - name: Test Report Generation Logic
-        run: python -m unittest discover -s scripts/tests -v
-
-      - name: Install Pinned Sunshine Dependency
         run: |
-          python -m pip install --disable-pip-version-check \
-            --only-binary=:all: requests==2.32.5
+          python3 -m unittest scripts.tests.test_documentation_reports -v
+          node --test scripts/tests/boundary-calls.test.mjs
 
-      - name: Build Images and Generate Reports
-        env:
-          SUNSHINE_CLI: .tools/cyclonedx-sunshine/sunshine.py
-          SUNSHINE_REVISION: ${{ env.SUNSHINE_REVISION }}
+      - name: Generate Reports From Source
         run: sh scripts/generate_doc_reports.sh
 
       - name: Upload Generated Reports
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-and-architecture-reports
+          name: internal-dependency-and-architecture-reports
           path: docs/generated/
           if-no-files-found: error
 
@@ -353,7 +322,7 @@ jobs:
       - name: Download Generated Reports
         uses: actions/download-artifact@v4
         with:
-          name: sbom-and-architecture-reports
+          name: internal-dependency-and-architecture-reports
           path: ${{ runner.temp }}/generated-reports
 
       - name: Synchronize Changed Reports
@@ -379,7 +348,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs: refresh generated SBOM and architecture reports [skip ci]"
+          git commit -m "docs: refresh internal dependency and architecture reports [skip ci]"
           git push --force origin "HEAD:refs/heads/$REPORT_BRANCH"
           existing_pr=$(gh pr list \
             --base master \
@@ -391,8 +360,8 @@ jobs:
             gh pr create \
               --base master \
               --head "$REPORT_BRANCH" \
-              --title "docs: refresh generated SBOM and architecture reports" \
-              --body "Automated update of generated SBOM and architecture documentation. The report-generation and verification jobs passed for the source commit."
+              --title "docs: refresh internal dependency and architecture reports" \
+              --body "Automated update of source-based internal dependency and architecture documentation. The report-generation and verification jobs passed for the source commit."
           else
             echo "Updated generated documentation pull request #$existing_pr."
           fi
