@@ -666,8 +666,22 @@ CI run on `master`, the demo UI publication job can push images to GHCR and
 update `demo-ui-images.json` on the `demo-ui-published` branch. Documentation-
 only changes preserve the existing image digests. Publishing is gated by the
 `DEMO_UI_PUBLISH_ENABLED` repository variable. A disposable loopback-only k3d
-browser smoke test is a publication prerequisite and also runs on pull requests
-and through `workflow_dispatch`, so fixes can be tested before merging.
+browser smoke test is a publication prerequisite. CI selects checks before
+building: operations-only and documentation-only changes skip the browser and
+publishing jobs when no UI image inputs changed. Smoke scripts and chart
+changes still trigger the browser check; backend-only changes use service
+integration tests instead. Changes to CI selection or the workflow itself do
+not force a browser run. Pull requests compare
+against their merge base; pushes compare UI inputs against the last successful
+publication, so unpublished UI changes are not lost. The first publication
+selects all seven images. Manual `workflow_dispatch` runs the browser check.
+Workspace builds and unit tests use Turbo's affected-package selection.
+Integration suites are selected from changed workspace packages and their
+dependents; contract checks run for service/shared-contract changes and global
+build inputs. Operations/CI changes run the automation suite without workspace
+installation or compilation. Documentation-only changes skip verification
+suites. A normal manual dispatch runs full verification; registry-only dispatch
+still checks authorization without builds or tests.
 The VM does not yet consume this manifest; automated
 deployment is not configured. GHCR packages may need their visibility set to
 public after initial publication.
@@ -677,7 +691,8 @@ package, check that package's **Manage Actions access** grants this repository
 Write access; public visibility alone does not grant publishing permission.
 
 CI checks GHCR authorization for all seven UI packages before publication and
-on PRs from branches in this repository, independently of the build/test jobs.
+on PRs from branches in this repository when UI image inputs changed,
+independently of the build/test jobs.
 Fork PRs skip this check because it requires a package-write workflow token.
 For a quick check without builds, tests, or uploads, manually dispatch the
 workflow with `registry_diagnostics_only` enabled. The check requests

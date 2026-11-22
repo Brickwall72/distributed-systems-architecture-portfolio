@@ -24,9 +24,77 @@ permissions:
   contents: read
 
 jobs:
+  demo-ui-changes:
+    name: Select relevant CI checks
+    if: ${{ !inputs.registry_diagnostics_only }}
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.select.outputs.images }}
+      smoke: ${{ steps.select.outputs.smoke }}
+      workspace: ${{ steps.select.outputs.workspace }}
+      node: ${{ steps.select.outputs.node }}
+      ui_integration: ${{ steps.select.outputs.ui_integration }}
+      service_integration: ${{ steps.select.outputs.service_integration }}
+      contracts: ${{ steps.select.outputs.contracts }}
+      automation: ${{ steps.select.outputs.automation }}
+      base: ${{ steps.select.outputs.base }}
+      full_workspace: ${{ steps.select.outputs.full_workspace }}
+    steps:
+      - name: Checkout comparison history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Select changed images and smoke inputs
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          target=$(git rev-parse HEAD)
+          initial=()
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            base=$(git merge-base "$PR_BASE" "$target")
+            smoke_base="$base"
+          elif [[ "$EVENT_NAME" == push ]]; then
+            smoke_base="$BEFORE"
+            if [[ "$BEFORE" == 0000000000000000000000000000000000000000 ]]; then
+              smoke_base="$target"
+              initial=(--initial-publication)
+            fi
+            if git ls-remote --exit-code origin refs/heads/demo-ui-published > /dev/null; then
+              git fetch --no-tags origin refs/heads/demo-ui-published
+              base=$(git show FETCH_HEAD:demo-ui-images.json | python3 -c 'import json, sys; print(json.load(sys.stdin)["source"])')
+              git merge-base --is-ancestor "$base" "$target"
+            else
+              status=$?
+              if [[ "$status" != 2 ]]; then
+                echo "Unable to read publication branch." >&2
+                exit "$status"
+              fi
+              base="$target"
+              initial=(--initial-publication)
+            fi
+          else
+            echo "images=false" >> "$GITHUB_OUTPUT"
+            echo "smoke=true" >> "$GITHUB_OUTPUT"
+            for check in node workspace ui_integration service_integration contracts automation; do
+              echo "$check=true" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+          python3 scripts/select-demo-ui-images.py "$base" "$target" \
+            --smoke-base "$smoke_base" --github-output "$GITHUB_OUTPUT" "${initial[@]}"
+
   verify-and-test:
     name: Execute Workspace Verification and Test Pipeline
+    needs: [demo-ui-changes]
     if: ${{ !inputs.registry_diagnostics_only }}
+    env:
+      TURBO_SCM_BASE: ${{ needs.demo-ui-changes.outputs.base }}
+      TURBO_SCM_HEAD: ${{ github.sha }}
+      FULL_VERIFICATION: ${{ github.event_name == 'workflow_dispatch' || needs.demo-ui-changes.outputs.full_workspace == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,15 +106,8 @@ jobs:
         with:
           fetch-depth: 0 # Full git history allows Turbo and Pact to evaluate change boundaries reliably
 
-      - name: Evaluate System Tooling Boundaries
-        id: changes
-        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.2
-        with:
-          filters: |
-            pdf-server:
-              - 'services/platform/pdf-generator/server/**'
-
       - name: Initialize Unified Package Manager and Node Runtime
+        if: needs.demo-ui-changes.outputs.node == 'true'
         uses: pnpm/setup@bf5bfae7d43e2b2b1191383f5005cd3fb69b848d # v4.0.0
         with:
           version: ${{ env.PNPM_TARGET_VERSION }}
@@ -54,9 +115,11 @@ jobs:
           install: false
 
       - name: Authorize Scoped Compiler Core Binaries
+        if: needs.demo-ui-changes.outputs.workspace == 'true'
         run: pnpm approve-builds esbuild
 
       - name: Mount Turborepo Artifact Cache
+        if: needs.demo-ui-changes.outputs.workspace == 'true'
         uses: actions/cache@v4
         with:
           path: .turbo
@@ -65,33 +128,53 @@ jobs:
             ${{ runner.os }}-turbo-
 
       - name: Mount Cache-Optimized Supply Chain (Verify Dependencies)
+        if: needs.demo-ui-changes.outputs.workspace == 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Install System Chromium Binary
+        if: needs.demo-ui-changes.outputs.contracts == 'true'
         uses: browser-actions/setup-chrome@53b433108beecbba288c0531baeca36f43780a88
         with:
           chrome-version: stable
 
-      - name: Compile Workspace Packages
-        run: pnpm build
+      - name: Compile Affected Workspace Packages
+        if: needs.demo-ui-changes.outputs.workspace == 'true'
+        run: |
+          scope=(--affected)
+          if [[ "$FULL_VERIFICATION" == true ]]; then scope=(); fi
+          pnpm turbo run build "${scope[@]}"
 
-      - name: Execute Workspace Unit Tests
-        run: pnpm turbo run test:unit
+      - name: Execute Affected Workspace Unit Tests
+        if: needs.demo-ui-changes.outputs.workspace == 'true'
+        run: |
+          scope=(--affected)
+          if [[ "$FULL_VERIFICATION" == true ]]; then scope=(); fi
+          pnpm turbo run test:unit "${scope[@]}"
 
       - name: Execute UI Integration Tests
+        if: needs.demo-ui-changes.outputs.ui_integration == 'true'
         run: pnpm --filter compliance-shell test:integration
 
       - name: Execute Isolated Service Integration Tests
+        if: needs.demo-ui-changes.outputs.service_integration == 'true'
         run: pnpm test:integration
 
       - name: Test Repository Automation Scripts
+        if: needs.demo-ui-changes.outputs.automation == 'true'
         run: python3 -m unittest discover -s scripts/tests -v
 
       - name: Generate Consumer Contract Specs
+        if: needs.demo-ui-changes.outputs.contracts == 'true'
         run: pnpm turbo run test:contract --cache=""
 
       - name: Verify Provider Contract Compliance
+        if: needs.demo-ui-changes.outputs.contracts == 'true'
         run: pnpm turbo run test:verify
+
+      - name: Report selected checks
+        env:
+          CHECKS: ${{ toJSON(needs.demo-ui-changes.outputs) }}
+        run: printf '%s\n' "$CHECKS"
 
   generate-documentation:
     name: Generate SBOM and Architecture Reports
@@ -165,7 +248,8 @@ jobs:
 
   demo-ui-browser-smoke:
     name: Test demo UI in disposable k3d
-    if: ${{ !inputs.registry_diagnostics_only && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')) }}
+    needs: [demo-ui-changes]
+    if: ${{ needs.demo-ui-changes.outputs.smoke == 'true' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -210,7 +294,8 @@ jobs:
 
   check-demo-ui-registry:
     name: Check GHCR authorization
-    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.registry_diagnostics_only) || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')
+    needs: [demo-ui-changes]
+    if: ${{ !cancelled() && ((github.event_name == 'workflow_dispatch' && inputs.registry_diagnostics_only) || (needs.demo-ui-changes.result == 'success' && needs.demo-ui-changes.outputs.images == 'true' && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')))) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -226,8 +311,8 @@ jobs:
 
   publish-demo-ui:
     name: Publish demo UI images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true'
-    needs: [verify-and-test, demo-ui-browser-smoke, check-demo-ui-registry]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true' && needs.demo-ui-changes.outputs.images == 'true'
+    needs: [demo-ui-changes, verify-and-test, demo-ui-browser-smoke, check-demo-ui-registry]
     runs-on: ubuntu-latest
     concurrency:
       group: demo-ui-publication
