@@ -1,0 +1,9 @@
+[Unit]
+Description=Prefetch published demo UI images without deploying them
+Wants=network-online.target
+After=network-online.target k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/dsap-demo/k8s-demo-ui-prefetch.py
+TimeoutStartSec=20min

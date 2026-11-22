@@ -692,6 +692,98 @@ initialization, and container failures before retrying.
 The smoke deployment applies the topology chart's demo values, including
 explicit Neo4j heap/page-cache sizes and the demo memory limit.
 
+### Demo UI image prefetch and gated updates
+
+`scripts/k8s-demo-ui-prefetch.py --check` validates the public publication
+manifest without pulling images or writing VM state. Run without `--check` as
+root on the dedicated VM to pull all seven exact digests into k3s's `k8s.io`
+containerd namespace. It stages `/var/lib/dsap-demo/ui-updates/pending.json`
+only after every pull succeeds. A failed pull retains the prior manifest and
+reports failure; it never reports a partial publication as ready.
+
+Install the prefetch script and `publish-demo-ui-images.py` together under
+`/usr/local/lib/dsap-demo/`, root-owned. The latter supplies the shared manifest
+validator. Prefetch shares the reset lock and refuses to run while reset or
+public recovery markers exist. It changes neither workload images, Helm
+releases, nor the protected data archive. Cached images are not deployments.
+
+The optional `dsap-demo-ui-prefetch` systemd service/timer runs at 02:30
+`America/Denver`, before the existing 03:00 reset. Keep it disabled until the
+manual VM prefetch is verified. Failures are reported in its systemd journal;
+this service does not send a reset-failure alert or stop Funnel. Scheduled
+application is opt-in: do not install the reset service's `ui-update.conf`
+drop-in until the following preflight passes. Pause the nightly timer during
+the first controlled gated update, and do not leave scheduled application
+enabled unless that test succeeds.
+
+The updater deliberately leaves **every original baseline file unchanged**,
+including `data.tar.gz`, `deployments.json`, and `SHA256SUMS`. Instead, reset
+inventory verification overlays only the seven UI container image references
+from a root-owned private `approved-ui-images.json`. This separate approval is
+written atomically; all other baseline identity checks still apply. Visitor
+data is never recaptured. Keep the original archive and independent backups.
+
+One-time setup:
+
+1. Vendor chart dependencies with `sh scripts/charts-deps.sh`, then package
+   the seven releases with `helm package charts/<release> --destination <directory>`:
+   `audit-ledger`, `auth-service`, `compliance-service`, `compliance-shell`,
+   `global-shell`, `topology-service`, and `topology-shell`.
+2. Copy the resulting `*-0.1.0.tgz` files to the VM. Install the updater,
+   updated reset/gate/prefetch scripts, and publisher together, root-owned,
+   under `/usr/local/lib/dsap-demo/`.
+3. Run `sudo python3 /usr/local/lib/dsap-demo/k8s-demo-ui-update.py
+   --storage-uuid <recorded-uuid> --prepare <chart-directory>`. This freezes
+   private chart packages, effective values, and resource inventories. It
+   rejects packages whose rendered resources differ from installed releases,
+   except UI image references. It makes no Kubernetes changes.
+4. Run the same command with `--check` instead of `--prepare ...`.
+   Preflight verifies the baseline, live configuration, cached digests, chart
+   checksums, and server-side rendering of every candidate release. Any
+   non-image change—including provisioning Jobs, storage, Secrets, backends,
+   or ingress—blocks the update. A chart version number alone is not approval.
+5. Only after preflight passes, install
+   `scripts/systemd/dsap-demo-reset.service.d/ui-update.conf` as
+   `/etc/systemd/system/dsap-demo-reset.service.d/ui-update.conf`, reload
+   systemd, and run one controlled reset through `dsap-demo-reset.service`.
+   Verify its result before enabling the optional prefetch timer.
+
+The drop-in applies staged digests after the original data reset succeeds and
+before Funnel reopens. Helm upgrades reuse installed values, disable hooks,
+wait for readiness, and preserve release history. The updater then checks the
+protected baseline and live inventory and fetches the global HTML page and all
+six federation JavaScript entries over loopback. HTML fallback pages cannot
+satisfy the JavaScript checks. Already-approved digests do not create new Helm
+revisions. Later publications update only images, not the frozen charts.
+
+Before any Helm change, the updater durably records prior release revisions
+and the previous image approval in `ui-update-in-progress`. Failures attempt
+rollback but **retain that marker and keep public access closed**, even after
+a successful automatic rollback. Interruption or reboot also prevents Funnel
+startup and further resets. With k3s running and the public gate still closed,
+run the updater with `--rollback` to restore and verify all prior releases and
+approval state. Only this explicit successful recovery clears the UI marker;
+it does not reopen Funnel. Inspect reset state before explicitly completing
+the existing public-gate recovery procedure. Never manually delete markers
+or change baseline checksums to bypass a failed check.
+
+The drop-in extends the service timeout to 90 minutes to cover reset, seven
+three-minute Helm waits, and rollback. Failure uses the reset service's
+existing isolation and Discord alert units. Keep this integration disabled
+until tested on the dedicated VM; local tests are not a live recovery test.
+
+The dedicated VM's successful-update path was verified through its actual
+reset timer using a temporary 30-second runtime override: baseline restoration,
+all seven Helm upgrades, and post-update baseline/inventory/HTTP checks passed.
+The original 03:00 Mountain schedule and `Persistent=true` were restored.
+The actual prefetch timer was also verified with a temporary runtime override;
+all seven images were staged successfully without changing deployments. Its
+02:30 Mountain schedule was then restored and enabled. Both timers' enabled
+states, persistence, service targets, and exact next-run times were verified.
+The public demo, a federation entry, and MinIO's HTTPS health endpoint returned
+HTTP 200 afterward. UI-update interruption and rollback have not yet been
+tested on the VM; the local rollback tests do not establish live recovery.
+
 Do not enable a timer or Funnel until a full restore and recovery have been
 tested and failure notification and missed-run behavior have been decided.
 

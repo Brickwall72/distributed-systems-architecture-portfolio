@@ -49,7 +49,9 @@ def latest_scheduled_reset(now):
 
 
 def is_current(now, synchronized):
-    if not synchronized or RESET_MARKER.exists() or PUBLIC_MARKER.exists():
+    update_marker = ROOT / "ui-update-in-progress"
+    if (not synchronized or RESET_MARKER.exists() or PUBLIC_MARKER.exists()
+            or update_marker.exists() or update_marker.is_symlink()):
         return False
     try:
         metadata = LAST_SUCCESS.lstat()
@@ -81,7 +83,9 @@ def begin_reset():
 
 
 def finish_reset():
-    if not PUBLIC_MARKER.is_file() or PUBLIC_MARKER.is_symlink() or RESET_MARKER.exists():
+    update_marker = ROOT / "ui-update-in-progress"
+    if (not PUBLIC_MARKER.is_file() or PUBLIC_MARKER.is_symlink() or RESET_MARKER.exists()
+            or update_marker.exists() or update_marker.is_symlink()):
         raise ValueError("Cannot reopen public access without a completed reset and its public gate.")
     if command("timedatectl", "show", "--property=NTPSynchronized", "--value") != "yes":
         raise ValueError("System clock is not synchronized; public access remains blocked.")

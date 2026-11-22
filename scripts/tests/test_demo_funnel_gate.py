@@ -80,6 +80,26 @@ class DemoFunnelGateTests(unittest.TestCase):
                 gate.finish_reset()
                 self.assertEqual(command.call_count, 2)
 
+    def test_interrupted_ui_update_blocks_reopening_and_startup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pending").touch()
+            (root / "ui-update-in-progress").touch()
+            with patch.object(gate, "ROOT", root), patch.object(gate, "RESET_MARKER", root / "reset"), \
+                    patch.object(gate, "PUBLIC_MARKER", root / "pending"), \
+                    patch.object(gate, "command") as command:
+                with self.assertRaisesRegex(ValueError, "completed reset"):
+                    gate.finish_reset()
+                command.assert_not_called()
+                self.assertTrue((root / "pending").exists())
+                (root / "pending").unlink()
+                now = datetime.now(timezone.utc)
+                last = MagicMock()
+                last.lstat.return_value = SimpleNamespace(
+                    st_mode=stat.S_IFREG | 0o600, st_uid=0, st_mtime=now.timestamp())
+                with patch.object(gate, "LAST_SUCCESS", last):
+                    self.assertFalse(gate.is_current(now, True))
+
 
 if __name__ == "__main__":
     unittest.main()
