@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import os
 import shutil
@@ -7,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import redirect_stdout
+from urllib.error import HTTPError
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -86,6 +89,42 @@ class PublishDemoUiImagesTests(unittest.TestCase):
 
         with patch.object(publisher, "command", side_effect=command), self.assertRaisesRegex(ValueError, "clean"):
             publisher.publish(SOURCE, REGISTRY, None)
+
+
+class RegistryAccessTests(unittest.TestCase):
+    def test_checks_every_package_without_printing_tokens_or_building(self):
+        output = io.StringIO()
+        with patch.object(publisher, "build_opener") as build_opener, \
+                patch.object(publisher, "command") as command, redirect_stdout(output):
+            opener = build_opener.return_value
+            opener.open.side_effect = [
+                io.BytesIO(b'{"token": "fake-registry-token"}') for _ in publisher.BUILDS
+            ]
+            publisher.check_registry_access(REGISTRY, "example", "fake-workflow-token")
+        scopes = [call.args[0].full_url for call in opener.open.call_args_list]
+        self.assertEqual(len(scopes), len(publisher.BUILDS))
+        for name in publisher.BUILDS:
+            self.assertTrue(any(f"%2F{name}%3Apull%2Cpush" in url for url in scopes))
+        self.assertNotIn("fake-registry-token", output.getvalue())
+        self.assertNotIn("fake-workflow-token", output.getvalue())
+        command.assert_not_called()
+
+    def test_rejection_names_package_and_status_without_response_credentials(self):
+        with patch.object(publisher, "build_opener") as build_opener, \
+                patch.object(publisher, "command") as command:
+            build_opener.return_value.open.side_effect = HTTPError(
+                "https://ghcr.io/token", 403, "fake-sensitive-response", {}, None,
+            )
+            with self.assertRaises(ValueError) as raised:
+                publisher.check_registry_access(REGISTRY, "example", "fake-workflow-token")
+        self.assertEqual(str(raised.exception), "GHCR authorization rejected for audit-client: HTTP 403.")
+        command.assert_not_called()
+
+    def test_refuses_missing_credentials_without_contacting_registry(self):
+        with patch.object(publisher, "build_opener") as build_opener:
+            with self.assertRaisesRegex(ValueError, "required"):
+                publisher.check_registry_access(REGISTRY, "example", "")
+        build_opener.assert_not_called()
 
 
 @unittest.skipUnless(shutil.which("git") and shutil.which("bash"), "Git and Bash are required")

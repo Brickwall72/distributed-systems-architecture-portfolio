@@ -2,12 +2,16 @@
 """Build selected UI images and write a digest-pinned publication manifest."""
 
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import tempfile
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +36,35 @@ def command(*args, capture=False):
         args, cwd=ROOT, check=True, text=True,
         stdout=subprocess.PIPE if capture else None,
     ).stdout
+
+
+class NoRegistryRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def check_registry_access(registry, username, token):
+    if not REGISTRY.fullmatch(registry):
+        raise ValueError("Expected a lowercase GHCR repository prefix.")
+    if not username or not token:
+        raise ValueError("GITHUB_ACTOR and GHCR_TOKEN are required for registry diagnostics.")
+    authorization = base64.b64encode(f"{username}:{token}".encode()).decode()
+    opener = build_opener(NoRegistryRedirects())
+    for name in sorted(BUILDS):
+        scope = f"repository:{registry.removeprefix('ghcr.io/')}/{name}:pull,push"
+        request = Request(
+            "https://ghcr.io/token?" + urlencode({"service": "ghcr.io", "scope": scope}),
+            headers={"Authorization": f"Basic {authorization}"},
+        )
+        try:
+            with opener.open(request, timeout=30) as response:
+                result = json.load(response)
+        except HTTPError as error:
+            raise ValueError(f"GHCR authorization rejected for {name}: HTTP {error.code}.") from None
+        if not isinstance(result, dict) or not isinstance(result.get("token"), str) or not result["token"]:
+            raise ValueError(f"GHCR returned no authorization token for {name}.")
+        print(f"{name}: GHCR accepted the pull,push authorization request.", flush=True)
+    print("Authorization checks passed; manifest uploads have not been tested.", flush=True)
 
 
 def validate_manifest(manifest, registry):
@@ -94,11 +127,18 @@ def publish(source, registry, previous):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", required=True, help="full checked-out source commit SHA")
+    parser.add_argument("--source", help="full checked-out source commit SHA")
     parser.add_argument("--registry", required=True, help="lowercase GHCR repository prefix")
     parser.add_argument("--previous", type=Path, help="last successfully published manifest")
-    parser.add_argument("--output", type=Path, required=True, help="path for the completed manifest")
+    parser.add_argument("--output", type=Path, help="path for the completed manifest")
+    parser.add_argument("--check-registry-access", action="store_true",
+                        help="check GHCR authorization without building or publishing")
     args = parser.parse_args()
+    if args.check_registry_access:
+        check_registry_access(args.registry, os.environ.get("GITHUB_ACTOR"), os.environ.get("GHCR_TOKEN"))
+        return
+    if args.source is None or args.output is None:
+        parser.error("--source and --output are required for publication")
     previous = json.loads(args.previous.read_text()) if args.previous else None
     result = publish(args.source, args.registry, previous)
     descriptor, temporary = tempfile.mkstemp(prefix=".demo-ui-", dir=args.output.parent)

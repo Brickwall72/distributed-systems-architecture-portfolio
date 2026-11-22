@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      registry_diagnostics_only:
+        description: Check GHCR authorization only (no builds, tests, or publishing)
+        type: boolean
+        default: false
 
 env:
   NODE_TARGET_VERSION: 'node@26.7.0'
@@ -21,6 +26,7 @@ permissions:
 jobs:
   verify-and-test:
     name: Execute Workspace Verification and Test Pipeline
+    if: ${{ !inputs.registry_diagnostics_only }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -159,7 +165,7 @@ jobs:
 
   demo-ui-browser-smoke:
     name: Test demo UI in disposable k3d
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')
+    if: ${{ !inputs.registry_diagnostics_only && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -202,10 +208,26 @@ jobs:
           CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: bash scripts/ci-demo-ui-browser-smoke.sh
 
+  check-demo-ui-registry:
+    name: Check GHCR authorization
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.registry_diagnostics_only) || (github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout diagnostic script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+
+      - name: Check each UI package without uploading images
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/publish-demo-ui-images.py --registry "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" --check-registry-access
+
   publish-demo-ui:
     name: Publish demo UI images
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEMO_UI_PUBLISH_ENABLED == 'true'
-    needs: [verify-and-test, demo-ui-browser-smoke]
+    needs: [verify-and-test, demo-ui-browser-smoke, check-demo-ui-registry]
     runs-on: ubuntu-latest
     concurrency:
       group: demo-ui-publication
