@@ -676,12 +676,14 @@ this repository and the tested commit. If GHCR denies a push to an existing
 package, check that package's **Manage Actions access** grants this repository
 Write access; public visibility alone does not grant publishing permission.
 
-On smoke-test failure, CI prints pod and node status fields before deleting
-the disposable cluster. It does not dump Secrets, pod environments, or
-application logs; use those status fields to distinguish scheduling,
-initialization, and container failures before retrying.
-The smoke deployment applies the topology chart's demo values, including
-explicit Neo4j heap/page-cache sizes and the demo memory limit.
+CI checks GHCR authorization for all seven UI packages before publication and
+on PRs from branches in this repository, independently of the build/test jobs.
+Fork PRs skip this check because it requires a package-write workflow token.
+For a quick check without builds, tests, or uploads, manually dispatch the
+workflow with `registry_diagnostics_only` enabled. The check requests
+`pull,push` authorization and prints only package names and acceptance or HTTP
+status, never credentials or registry tokens. Successful authorization does
+not prove that a subsequent manifest upload will succeed.
 
 On smoke-test failure, CI prints pod and node status fields before deleting
 the disposable cluster. It does not dump Secrets, pod environments, or
