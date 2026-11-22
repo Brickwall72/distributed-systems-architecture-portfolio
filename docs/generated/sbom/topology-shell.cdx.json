@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:4015e545-dd79-44f6-9a9a-5ae247d3b006",
+  "serialNumber": "urn:uuid:67852930-1878-48a8-9e98-67ed6c60df5d",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-22T00:14:38+00:00",
+    "timestamp": "2026-11-22T03:41:01+00:00",
     "tools": {
       "components": [
         {
@@ -20,22 +20,14 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/topology-shell@sha256:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "bom-ref": "pkg:oci/topology-shell@sha256:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "type": "container",
-      "name": "topology-shell:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26",
-      "purl": "pkg:oci/topology-shell@sha256:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "name": "topology-shell:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0",
+      "purl": "pkg:oci/topology-shell@sha256:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:10337c50eb8ff21833fe22d27a44cd1fd9d5e4a11b785ab79cf62ea5f015a4cd"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:2694f2b8150e6d77ea498bda7dc98e4ae9d81f93c5a5bf5d4685e154c3f3367c"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:2c7b28ca1090c15ffa1bc31cf5c28e9e10e894bbdc97cbbd891658872c961bea"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -47,6 +39,10 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:4e784c896a42629257476b3569050804c754b8afd37d8984e06722647ef7046d"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:70b1e8c0d27469b83f38554586be41de0fa14f003aed9a98d69012ce29609976"
         },
         {
@@ -55,15 +51,11 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:80bb811a9606697b80b577545a7fd8076af883c8d147df1cbe69162c7de2f27c"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:816134f3f39f5368e2bfc2720b20b38699d79b5d22326e22959879cf67a06ff1"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:8d4798badbb9ab278c093fbc310a9a86459bd9cd79dd5a0e54db4fa02cc52c1b"
-        },
-        {
-          "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:9dd9adb1336f16d2f5ad0c2b6908fa9ce038cb606aea0636931e509fc2fd2ea7"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -71,11 +63,19 @@
         },
         {
           "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:bff583468b350329a1ec5b39def5682f08c67dc473c3b59f6e409019ebf90319"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
           "value": "sha256:d2376dfdf09e01de34ed999b31360b79f77c27f4a42b40ae2960a48f07c1d806"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
-          "value": "sha256:d66a984642ec18f92698b7dbaeaab96b694a8345a76884b155bf40446a278dc9"
+          "value": "sha256:d83a0b5d559719a922f9a709469820e34b2eab53e7b45862b3231ecd6b2fd190"
+        },
+        {
+          "name": "aquasecurity:trivy:DiffID",
+          "value": "sha256:e7d89cbf542ef3c15ee4cd90249b3ba31097d0b502e9c5c44ebe40558f2bd4d8"
         },
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -83,7 +83,7 @@
         },
         {
           "name": "aquasecurity:trivy:ImageID",
-          "value": "sha256:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26"
+          "value": "sha256:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0"
         },
         {
           "name": "aquasecurity:trivy:Labels:maintainer",
@@ -123,19 +123,19 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "topology-shell:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26"
+          "value": "topology-shell:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "topology-shell@sha256:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26"
+          "value": "topology-shell@sha256:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "topology-shell:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26"
+          "value": "topology-shell:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "topology-shell:5307fc2"
+          "value": "topology-shell:c78742f"
         },
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -150,7 +150,7 @@
   },
   "components": [
     {
-      "bom-ref": "e27f9b6e-d534-40e6-9572-4ed6d8599181",
+      "bom-ref": "37cc2174-532c-4184-9971-fb6f5942a96b",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.2",
@@ -3812,7 +3812,7 @@
   ],
   "dependencies": [
     {
-      "ref": "e27f9b6e-d534-40e6-9572-4ed6d8599181",
+      "ref": "37cc2174-532c-4184-9971-fb6f5942a96b",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.2",
         "pkg:apk/alpine/alpine-release@3.24.2-r0?arch=x86_64&distro=3.24.2",
@@ -4345,9 +4345,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/topology-shell@sha256:11d119e668adcc67ea0c1fc53f55270b4d941947bbe39faa68d11432b5614e26?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
+      "ref": "pkg:oci/topology-shell@sha256:bfe5abf7464a411a8cf5e09ee70cd945540cc9bc0d69de495de46a6782a9beb0?arch=amd64&repository_url=index.docker.io%2Flibrary%2Ftopology-shell",
       "dependsOn": [
-        "e27f9b6e-d534-40e6-9572-4ed6d8599181"
+        "37cc2174-532c-4184-9971-fb6f5942a96b"
       ]
     }
   ],
