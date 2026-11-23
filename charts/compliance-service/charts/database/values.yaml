@@ -1,7 +1,7 @@
 # File: charts/compliance-service/charts/database/values.yaml
 # File: charts/compliance-service/charts/database/values.yaml
 # Credentials come from the compliance-db-credentials secret bootstrapped by
-# scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
+# scripts/k8s-local/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
 
 # services/core/compliance-service/server/src/db/database.ts hardcodes "compliance-db"
 # as the fallback connection hostname, so the Service name must match literally.

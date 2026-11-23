@@ -1,6 +1,11 @@
 # ADR-003: Core Validation Latency Optimization via Synchronous HTTP Verification and Asynchronous NATS JetStream Event Pipeline
 
 ## Status
+Historical design: the HTTP validation and `ESIGN_EVENTS` flow below no longer
+describe the implementation. Compliance now coordinates NATS request/reply
+validation and signing and publishes durable events through an outbox; see the
+[current transfer workflow](../architecture/transfer-workflow.md).
+
 Amended (2026-09-30) — Updated to eliminate phantom `resource-cache` service dependency (YAGNI), focusing the blocking pre-signature verification gate exclusively on `topology-server`. Retains NATS JetStream stream topologies (`ESIGN_EVENTS`), CloudEvent 1.0 specifications, Claim-Check storage semantics, and zero-trust NetworkPolicy boundaries.
 
 * **Date:** 2026-08-14

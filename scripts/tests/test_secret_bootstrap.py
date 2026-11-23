@@ -23,11 +23,11 @@ def load(name, file):
     return module
 
 
-env = load("copy_env", "copy-env.py")
-k8s = load("k8s_local_secrets", "k8s-local-secrets.py")
-demo = load("k8s_demo_secrets", "k8s-demo-secrets.py")
-compose = load("prepare_local_compose", "prepare-local-compose.py")
-reset = load("reset_local_compose", "reset-local-compose.py")
+env = load("copy_env", "dev-env/copy-env.py")
+k8s = load("k8s_local_secrets", "k8s-local/k8s-local-secrets.py")
+demo = load("k8s_demo_secrets", "demo-vm/k8s-demo-secrets.py")
+compose = load("prepare_local_compose", "dev-env/prepare-local-compose.py")
+reset = load("reset_local_compose", "dev-env/reset-local-compose.py")
 
 
 class EnvironmentMergeTests(unittest.TestCase):
@@ -37,9 +37,12 @@ class EnvironmentMergeTests(unittest.TestCase):
             root = Path(directory)
             script_dir = root / "scripts"
             script_dir.mkdir()
-            for name in ("copy-env.py", "prepare-local-compose.py", "k8s-local-secrets.py",
-                         "generate-auth-keys.sh", "generate-nats-credentials.sh"):
-                shutil.copyfile(ROOT / "scripts" / name, script_dir / name)
+            for name in ("dev-env/copy-env.py", "dev-env/prepare-local-compose.py",
+                         "k8s-local/k8s-local-secrets.py", "dev-env/generate-auth-keys.sh",
+                         "dev-env/generate-nats-credentials.sh"):
+                target = script_dir / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / "scripts" / name, target)
             package = json.loads((ROOT / "package.json").read_text())
             isolated_package = {
                 "name": package["name"],
@@ -215,7 +218,7 @@ class EnvironmentMergeTests(unittest.TestCase):
 
     def test_explicit_credential_handoff_requires_confirmation(self):
         result = subprocess.run(
-            ["python3", str(ROOT / "scripts/prepare-local-compose.py"), "--accept-provisioned-credentials"],
+            ["python3", str(ROOT / "scripts/dev-env/prepare-local-compose.py"), "--accept-provisioned-credentials"],
             input=b"no\n", stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         self.assertNotEqual(result.returncode, 0)
@@ -317,7 +320,7 @@ class EnvironmentMergeTests(unittest.TestCase):
             path = Path(directory) / ".auth-keys/nats"
             path.mkdir(parents=True)
             (path / "audit.password").write_text("existing")
-            result = subprocess.run(["bash", str(ROOT / "scripts/generate-nats-credentials.sh")],
+            result = subprocess.run(["bash", str(ROOT / "scripts/dev-env/generate-nats-credentials.sh")],
                                     cwd=directory, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("incomplete", result.stderr)

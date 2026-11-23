@@ -6,14 +6,15 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts/ci-demo-ui-browser-smoke.sh"
+SCRIPT = ROOT / "scripts/ci/ci-demo-ui-browser-smoke.sh"
 
 
 class BrowserSmokeCleanupTests(unittest.TestCase):
     def run_smoke(self, existing=False, fail_up=False, fail_down=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "scripts").mkdir()
+            (root / "scripts/k8s-local").mkdir(parents=True)
+            (root / "scripts/dev-env").mkdir(parents=True)
             (root / "bin").mkdir()
             (root / "runner").mkdir()
             k3d = root / "bin/k3d"
@@ -22,13 +23,13 @@ class BrowserSmokeCleanupTests(unittest.TestCase):
             kubectl = root / "bin/kubectl"
             kubectl.write_text('#!/bin/sh\necho diagnostics >> "$TEST_LOG"\nexit 1\n')
             kubectl.chmod(0o755)
-            helper = root / "scripts/k3d-funnel-smoke.sh"
+            helper = root / "scripts/k8s-local/k3d-funnel-smoke.sh"
             helper.write_text(
                 '#!/bin/sh\nprintf "%s\\n" "$1" >> "$TEST_LOG"\n'
                 'if [ "$1" = up ]; then exit "$UP_STATUS"; fi\n'
                 'if [ "$1" = down ]; then exit "$DOWN_STATUS"; fi\n'
             )
-            build = root / "scripts/with-buildkit.sh"
+            build = root / "scripts/dev-env/with-buildkit.sh"
             build.write_text("#!/bin/sh\nexit 42\n")
             build.chmod(0o755)
             env = {

@@ -1,6 +1,10 @@
 # ADR-011: Cloud-Parity Local Object Persistence via MinIO and Localized Database Observability
 
 ## Status
+Historical design: the current Compose stack runs MinIO's API and console in
+one server container. PostgreSQL stores compliance metadata; the audit ledger
+uses MongoDB. See the [current transfer workflow](../architecture/transfer-workflow.md).
+
 Accepted
 
 * **Date:** 2026-09-13

@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HELPER = ROOT / "scripts/ensure-python.sh"
+HELPER = ROOT / "scripts/dev-env/ensure-python.sh"
 
 
 class PythonSetupTests(unittest.TestCase):

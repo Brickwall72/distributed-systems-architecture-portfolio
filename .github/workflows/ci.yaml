@@ -82,7 +82,7 @@ jobs:
             done
             exit 0
           fi
-          python3 scripts/select-demo-ui-images.py "$base" "$target" \
+          python3 scripts/ci/select-demo-ui-images.py "$base" "$target" \
             --smoke-base "$smoke_base" --github-output "$GITHUB_OUTPUT" "${initial[@]}"
 
   verify-and-test:
@@ -176,7 +176,7 @@ jobs:
 
   generate-documentation:
     name: Generate Internal Dependency and Architecture Reports
-    if: ${{ false }}
+    if: ${{ !inputs.registry_diagnostics_only }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -206,7 +206,7 @@ jobs:
           node --test scripts/tests/boundary-calls.test.mjs
 
       - name: Generate Reports From Source
-        run: sh scripts/generate_doc_reports.sh
+        run: sh scripts/docs/generate_doc_reports.sh
 
       - name: Upload Generated Reports
         uses: actions/upload-artifact@v4
@@ -259,7 +259,7 @@ jobs:
       - name: Exercise transfer, signing, PDFs and topology
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
-        run: bash scripts/ci-demo-ui-browser-smoke.sh
+        run: bash scripts/ci/ci-demo-ui-browser-smoke.sh
 
   check-demo-ui-registry:
     name: Check GHCR authorization
@@ -276,7 +276,7 @@ jobs:
       - name: Check each UI package without uploading images
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/publish-demo-ui-images.py --registry "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" --check-registry-access
+        run: python3 scripts/ci/publish-demo-ui-images.py --registry "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" --check-registry-access
 
   publish-demo-ui:
     name: Publish demo UI images
@@ -301,13 +301,16 @@ jobs:
         run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       - name: Publish images and manifest
-        run: bash scripts/publish-demo-ui-release.sh
+        run: bash scripts/ci/publish-demo-ui-release.sh
 
   publish-generated-documentation:
     name: Open Generated Reports Pull Request
-    if: ${{ false }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && !inputs.registry_diagnostics_only }}
     needs: [verify-and-test, generate-documentation]
     runs-on: ubuntu-latest
+    concurrency:
+      group: generated-documentation-publication
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
@@ -327,7 +330,7 @@ jobs:
 
       - name: Synchronize Changed Reports
         run: |
-          python3 scripts/sync_generated_reports.py \
+          python3 scripts/docs/sync_generated_reports.py \
             --source "$RUNNER_TEMP/generated-reports" \
             --destination docs/generated
 
@@ -349,6 +352,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "docs: refresh internal dependency and architecture reports [skip ci]"
+          remote_master=$(git ls-remote --exit-code origin refs/heads/master)
+          if [ "${remote_master%%[[:space:]]*}" != "$SOURCE_COMMIT" ]; then
+            echo "master advanced while reports were generated; refusing to publish stale outputs." >&2
+            exit 1
+          fi
           git push --force origin "HEAD:refs/heads/$REPORT_BRANCH"
           existing_pr=$(gh pr list \
             --base master \

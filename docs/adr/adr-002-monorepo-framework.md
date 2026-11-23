@@ -1,6 +1,9 @@
 # ADR-002: Implementation of Unified Monorepo Framework and Software Quality Gates
 
 ## Status
+Historical service count: the current layout has three core services and
+three platform services, including auth. See the [repository overview](../../README.md).
+
 Amended (2026-08-29) — Original decision accepted on 2026-08-14; updated to reflect reduction to a 6-service topology and map the explicit extraction of the `/ui-shells/` and `/packages/` directory blocks.
 
 * **Date:** 2026-08-14

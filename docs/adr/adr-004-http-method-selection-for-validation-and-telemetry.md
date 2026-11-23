@@ -1,6 +1,10 @@
 # ADR-004: HTTP Method Selection Criteria for Validation Processing vs. Volatile Telemetry Retrieval
 
 ## Status
+Historical design, not a current interface: there is no `resource-cache`
+service or telemetry gate, and draft validation uses NATS request/reply. See
+the [current transfer workflow](../architecture/transfer-workflow.md).
+
 Accepted
 
 * **Date:** 2026-08-14

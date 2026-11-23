@@ -1,5 +1,5 @@
 # File: charts/dbgate/values.yaml
-# Reuses the compliance-db-credentials secret bootstrapped by scripts/k8s-local-secrets.sh.
+# Reuses the compliance-db-credentials secret bootstrapped by scripts/k8s-local/k8s-local-secrets.sh.
 
 image:
   repository: dbgate/dbgate

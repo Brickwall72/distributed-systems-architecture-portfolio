@@ -23,7 +23,7 @@ class SmokeDemoValuesTests(unittest.TestCase):
                 )
                 tool.chmod(0o755)
             subprocess.run(
-                ["bash", str(ROOT / "scripts/k3d-funnel-smoke.sh"), "deploy-loopback"],
+                ["bash", str(ROOT / "scripts/k8s-local/k3d-funnel-smoke.sh"), "deploy-loopback"],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                 env={**os.environ, "PATH": f"{root}:{os.environ['PATH']}", "HELM_TEST_LOG": str(log)},
             )

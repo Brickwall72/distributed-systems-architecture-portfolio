@@ -119,7 +119,7 @@ describe('transfer reservations with Neo4j', () => {
     };
     expect((await repository.validate(receipt)).assets[0].status).toBe('IN_TRANSIT');
     await expect(repository.validate({ ...receipt, assetIds: [asset('completed')] })).rejects.toBeInstanceOf(TransferClaimConflict);
-  });
+  }, 30_000);
 
   it('serializes competing claims and supports exact retries', async () => {
     const first = track(claim());

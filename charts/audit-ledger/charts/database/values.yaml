@@ -1,6 +1,6 @@
 # File: charts/audit-ledger/charts/database/values.yaml
 # Credentials come from the audit-db-credentials secret bootstrapped by
-# scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
+# scripts/k8s-local/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
 
 # The server chart sets DB_HOST to "audit-db", so the Service name must match literally.
 nameOverride: audit-db

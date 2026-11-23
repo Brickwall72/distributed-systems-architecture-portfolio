@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import generate_architecture, generate_dependency_reports, sync_generated_reports
+from scripts.docs import generate_architecture, generate_dependency_reports, sync_generated_reports
 
 
 SKAFFOLD_PATH = Path(__file__).resolve().parents[2] / "skaffold.yaml"
@@ -185,6 +185,19 @@ class InternalReportTests(unittest.TestCase):
             "target": "nats", "channel": {"expression": "SUBJECT", "value": value},
             "contracts": [], "status": "verified", "callers": [],
         }
+
+    def test_html_source_links_point_to_master_and_escape_paths(self):
+        evidence = {"path": "services/test & demo/server.ts", "line": 12}
+        self.assertEqual(
+            generate_dependency_reports.source_link(evidence, html_output=True),
+            '<a href="https://github.com/Brickwall72/distributed-systems-architecture-portfolio'
+            '/blob/master/services/test%20%26%20demo/server.ts#L12">'
+            'services/test &amp; demo/server.ts:12</a>',
+        )
+        self.assertEqual(
+            generate_dependency_reports.source_link(evidence),
+            "[services/test & demo/server.ts:12](../../../services/test & demo/server.ts#L12)",
+        )
 
     def test_vertical_slice_reaches_widget_and_shell_page(self):
         self.analysis["federation"] = {

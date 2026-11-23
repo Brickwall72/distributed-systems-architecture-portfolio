@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("demo_reset", ROOT / "scripts/k8s-demo-reset.py")
+spec = importlib.util.spec_from_file_location("demo_reset", ROOT / "scripts/demo-vm/k8s-demo-reset.py")
 reset = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reset)
 
