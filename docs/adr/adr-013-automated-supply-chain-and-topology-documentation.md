@@ -7,8 +7,9 @@ connection-boundary references.
 
 The original image-scanned third-party inventory decision has been
 replaced by source-based first-party dependency and boundary-call reporting.
-Report generation and generated-documentation PR automation remain disabled in
-CI; this refactor does not change CI test-selection policy.
+CI now generates reports and opens or updates a generated-documentation PR
+after successful `master` verification. This does not change CI test-selection
+policy.
 
 * **Date:** 2026-11-01
 * **Amended Date:** 2026-11-22
@@ -50,8 +51,8 @@ genuine cross-service impact.
    through `pnpm docs:generate`. Synchronize only a validated report bundle by
    content, with no image-identity or scanner-version special cases.
 5. Remove the obsolete external generator, scanner setup, metadata handling,
-   tests, and generated inventories. Preserve disabled report jobs and current
-   CI selection.
+   tests, and generated inventories. Generate reports in CI and publish changes
+   through a reviewable PR without changing CI test selection.
 
 ## Consequences
 * **Positive:** Reports explain internal vertical slices and real cross-service

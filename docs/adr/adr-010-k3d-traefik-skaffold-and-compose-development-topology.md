@@ -1,6 +1,10 @@
 # ADR-010: Dual-Mode Local Development with k3d, Helm, Traefik, Skaffold, and Docker Compose
 
 ## Status
+Historical decision: separate ingress ports do not guarantee simultaneous
+Compose and k3d deployments are conflict-free; backing services can publish
+the same host ports. See the [current development guide](../development/).
+
 Amended (2026-09-26) — Updated to integrate production-ready, multi-stage OCI build contours across all services and configure internal Nginx proxy routing rules within the production shell layers to preserve path parity across runtimes.
 
 * **Date:** 2026-09-08

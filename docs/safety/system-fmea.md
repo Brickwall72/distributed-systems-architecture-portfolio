@@ -1,5 +1,12 @@
 # Failure Mode and Effects Analysis (FMEA): Distributed Platform Baseline
 
+**Historical draft, not a current safety assessment.** This matrix predates
+the custody-transfer workflow and includes nonexistent components (such as
+`resource-cache`) and proposed, unverified mitigations. The numeric scores and
+revised RPNs are not validated measures of the current system. This portfolio
+is a fictional demo, not a flight-readiness or telemetry system; a new FMEA
+would require an explicit scope, evidence, and reassessment.
+
 ## 1. Risk Evaluation Scoring Criteria
 * **Severity (S):** 1 (No operational impact) to 10 (Total mission failure / data corruption).
 * **Occurrence (O):** 1 (Highly improbable) to 10 (Frequent, predictable failure).

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("demo_ui_prefetch", ROOT / "scripts/k8s-demo-ui-prefetch.py")
+spec = importlib.util.spec_from_file_location("demo_ui_prefetch", ROOT / "scripts/demo-vm/k8s-demo-ui-prefetch.py")
 prefetch = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prefetch)
 

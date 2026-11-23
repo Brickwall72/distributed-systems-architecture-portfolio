@@ -1,6 +1,6 @@
 # File: charts/topology-service/charts/database/values.yaml
 # Credentials come from the topology-db-credentials secret bootstrapped by
-# scripts/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
+# scripts/k8s-local/k8s-local-secrets.sh (pnpm k8s:secrets) - not managed by this chart.
 
 # services/core/topology-service/server/src/topologyDatabase.ts defaults DB_URI to
 # bolt://localhost:7687, so the server chart must set DB_URI explicitly; this name

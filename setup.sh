@@ -91,7 +91,7 @@ fi
 echo "✓ Homebrew verified and active ($(brew --version | head -n1))"
 
 # --- PYTHON RUNTIME FOR LOCAL ENVIRONMENT AND SECRET BOOTSTRAP ---
-source "$(dirname "${BASH_SOURCE[0]}")/scripts/ensure-python.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/scripts/dev-env/ensure-python.sh"
 ensure_python "${TARGET_PROFILE}"
 
 # --- STEP 2: CROSS-PLATFORM BROWSER SETUP (Puppeteer Gate) ---

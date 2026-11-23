@@ -8,7 +8,7 @@ from urllib.error import HTTPError, URLError
 
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("demo_reset_alert", ROOT / "scripts/k8s-demo-reset-alert.py")
+spec = importlib.util.spec_from_file_location("demo_reset_alert", ROOT / "scripts/demo-vm/k8s-demo-reset-alert.py")
 alert = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(alert)
 

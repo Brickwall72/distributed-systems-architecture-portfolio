@@ -1,6 +1,12 @@
 # ADR-015: Immutable Audit Ledger via Event Accumulation and Hash-Chained Sealing
 
 ## Status
+The current implementation uses restricted MongoDB application credentials,
+a private MinIO bucket, and participant-scoped reads. The earlier limitations
+and proposed verification endpoints below are historical; see the
+[audit service README](../../services/core/audit-ledger/README.md) and
+[current interface overview](../interface-control/system-icd.md).
+
 Amended (2026-11-08) — Added in a renditions collection for handling the generation and storage of pdf documents for sealed transfer records.
 
 * **Date:** 2026-10-05

@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const script = fileURLToPath(new URL('../extract_boundary_calls.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../docs/extract_boundary_calls.mjs', import.meta.url));
 const root = path.resolve(`.boundary-fixture-${process.pid}`);
 function write(file, text) {
   const target = path.join(root, file);

@@ -3,8 +3,9 @@
 
 Run the complete isolated suite from the workspace root with
 `pnpm test:integration`. It starts and cleans up its own Docker dependencies;
-normal `pnpm test` does not run integration tests. See the root README for
-prerequisites and coverage.
+normal `pnpm test` does not run integration tests. See the
+[testing guide](../../../../docs/development/testing.md) for prerequisites and
+coverage.
 
 For individual topology tests, use disposable, isolated Neo4j databases with
 authentication disabled. The graph tests require `GRAPH_TEST_NEO4J_URI`, claim

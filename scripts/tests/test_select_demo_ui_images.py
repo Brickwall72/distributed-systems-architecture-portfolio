@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("select_demo_ui_images", ROOT / "scripts/select-demo-ui-images.py")
+spec = importlib.util.spec_from_file_location("select_demo_ui_images", ROOT / "scripts/ci/select-demo-ui-images.py")
 selector = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(selector)
 
@@ -46,18 +46,18 @@ class SelectDemoUiImagesTests(unittest.TestCase):
         ]), [])
 
     def test_operations_and_docs_skip_browser_and_publication(self):
-        paths = ["scripts/k8s-demo-ui-update.py", "scripts/tests/test_demo_ui_update.py",
-                 "scripts/systemd/dsap-demo-ui-prefetch.timer", "README.md"]
+        paths = ["scripts/demo-vm/k8s-demo-ui-update.py", "scripts/tests/test_demo_ui_update.py",
+                 "scripts/demo-vm/systemd/dsap-demo-ui-prefetch.timer", "README.md"]
         self.assertEqual(selector.select_checks(paths, paths), ([], False))
 
     def test_smoke_infrastructure_runs_browser(self):
-        for path in ("scripts/demo-ui-browser-smoke.mjs",
+        for path in ("scripts/ci/demo-ui-browser-smoke.mjs",
                      "charts/platform-lib/templates/_client.tpl"):
             with self.subTest(path=path):
                 self.assertEqual(selector.select_checks([path], [path]), ([], True))
 
     def test_ci_selection_and_backend_changes_do_not_run_browser(self):
-        for path in (".github/workflows/ci.yaml", "scripts/select-demo-ui-images.py",
+        for path in (".github/workflows/ci.yaml", "scripts/ci/select-demo-ui-images.py",
                      "scripts/tests/test_select_demo_ui_images.py",
                      "services/platform/pdf-generator/server/src/index.ts"):
             with self.subTest(path=path):
@@ -67,7 +67,7 @@ class SelectDemoUiImagesTests(unittest.TestCase):
         self.assertEqual(selector.select_checks([], ["charts/platform-lib/README.md"]), ([], False))
 
     def test_operations_and_workflow_only_select_automation(self):
-        for path in ("scripts/k8s-demo-ui-update.py", ".github/workflows/ci.yaml"):
+        for path in ("scripts/demo-vm/k8s-demo-ui-update.py", ".github/workflows/ci.yaml"):
             checks = selector.verification_checks([path], {})
             self.assertEqual({name for name, enabled in checks.items() if enabled}, {"automation"})
 
@@ -91,7 +91,7 @@ class SelectDemoUiImagesTests(unittest.TestCase):
         self.assertFalse(ui["contracts"])
 
     def test_integration_harness_runs_services_without_browser(self):
-        paths = ["scripts/integration-compose.yaml"]
+        paths = ["scripts/integration/integration-compose.yaml"]
         self.assertTrue(selector.verification_checks(paths, {})["service_integration"])
         self.assertEqual(selector.select_checks(paths, paths), ([], False))
 
@@ -122,9 +122,9 @@ class SelectDemoUiImagesTests(unittest.TestCase):
     def assert_ci_outputs(self, changed_file, expected):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "scripts").mkdir()
-            shutil.copyfile(ROOT / "scripts/select-demo-ui-images.py",
-                            root / "scripts/select-demo-ui-images.py")
+            (root / "scripts/ci").mkdir(parents=True)
+            shutil.copyfile(ROOT / "scripts/ci/select-demo-ui-images.py",
+                            root / "scripts/ci/select-demo-ui-images.py")
             package = root / "ui-shells/global-shell/package.json"
             package.parent.mkdir(parents=True)
             package.write_text(json.dumps({"name": "global-shell"}))
@@ -146,7 +146,7 @@ class SelectDemoUiImagesTests(unittest.TestCase):
                 "commit", "-m", "change")
             output = root / "outputs"
             subprocess.run(
-                ["python3", "scripts/select-demo-ui-images.py", base, git("rev-parse", "HEAD"),
+                ["python3", "scripts/ci/select-demo-ui-images.py", base, git("rev-parse", "HEAD"),
                  "--github-output", str(output)], cwd=root, check=True, stdout=subprocess.PIPE,
             )
             actual = dict(line.split("=", 1) for line in output.read_text().splitlines())

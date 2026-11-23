@@ -13,7 +13,7 @@ from urllib.error import HTTPError
 
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("publish_demo_ui_images", ROOT / "scripts/publish-demo-ui-images.py")
+spec = importlib.util.spec_from_file_location("publish_demo_ui_images", ROOT / "scripts/ci/publish-demo-ui-images.py")
 publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
 
@@ -142,9 +142,9 @@ class PublishDemoUiReleaseTests(unittest.TestCase):
             git("config", "user.name", "Test")
             git("config", "user.email", "test@example.invalid")
             git("remote", "add", "origin", str(remote))
-            (repo / "scripts").mkdir()
+            (repo / "scripts/ci").mkdir(parents=True)
             for name in ("publish-demo-ui-release.sh", "publish-demo-ui-images.py", "select-demo-ui-images.py"):
-                shutil.copy(ROOT / "scripts" / name, repo / "scripts" / name)
+                shutil.copy(ROOT / "scripts/ci" / name, repo / "scripts/ci" / name)
             (repo / "README.md").write_text("initial\n")
             git("add", ".")
             git("commit", "-m", "Initial")
@@ -168,7 +168,7 @@ class PublishDemoUiReleaseTests(unittest.TestCase):
                 if fail:
                     env["FAIL_PUSH"] = "yes"
                 subprocess.run(
-                    ["bash", "scripts/publish-demo-ui-release.sh"], cwd=repo, env=env,
+                    ["bash", "scripts/ci/publish-demo-ui-release.sh"], cwd=repo, env=env,
                     check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                 )
                 return json.loads(git("show", "origin/demo-ui-published:demo-ui-images.json"))

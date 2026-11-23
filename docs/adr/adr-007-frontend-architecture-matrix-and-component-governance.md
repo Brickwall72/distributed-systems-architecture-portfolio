@@ -1,6 +1,10 @@
 # ADR 007: Frontend Architecture Matrix and Component Governance
 
 ## Status
+Current styling differs from the original decision below: shared surfaces,
+navigation, and text use Tailwind's component layer in
+[`global.css`](../../packages/styles/src/global.css), alongside local utilities.
+
 Amended (2026-08-22) — Redesigned to authorize React/Tailwind inside shared monorepo packages and record the decommissioning of the custom pdf-viewer microservice.
 
 * **Original Date:** 2026-08-20

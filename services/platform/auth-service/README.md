@@ -3,18 +3,18 @@
 
 Minimal dev-login identity service.
 
-- **Server** mints short-lived (15 min) RS256 JWTs for a fixed set of seeded identities (one per organization plus an `auditor`) via `POST /api/v1/session`. The private key never leaves this service.
-- **Client** exposes the `ProfileSelector` federated widget (`auth_client/ProfileSelector`), mounted in the global-shell header. The token is kept in `sessionStorage` and read by every API client and `useIdentity()` from `@shared/ui-components`.
+- **Server** (workspace `auth-server`) mints short-lived (15 min) RS256 JWTs for a fixed set of seeded identities (one per organization plus an `auditor`) via `POST /api/v1/session`. The private key never leaves this service. Health is `GET /api/v1/health`; `PORT` defaults to `8080`. It owns no database, object storage, or NATS interaction.
+- **Client** (workspace `auth-client`) exposes the `ProfileSelector` federated widget (`auth_client/ProfileSelector`), mounted in the global-shell header. The token is kept in `sessionStorage` and read by every API client and `useIdentity()` from `@shared/ui-components`.
 - **Verification** happens locally in compliance, topology and audit servers through `createVerifyJwt` from `@shared/express`, using only the public key (`AUTH_PUBLIC_KEY_FILE`). Algorithm, issuer, audience and expiry are enforced; no call to the auth service is made.
 
 ## Running locally
 
 ```sh
-scripts/generate-auth-keys.sh        # writes .auth-keys/{private,public}.pem (gitignored)
+scripts/dev-env/generate-auth-keys.sh        # writes .auth-keys/{private,public}.pem (gitignored)
 AUTH_DEV_LOGIN=true docker compose up
 ```
 
-`scripts/k8s-local-secrets.sh` creates the `auth-signing-key` (private, auth-server only) and `auth-public-key` (verifying servers) secrets.
+`scripts/k8s-local/k8s-local-secrets.sh` creates the `auth-signing-key` (private, auth-server only) and `auth-public-key` (verifying servers) secrets.
 
 ## Dev login is the seam for a real IdP
 
