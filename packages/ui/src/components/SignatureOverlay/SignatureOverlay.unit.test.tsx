@@ -1,4 +1,4 @@
-// File: services/platform/esignature-service/client/src/components/SignatureOverlay.unit.test.tsx
+// File: packages/ui/src/components/SignatureOverlay/SignatureOverlay.unit.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SignatureOverlay from './SignatureOverlay';
 
@@ -7,7 +7,6 @@ describe('SignatureOverlay Unit Tests', () => {
   const mockOnCancel = vi.fn();
 
   const defaultProps = {
-    documentId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
     onSign: mockOnSign,
     onCancel: mockOnCancel,
   };

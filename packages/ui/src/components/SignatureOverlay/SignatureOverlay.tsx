@@ -1,6 +1,6 @@
-// File: services/platform/esignature-service/client/src/components/SignatureOverlay.tsx
+// File: packages/ui/src/components/SignatureOverlay/SignatureOverlay.tsx
 import { useRef, useState, useEffect } from 'react';
-import { Button } from '@shared/ui-components';
+import { Button } from '../Button';
 
 interface SignatureOverlayProps {
   isSubmitting?: boolean;

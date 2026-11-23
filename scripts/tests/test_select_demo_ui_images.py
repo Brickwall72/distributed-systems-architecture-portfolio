@@ -22,7 +22,7 @@ class SelectDemoUiImagesTests(unittest.TestCase):
 
     def test_shared_base_inputs_select_every_ui_image(self):
         for path in ("packages/styles/src/global.css", "pnpm-lock.yaml", "Dockerfile.base",
-                     "services/platform/esign-service/client/src/index.ts"):
+                     "packages/ui/src/components/SignatureOverlay/SignatureOverlay.tsx"):
             with self.subTest(path=path):
                 self.assertEqual(selector.select_images([path]), sorted(selector.IMAGES))
 
