@@ -1,12 +1,12 @@
 {
   "images": {
-    "audit-client": "ghcr.io/brickwall72/audit-client@sha256:d8dfd6405c9d15564e0d0d1e1920a31f2181e1c55c521a5386cae8a58c65d146",
-    "auth-client": "ghcr.io/brickwall72/auth-client@sha256:60c39134356af224da401e6be87c6b1e6b21c3aacd8beb24a0976f0bef5d59c5",
-    "compliance-client": "ghcr.io/brickwall72/compliance-client@sha256:b3dac80088ab9ccd51e9322ac2f568857d0543f0f9ec075afcba002ebd14bb1c",
-    "compliance-shell": "ghcr.io/brickwall72/compliance-shell@sha256:8e391ef449158f2890afef9a1d27183aac7b8ed145f88d2765f2f5d34b9df99e",
-    "global-shell": "ghcr.io/brickwall72/global-shell@sha256:c46956e21617940b42fddadb907cc7d0ada64fc914994f1807b0cb563708977d",
-    "topology-client": "ghcr.io/brickwall72/topology-client@sha256:6762b883ae7d6520273a4bb44157613d1bcb4ba56b2299c7f36c3ae3e2c1290a",
-    "topology-shell": "ghcr.io/brickwall72/topology-shell@sha256:20f87d0a8567613df3322512ff059b0a202518ec8721e93704d19de49e3e5825"
+    "audit-client": "ghcr.io/brickwall72/audit-client@sha256:6caf1add7b1d178eda1d022b76ab972b38b30e1d23527c685056831e4b764332",
+    "auth-client": "ghcr.io/brickwall72/auth-client@sha256:49481f02b247940cd9b523ef854486a6d06edbf3162491f6f5642d2a2445f37a",
+    "compliance-client": "ghcr.io/brickwall72/compliance-client@sha256:a7d260823179c27a42a7ec0f901bf2a674f623377e942256674ec7038c6b0527",
+    "compliance-shell": "ghcr.io/brickwall72/compliance-shell@sha256:d1e11b83dbfa277df3e5bb51204edea3c012e721952f6c64d493a9ffb20a2720",
+    "global-shell": "ghcr.io/brickwall72/global-shell@sha256:f6eaa2cdf51b8949b2fbe941be186c39f3cac324db20be4e63078d24bac3d100",
+    "topology-client": "ghcr.io/brickwall72/topology-client@sha256:4421a0d0c6dd2ff181d7c20647e87d8e80b0fd486dc12be9201b343f98105589",
+    "topology-shell": "ghcr.io/brickwall72/topology-shell@sha256:8785f089aa2848cb4ee0e7ec55fec81c2177211b806a8dde76f4bb94848d5dfa"
   },
-  "source": "39312d7bc12fbe8ed3cb244cf0e774503178a18b"
+  "source": "99306a64f7de571ec1386818916a64bc929382f8"
 }
