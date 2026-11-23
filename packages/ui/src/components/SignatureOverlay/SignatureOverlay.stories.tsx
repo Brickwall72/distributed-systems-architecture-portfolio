@@ -1,11 +1,11 @@
-// File: services/platform/esignature-service/client/src/E-Sign.stories.tsx
+// File: packages/ui/src/components/SignatureOverlay/SignatureOverlay.stories.tsx
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { SignatureOverlay } from './components';
-import { DocumentViewer } from '@shared/ui-components';
+import SignatureOverlay from './SignatureOverlay';
+import { DocumentViewer } from '../DocumentViewer';
 
 const meta: Meta<typeof SignatureOverlay> = {
-  title: 'Widgets/SignatureOverlay',
+  title: 'Shared Components/SignatureOverlay',
   component: SignatureOverlay,
   parameters: {
     layout: 'fullscreen',

@@ -1,10 +1,9 @@
 // File: services/core/compliance-service/client/src/widgets/ComplianceWorkflow/ComplianceWorkflow.tsx
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, DocumentViewer, useIdentity } from '@shared/ui-components';
+import { Button, DocumentViewer, SignatureOverlay, useIdentity } from '@shared/ui-components';
 import { isAuditor, type Identity } from '@contracts/auth';
 import { hydrateTemplate } from '@shared/utils';
-import { SignatureOverlay } from 'esign-client';
 import { ComplianceWorkflowWidgetPropsSchema, type ComplianceWorkflowWidgetProps } from '@contracts/compliance';
 import { masterPayloadInputSchema, templateId2dataSchema, getReceiptTemplateId } from 'compliance-shared';
 import { useDocumentSync, useGeneratePdf, useSignPdf, signPdfParamsSchema, useTemplateQuery } from '../../hooks';

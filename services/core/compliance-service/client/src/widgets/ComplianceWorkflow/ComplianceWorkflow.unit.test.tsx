@@ -30,25 +30,21 @@ vi.mock('../../hooks', async (importOriginal) => {
   };
 });
 
-vi.mock('esign-client', () => ({
-  SignatureOverlay: ({ onSign, onCancel }: any) => (
-    <div data-testid="mock-signature-overlay">
-      <button data-testid="mock-sign-submit" onClick={() => onSign('data:image/png;base64,sig')}>
-        Sign and Submit
-      </button>
-      <button data-testid="mock-sign-cancel" onClick={onCancel}>
-        Cancel Sign
-      </button>
-    </div>
-  ),
-  signDocument: vi.fn(),
-}));
-
 vi.mock('@shared/ui-components', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shared/ui-components')>();
   return {
     ...actual,
     useIdentity: () => session.identity,
+    SignatureOverlay: ({ onSign, onCancel }: { onSign: (data: string) => void; onCancel: () => void }) => (
+      <div data-testid="mock-signature-overlay">
+        <button data-testid="mock-sign-submit" onClick={() => onSign('data:image/png;base64,sig')}>
+          Sign and Submit
+        </button>
+        <button data-testid="mock-sign-cancel" onClick={onCancel}>
+          Cancel Sign
+        </button>
+      </div>
+    ),
     DocumentViewer: ({ content, children }: any) => (
       <div data-testid="document-viewer" data-content={content}>
         {content}

@@ -62,7 +62,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 | `compliance-server` | workspace | [services/core/compliance-service/server/package.json:1](../../../services/core/compliance-service/server/package.json#L1) |
 | `compliance-shared` | workspace | [services/core/compliance-service/shared/package.json:1](../../../services/core/compliance-service/shared/package.json#L1) |
 | `compliance-shell` | workspace | [ui-shells/domain-shells/compliance-shell/package.json:1](../../../ui-shells/domain-shells/compliance-shell/package.json#L1) |
-| `esign-client` | workspace | [services/platform/esign-service/client/package.json:1](../../../services/platform/esign-service/client/package.json#L1) |
 | `esign-server` | workspace | [services/platform/esign-service/server/package.json:1](../../../services/platform/esign-service/server/package.json#L1) |
 | `global-shell` | workspace | [ui-shells/global-shell/package.json:1](../../../ui-shells/global-shell/package.json#L1) |
 | `pdf-server` | workspace | [services/platform/pdf-generator/server/package.json:1](../../../services/platform/pdf-generator/server/package.json#L1) |
@@ -200,7 +199,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 | `compliance-client` | `compliance-shared` | contract-dependency | verified |
 | `compliance-client` | `compliance-shared` | contract-dependency | verified |
 | `compliance-client` | `compliance-shared` | workspace-dependency | verified |
-| `compliance-client` | `esign-client` | workspace-dependency | verified |
 | `compliance-server` | `PostgreSQL (compliance)` | storage | declared |
 | `compliance-server` | `NATS JetStream` | nats-publish | unresolved |
 | `compliance-server` | `NATS JetStream` | nats-request | unresolved |
@@ -261,9 +259,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 | `compliance-shell` | `audit-client` | federation | verified |
 | `compliance-shell` | `compliance-client` | federation | verified |
 | `compliance-shell` | `topology-client` | federation | verified |
-| `esign-client` | `@contracts/esign` | contract-dependency | verified |
-| `esign-client` | `@shared/ui-components` | workspace-dependency | verified |
-| `esign-client` | `@shared/vite-config` | build-dependency | verified |
 | `esign-server` | `MinIO object storage` | storage | declared |
 | `esign-server` | `NATS JetStream` | nats-responder | verified |
 | `esign-server` | `@contracts/esign` | contract-dependency | verified |
@@ -529,7 +524,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 - `@contracts/auth` -[contract-dependency, verified]-> `compliance-client`
 - `@contracts/auth` -[contract-dependency, verified]-> `@shared/express` -[workspace-dependency, verified]-> `compliance-server`
 - `@contracts/auth` -[contract-dependency, verified]-> `@shared/testing` -[build-dependency, verified]-> `compliance-shell`
-- `@contracts/auth` -[contract-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `esign-client`
 - `@contracts/auth` -[contract-dependency, verified]-> `@shared/express` -[workspace-dependency, verified]-> `esign-server`
 - `@contracts/auth` -[contract-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `global-shell`
 - `@contracts/auth` -[contract-dependency, verified]-> `@shared/express` -[workspace-dependency, verified]-> `pdf-server`
@@ -572,7 +566,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 - `@contracts/common` -[contract-dependency, verified]-> `compliance-server`
 - `@contracts/common` -[contract-dependency, verified]-> `compliance-shared`
 - `@contracts/common` -[contract-dependency, verified]-> `compliance-shell`
-- `@contracts/common` -[contract-dependency, verified]-> `@contracts/esign` -[contract-dependency, verified]-> `esign-client`
 - `@contracts/common` -[contract-dependency, verified]-> `@contracts/esign` -[contract-dependency, verified]-> `esign-server`
 - `@contracts/common` -[contract-dependency, verified]-> `compliance-shell` -[federation, verified]-> `global-shell`
 - `@contracts/common` -[contract-dependency, verified]-> `@contracts/pdf` -[contract-dependency, verified]-> `pdf-server`
@@ -625,7 +618,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 - `@contracts/esign` -[contract-dependency, verified]-> `compliance-server`
 - `@contracts/esign` -[contract-dependency, verified]-> `compliance-shared`
 - `@contracts/esign` -[contract-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell`
-- `@contracts/esign` -[contract-dependency, verified]-> `esign-client`
 - `@contracts/esign` -[contract-dependency, verified]-> `esign-server`
 - `@contracts/esign` -[contract-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell` -[federation, verified]-> `global-shell`
 
@@ -832,7 +824,6 @@ Dependencies point from consumer to provider. Change impact follows the reverse 
 - `@shared/styles` -[build-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `auth-client`
 - `@shared/styles` -[build-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `compliance-client`
 - `@shared/styles` -[workspace-dependency, verified]-> `compliance-shell`
-- `@shared/styles` -[build-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `esign-client`
 - `@shared/styles` -[workspace-dependency, verified]-> `global-shell`
 - `@shared/styles` -[build-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `topology-client`
 - `@shared/styles` -[workspace-dependency, verified]-> `topology-shell`
@@ -903,7 +894,6 @@ No downstream relationship resolved.
 - `@shared/ui-components` -[workspace-dependency, verified]-> `auth-client`
 - `@shared/ui-components` -[workspace-dependency, verified]-> `compliance-client`
 - `@shared/ui-components` -[workspace-dependency, verified]-> `compliance-shell`
-- `@shared/ui-components` -[workspace-dependency, verified]-> `esign-client`
 - `@shared/ui-components` -[workspace-dependency, verified]-> `global-shell`
 - `@shared/ui-components` -[workspace-dependency, verified]-> `topology-client`
 - `@shared/ui-components` -[workspace-dependency, verified]-> `topology-shell`
@@ -934,7 +924,6 @@ No downstream relationship resolved.
 - `@shared/utils` -[workspace-dependency, verified]-> `compliance-client`
 - `@shared/utils` -[workspace-dependency, verified]-> `compliance-server`
 - `@shared/utils` -[workspace-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `compliance-shell`
-- `@shared/utils` -[workspace-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `esign-client`
 - `@shared/utils` -[workspace-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `global-shell`
 - `@shared/utils` -[workspace-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `topology-client`
 - `@shared/utils` -[workspace-dependency, verified]-> `@shared/ui-components` -[workspace-dependency, verified]-> `topology-shell`
@@ -962,7 +951,6 @@ No downstream relationship resolved.
 - `@shared/vite-config` -[build-dependency, verified]-> `auth-client`
 - `@shared/vite-config` -[build-dependency, verified]-> `compliance-client`
 - `@shared/vite-config` -[workspace-dependency, verified]-> `compliance-shell`
-- `@shared/vite-config` -[build-dependency, verified]-> `esign-client`
 - `@shared/vite-config` -[workspace-dependency, verified]-> `global-shell`
 - `@shared/vite-config` -[build-dependency, verified]-> `topology-client`
 - `@shared/vite-config` -[workspace-dependency, verified]-> `topology-shell`
@@ -1085,20 +1073,6 @@ No downstream relationship resolved.
 - `compliance-shell` -[implemented-by, verified]-> `App` -[embeds, verified]-> `App`
 - `compliance-shell` -[implemented-by, verified]-> `App`
 - `compliance-shell` -[federation, verified]-> `global-shell`
-
-### esign-client
-
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `DocumentsTable` -[embeds, verified]-> `DocumentsReview.page`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `ComplianceWorkflowWidget` -[embeds, verified]-> `TransferAuthorization.page`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `ComplianceWorkflowWidget` -[embeds, verified]-> `TransferReceipt.page`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell` -[implemented-by, verified]-> `App` -[embeds, verified]-> `App`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `ComplianceWorkflowWidget`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `DocumentsTable`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[implemented-by, verified]-> `TemplateSelector`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell` -[implemented-by, verified]-> `App`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell`
-- `esign-client` -[workspace-dependency, verified]-> `compliance-client` -[federation, verified]-> `compliance-shell` -[federation, verified]-> `global-shell`
 
 ### esign-server
 

@@ -44,6 +44,6 @@ clean:
 	@echo "🧹 Scrubbing the environment..."
 	$(COMPOSE) down -v --remove-orphans
 
-# Tail logs (Usage: make logs OR make logs svc=esign-client)
+# Tail logs (Usage: make logs OR make logs svc=esign-server)
 logs:
 	$(COMPOSE) logs -f $(svc)

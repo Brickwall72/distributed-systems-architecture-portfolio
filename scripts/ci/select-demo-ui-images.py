@@ -24,7 +24,7 @@ IMAGES = {
 BASE_FILES = frozenset(("Dockerfile.base", ".dockerignore", "pnpm-lock.yaml",
                         "pnpm-workspace.yaml", "package.json", "tsconfig.json", "turbo.json"))
 PACKAGES_DIR = "packages/"
-BASE_DIRS = (PACKAGES_DIR, "services/platform/esign-service/client/")
+BASE_DIRS = (PACKAGES_DIR,)
 SERVICES_DIR = "services/"
 SMOKE_FILES = frozenset((
     "skaffold.yaml",
@@ -132,8 +132,7 @@ def verification_checks(paths, graph):
         for path in paths
     )
     ui_integration = global_change or "compliance-shell" in affected or any(
-        path.startswith(("services/core/compliance-service/client/",
-                         "services/platform/esign-service/client/")) for path in paths
+        path.startswith("services/core/compliance-service/client/") for path in paths
     )
     contracts = global_change or backend or any(
         path.startswith("services/") and "/client/" in path for path in paths

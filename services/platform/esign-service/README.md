@@ -18,8 +18,8 @@ with a presigned download URL. It has no user-facing HTTP API — only
   retries converge on one stored signed artifact.
 - Signing fails rather than returning an unsealed PDF when the certificate or
   cryptographic seal cannot be applied.
-- The client package exposes the signing UI components consumed by the
-  compliance workflow widgets.
+- The signing UI lives in the shared UI package and is consumed by compliance
+  workflow widgets.
 
 ## Certificate and configuration
 
@@ -41,7 +41,7 @@ compliance prefixes but cannot delete objects.
 Compose service: `esign-server` (internal port `8080`), with a
 `compose.dev.yaml` override for `make dev`.
 
-- Workspaces: `esign-server` and the e-sign client package.
+- Workspace: `esign-server`.
 - `pnpm --filter esign-server test:unit`. The integration tests verify a real
   PDF signature with a temporary certificate and OpenSSL and exercise the
   responder with separately scoped MinIO accounts; run them only against

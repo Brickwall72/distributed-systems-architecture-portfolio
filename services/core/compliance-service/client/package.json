@@ -22,7 +22,6 @@
     "@contracts/common": "workspace:*",
     "@contracts/compliance": "workspace:*",
     "@contracts/topology": "workspace:*",
-    "esign-client": "workspace:*",
     "compliance-shared": "workspace:*",
     "@tanstack/react-query": "~5.105.3",
     "react": "~19.2.8",

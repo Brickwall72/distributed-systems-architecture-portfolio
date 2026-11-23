@@ -3649,16 +3649,6 @@
       }
     },
     {
-      "id": "workspace:esign-client",
-      "kind": "workspace",
-      "name": "esign-client",
-      "path": "services/platform/esign-service/client",
-      "source": {
-        "line": 1,
-        "path": "services/platform/esign-service/client/package.json"
-      }
-    },
-    {
       "id": "workspace:esign-server",
       "kind": "workspace",
       "name": "esign-server",
@@ -5545,19 +5535,6 @@
       "evidence": [
         {
           "line": 1,
-          "path": "services/core/compliance-service/client/package.json"
-        }
-      ],
-      "from": "workspace:compliance-client",
-      "label": "dependencies",
-      "status": "verified",
-      "to": "workspace:esign-client",
-      "type": "workspace-dependency"
-    },
-    {
-      "evidence": [
-        {
-          "line": 1,
           "path": "docs/architecture/model.json"
         }
       ],
@@ -6753,45 +6730,6 @@
       "status": "verified",
       "to": "workspace:topology-client",
       "type": "federation"
-    },
-    {
-      "evidence": [
-        {
-          "line": 1,
-          "path": "services/platform/esign-service/client/package.json"
-        }
-      ],
-      "from": "workspace:esign-client",
-      "label": "dependencies",
-      "status": "verified",
-      "to": "workspace:@contracts/esign",
-      "type": "contract-dependency"
-    },
-    {
-      "evidence": [
-        {
-          "line": 1,
-          "path": "services/platform/esign-service/client/package.json"
-        }
-      ],
-      "from": "workspace:esign-client",
-      "label": "dependencies",
-      "status": "verified",
-      "to": "workspace:@shared/ui-components",
-      "type": "workspace-dependency"
-    },
-    {
-      "evidence": [
-        {
-          "line": 1,
-          "path": "services/platform/esign-service/client/package.json"
-        }
-      ],
-      "from": "workspace:esign-client",
-      "label": "devDependencies",
-      "status": "verified",
-      "to": "workspace:@shared/vite-config",
-      "type": "build-dependency"
     },
     {
       "evidence": [
@@ -11677,24 +11615,6 @@
           ]
         },
         {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@contracts/auth",
-            "workspace:@shared/ui-components",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "contract-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
           "component": "workspace:esign-server",
           "path": [
             "workspace:@contracts/auth",
@@ -12395,24 +12315,6 @@
             "workspace:compliance-shell"
           ],
           "relationships": [
-            {
-              "status": "verified",
-              "type": "contract-dependency"
-            }
-          ]
-        },
-        {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@contracts/common",
-            "workspace:@contracts/esign",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "contract-dependency"
-            },
             {
               "status": "verified",
               "type": "contract-dependency"
@@ -13304,19 +13206,6 @@
             {
               "status": "verified",
               "type": "federation"
-            }
-          ]
-        },
-        {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@contracts/esign",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "contract-dependency"
             }
           ]
         },
@@ -17317,24 +17206,6 @@
           ]
         },
         {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@shared/styles",
-            "workspace:@shared/ui-components",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "build-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
           "component": "workspace:global-shell",
           "path": [
             "workspace:@shared/styles",
@@ -18396,19 +18267,6 @@
           ]
         },
         {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@shared/ui-components",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
           "component": "workspace:global-shell",
           "path": [
             "workspace:@shared/ui-components",
@@ -18950,24 +18808,6 @@
           ]
         },
         {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@shared/utils",
-            "workspace:@shared/ui-components",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
           "component": "workspace:global-shell",
           "path": [
             "workspace:@shared/utils",
@@ -19411,19 +19251,6 @@
             {
               "status": "verified",
               "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
-          "component": "workspace:esign-client",
-          "path": [
-            "workspace:@shared/vite-config",
-            "workspace:esign-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "build-dependency"
             }
           ]
         },
@@ -21261,239 +21088,6 @@
         }
       ],
       "root": "workspace:compliance-shell"
-    },
-    {
-      "dependents": [
-        {
-          "component": "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/DocumentsReview/DocumentsReview.page.tsx",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:DocumentsTable",
-            "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/DocumentsReview/DocumentsReview.page.tsx"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            },
-            {
-              "status": "verified",
-              "type": "embeds"
-            }
-          ]
-        },
-        {
-          "component": "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/TransferAuthorization/TransferAuthorization.page.tsx",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:ComplianceWorkflowWidget",
-            "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/TransferAuthorization/TransferAuthorization.page.tsx"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            },
-            {
-              "status": "verified",
-              "type": "embeds"
-            }
-          ]
-        },
-        {
-          "component": "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/TransferReceipt/TransferReceipt.page.tsx",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:ComplianceWorkflowWidget",
-            "page:compliance-shell:ui-shells/domain-shells/compliance-shell/src/pages/TransferReceipt/TransferReceipt.page.tsx"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            },
-            {
-              "status": "verified",
-              "type": "embeds"
-            }
-          ]
-        },
-        {
-          "component": "page:global-shell:ui-shells/global-shell/src/App.tsx",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "workspace:compliance-shell",
-            "widget:compliance-shell:App",
-            "page:global-shell:ui-shells/global-shell/src/App.tsx"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "federation"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            },
-            {
-              "status": "verified",
-              "type": "embeds"
-            }
-          ]
-        },
-        {
-          "component": "widget:compliance-client:ComplianceWorkflowWidget",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:ComplianceWorkflowWidget"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            }
-          ]
-        },
-        {
-          "component": "widget:compliance-client:DocumentsTable",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:DocumentsTable"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            }
-          ]
-        },
-        {
-          "component": "widget:compliance-client:TemplateSelector",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "widget:compliance-client:TemplateSelector"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            }
-          ]
-        },
-        {
-          "component": "widget:compliance-shell:App",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "workspace:compliance-shell",
-            "widget:compliance-shell:App"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "federation"
-            },
-            {
-              "status": "verified",
-              "type": "implemented-by"
-            }
-          ]
-        },
-        {
-          "component": "workspace:compliance-client",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            }
-          ]
-        },
-        {
-          "component": "workspace:compliance-shell",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "workspace:compliance-shell"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "federation"
-            }
-          ]
-        },
-        {
-          "component": "workspace:global-shell",
-          "path": [
-            "workspace:esign-client",
-            "workspace:compliance-client",
-            "workspace:compliance-shell",
-            "workspace:global-shell"
-          ],
-          "relationships": [
-            {
-              "status": "verified",
-              "type": "workspace-dependency"
-            },
-            {
-              "status": "verified",
-              "type": "federation"
-            },
-            {
-              "status": "verified",
-              "type": "federation"
-            }
-          ]
-        }
-      ],
-      "root": "workspace:esign-client"
     },
     {
       "dependents": [

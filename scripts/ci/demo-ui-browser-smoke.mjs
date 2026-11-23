@@ -104,6 +104,67 @@ async function main() {
     }
     phase = 'signing the PDF';
     const canvas = await page.waitForSelector('canvas', { visible: true });
+    const styling = await canvas.evaluate((element) => {
+      const drawingArea = element.parentElement;
+      const card = drawingArea?.parentElement;
+      const overlay = card?.parentElement;
+      const line = drawingArea?.firstElementChild;
+      const buttons = card?.lastElementChild;
+      if (!drawingArea || !card || !overlay || !line || !buttons) {
+        return 'signature overlay structure is incomplete';
+      }
+      const cardStyle = getComputedStyle(card);
+      const lineStyle = getComputedStyle(line);
+      if (Math.abs(Number.parseFloat(cardStyle.height) - 420) > 1 || cardStyle.maxWidth === 'none') {
+        return 'signature card dimensions are missing';
+      }
+      if (!getComputedStyle(overlay).backdropFilter.includes('blur(')) {
+        return 'signature background blur is missing';
+      }
+      if (lineStyle.borderBottomStyle !== 'solid' || Number.parseFloat(lineStyle.borderBottomWidth) < 1) {
+        return 'signature guide line is missing';
+      }
+      const style = getComputedStyle(buttons);
+      if (style.display !== 'flex' || !['flex-end', 'flow-end'].includes(style.justifyContent)) {
+        const matches = [];
+        let inaccessibleSheets = 0;
+        const collectRules = (rules) => {
+          for (const rule of rules) {
+            if (rule instanceof CSSStyleRule && rule.style.getPropertyValue('justify-content')
+                && buttons.matches(rule.selectorText)) {
+              matches.push({
+                selector: rule.selectorText,
+                value: rule.style.getPropertyValue('justify-content'),
+                priority: rule.style.getPropertyPriority('justify-content'),
+              });
+            } else if (rule instanceof CSSGroupingRule) {
+              if (rule instanceof CSSMediaRule && !matchMedia(rule.conditionText).matches) continue;
+              if (rule instanceof CSSSupportsRule && !CSS.supports(rule.conditionText)) continue;
+              collectRules(rule.cssRules);
+            }
+          }
+        };
+        for (const sheet of document.styleSheets) {
+          try {
+            collectRules(sheet.cssRules);
+          } catch (error) {
+            if (error.name !== 'SecurityError') throw error;
+            inaccessibleSheets += 1;
+          }
+        }
+        return `signature buttons are not right-aligned: ${JSON.stringify({
+          element: buttons.tagName,
+          classes: buttons.className,
+          display: style.display,
+          justifyContent: style.justifyContent,
+          inlineJustifyContent: buttons.style.justifyContent,
+          matchingRules: matches,
+          inaccessibleSheets,
+        })}`;
+      }
+      return null;
+    });
+    if (styling) throw new Error(`Signature styling invalid: ${styling}.`);
     const box = await canvas.boundingBox();
     if (!box) throw new Error('Signature canvas is unavailable.');
     await page.mouse.move(box.x + 30, box.y + 30);
